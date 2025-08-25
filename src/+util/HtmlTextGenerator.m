@@ -328,6 +328,8 @@ classdef (Abstract) HtmlTextGenerator
         % AUXAPP.WINCONFIG
         %-----------------------------------------------------------------%
         function [htmlContent, stableVersion, updatedModule] = checkAvailableUpdate(appGeneral, rootFolder)
+            updatedModule = {};
+            
             try
                 % Versão instalada no computador:
                 appName          = class.Constants.appName;
@@ -349,7 +351,6 @@ classdef (Abstract) HtmlTextGenerator
                     msgWarning   = 'O appAnalise está atualizado.';
                     
                 else
-                    updatedModule    = {};
                     nonUpdatedModule = {};
                     if strcmp(presentVersion.(appName), stableVersion.(appName))
                         updatedModule(end+1)    = {'appAnalise'};
