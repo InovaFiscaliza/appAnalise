@@ -1067,11 +1067,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Axes interactions:
             plot.axes.Interactivity.DefaultCreation([app.UIAxes1, app.UIAxes2, app.UIAxes3], [dataTipInteraction, regionZoomInteraction])
-
-            try
-                eval(sprintf('opengl %s', app.General.openGL))
-            catch
-            end
         end
     end
 

@@ -50,8 +50,6 @@ classdef winConfig_exported < matlab.apps.AppBase
         General_Grid              matlab.ui.container.GridLayout
         openAuxiliarApp2Debug     matlab.ui.control.CheckBox
         openAuxiliarAppAsDocked   matlab.ui.control.CheckBox
-        gpuType                   matlab.ui.control.DropDown
-        gpuTypeLabel              matlab.ui.control.Label
         versionInfo               matlab.ui.control.Label
         versionInfoRefresh        matlab.ui.control.Image
         versionInfoLabel          matlab.ui.control.Label
@@ -189,7 +187,6 @@ classdef winConfig_exported < matlab.apps.AppBase
                 otherwise
                     app.btnFolder.Enable               = 1;
                     app.versionInfoRefresh.Enable      = 1;
-                    app.gpuType.Enable                 = 1;
                     app.openAuxiliarAppAsDocked.Enable = 1;
             end
 
@@ -208,20 +205,6 @@ classdef winConfig_exported < matlab.apps.AppBase
         function General_updatePanel(app)
             % Versão:
             ui.TextView.update(app.versionInfo, util.HtmlTextGenerator.AppInfo(app.mainApp.General, app.mainApp.rootFolder, app.mainApp.executionMode));
-
-            % Renderizador:
-            graphRender = opengl('data');
-            switch graphRender.HardwareSupportLevel
-                case 'basic'; graphRenderSupport = 'hardwarebasic';
-                case 'full';  graphRenderSupport = 'hardware';
-                case 'none';  graphRenderSupport = 'software';
-                otherwise;    graphRenderSupport = graphRender.HardwareSupportLevel; % "driverissue"
-            end
-
-            if ~ismember(graphRenderSupport, app.gpuType.Items)
-                app.gpuType.Items{end+1} = graphRenderSupport;
-            end
-            app.gpuType.Value = graphRenderSupport;
 
             % Modo de operação:
             app.openAuxiliarAppAsDocked.Value   = app.mainApp.General.operationMode.Dock;
@@ -475,21 +458,11 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: InitialBW_kHz, gpuType, graphics_Refresh, 
-        % ...and 5 other components
+        % Callback function: InitialBW_kHz, graphics_Refresh, imgFormat, 
+        % ...and 4 other components
         function Graphics_ParameterValueChanged(app, event)
             
             switch event.Source
-                case app.gpuType
-                    if ismember(app.gpuType.Value, {'software', 'hardware', 'hardwarebasic'})
-                        eval(sprintf('opengl %s', app.gpuType.Value))
-
-                        graphRender = opengl('data');
-                        
-                        app.mainApp.General.openGL = app.gpuType.Value;
-                        app.mainApp.General.AppVersion.openGL = rmfield(graphRender, {'MaxTextureSize', 'Visual', 'SupportsGraphicsSmoothing', 'SupportsDepthPeelTransparency', 'SupportsAlignVertexCenters', 'Extensions', 'MaxFrameBufferSize'});
-                    end
-
                 case {app.imgFormat, app.imgResolution}
                     app.mainApp.General.Image = struct('Format', app.imgFormat.Value, 'Resolution', str2double(app.imgResolution.Value));
 
@@ -755,7 +728,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create General_Grid
             app.General_Grid = uigridlayout(app.GridLayout);
             app.General_Grid.ColumnWidth = {'1x', 16};
-            app.General_Grid.RowHeight = {26, 150, 22, '1x', 17, 22, 1, 22, 15};
+            app.General_Grid.RowHeight = {26, '1x', 1, 22, 15};
             app.General_Grid.RowSpacing = 5;
             app.General_Grid.Padding = [0 0 0 0];
             app.General_Grid.Layout.Row = [2 6];
@@ -787,30 +760,10 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.versionInfo.VerticalAlignment = 'top';
             app.versionInfo.WordWrap = 'on';
             app.versionInfo.FontSize = 11;
-            app.versionInfo.Layout.Row = [2 4];
+            app.versionInfo.Layout.Row = 2;
             app.versionInfo.Layout.Column = [1 2];
             app.versionInfo.Interpreter = 'html';
             app.versionInfo.Text = '';
-
-            % Create gpuTypeLabel
-            app.gpuTypeLabel = uilabel(app.General_Grid);
-            app.gpuTypeLabel.VerticalAlignment = 'bottom';
-            app.gpuTypeLabel.FontSize = 10;
-            app.gpuTypeLabel.FontColor = [0.149 0.149 0.149];
-            app.gpuTypeLabel.Layout.Row = 5;
-            app.gpuTypeLabel.Layout.Column = [1 2];
-            app.gpuTypeLabel.Text = 'Unidade gráfica:';
-
-            % Create gpuType
-            app.gpuType = uidropdown(app.General_Grid);
-            app.gpuType.Items = {'hardwarebasic', 'hardware', 'software'};
-            app.gpuType.ValueChangedFcn = createCallbackFcn(app, @Graphics_ParameterValueChanged, true);
-            app.gpuType.Enable = 'off';
-            app.gpuType.FontSize = 11;
-            app.gpuType.BackgroundColor = [1 1 1];
-            app.gpuType.Layout.Row = 6;
-            app.gpuType.Layout.Column = [1 2];
-            app.gpuType.Value = 'hardware';
 
             % Create openAuxiliarAppAsDocked
             app.openAuxiliarAppAsDocked = uicheckbox(app.General_Grid);
@@ -818,7 +771,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.openAuxiliarAppAsDocked.Enable = 'off';
             app.openAuxiliarAppAsDocked.Text = 'Modo DOCK: módulos auxiliares abertos na janela principal do app';
             app.openAuxiliarAppAsDocked.FontSize = 11;
-            app.openAuxiliarAppAsDocked.Layout.Row = 8;
+            app.openAuxiliarAppAsDocked.Layout.Row = 4;
             app.openAuxiliarAppAsDocked.Layout.Column = [1 2];
 
             % Create openAuxiliarApp2Debug
@@ -827,7 +780,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.openAuxiliarApp2Debug.Enable = 'off';
             app.openAuxiliarApp2Debug.Text = 'Modo DEBUG';
             app.openAuxiliarApp2Debug.FontSize = 11;
-            app.openAuxiliarApp2Debug.Layout.Row = 9;
+            app.openAuxiliarApp2Debug.Layout.Row = 5;
             app.openAuxiliarApp2Debug.Layout.Column = [1 2];
 
             % Create CustomPlotGrid

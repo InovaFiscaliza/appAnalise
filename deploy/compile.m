@@ -1,6 +1,6 @@
 function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeFolder, showConsoleInDesktopBuild, createGitHubReleaseForDesktopBuild, githubCLIFolder, githubAccount)
     
-    % Automatiza compilação do appAnalise, nas suas versões desktop e webapp.
+    % Automatiza compilação da ferramenta, nas suas versões desktop e webapp.
     % No caso de criação de release no repo do GitHub, deve-se certificar
     % de instalar o GitHub CLI e estar conectado a uma conta que tem perfil
     % de escrita no repo InovaFiscaliza/appAnalise.
@@ -22,10 +22,13 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
 
     initFolder  = fileparts(mfilename('fullpath'));
     finalFolder = fullfile(rootCompiledFolder, appName);
+    if ~isfolder(finalFolder)
+        mkdir(finalFolder)
+    end
 
     if contains(compilationType, 'Desktop') && createGitHubReleaseForDesktopBuild
         if showConsoleInDesktopBuild
-            error('The flag "showConsoleInDesktopBuild" must be true when creating a GitHub release.');
+            error('The flag "showConsoleInDesktopBuild" must be false when creating a GitHub release.');
         end
 
         cd(githubCLIFolder)
@@ -123,7 +126,7 @@ function results = desktopCompilation(finalFolder, matlabRuntimeFolder, githubRe
     cd(initFolder)
 
     % Copia arquivos para a pasta do usuário, além de criar vínculo entre 
-    % o appAnalise e o seu splashscreen (construído em C#, no Visual Studio).
+    % o app e o seu splashscreen (construído em C#, no Visual Studio).
     for ii = 1:numel(appPackages)
         appPackage = appPackages{ii};
 
@@ -207,10 +210,7 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
         if isfolder(desktopFinalFolder)
             rmdir(desktopFinalFolder, 's')
         end
-
-        if isfile(fullfile(finalFolder, sprintf('%s_Installer.zip', appName)))
-            delete(fullfile(finalFolder, sprintf('%s_Installer.zip', appName)))
-        end
+        delete(fullfile(finalFolder, sprintf('%s_Installer.zip', appName)))
         
         copyfile(deploySplash, desktopFinalFolder, 'f')
         copyfile(deployApp, fullfile(desktopFinalFolder, 'application'), 'f')

@@ -356,7 +356,7 @@ classdef SpecData < model.SpecDataBase
                                     obj(ii).UserData.occMethod.CacheIndex = [];
                                     obj(ii).UserData.occCache             = struct('Info', {}, 'THR', {}, 'Data', {});
 
-                                    update(obj(ii), 'UserData:ReportFields', 'Creation', ii, channelObj)
+                                    update(obj, 'UserData:ReportFields', 'Creation', ii, channelObj)
                                 end
                             end
 
