@@ -24,13 +24,10 @@ classdef (Abstract) HtmlTextGenerator
                 executionMode 
                 outputFormat char {mustBeMember(outputFormat, {'popup', 'textview'})} = 'textview'
             end
-
-            global RFDataHub
-            global RFDataHub_info
         
             appName    = class.Constants.appName;
             appVersion = appGeneral.AppVersion;
-            appURL     = util.publicLink(appName, rootFolder, 'appAnalise');
+            appURL     = util.publicLink(appName, rootFolder, appName);
         
             switch executionMode
                 case {'MATLABEnvironment', 'desktopStandaloneApp'}
@@ -43,13 +40,19 @@ classdef (Abstract) HtmlTextGenerator
                         appMode = 'deployServer';                    
                     end
             end
+
+            dataStruct    = struct('group', 'COMPUTADOR',     'value', struct('Machine', rmfield(appVersion.machine, 'name'), 'Mode', sprintf('%s - %s', executionMode, appMode)));
+            dataStruct(2) = struct('group', 'MATLAB',         'value', rmfield(appVersion.matlab, 'name'));
+            if ~isempty(appVersion.browser)
+                dataStruct(3) = struct('group', 'NAVEGADOR',  'value', rmfield(appVersion.browser, 'name'));
+            end
+            dataStruct(end+1) = struct('group', 'APLICATIVO', 'value', appVersion.application);
+
+            global RFDataHub
+            global RFDataHub_info
+            dataStruct(end+1) = struct('group', 'RFDataHub', 'value', struct('releasedDate', RFDataHub_info.ReleaseDate, 'numberOfRows', height(RFDataHub), 'numberOfUniqueStations', numel(unique(RFDataHub.("Station")))));
         
-            dataStruct    = struct('group', 'COMPUTADOR', 'value', struct('Machine', appVersion.machine, 'Mode', sprintf('%s - %s', executionMode, appMode)));
-            dataStruct(2) = struct('group', appName,      'value', appVersion.(appName));
-            dataStruct(3) = struct('group', 'RFDataHub',  'value', struct('releasedDate', RFDataHub_info.ReleaseDate, 'numberOfRows', height(RFDataHub), 'numberOfUniqueStations', numel(unique(RFDataHub.("Station")))));
-            dataStruct(4) = struct('group', 'MATLAB',     'value', appVersion.matlab);
-        
-            freeInitialText = sprintf('<font style="font-size: 12px;">O repositório das ferramentas desenvolvidas no Escritório de inovação da SFI pode ser acessado <a href="%s" target="_blank">aqui</a>.</font>\n\n', appURL.Sharepoint);
+            freeInitialText = sprintf('<font style="font-size: 12px;">O repositório das ferramentas desenvolvidas no Laboratório de inovação da SFI pode ser acessado <a href="%s" target="_blank">aqui</a>.</font>\n\n', appURL.Sharepoint);
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'print -1', freeInitialText, outputFormat);
         end
 
@@ -328,13 +331,14 @@ classdef (Abstract) HtmlTextGenerator
         % AUXAPP.WINCONFIG
         %-----------------------------------------------------------------%
         function [htmlContent, stableVersion, updatedModule] = checkAvailableUpdate(appGeneral, rootFolder)
+            stableVersion = [];
             updatedModule = {};
             
             try
                 % Versão instalada no computador:
                 appName          = class.Constants.appName;
-                presentVersion   = struct(appName,     appGeneral.AppVersion.(appName).version, ...
-                                          'rfDataHub', appGeneral.AppVersion.rfDataHub); 
+                presentVersion   = struct(appName,     appGeneral.AppVersion.application.version, ...
+                                          'rfDataHub', rmfield(appGeneral.AppVersion.database, 'name'));
                 
                 % Versão estável, indicada nos arquivos de referência (na nuvem):
                 [versionFileURL, rfDataHubURL] = util.publicLink(appName, rootFolder, 'VersionFile+RFDataHub');
@@ -348,8 +352,7 @@ classdef (Abstract) HtmlTextGenerator
                 
                 % Validação:
                 if isequal(presentVersion, stableVersion)
-                    msgWarning   = 'O appAnalise está atualizado.';
-                    
+                    msgWarning   = 'O appAnalise está atualizado.';                    
                 else
                     nonUpdatedModule = {};
                     if strcmp(presentVersion.(appName), stableVersion.(appName))

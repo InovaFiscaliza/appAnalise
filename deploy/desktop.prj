@@ -8,8 +8,8 @@
       <file>${PROJECT_ROOT}\desktop_resources\icon_24.png</file>
       <file>${PROJECT_ROOT}\desktop_resources\icon_16.png</file>
     </param.icons>
-    <param.version>1.87.10</param.version>
-    <param.authnamewatermark>Escritório de inovação da SFI</param.authnamewatermark>
+    <param.version>1.88.0</param.version>
+    <param.authnamewatermark>Laboratório de inovação da SFI</param.authnamewatermark>
     <param.email />
     <param.company>ANATEL</param.company>
     <param.summary />
@@ -83,7 +83,6 @@
       <file>C:\InovaFiscaliza\appAnalise\src\+class</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+model</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+plot</file>
-      <file>C:\InovaFiscaliza\appAnalise\src\+report</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+reportLibConnection</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+util</file>
       <file>C:\InovaFiscaliza\appAnalise\src\resources</file>
@@ -103,14 +102,7 @@
     <workflow />
     <matlab>
       <root>C:\Program Files\MATLAB\R2024a</root>
-      <toolboxes>
-        <toolbox name="neuralnetwork" />
-      </toolboxes>
-      <toolbox>
-        <neuralnetwork>
-          <enabled>true</enabled>
-        </neuralnetwork>
-      </toolbox>
+      <toolboxes />
     </matlab>
     <platform>
       <unix>false</unix>

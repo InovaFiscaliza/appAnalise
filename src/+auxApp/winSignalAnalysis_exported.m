@@ -2,58 +2,60 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                       matlab.ui.Figure
-        GridLayout                     matlab.ui.container.GridLayout
-        toolGrid                       matlab.ui.container.GridLayout
-        CheckBox                       matlab.ui.control.CheckBox
-        tool_ControlPanelVisibility    matlab.ui.control.Image
-        tool_ExportJSONFile            matlab.ui.control.Image
-        tool_ShowGlobalExceptionList   matlab.ui.control.Image
-        ControlGrid                    matlab.ui.container.GridLayout
-        EditableParametersPanel        matlab.ui.container.Panel
-        EditableParametersGrid         matlab.ui.container.GridLayout
-        AdditionalDescriptionLabel     matlab.ui.control.Label
-        CaractersticasdeinstalaoLabel  matlab.ui.control.Label
-        axesToolSupport                matlab.ui.container.GridLayout
-        axesTool_EditCancel            matlab.ui.control.Image
-        axesTool_EditConfirm           matlab.ui.control.Image
-        axesTool_EditMode              matlab.ui.control.Image
-        AdditionalDescription          matlab.ui.control.EditField
-        Panel                          matlab.ui.container.Panel
-        TXSubGrid                      matlab.ui.container.GridLayout
-        TXAntennaHeight                matlab.ui.control.NumericEditField
-        TXAntennaHeightLabel           matlab.ui.control.Label
-        TXLongitude                    matlab.ui.control.NumericEditField
-        TXLongitudeLabel               matlab.ui.control.Label
-        TXLatitude                     matlab.ui.control.NumericEditField
-        TXLatitudeLabel                matlab.ui.control.Label
-        RiskLevel                      matlab.ui.control.DropDown
-        RiskLevelLabel                 matlab.ui.control.Label
-        Compliance                     matlab.ui.control.DropDown
-        ComplianceLabel                matlab.ui.control.Label
-        EmissionType                   matlab.ui.control.DropDown
-        EmissionTypeLabel              matlab.ui.control.Label
-        StationID                      matlab.ui.control.EditField
-        StationIDLabel                 matlab.ui.control.Label
-        Regulatory                     matlab.ui.control.DropDown
-        RegulatoryLabel                matlab.ui.control.Label
-        DelAnnotation                  matlab.ui.control.Image
-        EditableParametersLabel        matlab.ui.control.Label
-        selectedEmissionInfo           matlab.ui.control.Label
-        selectedEmissionLabel          matlab.ui.control.Label
-        Document                       matlab.ui.container.GridLayout
-        axesTool_Warning               matlab.ui.control.Image
-        plotPanel                      matlab.ui.container.Panel
-        axesTool_Pan                   matlab.ui.control.Image
-        axesTool_RestoreView           matlab.ui.control.Image
-        UITable                        matlab.ui.control.Table
-        tableInfoNRows                 matlab.ui.control.Label
-        tableInfoMetadata              matlab.ui.control.Label
-        ContextMenu_UITable            matlab.ui.container.ContextMenu
-        ContextMenu_editEmission       matlab.ui.container.Menu
-        ContextMenu_analogEmission     matlab.ui.container.Menu
-        ContextMenu_digitalEmission    matlab.ui.container.Menu
-        ContextMenu_deleteEmission     matlab.ui.container.Menu
+        UIFigure                      matlab.ui.Figure
+        GridLayout                    matlab.ui.container.GridLayout
+        DockModuleGroup               matlab.ui.container.GridLayout
+        dockModule_Undock             matlab.ui.control.Image
+        dockModule_Close              matlab.ui.control.Image
+        Document                      matlab.ui.container.GridLayout
+        axesTool_Warning              matlab.ui.control.Image
+        plotPanel                     matlab.ui.container.Panel
+        axesTool_Pan                  matlab.ui.control.Image
+        axesTool_RestoreView          matlab.ui.control.Image
+        UITable                       matlab.ui.control.Table
+        tableInfoMetadata             matlab.ui.control.Label
+        Control                       matlab.ui.container.GridLayout
+        EditableParametersPanel       matlab.ui.container.Panel
+        EditableParametersGrid        matlab.ui.container.GridLayout
+        AdditionalDescription         matlab.ui.control.EditField
+        AdditionalDescriptionLabel    matlab.ui.control.Label
+        TXLocationPanel               matlab.ui.container.Panel
+        TXLocationGrid                matlab.ui.container.GridLayout
+        TXAntennaHeight               matlab.ui.control.NumericEditField
+        TXAntennaHeightLabel          matlab.ui.control.Label
+        TXLongitude                   matlab.ui.control.NumericEditField
+        TXLongitudeLabel              matlab.ui.control.Label
+        TXLatitude                    matlab.ui.control.NumericEditField
+        TXLatitudeLabel               matlab.ui.control.Label
+        TXLocationEditionGrid         matlab.ui.container.GridLayout
+        TXLocation_EditCancel         matlab.ui.control.Image
+        TXLocation_EditConfirm        matlab.ui.control.Image
+        TXLocation_EditMode           matlab.ui.control.Image
+        TXLocationPanelLabel          matlab.ui.control.Label
+        RiskLevel                     matlab.ui.control.DropDown
+        RiskLevelLabel                matlab.ui.control.Label
+        Compliance                    matlab.ui.control.DropDown
+        ComplianceLabel               matlab.ui.control.Label
+        EmissionType                  matlab.ui.control.DropDown
+        EmissionTypeLabel             matlab.ui.control.Label
+        StationID                     matlab.ui.control.EditField
+        StationIDLabel                matlab.ui.control.Label
+        Regulatory                    matlab.ui.control.DropDown
+        RegulatoryLabel               matlab.ui.control.Label
+        DelAnnotation                 matlab.ui.control.Image
+        EditableParametersLabel       matlab.ui.control.Label
+        selectedEmissionInfo          matlab.ui.control.Label
+        selectedEmissionLabel         matlab.ui.control.Label
+        Toolbar                       matlab.ui.container.GridLayout
+        tool_ControlPanelVisibility   matlab.ui.control.Image
+        tool_ShowGlobalExceptionList  matlab.ui.control.Image
+        tool_ExportJSONFile           matlab.ui.control.Image
+        tool_EmissionReportListLimit  matlab.ui.control.CheckBox
+        ContextMenu                   matlab.ui.container.ContextMenu
+        ContextMenu_editEmission      matlab.ui.container.Menu
+        ContextMenu_analogEmission    matlab.ui.container.Menu
+        ContextMenu_digitalEmission   matlab.ui.container.Menu
+        ContextMenu_deleteEmission    matlab.ui.container.Menu
     end
 
     
@@ -65,7 +67,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         mainApp
         General
         General_I
-        rootFolder
         specData
         projectData
 
@@ -118,7 +119,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             try
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
-                        CheckBoxValueChanged(app)
+                        Toolbar_CheckBoxValueChanged(app)
 
                     otherwise
                         error('UnexpectedCall')
@@ -147,9 +148,23 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.progressDialog = app.mainApp.progressDialog;
             else
                 sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                app.progressDialog = ccTools.ProgressDialog(app.jsBackDoor);                
+                app.progressDialog = ccTools.ProgressDialog(app.jsBackDoor);
             end
 
+            appName = class(app);
+
+            % Grid botões "dock":
+            if app.isDocked
+                elToModify = {app.DockModuleGroup};
+                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                if ~isempty(elDataTag)
+                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
+                    });
+                end
+            end
+
+            % Outros elementos:
             elToModify = {app.selectedEmissionInfo};
             elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
             if ~isempty(elDataTag)
@@ -200,7 +215,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             drawnow
 
             pause(.100)
-            CheckBoxValueChanged(app, struct('initialSelection', selectedRow))
+            Toolbar_CheckBoxValueChanged(app, struct('initialSelection', selectedRow))
             focus(app.UITable)
 
             app.progressDialog.Visible = 'hidden';
@@ -213,8 +228,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_GUIComponents(app)
-            app.axesTool_Pan.UserData      = false;
-            app.axesTool_EditMode.UserData = false;
+            if ~strcmp(app.mainApp.executionMode, 'webApp')
+                app.dockModule_Undock.Enable = 1;
+            end
+
+            app.axesTool_Pan.UserData = false;
+            app.TXLocation_EditMode.UserData = false;
+            app.UITable.RowName = 'numbered';
         end
 
         %-----------------------------------------------------------------%
@@ -278,7 +298,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                            'RFDataHubDescription'};
 
             set(app.UITable, 'Data', app.emissionsTable(:, columnNames), 'Selection', selectedRow)
-            set(app.tableInfoNRows, 'Text', sprintf('# %d', height(app.emissionsTable)), 'Visible', 1)
             layout_TableStyle(app)
             FillComponents(app)
     
@@ -298,18 +317,18 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             switch editionStatus
                 case 'on'
-                    set(app.axesTool_EditMode, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Cancela edição dos parâmetros da estação transmissora', 'UserData', true)
-                    app.axesToolSupport.ColumnWidth(end-1:end) = {16,16};
-                    app.axesTool_EditConfirm.Enable = 1;
-                    app.axesTool_EditCancel.Enable  = 1;
-                    set(findobj(app.TXSubGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 1)
+                    set(app.TXLocation_EditMode, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Cancela edição dos parâmetros da estação transmissora', 'UserData', true)
+                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {18, 18};
+                    app.TXLocation_EditConfirm.Enable = 1;
+                    app.TXLocation_EditCancel.Enable  = 1;
+                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 1)
 
                 case 'off'
-                    set(app.axesTool_EditMode, 'ImageSource', 'Edit_32.png', 'Tooltip', sprintf('Possibilita edição dos parâmetros da estação transmissora\n(a nova informação não é salva no RFDataHub)'), 'UserData', false)
-                    app.axesToolSupport.ColumnWidth(end-1:end) = {0,0};
-                    app.axesTool_EditConfirm.Enable = 0;
-                    app.axesTool_EditCancel.Enable  = 0;
-                    set(findobj(app.TXSubGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 0)
+                    set(app.TXLocation_EditMode, 'ImageSource', 'Edit_32.png', 'Tooltip', sprintf('Possibilita edição dos parâmetros da estação transmissora\n(a nova informação não é salva no RFDataHub)'), 'UserData', false)
+                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {0, 0};
+                    app.TXLocation_EditConfirm.Enable = 0;
+                    app.TXLocation_EditCancel.Enable  = 0;
+                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 0)
 
                     layout_updateCoordinatesPanel(app)
             end
@@ -441,7 +460,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.RiskLevel.Value       = app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.RiskLevel;
     
                 % PLOT CONFIG PANEL
-                app.axesTool_EditConfirm.UserData = stationInfo;
+                app.TXLocation_EditConfirm.UserData = stationInfo;
                 layout_updateCoordinatesPanel(app)
     
                 % PLOT
@@ -464,7 +483,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function layout_updateCoordinatesPanel(app)
-            stationInfo           = app.axesTool_EditConfirm.UserData;
+            stationInfo           = app.TXLocation_EditConfirm.UserData;
 
             app.TXLatitude.Value  = round(double(stationInfo.Latitude),  6);
             app.TXLongitude.Value = round(double(stationInfo.Longitude), 6);
@@ -540,7 +559,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 msgWarning.Units = 'normalized';
                 app.axesTool_Warning.Visible = 0;
             end
-            app.axesTool_EditConfirm.Enable = 0;
+            app.TXLocation_EditConfirm.Enable = 0;
         end
 
         %-----------------------------------------------------------------%
@@ -612,7 +631,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     app.specData(idxThread).UserData.Emissions.Description(idxEmission) = userDescription;
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'PeakDescriptionChanged')
                     
-                case app.axesTool_EditConfirm % Latitude | Longitude | AntennaHeight
+                case app.TXLocation_EditConfirm % Latitude | Longitude | AntennaHeight
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Latitude      = single(app.TXLatitude.Value);
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Longitude     = single(app.TXLongitude.Value);
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.AntennaHeight = app.TXAntennaHeight.Value;
@@ -643,7 +662,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     end
             end
 
-            CheckBoxValueChanged(app)
+            Toolbar_CheckBoxValueChanged(app)
         end
 
         %-----------------------------------------------------------------%
@@ -665,11 +684,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.mainApp     = mainApp;
             app.General     = mainApp.General;
             app.General_I   = mainApp.General_I;
-            app.rootFolder  = mainApp.rootFolder;
             app.specData    = mainApp.specData;
 
             if app.isDocked
-                app.GridLayout.Padding(4) = 19;
+                app.GridLayout.Padding(4) = 30;
+                app.DockModuleGroup.Visible = 1;
                 app.jsBackDoor = mainApp.jsBackDoor;
                 startup_Controller(app, selectedRow)
             else
@@ -687,27 +706,55 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             
         end
 
+        % Image clicked function: dockModule_Close, dockModule_Undock
+        function DockModuleGroup_ButtonPushed(app, event)
+            
+            [idx, auxAppTag, relatedButton] = getAppInfoFromHandle(app.mainApp.tabGroupController, app);
+
+            switch event.Source
+                case app.dockModule_Undock
+                    appGeneral = app.mainApp.General;
+                    appGeneral.operationMode.Dock = false;
+                    
+                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
+
+                    inputArguments = ipcMainMatlabCallsHandler(app.mainApp, app, 'dockButtonPushed', auxAppTag);
+                    openModule(app.mainApp.tabGroupController, relatedButton, false, appGeneral, inputArguments{:})
+                    closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General, 'undock')
+                    
+                    delete(app)
+
+                case app.dockModule_Close
+                    closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General)
+            end
+
+        end
+
         % Image clicked function: tool_ControlPanelVisibility, 
         % ...and 2 other components
-        function toolbarCallbacks(app, event)
+        function Toolbar_ImageClicked(app, event)
 
             switch event.Source
                 %---------------------------------------------------------%
                 case app.tool_ShowGlobalExceptionList
-                    exceptionGlobalList = app.mainApp.channelObj.Exception;        
+                    exceptionGlobalList = app.mainApp.channelObj.Exception;
+
                     if isempty(exceptionGlobalList)
-                        msgWarning = 'Não identificada emissão na lista global de exceções contida no arquivo "ChannelLib.json".';        
+                        msgWarning  = 'Lista global de exceções, registrada no arquivo "ChannelLib.json", está vazia.';
+                        iconWarning = 'warning';
                     else
-                        msgWarning = [];
+                        globalEmissiontList = {};
                         for ii = 1:height(exceptionGlobalList)
-                            msgWarning = sprintf('%s\n%s', msgWarning, sprintf('<b>%.3f MHz</b>: "%s"', exceptionGlobalList.FreqCenter(ii), exceptionGlobalList.Description{ii}));
+                            globalEmissiontList{end+1} = sprintf('&emsp;•&thinsp;%s', sprintf('<b>%.3f MHz</b>: "%s"', exceptionGlobalList.FreqCenter(ii), exceptionGlobalList.Description{ii}));
                         end
+                        iconWarning = 'none';
                     end
-                    appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                    msgWarning = sprintf('%s\n%s', 'Lista global de exceções:', strjoin(globalEmissiontList, '\n'));
+                    appUtil.modalWindow(app.UIFigure, iconWarning, msgWarning);
 
                 %---------------------------------------------------------%
                 case app.tool_ExportJSONFile
-                    if app.CheckBox.Value
+                    if app.tool_EmissionReportListLimit.Value
                         idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
                     else
                         idxThreads = 1:numel(app.specData);
@@ -727,20 +774,41 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 %---------------------------------------------------------%
                 case app.tool_ControlPanelVisibility
-                    if app.GridLayout.ColumnWidth{4}
-                        app.GridLayout.ColumnWidth(3:4) = {0,0};
+                    if app.Control.Visible
+                        app.Control.Visible = 0;
+                        app.Document.Layout.Column = [2, numel(app.GridLayout.ColumnWidth)-2];
                         app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
                     else
-                        app.GridLayout.ColumnWidth(3:4) = {10,320};
+                        app.Control.Visible = 1;
+                        app.Document.Layout.Column = 2;
                         app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
                     end
             end
 
         end
 
-        % Callback function: TXLatitude, TXLongitude, axesTool_EditCancel, 
-        % ...and 4 other components
-        function axesToolbarCallbacks(app, event)
+        % Value changed function: tool_EmissionReportListLimit
+        function Toolbar_CheckBoxValueChanged(app, event)
+            
+            if app.tool_EmissionReportListLimit.Value
+                idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
+            else
+                idxThreads = 1:numel(app.specData);
+            end
+
+            if exist('event', 'var') && isfield(event, 'initialSelection')
+                selectedRow = event.initialSelection;
+            else
+                selectedRow = app.UITable.Selection;
+            end
+
+            startup_createEmissionsTable(app, idxThreads, selectedRow)
+            
+        end
+
+        % Callback function: TXLatitude, TXLocation_EditCancel, 
+        % ...and 5 other components
+        function AxesToolbar_ImageClicked(app, event)
             
             switch event.Source
                 case app.axesTool_RestoreView
@@ -756,21 +824,21 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                     plot.axes.Interactivity.CustomPanFcn(struct('Value', app.axesTool_Pan.UserData), app.UIAxes1, app.UIAxes2);
 
-                case app.axesTool_EditMode
-                    app.axesTool_EditMode.UserData = ~app.axesTool_EditMode.UserData;
+                case app.TXLocation_EditMode
+                    app.TXLocation_EditMode.UserData = ~app.TXLocation_EditMode.UserData;
         
-                    if app.axesTool_EditMode.UserData
+                    if app.TXLocation_EditMode.UserData
                         layout_editRFDataHubStation(app, 'on')
                         focus(app.TXLatitude)        
                     else
                         layout_editRFDataHubStation(app, 'off')
                     end
 
-                case app.axesTool_EditConfirm
+                case app.TXLocation_EditConfirm
                     AddException(app, event.Source)
                     layout_editRFDataHubStation(app, 'off')
 
-                case app.axesTool_EditCancel
+                case app.TXLocation_EditCancel
                     layout_editRFDataHubStation(app, 'off')
 
                 case app.TXLatitude
@@ -823,7 +891,10 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 % limite de não ter emissões, o módulo será fechado. A validação 
                 % a seguir evita erro.
                 if isvalid(app)
-                    figure(app.UIFigure)
+                    if ~strcmp(app.mainApp.executionMode, 'webApp')
+                        figure(hFigure)
+                    end
+                    
                     app.progressDialog.Visible = 'hidden';
                 end
             end
@@ -968,25 +1039,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             AddException(app, event.Source)
 
         end
-
-        % Value changed function: CheckBox
-        function CheckBoxValueChanged(app, event)
-            
-            if app.CheckBox.Value
-                idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
-            else
-                idxThreads = 1:numel(app.specData);
-            end
-
-            if exist('event', 'var') && isfield(event, 'initialSelection')
-                selectedRow = event.initialSelection;
-            else
-                selectedRow = app.UITable.Selection;
-            end
-
-            startup_createEmissionsTable(app, idxThreads, selectedRow)
-            
-        end
     end
 
     % Component initialization
@@ -1025,128 +1077,98 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {5, '1x', 10, 320, 5};
-            app.GridLayout.RowHeight = {5, '1x', 5, 34};
+            app.GridLayout.ColumnWidth = {10, '1x', 10, 272, 48, 8, 2};
+            app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {22, 22, '1x', '1x', 22};
-            app.Document.RowHeight = {63, '1x', 14, 18, 253};
-            app.Document.ColumnSpacing = 0;
-            app.Document.RowSpacing = 0;
-            app.Document.Padding = [0 0 0 0];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = 2;
-            app.Document.BackgroundColor = [1 1 1];
+            % Create Toolbar
+            app.Toolbar = uigridlayout(app.GridLayout);
+            app.Toolbar.ColumnWidth = {'1x', 22, 22, 22};
+            app.Toolbar.RowHeight = {4, 17, 2};
+            app.Toolbar.ColumnSpacing = 5;
+            app.Toolbar.RowSpacing = 0;
+            app.Toolbar.Padding = [10 5 5 5];
+            app.Toolbar.Layout.Row = 6;
+            app.Toolbar.Layout.Column = [1 7];
+            app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
-            % Create tableInfoMetadata
-            app.tableInfoMetadata = uilabel(app.Document);
-            app.tableInfoMetadata.VerticalAlignment = 'top';
-            app.tableInfoMetadata.WordWrap = 'on';
-            app.tableInfoMetadata.FontSize = 14;
-            app.tableInfoMetadata.Layout.Row = 1;
-            app.tableInfoMetadata.Layout.Column = [1 5];
-            app.tableInfoMetadata.Interpreter = 'html';
-            app.tableInfoMetadata.Text = {'Exibindo emissões relacionadas aos fluxos espectrais'; '<p style="color: #808080; font-size:10px; text-align: justify; margin-right: 2px;">A célula "Frequência (MHz)" apresentará <font style="color: red;">ÍCONE DE EDIÇÃO</font> toda vez que alterada a classificação da emissão. Além disso, a célula "Frequência canal (MHz)" apresentará <font style="color: red;">ÍCONE VERMELHO</font> toda vez que o nº da estação for igual a -1, o que ocorre quando a situação da emissão é "Licenciada UTE", "Não licenciada" ou "Não passível de licenciamento", ou quando essa informação não consta na base de dados.</p>'};
+            % Create tool_EmissionReportListLimit
+            app.tool_EmissionReportListLimit = uicheckbox(app.Toolbar);
+            app.tool_EmissionReportListLimit.ValueChangedFcn = createCallbackFcn(app, @Toolbar_CheckBoxValueChanged, true);
+            app.tool_EmissionReportListLimit.Text = 'Exibir apenas emissões dos fluxos espectrais selecionados para o relatório.';
+            app.tool_EmissionReportListLimit.FontSize = 11;
+            app.tool_EmissionReportListLimit.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.tool_EmissionReportListLimit.Layout.Row = 2;
+            app.tool_EmissionReportListLimit.Layout.Column = 1;
 
-            % Create tableInfoNRows
-            app.tableInfoNRows = uilabel(app.Document);
-            app.tableInfoNRows.HorizontalAlignment = 'right';
-            app.tableInfoNRows.VerticalAlignment = 'bottom';
-            app.tableInfoNRows.FontSize = 10;
-            app.tableInfoNRows.Visible = 'off';
-            app.tableInfoNRows.Layout.Row = 1;
-            app.tableInfoNRows.Layout.Column = [3 5];
-            app.tableInfoNRows.Text = '# 0 ';
+            % Create tool_ExportJSONFile
+            app.tool_ExportJSONFile = uiimage(app.Toolbar);
+            app.tool_ExportJSONFile.ScaleMethod = 'none';
+            app.tool_ExportJSONFile.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ImageClicked, true);
+            app.tool_ExportJSONFile.Tooltip = {'Exporta arquivo JSON com informações das emissões sob análise'};
+            app.tool_ExportJSONFile.Layout.Row = 2;
+            app.tool_ExportJSONFile.Layout.Column = 2;
+            app.tool_ExportJSONFile.ImageSource = 'Export_16.png';
 
-            % Create UITable
-            app.UITable = uitable(app.Document);
-            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|MÍNIMO (dB)'; 'NÍVEL|MÉDIO (dB)'; 'NÍVEL|MÁXIMO (dB)'; 'OCUPAÇÃO|TOTAL (%)'; 'OCUPAÇÃO|MÍNIMA (%)'; 'OCUPAÇÃO|MÉDIA (%)'; 'OCUPAÇÃO|MÁXIMA (%)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
-            app.UITable.ColumnWidth = {95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 'auto'};
-            app.UITable.RowName = {};
-            app.UITable.ColumnSortable = true;
-            app.UITable.SelectionType = 'row';
-            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @UITableSelectionValueChanged, true);
-            app.UITable.Multiselect = 'off';
-            app.UITable.Layout.Row = 2;
-            app.UITable.Layout.Column = [1 5];
-            app.UITable.FontSize = 10.5;
+            % Create tool_ShowGlobalExceptionList
+            app.tool_ShowGlobalExceptionList = uiimage(app.Toolbar);
+            app.tool_ShowGlobalExceptionList.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ImageClicked, true);
+            app.tool_ShowGlobalExceptionList.Tooltip = {'Mostra lista global de exceções'; '(emissão não é considerada "Não licenciada")'};
+            app.tool_ShowGlobalExceptionList.Layout.Row = 2;
+            app.tool_ShowGlobalExceptionList.Layout.Column = 3;
+            app.tool_ShowGlobalExceptionList.ImageSource = 'Info_32.png';
 
-            % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.Document);
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
-            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
-            app.axesTool_RestoreView.Layout.Row = 4;
-            app.axesTool_RestoreView.Layout.Column = 1;
-            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
+            % Create tool_ControlPanelVisibility
+            app.tool_ControlPanelVisibility = uiimage(app.Toolbar);
+            app.tool_ControlPanelVisibility.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ImageClicked, true);
+            app.tool_ControlPanelVisibility.Layout.Row = 2;
+            app.tool_ControlPanelVisibility.Layout.Column = 4;
+            app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
 
-            % Create axesTool_Pan
-            app.axesTool_Pan = uiimage(app.Document);
-            app.axesTool_Pan.ImageClickedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
-            app.axesTool_Pan.Tooltip = {'Pan'};
-            app.axesTool_Pan.Layout.Row = 4;
-            app.axesTool_Pan.Layout.Column = 2;
-            app.axesTool_Pan.ImageSource = 'Pan_32.png';
-
-            % Create plotPanel
-            app.plotPanel = uipanel(app.Document);
-            app.plotPanel.AutoResizeChildren = 'off';
-            app.plotPanel.BorderType = 'none';
-            app.plotPanel.BackgroundColor = [0 0 0];
-            app.plotPanel.Layout.Row = 5;
-            app.plotPanel.Layout.Column = [1 5];
-
-            % Create axesTool_Warning
-            app.axesTool_Warning = uiimage(app.Document);
-            app.axesTool_Warning.Visible = 'off';
-            app.axesTool_Warning.Tooltip = {'Evidenciada obstrução total da 1ª Zona de Fresnel'};
-            app.axesTool_Warning.Layout.Row = 4;
-            app.axesTool_Warning.Layout.Column = 5;
-            app.axesTool_Warning.VerticalAlignment = 'bottom';
-            app.axesTool_Warning.ImageSource = 'Warn_18.png';
-
-            % Create ControlGrid
-            app.ControlGrid = uigridlayout(app.GridLayout);
-            app.ControlGrid.ColumnWidth = {'1x', 16};
-            app.ControlGrid.RowHeight = {58, '1x', 22, 253};
-            app.ControlGrid.RowSpacing = 5;
-            app.ControlGrid.Padding = [0 0 0 0];
-            app.ControlGrid.Layout.Row = 2;
-            app.ControlGrid.Layout.Column = 4;
-            app.ControlGrid.BackgroundColor = [1 1 1];
+            % Create Control
+            app.Control = uigridlayout(app.GridLayout);
+            app.Control.ColumnWidth = {'1x', 16};
+            app.Control.RowHeight = {58, '1x', 22, 253};
+            app.Control.RowSpacing = 5;
+            app.Control.Padding = [0 0 0 0];
+            app.Control.Layout.Row = [3 4];
+            app.Control.Layout.Column = [4 5];
+            app.Control.BackgroundColor = [1 1 1];
 
             % Create selectedEmissionLabel
-            app.selectedEmissionLabel = uilabel(app.ControlGrid);
+            app.selectedEmissionLabel = uilabel(app.Control);
             app.selectedEmissionLabel.VerticalAlignment = 'bottom';
             app.selectedEmissionLabel.FontSize = 10;
+            app.selectedEmissionLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.selectedEmissionLabel.Layout.Row = 1;
             app.selectedEmissionLabel.Layout.Column = 1;
             app.selectedEmissionLabel.Text = 'EMISSÃO SELECIONADA';
 
             % Create selectedEmissionInfo
-            app.selectedEmissionInfo = uilabel(app.ControlGrid);
+            app.selectedEmissionInfo = uilabel(app.Control);
             app.selectedEmissionInfo.VerticalAlignment = 'top';
             app.selectedEmissionInfo.WordWrap = 'on';
             app.selectedEmissionInfo.FontSize = 11;
+            app.selectedEmissionInfo.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.selectedEmissionInfo.Layout.Row = 2;
             app.selectedEmissionInfo.Layout.Column = [1 2];
             app.selectedEmissionInfo.Interpreter = 'html';
             app.selectedEmissionInfo.Text = '';
 
             % Create EditableParametersLabel
-            app.EditableParametersLabel = uilabel(app.ControlGrid);
+            app.EditableParametersLabel = uilabel(app.Control);
             app.EditableParametersLabel.VerticalAlignment = 'bottom';
             app.EditableParametersLabel.FontSize = 10;
+            app.EditableParametersLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.EditableParametersLabel.Layout.Row = 3;
             app.EditableParametersLabel.Layout.Column = 1;
             app.EditableParametersLabel.Text = 'PROVÁVEL EMISSOR';
 
             % Create DelAnnotation
-            app.DelAnnotation = uiimage(app.ControlGrid);
+            app.DelAnnotation = uiimage(app.Control);
             app.DelAnnotation.ImageClickedFcn = createCallbackFcn(app, @OthersParametersValueChanged, true);
             app.DelAnnotation.Tooltip = {'Retorna à classificação automática'};
             app.DelAnnotation.Layout.Row = 3;
@@ -1155,8 +1177,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.DelAnnotation.ImageSource = 'Refresh_18.png';
 
             % Create EditableParametersPanel
-            app.EditableParametersPanel = uipanel(app.ControlGrid);
+            app.EditableParametersPanel = uipanel(app.Control);
             app.EditableParametersPanel.AutoResizeChildren = 'off';
+            app.EditableParametersPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.EditableParametersPanel.BackgroundColor = [1 1 1];
             app.EditableParametersPanel.Layout.Row = 4;
             app.EditableParametersPanel.Layout.Column = [1 2];
@@ -1195,6 +1218,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.StationIDLabel = uilabel(app.EditableParametersGrid);
             app.StationIDLabel.VerticalAlignment = 'bottom';
             app.StationIDLabel.FontSize = 10;
+            app.StationIDLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.StationIDLabel.Layout.Row = 1;
             app.StationIDLabel.Layout.Column = 4;
             app.StationIDLabel.Text = 'Estação / ID:';
@@ -1204,6 +1228,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.StationID.ValueChangedFcn = createCallbackFcn(app, @StationIDValueChanged, true);
             app.StationID.HorizontalAlignment = 'right';
             app.StationID.FontSize = 11;
+            app.StationID.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.StationID.Layout.Row = 2;
             app.StationID.Layout.Column = 4;
 
@@ -1222,6 +1247,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.EmissionType.Items = {'Fundamental', 'Harmônico de fundamental', 'Produto de intermodulação', 'Espúrio', 'Não identificado', 'Não se manifestou', 'Pendente identificação'};
             app.EmissionType.ValueChangedFcn = createCallbackFcn(app, @EmissionTypeValueChanged, true);
             app.EmissionType.FontSize = 11;
+            app.EmissionType.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.EmissionType.BackgroundColor = [1 1 1];
             app.EmissionType.Layout.Row = 4;
             app.EmissionType.Layout.Column = [1 2];
@@ -1269,78 +1295,142 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.RiskLevel.Layout.Column = 4;
             app.RiskLevel.Value = '-';
 
-            % Create Panel
-            app.Panel = uipanel(app.EditableParametersGrid);
-            app.Panel.AutoResizeChildren = 'off';
-            app.Panel.ForegroundColor = [0.9412 0.9412 0.9412];
-            app.Panel.BackgroundColor = [1 1 1];
-            app.Panel.Layout.Row = 6;
-            app.Panel.Layout.Column = [1 4];
-            app.Panel.FontSize = 10;
+            % Create TXLocationPanelLabel
+            app.TXLocationPanelLabel = uilabel(app.EditableParametersGrid);
+            app.TXLocationPanelLabel.VerticalAlignment = 'bottom';
+            app.TXLocationPanelLabel.FontSize = 10;
+            app.TXLocationPanelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.TXLocationPanelLabel.Layout.Row = 5;
+            app.TXLocationPanelLabel.Layout.Column = [1 2];
+            app.TXLocationPanelLabel.Text = 'Características de instalação:';
 
-            % Create TXSubGrid
-            app.TXSubGrid = uigridlayout(app.Panel);
-            app.TXSubGrid.ColumnWidth = {'1x', '1x', '1x'};
-            app.TXSubGrid.RowHeight = {17, 22};
-            app.TXSubGrid.RowSpacing = 5;
-            app.TXSubGrid.Padding = [10 10 10 5];
-            app.TXSubGrid.BackgroundColor = [1 1 1];
+            % Create TXLocationEditionGrid
+            app.TXLocationEditionGrid = uigridlayout(app.EditableParametersGrid);
+            app.TXLocationEditionGrid.ColumnWidth = {'1x', 18, 0, 0};
+            app.TXLocationEditionGrid.RowHeight = {'1x'};
+            app.TXLocationEditionGrid.ColumnSpacing = 5;
+            app.TXLocationEditionGrid.Padding = [0 0 0 0];
+            app.TXLocationEditionGrid.Layout.Row = 5;
+            app.TXLocationEditionGrid.Layout.Column = [3 4];
+            app.TXLocationEditionGrid.BackgroundColor = [1 1 1];
+
+            % Create TXLocation_EditMode
+            app.TXLocation_EditMode = uiimage(app.TXLocationEditionGrid);
+            app.TXLocation_EditMode.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
+            app.TXLocation_EditMode.Tooltip = {'Possibilita edição dos parâmetros da estação transmissora'; '(a nova informação não é salva no RFDataHub)'};
+            app.TXLocation_EditMode.Layout.Row = 1;
+            app.TXLocation_EditMode.Layout.Column = 2;
+            app.TXLocation_EditMode.VerticalAlignment = 'bottom';
+            app.TXLocation_EditMode.ImageSource = 'Edit_32.png';
+
+            % Create TXLocation_EditConfirm
+            app.TXLocation_EditConfirm = uiimage(app.TXLocationEditionGrid);
+            app.TXLocation_EditConfirm.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
+            app.TXLocation_EditConfirm.Enable = 'off';
+            app.TXLocation_EditConfirm.Tooltip = {'Confirma edição, recriando perfil de terreno'};
+            app.TXLocation_EditConfirm.Layout.Row = 1;
+            app.TXLocation_EditConfirm.Layout.Column = 3;
+            app.TXLocation_EditConfirm.VerticalAlignment = 'bottom';
+            app.TXLocation_EditConfirm.ImageSource = 'Ok_32Green.png';
+
+            % Create TXLocation_EditCancel
+            app.TXLocation_EditCancel = uiimage(app.TXLocationEditionGrid);
+            app.TXLocation_EditCancel.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
+            app.TXLocation_EditCancel.Enable = 'off';
+            app.TXLocation_EditCancel.Tooltip = {'Cancela edição'};
+            app.TXLocation_EditCancel.Layout.Row = 1;
+            app.TXLocation_EditCancel.Layout.Column = 4;
+            app.TXLocation_EditCancel.VerticalAlignment = 'bottom';
+            app.TXLocation_EditCancel.ImageSource = 'Delete_32Red.png';
+
+            % Create TXLocationPanel
+            app.TXLocationPanel = uipanel(app.EditableParametersGrid);
+            app.TXLocationPanel.AutoResizeChildren = 'off';
+            app.TXLocationPanel.ForegroundColor = [0.9412 0.9412 0.9412];
+            app.TXLocationPanel.BackgroundColor = [1 1 1];
+            app.TXLocationPanel.Layout.Row = 6;
+            app.TXLocationPanel.Layout.Column = [1 4];
+            app.TXLocationPanel.FontSize = 10;
+
+            % Create TXLocationGrid
+            app.TXLocationGrid = uigridlayout(app.TXLocationPanel);
+            app.TXLocationGrid.ColumnWidth = {'1x', '1x', '1x'};
+            app.TXLocationGrid.RowHeight = {17, 22};
+            app.TXLocationGrid.RowSpacing = 5;
+            app.TXLocationGrid.Padding = [10 10 10 5];
+            app.TXLocationGrid.BackgroundColor = [1 1 1];
 
             % Create TXLatitudeLabel
-            app.TXLatitudeLabel = uilabel(app.TXSubGrid);
+            app.TXLatitudeLabel = uilabel(app.TXLocationGrid);
             app.TXLatitudeLabel.VerticalAlignment = 'bottom';
             app.TXLatitudeLabel.FontSize = 10;
+            app.TXLatitudeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXLatitudeLabel.Layout.Row = 1;
             app.TXLatitudeLabel.Layout.Column = 1;
             app.TXLatitudeLabel.Text = 'Latitude:';
 
             % Create TXLatitude
-            app.TXLatitude = uieditfield(app.TXSubGrid, 'numeric');
+            app.TXLatitude = uieditfield(app.TXLocationGrid, 'numeric');
             app.TXLatitude.Limits = [-90 90];
             app.TXLatitude.ValueDisplayFormat = '%.6f';
-            app.TXLatitude.ValueChangedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
+            app.TXLatitude.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
             app.TXLatitude.Editable = 'off';
             app.TXLatitude.FontSize = 11;
+            app.TXLatitude.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXLatitude.Layout.Row = 2;
             app.TXLatitude.Layout.Column = 1;
             app.TXLatitude.Value = -1;
 
             % Create TXLongitudeLabel
-            app.TXLongitudeLabel = uilabel(app.TXSubGrid);
+            app.TXLongitudeLabel = uilabel(app.TXLocationGrid);
             app.TXLongitudeLabel.VerticalAlignment = 'bottom';
             app.TXLongitudeLabel.FontSize = 10;
+            app.TXLongitudeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXLongitudeLabel.Layout.Row = 1;
             app.TXLongitudeLabel.Layout.Column = 2;
             app.TXLongitudeLabel.Text = 'Longitude:';
 
             % Create TXLongitude
-            app.TXLongitude = uieditfield(app.TXSubGrid, 'numeric');
+            app.TXLongitude = uieditfield(app.TXLocationGrid, 'numeric');
             app.TXLongitude.Limits = [-180 180];
             app.TXLongitude.ValueDisplayFormat = '%.6f';
-            app.TXLongitude.ValueChangedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
+            app.TXLongitude.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
             app.TXLongitude.Editable = 'off';
             app.TXLongitude.FontSize = 11;
+            app.TXLongitude.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXLongitude.Layout.Row = 2;
             app.TXLongitude.Layout.Column = 2;
             app.TXLongitude.Value = -1;
 
             % Create TXAntennaHeightLabel
-            app.TXAntennaHeightLabel = uilabel(app.TXSubGrid);
+            app.TXAntennaHeightLabel = uilabel(app.TXLocationGrid);
             app.TXAntennaHeightLabel.VerticalAlignment = 'bottom';
             app.TXAntennaHeightLabel.FontSize = 10;
+            app.TXAntennaHeightLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXAntennaHeightLabel.Layout.Row = 1;
             app.TXAntennaHeightLabel.Layout.Column = 3;
             app.TXAntennaHeightLabel.Text = 'Altura (m):';
 
             % Create TXAntennaHeight
-            app.TXAntennaHeight = uieditfield(app.TXSubGrid, 'numeric');
+            app.TXAntennaHeight = uieditfield(app.TXLocationGrid, 'numeric');
             app.TXAntennaHeight.Limits = [0 Inf];
             app.TXAntennaHeight.ValueDisplayFormat = '%.1f';
             app.TXAntennaHeight.Editable = 'off';
             app.TXAntennaHeight.FontSize = 11;
+            app.TXAntennaHeight.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXAntennaHeight.Layout.Row = 2;
             app.TXAntennaHeight.Layout.Column = 3;
             app.TXAntennaHeight.Value = 10;
+
+            % Create AdditionalDescriptionLabel
+            app.AdditionalDescriptionLabel = uilabel(app.EditableParametersGrid);
+            app.AdditionalDescriptionLabel.VerticalAlignment = 'bottom';
+            app.AdditionalDescriptionLabel.WordWrap = 'on';
+            app.AdditionalDescriptionLabel.FontSize = 10;
+            app.AdditionalDescriptionLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.AdditionalDescriptionLabel.Layout.Row = 7;
+            app.AdditionalDescriptionLabel.Layout.Column = [1 4];
+            app.AdditionalDescriptionLabel.Text = 'Informações complementares:';
 
             % Create AdditionalDescription
             app.AdditionalDescription = uieditfield(app.EditableParametersGrid, 'text');
@@ -1350,132 +1440,138 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AdditionalDescription.Layout.Row = 8;
             app.AdditionalDescription.Layout.Column = [1 4];
 
-            % Create axesToolSupport
-            app.axesToolSupport = uigridlayout(app.EditableParametersGrid);
-            app.axesToolSupport.ColumnWidth = {'1x', 16, 0, 0};
-            app.axesToolSupport.RowHeight = {'1x'};
-            app.axesToolSupport.ColumnSpacing = 5;
-            app.axesToolSupport.Padding = [0 0 0 0];
-            app.axesToolSupport.Layout.Row = 5;
-            app.axesToolSupport.Layout.Column = [3 4];
-            app.axesToolSupport.BackgroundColor = [1 1 1];
+            % Create Document
+            app.Document = uigridlayout(app.GridLayout);
+            app.Document.ColumnWidth = {22, 22, '1x', '1x', 22};
+            app.Document.RowHeight = {63, '1x', 14, 18, 253};
+            app.Document.ColumnSpacing = 0;
+            app.Document.RowSpacing = 0;
+            app.Document.Padding = [0 0 0 0];
+            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Column = 2;
+            app.Document.BackgroundColor = [1 1 1];
 
-            % Create axesTool_EditMode
-            app.axesTool_EditMode = uiimage(app.axesToolSupport);
-            app.axesTool_EditMode.ImageClickedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
-            app.axesTool_EditMode.Tooltip = {'Possibilita edição dos parâmetros da estação transmissora'; '(a nova informação não é salva no RFDataHub)'};
-            app.axesTool_EditMode.Layout.Row = 1;
-            app.axesTool_EditMode.Layout.Column = 2;
-            app.axesTool_EditMode.VerticalAlignment = 'bottom';
-            app.axesTool_EditMode.ImageSource = 'Edit_32.png';
+            % Create tableInfoMetadata
+            app.tableInfoMetadata = uilabel(app.Document);
+            app.tableInfoMetadata.VerticalAlignment = 'top';
+            app.tableInfoMetadata.WordWrap = 'on';
+            app.tableInfoMetadata.FontSize = 14;
+            app.tableInfoMetadata.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.tableInfoMetadata.Layout.Row = 1;
+            app.tableInfoMetadata.Layout.Column = [1 5];
+            app.tableInfoMetadata.Interpreter = 'html';
+            app.tableInfoMetadata.Text = {'Exibindo emissões relacionadas aos fluxos espectrais'; '<p style="color: #808080; font-size:10px; text-align: justify; margin-right: 2px;">A célula "Frequência (MHz)" apresentará <font style="color: red;">ÍCONE DE EDIÇÃO</font> toda vez que alterada a classificação da emissão. Além disso, a célula "Frequência canal (MHz)" apresentará <font style="color: red;">ÍCONE VERMELHO</font> toda vez que o nº da estação for igual a -1, o que ocorre quando a situação da emissão é "Licenciada UTE", "Não licenciada" ou "Não passível de licenciamento", ou quando essa informação não consta na base de dados.</p>'};
 
-            % Create axesTool_EditConfirm
-            app.axesTool_EditConfirm = uiimage(app.axesToolSupport);
-            app.axesTool_EditConfirm.ImageClickedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
-            app.axesTool_EditConfirm.Enable = 'off';
-            app.axesTool_EditConfirm.Tooltip = {'Confirma edição, recriando perfil de terreno'};
-            app.axesTool_EditConfirm.Layout.Row = 1;
-            app.axesTool_EditConfirm.Layout.Column = 3;
-            app.axesTool_EditConfirm.VerticalAlignment = 'bottom';
-            app.axesTool_EditConfirm.ImageSource = 'Ok_32Green.png';
+            % Create UITable
+            app.UITable = uitable(app.Document);
+            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
+            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|MÍNIMO (dB)'; 'NÍVEL|MÉDIO (dB)'; 'NÍVEL|MÁXIMO (dB)'; 'OCUPAÇÃO|TOTAL (%)'; 'OCUPAÇÃO|MÍNIMA (%)'; 'OCUPAÇÃO|MÉDIA (%)'; 'OCUPAÇÃO|MÁXIMA (%)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
+            app.UITable.ColumnWidth = {95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 'auto'};
+            app.UITable.RowName = {};
+            app.UITable.ColumnSortable = true;
+            app.UITable.SelectionType = 'row';
+            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @UITableSelectionValueChanged, true);
+            app.UITable.Multiselect = 'off';
+            app.UITable.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.UITable.Layout.Row = 2;
+            app.UITable.Layout.Column = [1 5];
+            app.UITable.FontSize = 10.5;
 
-            % Create axesTool_EditCancel
-            app.axesTool_EditCancel = uiimage(app.axesToolSupport);
-            app.axesTool_EditCancel.ImageClickedFcn = createCallbackFcn(app, @axesToolbarCallbacks, true);
-            app.axesTool_EditCancel.Enable = 'off';
-            app.axesTool_EditCancel.Tooltip = {'Cancela edição'};
-            app.axesTool_EditCancel.Layout.Row = 1;
-            app.axesTool_EditCancel.Layout.Column = 4;
-            app.axesTool_EditCancel.VerticalAlignment = 'bottom';
-            app.axesTool_EditCancel.ImageSource = 'Delete_32Red.png';
+            % Create axesTool_RestoreView
+            app.axesTool_RestoreView = uiimage(app.Document);
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
+            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
+            app.axesTool_RestoreView.Layout.Row = 4;
+            app.axesTool_RestoreView.Layout.Column = 1;
+            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
 
-            % Create CaractersticasdeinstalaoLabel
-            app.CaractersticasdeinstalaoLabel = uilabel(app.EditableParametersGrid);
-            app.CaractersticasdeinstalaoLabel.VerticalAlignment = 'bottom';
-            app.CaractersticasdeinstalaoLabel.FontSize = 10;
-            app.CaractersticasdeinstalaoLabel.Layout.Row = 5;
-            app.CaractersticasdeinstalaoLabel.Layout.Column = [1 2];
-            app.CaractersticasdeinstalaoLabel.Text = 'Características de instalação:';
+            % Create axesTool_Pan
+            app.axesTool_Pan = uiimage(app.Document);
+            app.axesTool_Pan.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_ImageClicked, true);
+            app.axesTool_Pan.Tooltip = {'Pan'};
+            app.axesTool_Pan.Layout.Row = 4;
+            app.axesTool_Pan.Layout.Column = 2;
+            app.axesTool_Pan.ImageSource = 'Pan_32.png';
 
-            % Create AdditionalDescriptionLabel
-            app.AdditionalDescriptionLabel = uilabel(app.EditableParametersGrid);
-            app.AdditionalDescriptionLabel.VerticalAlignment = 'bottom';
-            app.AdditionalDescriptionLabel.WordWrap = 'on';
-            app.AdditionalDescriptionLabel.FontSize = 10;
-            app.AdditionalDescriptionLabel.Layout.Row = 7;
-            app.AdditionalDescriptionLabel.Layout.Column = [1 4];
-            app.AdditionalDescriptionLabel.Text = 'Informações complementares:';
+            % Create plotPanel
+            app.plotPanel = uipanel(app.Document);
+            app.plotPanel.AutoResizeChildren = 'off';
+            app.plotPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.plotPanel.BorderType = 'none';
+            app.plotPanel.BackgroundColor = [0 0 0];
+            app.plotPanel.Layout.Row = 5;
+            app.plotPanel.Layout.Column = [1 5];
 
-            % Create toolGrid
-            app.toolGrid = uigridlayout(app.GridLayout);
-            app.toolGrid.ColumnWidth = {'1x', 22, 22, 22};
-            app.toolGrid.RowHeight = {4, 17, 2};
-            app.toolGrid.ColumnSpacing = 5;
-            app.toolGrid.RowSpacing = 0;
-            app.toolGrid.Padding = [5 5 0 5];
-            app.toolGrid.Layout.Row = 4;
-            app.toolGrid.Layout.Column = [1 5];
-            app.toolGrid.BackgroundColor = [0.9412 0.9412 0.9412];
+            % Create axesTool_Warning
+            app.axesTool_Warning = uiimage(app.Document);
+            app.axesTool_Warning.Visible = 'off';
+            app.axesTool_Warning.Tooltip = {'Evidenciada obstrução total da 1ª Zona de Fresnel'};
+            app.axesTool_Warning.Layout.Row = 4;
+            app.axesTool_Warning.Layout.Column = 5;
+            app.axesTool_Warning.VerticalAlignment = 'bottom';
+            app.axesTool_Warning.ImageSource = 'Warn_18.png';
 
-            % Create tool_ShowGlobalExceptionList
-            app.tool_ShowGlobalExceptionList = uiimage(app.toolGrid);
-            app.tool_ShowGlobalExceptionList.ImageClickedFcn = createCallbackFcn(app, @toolbarCallbacks, true);
-            app.tool_ShowGlobalExceptionList.Tooltip = {'Mostra lista global de exceções'; '(emissão não é considerada "Não licenciada")'};
-            app.tool_ShowGlobalExceptionList.Layout.Row = 2;
-            app.tool_ShowGlobalExceptionList.Layout.Column = 3;
-            app.tool_ShowGlobalExceptionList.ImageSource = 'Info_32.png';
+            % Create DockModuleGroup
+            app.DockModuleGroup = uigridlayout(app.GridLayout);
+            app.DockModuleGroup.RowHeight = {'1x'};
+            app.DockModuleGroup.ColumnSpacing = 2;
+            app.DockModuleGroup.Padding = [5 2 5 2];
+            app.DockModuleGroup.Visible = 'off';
+            app.DockModuleGroup.Layout.Row = [2 3];
+            app.DockModuleGroup.Layout.Column = [5 6];
+            app.DockModuleGroup.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create tool_ExportJSONFile
-            app.tool_ExportJSONFile = uiimage(app.toolGrid);
-            app.tool_ExportJSONFile.ScaleMethod = 'none';
-            app.tool_ExportJSONFile.ImageClickedFcn = createCallbackFcn(app, @toolbarCallbacks, true);
-            app.tool_ExportJSONFile.Tooltip = {'Exporta arquivo JSON com informações das emissões sob análise'};
-            app.tool_ExportJSONFile.Layout.Row = 2;
-            app.tool_ExportJSONFile.Layout.Column = 2;
-            app.tool_ExportJSONFile.ImageSource = 'Export_16.png';
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModuleGroup);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Close.Tag = 'DRIVETEST';
+            app.dockModule_Close.Tooltip = {'Fecha módulo'};
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
-            % Create tool_ControlPanelVisibility
-            app.tool_ControlPanelVisibility = uiimage(app.toolGrid);
-            app.tool_ControlPanelVisibility.ImageClickedFcn = createCallbackFcn(app, @toolbarCallbacks, true);
-            app.tool_ControlPanelVisibility.Layout.Row = 2;
-            app.tool_ControlPanelVisibility.Layout.Column = 4;
-            app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
+            % Create dockModule_Undock
+            app.dockModule_Undock = uiimage(app.DockModuleGroup);
+            app.dockModule_Undock.ScaleMethod = 'none';
+            app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Undock.Tag = 'DRIVETEST';
+            app.dockModule_Undock.Enable = 'off';
+            app.dockModule_Undock.Tooltip = {'Reabre módulo em outra janela'};
+            app.dockModule_Undock.Layout.Row = 1;
+            app.dockModule_Undock.Layout.Column = 1;
+            app.dockModule_Undock.ImageSource = 'Undock_18White.png';
 
-            % Create CheckBox
-            app.CheckBox = uicheckbox(app.toolGrid);
-            app.CheckBox.ValueChangedFcn = createCallbackFcn(app, @CheckBoxValueChanged, true);
-            app.CheckBox.Text = 'Exibir apenas emissões dos fluxos espectrais selecionados para o relatório.';
-            app.CheckBox.FontSize = 11;
-            app.CheckBox.Layout.Row = 2;
-            app.CheckBox.Layout.Column = 1;
-
-            % Create ContextMenu_UITable
-            app.ContextMenu_UITable = uicontextmenu(app.UIFigure);
+            % Create ContextMenu
+            app.ContextMenu = uicontextmenu(app.UIFigure);
 
             % Create ContextMenu_editEmission
-            app.ContextMenu_editEmission = uimenu(app.ContextMenu_UITable);
+            app.ContextMenu_editEmission = uimenu(app.ContextMenu);
+            app.ContextMenu_editEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ContextMenu_editEmission.Text = 'Editar';
 
             % Create ContextMenu_analogEmission
             app.ContextMenu_analogEmission = uimenu(app.ContextMenu_editEmission);
             app.ContextMenu_analogEmission.MenuSelectedFcn = createCallbackFcn(app, @UITableContextMenuClicked, true);
+            app.ContextMenu_analogEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ContextMenu_analogEmission.Text = 'Não truncar';
 
             % Create ContextMenu_digitalEmission
             app.ContextMenu_digitalEmission = uimenu(app.ContextMenu_editEmission);
             app.ContextMenu_digitalEmission.MenuSelectedFcn = createCallbackFcn(app, @UITableContextMenuClicked, true);
+            app.ContextMenu_digitalEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ContextMenu_digitalEmission.Enable = 'off';
             app.ContextMenu_digitalEmission.Text = 'Truncar frequência';
 
             % Create ContextMenu_deleteEmission
-            app.ContextMenu_deleteEmission = uimenu(app.ContextMenu_UITable);
+            app.ContextMenu_deleteEmission = uimenu(app.ContextMenu);
             app.ContextMenu_deleteEmission.MenuSelectedFcn = createCallbackFcn(app, @UITableContextMenuClicked, true);
             app.ContextMenu_deleteEmission.ForegroundColor = [1 0 0];
             app.ContextMenu_deleteEmission.Separator = 'on';
             app.ContextMenu_deleteEmission.Text = 'Excluir';
             
-            % Assign app.ContextMenu_UITable
-            app.UITable.ContextMenu = app.ContextMenu_UITable;
+            % Assign app.ContextMenu
+            app.UITable.ContextMenu = app.ContextMenu;
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

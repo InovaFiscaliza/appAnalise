@@ -4,39 +4,20 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
-        toolGrid                        matlab.ui.container.GridLayout
-        filter_DataBinningExport        matlab.ui.control.Image
-        filter_Summary                  matlab.ui.control.Image
-        tool_TimestampLabel             matlab.ui.control.Label
-        tool_TimestampSlider            matlab.ui.control.Slider
-        tool_LoopControl                matlab.ui.control.Image
-        tool_Play                       matlab.ui.control.Image
-        tool_ControlPanelVisibility     matlab.ui.control.Image
-        axesToolbarGrid                 matlab.ui.container.GridLayout
-        DropDown                        matlab.ui.control.DropDown
+        DockModuleGroup                 matlab.ui.container.GridLayout
+        dockModule_Undock               matlab.ui.control.Image
+        dockModule_Close                matlab.ui.control.Image
+        AxesToolbar                     matlab.ui.container.GridLayout
         axesTool_PlotSize               matlab.ui.control.Slider
         axesTool_DensityPlot            matlab.ui.control.Image
         axesTool_DistortionPlot         matlab.ui.control.Image
+        axesTool_DropDown               matlab.ui.control.DropDown
         axesTool_RegionZoom             matlab.ui.control.Image
         axesTool_RestoreView            matlab.ui.control.Image
-        plotPanel                       matlab.ui.container.Panel
-        menu_MainGrid                   matlab.ui.container.GridLayout
-        menu_Button4Grid                matlab.ui.container.GridLayout
-        menu_Button4Icon                matlab.ui.control.Image
-        menu_Button4Label               matlab.ui.control.Label
-        menu_Button3Grid                matlab.ui.container.GridLayout
-        menu_Button3Icon                matlab.ui.control.Image
-        menu_Button3Label               matlab.ui.control.Label
-        menu_Button2Grid                matlab.ui.container.GridLayout
-        menu_Button2Icon                matlab.ui.control.Image
-        menu_Button2Label               matlab.ui.control.Label
-        menu_Button1Grid                matlab.ui.container.GridLayout
-        menu_Button1Icon                matlab.ui.control.Image
-        menu_Button1Label               matlab.ui.control.Label
-        menuUnderline                   matlab.ui.control.Image
-        ControlTabGroup                 matlab.ui.container.TabGroup
-        Tab1_Emission                   matlab.ui.container.Tab
-        Tab1_Grid                       matlab.ui.container.GridLayout
+        Document                        matlab.ui.container.Panel
+        TabGroup                        matlab.ui.container.TabGroup
+        Tab1                            matlab.ui.container.Tab
+        Tab1Grid                        matlab.ui.container.GridLayout
         reportFlag                      matlab.ui.control.CheckBox
         channelPanel                    matlab.ui.container.Panel
         channelGrid                     matlab.ui.container.GridLayout
@@ -62,8 +43,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         spectralThreadEditConfirm       matlab.ui.control.Image
         spectralThreadEdit              matlab.ui.control.Image
         spectralThreadLabel             matlab.ui.control.Label
-        Tab2_Filter                     matlab.ui.container.Tab
-        Tab2_Grid                       matlab.ui.container.GridLayout
+        Tab2                            matlab.ui.container.Tab
+        Tab2Grid                        matlab.ui.container.GridLayout
         filter_DataBinningPanel         matlab.ui.container.Panel
         filter_DataBinningGrid          matlab.ui.container.GridLayout
         filter_DataBinningFcn           matlab.ui.control.DropDown
@@ -83,8 +64,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         filter_Geographic               matlab.ui.control.RadioButton
         filter_THR                      matlab.ui.control.RadioButton
         filter_TreeLabel                matlab.ui.control.Label
-        Tab3_Points                     matlab.ui.container.Tab
-        Tab3_Grid                       matlab.ui.container.GridLayout
+        Tab3                            matlab.ui.container.Tab
+        Tab3Grid                        matlab.ui.container.GridLayout
         points_Tree                     matlab.ui.container.CheckBoxTree
         points_AddImage                 matlab.ui.control.Image
         points_AddValuePanel            matlab.ui.container.Panel
@@ -104,8 +85,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         points_AddFindPeaks             matlab.ui.control.RadioButton
         points_AddRFDataHub             matlab.ui.control.RadioButton
         points_TreeLabel                matlab.ui.control.Label
-        Tab4_Config                     matlab.ui.container.Tab
-        Tab4_Grid                       matlab.ui.container.GridLayout
+        Tab4                            matlab.ui.container.Tab
+        Tab4Grid                        matlab.ui.container.GridLayout
         config_xyAxesPanel              matlab.ui.container.Panel
         config_xyAxesGrid               matlab.ui.container.GridLayout
         config_BandGuardPanel           matlab.ui.container.Panel
@@ -153,10 +134,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         config_geoAxesSublabel          matlab.ui.control.Label
         config_Refresh                  matlab.ui.control.Image
         config_geoAxesLabel             matlab.ui.control.Label
-        filter_ContextMenu              matlab.ui.container.ContextMenu
+        Toolbar                         matlab.ui.container.GridLayout
+        tool_FilterSummary              matlab.ui.control.Image
+        tool_DataBinningExport          matlab.ui.control.Image
+        tool_TimestampLabel             matlab.ui.control.Label
+        tool_TimestampSlider            matlab.ui.control.Slider
+        tool_LoopControl                matlab.ui.control.Image
+        tool_Play                       matlab.ui.control.Image
+        tool_ControlPanelVisibility     matlab.ui.control.Image
+        ContextMenu2                    matlab.ui.container.ContextMenu
         filter_delButton                matlab.ui.container.Menu
         filter_delAllButton             matlab.ui.container.Menu
-        points_ContextMenu              matlab.ui.container.ContextMenu
+        ContextMenu1                    matlab.ui.container.ContextMenu
         points_delButton                matlab.ui.container.Menu
     end
 
@@ -169,7 +158,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         mainApp
         General
         General_I
-        rootFolder
         specData
 
         % A função do timer é executada uma única vez após a renderização
@@ -307,13 +295,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     customizationStatus(tabIndex) = true;
                     switch tabIndex
                         case 1
-                            elToModify = {app.ControlTabGroup, app.axesToolbarGrid, app.reportFlag, app.emissionInfo};
+                            % Grid botões "dock":
+                            if app.isDocked
+                                elToModify = {app.DockModuleGroup};
+                                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                                if ~isempty(elDataTag)
+                                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
+                                    });
+                                end
+                            end
+
+                            % Outros elementos:
+                            elToModify = {app.TabGroup, app.AxesToolbar, app.reportFlag, app.emissionInfo};
                             elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
                             if ~isempty(elDataTag)
-                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                           ...
-                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'generation', 0, 'style', struct('border', 'none', 'backgroundColor', 'transparent')),                ...
-                                    struct('appName', appName, 'dataTag', elDataTag{2}, 'generation', 0, 'style', struct('borderBottomLeftRadius', '5px', 'borderBottomRightRadius', '5px')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{3}, 'generation', 1, 'style', struct('textAlign', 'justify'))                                             ...
+                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('border', 'none', 'backgroundColor', 'transparent')), ...
+                                    struct('appName', appName, 'dataTag', elDataTag{2}, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                                    struct('appName', appName, 'dataTag', elDataTag{3}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
                                 });
 
                                 ui.TextView.startup(app.jsBackDoor, elToModify{4}, appName);
@@ -401,7 +401,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_AxesCreation(app)
-            hParent     = tiledlayout(app.plotPanel, 24, 16, "Padding", "none", "TileSpacing", "none");
+            hParent     = tiledlayout(app.Document, 24, 16, "Padding", "none", "TileSpacing", "none");
 
             % Eixo geográfico: MAPA
             app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.config_Basemap.Value,                 ...
@@ -446,8 +446,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.UIAxes4.YAxis.Direction = "reverse";
 
             % Legenda
-            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
-            lgd.Title.FontSize = 8.5;
+            % lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+            % lgd.Title.FontSize = 8.5;
 
             % Colorbar
             colorBar = colorbar(app.UIAxes1, "Location", "layout", "TickDirection", "none", "PickableParts", "none", "FontSize", 7, "Color", "white", 'AxisLocation', 'in', 'Box', 'off');
@@ -463,6 +463,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_GUIComponents(app, idxThread, idxEmission)
+            if ~strcmp(app.mainApp.executionMode, 'webApp')
+                app.dockModule_Undock.Enable = 1;
+            end
+
             % Controle do modo de edição:
             app.spectralThreadEdit.UserData = false;
             app.channelEditMode.UserData    = false;
@@ -571,15 +575,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             switch editionStatus
                 case 'on'
                     set(app.spectralThreadEdit, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do fluxo espectral', 'UserData', true)
-                    app.Tab1_Grid.RowHeight{3} = '1x';
-                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {16,16};
+                    app.Tab1Grid.RowHeight{3} = '1x';
+                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {18, 18};
                     app.spectralThreadEditConfirm.Enable = 1;
                     app.spectralThreadEditCancel.Enable  = 1;
 
                 case 'off'
                     set(app.spectralThreadEdit, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do fluxo espectral',   'UserData', false)
-                    app.Tab1_Grid.RowHeight{3} = 0;
-                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {0,0};
+                    app.Tab1Grid.RowHeight{3} = 0;
+                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {0, 0};
                     app.spectralThreadEditConfirm.Enable = 0;
                     app.spectralThreadEditCancel.Enable  = 0;
 
@@ -603,7 +607,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             switch editionStatus
                 case 'on'
                     set(app.channelEditMode, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do canal', 'UserData', true)
-                    app.channelEditGrid.ColumnWidth(end-1:end) = {16,16};
+                    app.channelEditGrid.ColumnWidth(end-1:end) = {18, 18};
                     app.channelEditConfirm.Enable = 1;
                     app.channelEditCancel.Enable  = 1;
                     app.channelFrequency.Editable = 1;
@@ -611,7 +615,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 case 'off'
                     set(app.channelEditMode, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do canal',   'UserData', false)
-                    app.channelEditGrid.ColumnWidth(end-1:end) = {0,0};
+                    app.channelEditGrid.ColumnWidth(end-1:end) = {0, 0};
                     app.channelEditConfirm.Enable = 0;
                     app.channelEditCancel.Enable  = 0;
                     app.channelFrequency.Editable = 0;
@@ -649,7 +653,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function dataSource = checkDataSource(app)
-            switch app.DropDown.Value
+            switch app.axesTool_DropDown.Value
                 case 'Dados brutos'
                     if isempty(app.filterTable)
                         dataSource = 'Raw';
@@ -780,7 +784,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                          app.specFilteredTable, ...
                          app.specBinTable,      ...
                          app.filterTable,       ...
-                         app.filter_Summary.UserData] = RF.DataBinning.execute(app.specRawTable,                   ...
+                         app.tool_FilterSummary.UserData] = RF.DataBinning.execute(app.specRawTable,                   ...
                                                                                app.filter_DataBinningLength.Value, ...
                                                                                app.filter_DataBinningFcn.Value,    ...
                                                                                app.filterTable);
@@ -825,6 +829,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.progressDialog.Visible = 'visible';
 
             try
+                if isempty(app.UIAxes1.Legend)
+                    lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                    lgd.Title.FontSize = 8.5;
+                end
                 app.UIAxes1.Legend.Title.String = sprintf('%.3f MHz ⌂ %.1f kHz', app.channelFrequency.Value, app.channelBandWidth.Value);
 
                 % Afere as tabelas que suportarão os plots e aplica os valores 
@@ -934,10 +942,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 % Source
                 switch app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest.Source
                     case {'Raw', 'Filtered'}
-                        app.DropDown.Value              = 'Dados brutos';
+                        app.axesTool_DropDown.Value     = 'Dados brutos';
                         app.axesTool_DensityPlot.Enable = 0;
                     case 'Data-Binning'
-                        app.DropDown.Value              = 'Dados processados';
+                        app.axesTool_DropDown.Value     = 'Dados processados';
                         app.axesTool_DensityPlot.Enable = 1;
                 end
 
@@ -1399,16 +1407,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if ~isempty(app.filterTable)
                 for ii = 1:height(app.filterTable)
                     nodeText = sprintf('%s:%s', app.filterTable.type{ii}, app.filterTable.subtype{ii});
-                    uitreenode(app.filter_Tree, 'Text', nodeText, 'NodeData', ii, 'ContextMenu', app.filter_ContextMenu);
+                    uitreenode(app.filter_Tree, 'Text', nodeText, 'NodeData', ii, 'ContextMenu', app.ContextMenu2);
                 end
 
                 set(app.filter_Tree, 'SelectedNodes', app.filter_Tree.Children(end), 'Enable', 1)
                 filter_TreeSelectionChanged(app)
 
-                set(app.filter_ContextMenu.Children, Enable=1)
+                set(app.ContextMenu2.Children, Enable=1)
             else
                 app.filter_Tree.Enable = 1;
-                set(app.filter_ContextMenu.Children, Enable=0)
+                set(app.ContextMenu2.Children, Enable=0)
             end
         end
 
@@ -1437,7 +1445,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 nodeText = sprintf('%s: %s', app.pointsTable.type{ii}, strjoin("#" + string(app.pointsTable.value(ii).idxData), ', '));
                 treeNode = uitreenode(app.points_Tree, 'Text',        nodeText, ...
                                                        'NodeData',    ii,       ...
-                                                       'ContextMenu', app.points_ContextMenu);
+                                                       'ContextMenu', app.ContextMenu1);
                 if app.pointsTable.visible(ii)
                     checkedTreeNodes = [checkedTreeNodes, treeNode];
                 end
@@ -1577,11 +1585,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.mainApp    = mainApp;
             app.General    = mainApp.General;
             app.General_I  = mainApp.General_I;
-            app.rootFolder = mainApp.rootFolder;
             app.specData   = mainApp.specData;
 
             if app.isDocked
-                app.GridLayout.Padding(4) = 19;
+                app.GridLayout.Padding(4) = 30;
+                app.DockModuleGroup.Visible = 1;
                 app.jsBackDoor = mainApp.jsBackDoor;
                 startup_Controller(app, idxThread, idxEmission)
             else
@@ -1599,35 +1607,284 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: menu_Button1Icon, menu_Button2Icon, 
-        % ...and 2 other components
-        function general_MenuSelectionChanged(app, event)
+        % Image clicked function: dockModule_Close, dockModule_Undock
+        function DockModuleGroup_ButtonPushed(app, event)
             
-            idx = str2double(event.Source.Tag);
-            NN  = numel(app.menu_MainGrid.ColumnWidth);
+            [idx, auxAppTag, relatedButton] = getAppInfoFromHandle(app.mainApp.tabGroupController, app);
 
-            for ii = 1:NN
-                switch ii
-                    case idx
-                        eval(sprintf('app.menu_Button%dGrid.ColumnWidth{2} = "1x";', ii))
-                    otherwise
-                        eval(sprintf('app.menu_Button%dGrid.ColumnWidth{2} = 0;',    ii))
-                end
+            switch event.Source
+                case app.dockModule_Undock
+                    appGeneral = app.mainApp.General;
+                    appGeneral.operationMode.Dock = false;
+                    
+                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
+
+                    inputArguments = ipcMainMatlabCallsHandler(app.mainApp, app, 'dockButtonPushed', auxAppTag);
+                    openModule(app.mainApp.tabGroupController, relatedButton, false, appGeneral, inputArguments{:})
+                    closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General, 'undock')
+                    
+                    delete(app)
+
+                case app.dockModule_Close
+                    closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General)
             end
 
-            columnWidth      = repmat({22}, 1, NN);
-            columnWidth(idx) = {'1x'};
+        end
 
-            app.menu_MainGrid.ColumnWidth   = columnWidth;
-            app.menuUnderline.Layout.Column = idx;
-            app.ControlTabGroup.SelectedTab = app.ControlTabGroup.Children(idx);
+        % Selection change function: TabGroup
+        function TabGroupSelectionChanged(app, event)
+            
+            [~, tabIndex] = ismember(app.TabGroup.SelectedTab, app.TabGroup.Children);
+            jsBackDoor_Customizations(app, tabIndex)
 
-            jsBackDoor_Customizations(app, idx)
+        end
 
-            if idx == 4
-                app.config_chPowerColor.Value = app.UIAxes3.Colormap(end,:);
+        % Image clicked function: tool_ControlPanelVisibility
+        function Toolbar_LeftPanelVisibilityImageClicked(app, event)
+
+            switch event.Source
+                case app.tool_ControlPanelVisibility
+                    if app.GridLayout.ColumnWidth{2}
+                        app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
+                        app.GridLayout.ColumnWidth(2:3) = {0,0};
+                    else
+                        app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
+                        app.GridLayout.ColumnWidth(2:3) = {320,10};
+                    end
             end
 
+        end
+
+        % Image clicked function: tool_LoopControl, tool_Play
+        function Toolbar_PlaybackControlImageClicked(app, event)
+            
+            switch event.Source
+                case app.tool_Play
+                    idxThread   = app.selectedEmission.Thread.Index;
+        
+                    if idxThread && ~app.plotFlag
+                        if app.mainApp.plotFlag
+                            app.mainApp.plotFlag = 0;
+                            app.mainApp.tool_Play.ImageSource = 'play_32.png';
+                            drawnow
+                        end
+
+                        app.plotFlag = 1;
+
+                        % O bloco try/catch evita erros decorrentes da finalização 
+                        % do playback porque a lista de emissão do fluxo espectral 
+                        % sob análise está vazia, decorrente de edição no appAnalise.
+                        try
+                            plot_PlaybackLoop(app, idxThread, numel(app.specData(idxThread).Data{1}))
+                        catch
+                        end
+
+                    else
+                        app.plotFlag = 0;
+                    end
+
+                %---------------------------------------------------------%
+                case app.tool_LoopControl
+                    switch app.tool_LoopControl.Tag
+                        case 'loop';   set(app.tool_LoopControl, Tag='direct', ImageSource='playbackStraight_32Blue.png')
+                        case 'direct'; set(app.tool_LoopControl, Tag='loop',   ImageSource='playbackLoop_32Blue.png')
+                    end
+            end
+
+        end
+
+        % Value changing function: tool_TimestampSlider
+        function Toolbar_TimelineSliderValueChanging(app, event)
+            
+            idxThread = app.selectedEmission.Thread.Index;
+            nSweeps   = app.tempBandObj.nSweeps;
+            
+            app.idxTime = round(event.Value/100 * nSweeps);
+            if app.idxTime < 1
+                app.idxTime = 1;
+            elseif app.idxTime > nSweeps
+                app.idxTime = nSweeps;
+            end
+
+            if ~app.plotFlag
+                plot_UpdatePlot(app, idxThread, nSweeps)
+            end
+
+        end
+
+        % Image clicked function: tool_DataBinningExport
+        function Toolbar_ExportFileButtonPushed(app, event)
+            
+            nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
+            Basename      = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'DriveTest', app.mainApp.report_Issue.Value);
+            fileFullPath  = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', nameFormatMap, Basename);
+            if isempty(fileFullPath)
+                return
+            end
+
+            app.progressDialog.Visible = 'visible';
+
+            dataSource = checkDataSource(app);
+            hPlot      = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
+            channelTag = sprintf('%.3f MHz ⌂ %.1f kHz', app.channelFrequency.Value, app.channelBandWidth.Value);
+
+            try
+                msgWarning = util.exportDriveTestAnalysis(app.specRawTable, app.specFilteredTable, app.specBinTable, Basename, fileFullPath, dataSource, hPlot, channelTag);
+                appUtil.modalWindow(app.UIFigure, 'info', msgWarning);
+            catch ME
+                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+            end
+
+            app.progressDialog.Visible = 'hidden';
+
+        end
+
+        % Image clicked function: tool_FilterSummary
+        function Toolbar_SummaryImageClicked(app, event)
+            
+            appUtil.modalWindow(app.UIFigure, 'info', app.tool_FilterSummary.UserData);
+
+        end
+
+        % Image clicked function: axesTool_RegionZoom, axesTool_RestoreView
+        function AxesToolbar_InteractionImageClicked(app, event)
+            
+            switch event.Source
+                case app.axesTool_RestoreView
+                    geolimits(app.UIAxes1, app.restoreView(1).xLim, app.restoreView(1).yLim)
+
+                case app.axesTool_RegionZoom
+                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes1, app.axesTool_RegionZoom)
+            end
+
+        end
+
+        % Value changed function: axesTool_DropDown, 
+        % ...and 2 other components
+        function AxesToolbar_DataSourceChanged(app, event)
+
+            [idxThread, idxEmission] = specDataIndex(app);
+
+            switch event.Source
+                case app.axesTool_DropDown
+                    operationType = 'PlotDataSourceChanged';
+            
+                    switch app.axesTool_DropDown.Value
+                        case 'Dados brutos'
+                            app.axesTool_DensityPlot.Enable = 0;
+                            if strcmp(app.UIAxes1.UserData.PlotMode, 'density')
+                                app.UIAxes1.UserData.PlotMode = 'distortion';
+                            end
+
+                        otherwise
+                            app.axesTool_DensityPlot.Enable = 1;
+                    end
+                    updateCustomProperty(app, idxThread, idxEmission)
+
+                case {app.filter_DataBinningLength, app.filter_DataBinningFcn}
+                    operationType = 'DataBinningParameterChanged';
+                    updateCustomProperty(app, idxThread, idxEmission)
+
+                    % Se o plot em evidência é o gerado pelas informações
+                    % brutas (e não pela processada via Data-Binning), então 
+                    % não é necessário redesenhá-lo.
+                    if app.axesTool_DropDown.Value == "Dados brutos"
+                        return
+                    end
+            end
+
+            prePlot_Startup(app, idxThread, idxEmission, operationType)
+
+        end
+
+        % Image clicked function: axesTool_DensityPlot, 
+        % ...and 1 other component
+        function AxesToolbar_PlotTypeValueChanged(app, event)
+
+            hDistortion = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
+            hDensity    = findobj(app.UIAxes1.Children, 'Tag', 'Density');
+
+            switch event.Source
+                %---------------------------------------------------------%
+                case app.axesTool_DistortionPlot
+                    if hDistortion.Visible
+                        app.UIAxes1.UserData.PlotMode = 'none';
+                        hDistortion.Visible = 0;
+                    else
+                        app.UIAxes1.UserData.PlotMode = 'distortion';
+                        hDensity.Visible = 0;
+                        set(hDistortion, 'Visible', 1, 'SizeData', 20*app.axesTool_PlotSize.Value)                        
+                    end
+
+                %---------------------------------------------------------%
+                case app.axesTool_DensityPlot
+                    if hDensity.Visible
+                        app.UIAxes1.UserData.PlotMode = 'none';
+                        hDensity.Visible = 0;
+                    else
+                        app.UIAxes1.UserData.PlotMode = 'density';
+                        hDistortion.Visible = 0;
+                        set(hDensity, 'Visible', 1, 'Radius', 100*app.axesTool_PlotSize.Value)
+                    end
+            end
+
+            % A atualização do colorbar só é renderizada em tela quando o
+            % usuário faz alguma interação com o eixo... duas possibilidades 
+            % para forçar a atualização:
+
+            % (a) Trocar "LimitsMode" para "manual" e depois para "auto". A
+            %     operação é concluída em cerca de 0.461 ms.
+            % (b) Chamar o método "reset", reconfigurando o eixo. A operação
+            %     é concluída em cerca de 16.601 ms.
+
+            colorBar = findobj(app.UIAxes1.Parent.Children, 'Type', 'colorbar');
+            colorBar.LimitsMode = 'manual';
+            colorBar.LimitsMode = 'auto';
+            
+            [idxThread, idxEmission] = specDataIndex(app);
+            updateCustomProperty(app, idxThread, idxEmission)
+
+        end
+
+        % Value changed function: axesTool_PlotSize
+        function AxesToolbar_PlotSizeValueChanged(app, event)
+
+            % Como exposto em AxesToolbar_PlotSizeValueChanging(app, event),
+            % o plot de distorção será atualizado em "tempo real", no 
+            % "ValueChangingFcn", mas o plot de densidade apenas no callback 
+            % "ValueChangedFcn".
+
+            hDensity = findobj(app.UIAxes1.Children, 'Tag', 'Density');
+
+            if hDensity.Visible
+                set(findobj(app.UIAxes1.Children, 'Tag', 'Density'), 'Radius',  100*event.Value)
+                drawnow
+            end
+
+            [idxThread, idxEmission] = specDataIndex(app);
+            updateCustomProperty(app, idxThread, idxEmission)
+            
+        end
+
+        % Value changing function: axesTool_PlotSize
+        function AxesToolbar_PlotSizeValueChanging(app, event)
+            
+            % Ao interagir com o slider, não soltando o mouse, o MATLAB dispara 
+            % apenas o evento "ValueChangingFcn". Ao soltar o botão do mouse, o 
+            % MATLAB dispara, nesta ordem, os eventos "ValueChangingFcn" e 
+            % "ValueChangedFcn".
+
+            % Nesse contexto, considerando que o plot de densidade demora
+            % para atualizar, o plot de distorção será atualizado em "tempo
+            % real", no "ValueChangingFcn", mas o plot de densidade apenas 
+            % no callback "ValueChangedFcn".
+
+            hDistortion = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
+
+            if hDistortion.Visible
+                set(findobj(app.UIAxes1.Children, 'Tag', 'Distortion'), 'SizeData', 20*event.Value)
+            end
+            
         end
 
         % Image clicked function: spectralThreadEdit, 
@@ -1798,255 +2055,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             updateCustomProperty(app, idxThread, idxEmission)
             layout_EmissionListCreation(app, idxThread, idxEmission)
 
-        end
-
-        % Image clicked function: tool_ControlPanelVisibility
-        function tool_LeftPanelVisibilityImageClicked(app, event)
-
-            switch event.Source
-                %---------------------------------------------------------%
-                case app.tool_ControlPanelVisibility
-                    if app.GridLayout.ColumnWidth{2}
-                        app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
-                        app.GridLayout.ColumnWidth(2:3) = {0,0};
-                    else
-                        app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
-                        app.GridLayout.ColumnWidth(2:3) = {320,10};
-                    end
-            end
-
-        end
-
-        % Image clicked function: tool_LoopControl, tool_Play
-        function tool_PlaybackControlImageClicked(app, event)
-            
-            switch event.Source
-                case app.tool_Play
-                    idxThread   = app.selectedEmission.Thread.Index;
-        
-                    if idxThread && ~app.plotFlag
-                        if app.mainApp.plotFlag
-                            app.mainApp.plotFlag = 0;
-                            app.mainApp.tool_Play.ImageSource = 'play_32.png';
-                            drawnow
-                        end
-
-                        app.plotFlag = 1;
-
-                        % O bloco try/catch evita erros decorrentes da finalização 
-                        % do playback porque a lista de emissão do fluxo espectral 
-                        % sob análise está vazia, decorrente de edição no appAnalise.
-                        try
-                            plot_PlaybackLoop(app, idxThread, numel(app.specData(idxThread).Data{1}))
-                        catch
-                        end
-
-                    else
-                        app.plotFlag = 0;
-                    end
-
-                %---------------------------------------------------------%
-                case app.tool_LoopControl
-                    switch app.tool_LoopControl.Tag
-                        case 'loop';   set(app.tool_LoopControl, Tag='direct', ImageSource='playbackStraight_32Blue.png')
-                        case 'direct'; set(app.tool_LoopControl, Tag='loop',   ImageSource='playbackLoop_32Blue.png')
-                    end
-            end
-
-        end
-
-        % Value changing function: tool_TimestampSlider
-        function tool_TimelineSliderValueChanging(app, event)
-            
-            idxThread = app.selectedEmission.Thread.Index;
-            nSweeps   = app.tempBandObj.nSweeps;
-            
-            app.idxTime = round(event.Value/100 * nSweeps);
-            if app.idxTime < 1
-                app.idxTime = 1;
-            elseif app.idxTime > nSweeps
-                app.idxTime = nSweeps;
-            end
-
-            if ~app.plotFlag
-                plot_UpdatePlot(app, idxThread, nSweeps)
-            end
-
-        end
-
-        % Image clicked function: filter_DataBinningExport
-        function tool_ExportFileButtonPushed(app, event)
-            
-            nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
-            Basename      = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'DriveTest', app.mainApp.report_Issue.Value);
-            fileFullPath  = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', nameFormatMap, Basename);
-            if isempty(fileFullPath)
-                return
-            end
-
-            app.progressDialog.Visible = 'visible';
-
-            dataSource = checkDataSource(app);
-            hPlot      = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
-            channelTag = sprintf('%.3f MHz ⌂ %.1f kHz', app.channelFrequency.Value, app.channelBandWidth.Value);
-
-            try
-                msgWarning = util.exportDriveTestAnalysis(app.specRawTable, app.specFilteredTable, app.specBinTable, Basename, fileFullPath, dataSource, hPlot, channelTag);
-                appUtil.modalWindow(app.UIFigure, 'info', msgWarning);
-            catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
-            end
-
-            app.progressDialog.Visible = 'hidden';
-
-        end
-
-        % Image clicked function: filter_Summary
-        function tool_SummaryImageClicked(app, event)
-            
-            appUtil.modalWindow(app.UIFigure, 'info', app.filter_Summary.UserData);
-
-        end
-
-        % Image clicked function: axesTool_RegionZoom, axesTool_RestoreView
-        function axesTool_InteractionImageClicked(app, event)
-            
-            switch event.Source
-                case app.axesTool_RestoreView
-                    geolimits(app.UIAxes1, app.restoreView(1).xLim, app.restoreView(1).yLim)
-
-                case app.axesTool_RegionZoom
-                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes1, app.axesTool_RegionZoom)
-            end
-
-        end
-
-        % Value changed function: DropDown, filter_DataBinningFcn, 
-        % ...and 1 other component
-        function axesTool_DataSourceChanged(app, event)
-
-            [idxThread, idxEmission] = specDataIndex(app);
-
-            switch event.Source
-                case app.DropDown
-                    operationType = 'PlotDataSourceChanged';
-            
-                    switch app.DropDown.Value
-                        case 'Dados brutos'
-                            app.axesTool_DensityPlot.Enable = 0;
-                            if strcmp(app.UIAxes1.UserData.PlotMode, 'density')
-                                app.UIAxes1.UserData.PlotMode = 'distortion';
-                            end
-
-                        otherwise
-                            app.axesTool_DensityPlot.Enable = 1;
-                    end
-                    updateCustomProperty(app, idxThread, idxEmission)
-
-                case {app.filter_DataBinningLength, app.filter_DataBinningFcn}
-                    operationType = 'DataBinningParameterChanged';
-                    updateCustomProperty(app, idxThread, idxEmission)
-
-                    % Se o plot em evidência é o gerado pelas informações
-                    % brutas (e não pela processada via Data-Binning), então 
-                    % não é necessário redesenhá-lo.
-                    if app.DropDown.Value == "Dados brutos"
-                        return
-                    end
-            end
-
-            prePlot_Startup(app, idxThread, idxEmission, operationType)
-
-        end
-
-        % Image clicked function: axesTool_DensityPlot, 
-        % ...and 1 other component
-        function axesTool_PlotTypeValueChanged(app, event)
-
-            hDistortion = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
-            hDensity    = findobj(app.UIAxes1.Children, 'Tag', 'Density');
-
-            switch event.Source
-                %---------------------------------------------------------%
-                case app.axesTool_DistortionPlot
-                    if hDistortion.Visible
-                        app.UIAxes1.UserData.PlotMode = 'none';
-                        hDistortion.Visible = 0;
-                    else
-                        app.UIAxes1.UserData.PlotMode = 'distortion';
-                        hDensity.Visible = 0;
-                        set(hDistortion, 'Visible', 1, 'SizeData', 20*app.axesTool_PlotSize.Value)                        
-                    end
-
-                %---------------------------------------------------------%
-                case app.axesTool_DensityPlot
-                    if hDensity.Visible
-                        app.UIAxes1.UserData.PlotMode = 'none';
-                        hDensity.Visible = 0;
-                    else
-                        app.UIAxes1.UserData.PlotMode = 'density';
-                        hDistortion.Visible = 0;
-                        set(hDensity, 'Visible', 1, 'Radius', 100*app.axesTool_PlotSize.Value)
-                    end
-            end
-
-            % A atualização do colorbar só é renderizada em tela quando o
-            % usuário faz alguma interação com o eixo... duas possibilidades 
-            % para forçar a atualização:
-
-            % (a) Trocar "LimitsMode" para "manual" e depois para "auto". A
-            %     operação é concluída em cerca de 0.461 ms.
-            % (b) Chamar o método "reset", reconfigurando o eixo. A operação
-            %     é concluída em cerca de 16.601 ms.
-
-            colorBar = findobj(app.UIAxes1.Parent.Children, 'Type', 'colorbar');
-            colorBar.LimitsMode = 'manual';
-            colorBar.LimitsMode = 'auto';
-            
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-
-        end
-
-        % Value changed function: axesTool_PlotSize
-        function axesTool_PlotSizeValueChanged(app, event)
-
-            % Como exposto em axesTool_PlotSizeValueChanging(app, event),
-            % o plot de distorção será atualizado em "tempo real", no 
-            % "ValueChangingFcn", mas o plot de densidade apenas no callback 
-            % "ValueChangedFcn".
-
-            hDensity = findobj(app.UIAxes1.Children, 'Tag', 'Density');
-
-            if hDensity.Visible
-                set(findobj(app.UIAxes1.Children, 'Tag', 'Density'), 'Radius',  100*event.Value)
-                drawnow
-            end
-
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-            
-        end
-
-        % Value changing function: axesTool_PlotSize
-        function axesTool_PlotSizeValueChanging(app, event)
-            
-            % Ao interagir com o slider, não soltando o mouse, o MATLAB dispara 
-            % apenas o evento "ValueChangingFcn". Ao soltar o botão do mouse, o 
-            % MATLAB dispara, nesta ordem, os eventos "ValueChangingFcn" e 
-            % "ValueChangedFcn".
-
-            % Nesse contexto, considerando que o plot de densidade demora
-            % para atualizar, o plot de distorção será atualizado em "tempo
-            % real", no "ValueChangingFcn", mas o plot de densidade apenas 
-            % no callback "ValueChangedFcn".
-
-            hDistortion = findobj(app.UIAxes1.Children, 'Tag', 'Distortion');
-
-            if hDistortion.Visible
-                set(findobj(app.UIAxes1.Children, 'Tag', 'Distortion'), 'SizeData', 20*event.Value)
-            end
-            
         end
 
         % Callback function: config_Car_Color, config_points_Color, 
@@ -2277,7 +2285,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch app.filter_RadioGroup.SelectedObject
                 case app.filter_THR
-                    app.Tab2_Grid.RowHeight{2} = 96;
+                    app.Tab2Grid.RowHeight{2} = 96;
                     app.filter_THR.Position(2) = 46;
                     app.filter_Geographic.Position(2) = 8;
 
@@ -2299,7 +2307,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch app.filter_GeographicType.Value
                 case 'Arquivo externo KML/KMZ'
-                    app.Tab2_Grid.RowHeight{2} = 208;
+                    app.Tab2Grid.RowHeight{2} = 208;
 
                     app.filter_THR.Position(2)                 = 158;
                     app.filter_Geographic.Position(2)          = 120;
@@ -2313,7 +2321,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     set(findobj(app.filter_RadioGroup.Children, 'Tag', 'KML'), 'Visible', 1)
 
                 otherwise
-                    app.Tab2_Grid.RowHeight{2} = 140;
+                    app.Tab2Grid.RowHeight{2} = 140;
 
                     app.filter_THR.Position(2)                 = 90;
                     app.filter_Geographic.Position(2)          = 52;
@@ -2328,10 +2336,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: filter_KMLOpenFile
         function filter_KMLOpenFileClicked(app, event)
             
-            [fileName, filePath] = uigetfile({'*.kml;*.kmz', '(*.kml, *.kmz)'}, '', app.General.fileFolder.lastVisited);
-            figure(app.UIFigure)
+            [~, filePath, ~, fileName] = appUtil.modalWindow(app.UIFigure, 'uigetfile', '', {'*.kml;*.kmz', '(*.kml, *.kmz)'}, app.General.fileFolder.lastVisited);
 
-            if ~isequal(fileName, 0)
+            if ~isempty(fileName)
                 app.progressDialog.Visible = 'visible';
 
                 misc_updateLastVisitedFolder(app.mainApp, filePath)
@@ -2709,43 +2716,121 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {5, 320, 10, 5, 366, '1x', 5};
-            app.GridLayout.RowHeight = {5, 23, 3, 5, '1x', 5, 34};
+            app.GridLayout.ColumnWidth = {10, 320, 10, 5, 366, '1x', 48, 8, 2};
+            app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create ControlTabGroup
-            app.ControlTabGroup = uitabgroup(app.GridLayout);
-            app.ControlTabGroup.AutoResizeChildren = 'off';
-            app.ControlTabGroup.Layout.Row = [2 5];
-            app.ControlTabGroup.Layout.Column = 2;
+            % Create Toolbar
+            app.Toolbar = uigridlayout(app.GridLayout);
+            app.Toolbar.ColumnWidth = {22, 22, 22, 248, 196, '1x', 22, 22};
+            app.Toolbar.RowHeight = {4, 17, 2};
+            app.Toolbar.ColumnSpacing = 5;
+            app.Toolbar.RowSpacing = 0;
+            app.Toolbar.Padding = [5 5 0 5];
+            app.Toolbar.Layout.Row = 6;
+            app.Toolbar.Layout.Column = [1 9];
+            app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
-            % Create Tab1_Emission
-            app.Tab1_Emission = uitab(app.ControlTabGroup);
-            app.Tab1_Emission.AutoResizeChildren = 'off';
+            % Create tool_ControlPanelVisibility
+            app.tool_ControlPanelVisibility = uiimage(app.Toolbar);
+            app.tool_ControlPanelVisibility.ImageClickedFcn = createCallbackFcn(app, @Toolbar_LeftPanelVisibilityImageClicked, true);
+            app.tool_ControlPanelVisibility.Layout.Row = 2;
+            app.tool_ControlPanelVisibility.Layout.Column = 1;
+            app.tool_ControlPanelVisibility.VerticalAlignment = 'bottom';
+            app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
 
-            % Create Tab1_Grid
-            app.Tab1_Grid = uigridlayout(app.Tab1_Emission);
-            app.Tab1_Grid.ColumnWidth = {'1x', 88};
-            app.Tab1_Grid.RowHeight = {22, 44, 0, 22, 22, '1x', 22, 69, 5, 24};
-            app.Tab1_Grid.ColumnSpacing = 5;
-            app.Tab1_Grid.RowSpacing = 5;
-            app.Tab1_Grid.Padding = [0 0 0 8];
-            app.Tab1_Grid.BackgroundColor = [1 1 1];
+            % Create tool_Play
+            app.tool_Play = uiimage(app.Toolbar);
+            app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @Toolbar_PlaybackControlImageClicked, true);
+            app.tool_Play.Tooltip = {'Playback'};
+            app.tool_Play.Layout.Row = 2;
+            app.tool_Play.Layout.Column = 2;
+            app.tool_Play.ImageSource = 'play_32.png';
+
+            % Create tool_LoopControl
+            app.tool_LoopControl = uiimage(app.Toolbar);
+            app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @Toolbar_PlaybackControlImageClicked, true);
+            app.tool_LoopControl.Tag = 'loop';
+            app.tool_LoopControl.Tooltip = {'Loop do playback'};
+            app.tool_LoopControl.Layout.Row = 2;
+            app.tool_LoopControl.Layout.Column = 3;
+            app.tool_LoopControl.ImageSource = 'playbackLoop_32Blue.png';
+
+            % Create tool_TimestampSlider
+            app.tool_TimestampSlider = uislider(app.Toolbar);
+            app.tool_TimestampSlider.MajorTicks = [0 50 100];
+            app.tool_TimestampSlider.MajorTickLabels = {''};
+            app.tool_TimestampSlider.ValueChangingFcn = createCallbackFcn(app, @Toolbar_TimelineSliderValueChanging, true);
+            app.tool_TimestampSlider.MinorTicks = [0 2.5 5 7.5 10 12.5 15 17.5 20 22.5 25 27.5 30 32.5 35 37.5 40 42.5 45 47.5 50 52.5 55 57.5 60 62.5 65 67.5 70 72.5 75 77.5 80 82.5 85 87.5 90 92.5 95 97.5 100];
+            app.tool_TimestampSlider.FontSize = 8;
+            app.tool_TimestampSlider.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.tool_TimestampSlider.Layout.Row = 2;
+            app.tool_TimestampSlider.Layout.Column = 4;
+
+            % Create tool_TimestampLabel
+            app.tool_TimestampLabel = uilabel(app.Toolbar);
+            app.tool_TimestampLabel.WordWrap = 'on';
+            app.tool_TimestampLabel.FontSize = 10;
+            app.tool_TimestampLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.tool_TimestampLabel.Layout.Row = [1 3];
+            app.tool_TimestampLabel.Layout.Column = 5;
+            app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
+
+            % Create tool_DataBinningExport
+            app.tool_DataBinningExport = uiimage(app.Toolbar);
+            app.tool_DataBinningExport.ScaleMethod = 'none';
+            app.tool_DataBinningExport.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ExportFileButtonPushed, true);
+            app.tool_DataBinningExport.Tooltip = {'Exporta análise em arquivos XLSX e KML'};
+            app.tool_DataBinningExport.Layout.Row = 2;
+            app.tool_DataBinningExport.Layout.Column = 7;
+            app.tool_DataBinningExport.ImageSource = 'Export_16.png';
+
+            % Create tool_FilterSummary
+            app.tool_FilterSummary = uiimage(app.Toolbar);
+            app.tool_FilterSummary.ImageClickedFcn = createCallbackFcn(app, @Toolbar_SummaryImageClicked, true);
+            app.tool_FilterSummary.Tooltip = {'Informações acerca do processo de análise dos dados'};
+            app.tool_FilterSummary.Layout.Row = 2;
+            app.tool_FilterSummary.Layout.Column = 8;
+            app.tool_FilterSummary.ImageSource = 'Info_32.png';
+
+            % Create TabGroup
+            app.TabGroup = uitabgroup(app.GridLayout);
+            app.TabGroup.AutoResizeChildren = 'off';
+            app.TabGroup.SelectionChangedFcn = createCallbackFcn(app, @TabGroupSelectionChanged, true);
+            app.TabGroup.Layout.Row = [3 4];
+            app.TabGroup.Layout.Column = 2;
+
+            % Create Tab1
+            app.Tab1 = uitab(app.TabGroup);
+            app.Tab1.AutoResizeChildren = 'off';
+            app.Tab1.Title = 'DT';
+            app.Tab1.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.Tab1.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+
+            % Create Tab1Grid
+            app.Tab1Grid = uigridlayout(app.Tab1);
+            app.Tab1Grid.ColumnWidth = {'1x', 88};
+            app.Tab1Grid.RowHeight = {22, 44, 0, 22, 22, '1x', 22, 69, 5, 26};
+            app.Tab1Grid.ColumnSpacing = 5;
+            app.Tab1Grid.RowSpacing = 5;
+            app.Tab1Grid.Padding = [10 10 10 5];
+            app.Tab1Grid.BackgroundColor = [1 1 1];
 
             % Create spectralThreadLabel
-            app.spectralThreadLabel = uilabel(app.Tab1_Grid);
+            app.spectralThreadLabel = uilabel(app.Tab1Grid);
             app.spectralThreadLabel.VerticalAlignment = 'bottom';
             app.spectralThreadLabel.FontSize = 10;
+            app.spectralThreadLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.spectralThreadLabel.Layout.Row = 1;
             app.spectralThreadLabel.Layout.Column = 1;
             app.spectralThreadLabel.Text = 'FLUXO ESPECTRAL';
 
             % Create spectralThreadEditGrid
-            app.spectralThreadEditGrid = uigridlayout(app.Tab1_Grid);
-            app.spectralThreadEditGrid.ColumnWidth = {'1x', 16, 0, 0};
+            app.spectralThreadEditGrid = uigridlayout(app.Tab1Grid);
+            app.spectralThreadEditGrid.ColumnWidth = {'1x', 18, 0, 0};
             app.spectralThreadEditGrid.RowHeight = {'1x'};
             app.spectralThreadEditGrid.ColumnSpacing = 5;
             app.spectralThreadEditGrid.Padding = [0 0 0 0];
@@ -2783,7 +2868,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.spectralThreadEditCancel.ImageSource = 'Delete_32Red.png';
 
             % Create spectralThreadPanel
-            app.spectralThreadPanel = uipanel(app.Tab1_Grid);
+            app.spectralThreadPanel = uipanel(app.Tab1Grid);
+            app.spectralThreadPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.spectralThreadPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.spectralThreadPanel.Layout.Row = 2;
             app.spectralThreadPanel.Layout.Column = [1 2];
 
@@ -2797,56 +2884,61 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create spectralThread
             app.spectralThread = uilabel(app.spectralThreadGrid);
             app.spectralThread.FontSize = 11;
+            app.spectralThread.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.spectralThread.Layout.Row = 1;
             app.spectralThread.Layout.Column = 1;
             app.spectralThread.Text = '';
 
             % Create spectralThreadTree
-            app.spectralThreadTree = uitree(app.Tab1_Grid);
+            app.spectralThreadTree = uitree(app.Tab1Grid);
             app.spectralThreadTree.FontSize = 10;
             app.spectralThreadTree.FontColor = [0.651 0.651 0.651];
             app.spectralThreadTree.Layout.Row = 3;
             app.spectralThreadTree.Layout.Column = [1 2];
 
             % Create emissionListLabel
-            app.emissionListLabel = uilabel(app.Tab1_Grid);
+            app.emissionListLabel = uilabel(app.Tab1Grid);
             app.emissionListLabel.VerticalAlignment = 'bottom';
             app.emissionListLabel.FontSize = 10;
+            app.emissionListLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.emissionListLabel.Layout.Row = 4;
             app.emissionListLabel.Layout.Column = 1;
             app.emissionListLabel.Text = 'EMISSÃO';
 
             % Create emissionList
-            app.emissionList = uidropdown(app.Tab1_Grid);
+            app.emissionList = uidropdown(app.Tab1Grid);
             app.emissionList.Items = {};
             app.emissionList.ValueChangedFcn = createCallbackFcn(app, @general_EmissionChanged, true);
             app.emissionList.FontSize = 11;
+            app.emissionList.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.emissionList.BackgroundColor = [1 1 1];
             app.emissionList.Layout.Row = 5;
             app.emissionList.Layout.Column = [1 2];
             app.emissionList.Value = {};
 
             % Create emissionInfo
-            app.emissionInfo = uilabel(app.Tab1_Grid);
+            app.emissionInfo = uilabel(app.Tab1Grid);
             app.emissionInfo.VerticalAlignment = 'top';
             app.emissionInfo.WordWrap = 'on';
             app.emissionInfo.FontSize = 11;
+            app.emissionInfo.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.emissionInfo.Layout.Row = 6;
             app.emissionInfo.Layout.Column = [1 2];
             app.emissionInfo.Interpreter = 'html';
             app.emissionInfo.Text = '';
 
             % Create channelLabel
-            app.channelLabel = uilabel(app.Tab1_Grid);
+            app.channelLabel = uilabel(app.Tab1Grid);
             app.channelLabel.VerticalAlignment = 'bottom';
             app.channelLabel.FontSize = 10;
+            app.channelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelLabel.Layout.Row = 7;
             app.channelLabel.Layout.Column = 1;
             app.channelLabel.Text = 'CANAL SOB ANÁLISE';
 
             % Create channelEditGrid
-            app.channelEditGrid = uigridlayout(app.Tab1_Grid);
-            app.channelEditGrid.ColumnWidth = {'1x', 16, 16, 0, 0};
+            app.channelEditGrid = uigridlayout(app.Tab1Grid);
+            app.channelEditGrid.ColumnWidth = {'1x', 18, 18, 0, 0};
             app.channelEditGrid.RowHeight = {'1x'};
             app.channelEditGrid.ColumnSpacing = 5;
             app.channelEditGrid.Padding = [0 0 0 0];
@@ -2894,8 +2986,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelEditCancel.ImageSource = 'Delete_32Red.png';
 
             % Create channelPanel
-            app.channelPanel = uipanel(app.Tab1_Grid);
+            app.channelPanel = uipanel(app.Tab1Grid);
             app.channelPanel.AutoResizeChildren = 'off';
+            app.channelPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.channelPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.channelPanel.Layout.Row = 8;
             app.channelPanel.Layout.Column = [1 2];
 
@@ -2909,6 +3003,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create channelFrequencyLabel
             app.channelFrequencyLabel = uilabel(app.channelGrid);
             app.channelFrequencyLabel.FontSize = 11;
+            app.channelFrequencyLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelFrequencyLabel.Layout.Row = 1;
             app.channelFrequencyLabel.Layout.Column = 1;
             app.channelFrequencyLabel.Text = 'Frequência central (MHz):';
@@ -2918,12 +3013,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelFrequency.ValueDisplayFormat = '%.3f';
             app.channelFrequency.Editable = 'off';
             app.channelFrequency.FontSize = 11;
+            app.channelFrequency.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelFrequency.Layout.Row = 1;
             app.channelFrequency.Layout.Column = 2;
 
             % Create channelBandWidthLabel
             app.channelBandWidthLabel = uilabel(app.channelGrid);
             app.channelBandWidthLabel.FontSize = 11;
+            app.channelBandWidthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelBandWidthLabel.Layout.Row = 2;
             app.channelBandWidthLabel.Layout.Column = 1;
             app.channelBandWidthLabel.Text = 'Largura (kHz):';
@@ -2933,43 +3030,50 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelBandWidth.ValueDisplayFormat = '%.1f';
             app.channelBandWidth.Editable = 'off';
             app.channelBandWidth.FontSize = 11;
+            app.channelBandWidth.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelBandWidth.Layout.Row = 2;
             app.channelBandWidth.Layout.Column = 2;
 
             % Create reportFlag
-            app.reportFlag = uicheckbox(app.Tab1_Grid);
+            app.reportFlag = uicheckbox(app.Tab1Grid);
             app.reportFlag.ValueChangedFcn = createCallbackFcn(app, @general_ReportFlagCheckBoxClicked, true);
             app.reportFlag.Text = 'Customizar plot relacionado à emissão, habilitando-o para inclusão em relatório.';
             app.reportFlag.WordWrap = 'on';
             app.reportFlag.FontSize = 11;
+            app.reportFlag.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.reportFlag.Layout.Row = 10;
             app.reportFlag.Layout.Column = [1 2];
 
-            % Create Tab2_Filter
-            app.Tab2_Filter = uitab(app.ControlTabGroup);
-            app.Tab2_Filter.AutoResizeChildren = 'off';
+            % Create Tab2
+            app.Tab2 = uitab(app.TabGroup);
+            app.Tab2.AutoResizeChildren = 'off';
+            app.Tab2.Title = 'FILTRO';
+            app.Tab2.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.Tab2.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab2_Grid
-            app.Tab2_Grid = uigridlayout(app.Tab2_Filter);
-            app.Tab2_Grid.ColumnWidth = {'1x', 16};
-            app.Tab2_Grid.RowHeight = {22, 96, 8, '1x', 54, 74};
-            app.Tab2_Grid.ColumnSpacing = 5;
-            app.Tab2_Grid.RowSpacing = 5;
-            app.Tab2_Grid.Padding = [0 0 0 8];
-            app.Tab2_Grid.BackgroundColor = [1 1 1];
+            % Create Tab2Grid
+            app.Tab2Grid = uigridlayout(app.Tab2);
+            app.Tab2Grid.ColumnWidth = {'1x', 22};
+            app.Tab2Grid.RowHeight = {22, 96, 8, '1x', 54, 74};
+            app.Tab2Grid.ColumnSpacing = 5;
+            app.Tab2Grid.RowSpacing = 5;
+            app.Tab2Grid.Padding = [10 10 10 5];
+            app.Tab2Grid.BackgroundColor = [1 1 1];
 
             % Create filter_TreeLabel
-            app.filter_TreeLabel = uilabel(app.Tab2_Grid);
+            app.filter_TreeLabel = uilabel(app.Tab2Grid);
             app.filter_TreeLabel.VerticalAlignment = 'bottom';
             app.filter_TreeLabel.FontSize = 10;
+            app.filter_TreeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_TreeLabel.Layout.Row = 1;
             app.filter_TreeLabel.Layout.Column = 1;
             app.filter_TreeLabel.Text = 'ORDINÁRIA';
 
             % Create filter_RadioGroup
-            app.filter_RadioGroup = uibuttongroup(app.Tab2_Grid);
+            app.filter_RadioGroup = uibuttongroup(app.Tab2Grid);
             app.filter_RadioGroup.AutoResizeChildren = 'off';
             app.filter_RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @filter_RadioGroupSelectionChanged, true);
+            app.filter_RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_RadioGroup.BackgroundColor = [1 1 1];
             app.filter_RadioGroup.Layout.Row = 2;
             app.filter_RadioGroup.Layout.Column = [1 2];
@@ -2981,16 +3085,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_THR.Text = {'<b>NÍVEL</b>'; '<p style="color: gray; text-align: justify;">Elimina medições cuja potência do canal sob análise é inferior ao <i>threshold</i>.</font>'};
             app.filter_THR.WordWrap = 'on';
             app.filter_THR.FontSize = 10;
+            app.filter_THR.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_THR.Interpreter = 'html';
-            app.filter_THR.Position = [11 46 299 44];
+            app.filter_THR.Position = [11 45 275 44];
             app.filter_THR.Value = true;
 
             % Create filter_Geographic
             app.filter_Geographic = uiradiobutton(app.filter_RadioGroup);
             app.filter_Geographic.Text = {'<b>GEOGRÁFICA</b>'; '<p style="color: gray; text-align: justify;">Elimina medições fora da região de interesse (ROI).</p>'};
             app.filter_Geographic.FontSize = 10;
+            app.filter_Geographic.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_Geographic.Interpreter = 'html';
-            app.filter_Geographic.Position = [11 8 299 29];
+            app.filter_Geographic.Position = [11 7 275 29];
 
             % Create filter_GeographicTypeLabel
             app.filter_GeographicTypeLabel = uilabel(app.filter_RadioGroup);
@@ -3009,7 +3115,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_GeographicType.FontSize = 11;
             app.filter_GeographicType.FontColor = [0.502 0.502 0.502];
             app.filter_GeographicType.BackgroundColor = [1 1 1];
-            app.filter_GeographicType.Position = [29 -32 284 22];
+            app.filter_GeographicType.Position = [29 -32 232 22];
             app.filter_GeographicType.Value = 'Arquivo externo KML/KMZ';
 
             % Create filter_KMLFilenameLabel
@@ -3029,14 +3135,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_KMLFilename.FontSize = 11;
             app.filter_KMLFilename.FontColor = [0.502 0.502 0.502];
             app.filter_KMLFilename.Visible = 'off';
-            app.filter_KMLFilename.Position = [29 -74 261 22];
+            app.filter_KMLFilename.Position = [29 -74 232 22];
 
             % Create filter_KMLOpenFile
             app.filter_KMLOpenFile = uiimage(app.filter_RadioGroup);
             app.filter_KMLOpenFile.ImageClickedFcn = createCallbackFcn(app, @filter_KMLOpenFileClicked, true);
             app.filter_KMLOpenFile.Tag = 'KML';
             app.filter_KMLOpenFile.Visible = 'off';
-            app.filter_KMLOpenFile.Position = [295 -72 18 18];
+            app.filter_KMLOpenFile.Position = [268 -72 18 18];
             app.filter_KMLOpenFile.ImageSource = 'OpenFile_36x36.png';
 
             % Create filter_KMLFileLayer
@@ -3047,36 +3153,41 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_KMLFileLayer.FontSize = 11;
             app.filter_KMLFileLayer.FontColor = [0.502 0.502 0.502];
             app.filter_KMLFileLayer.BackgroundColor = [1 1 1];
-            app.filter_KMLFileLayer.Position = [29 -101 284 22];
+            app.filter_KMLFileLayer.Position = [29 -101 232 22];
             app.filter_KMLFileLayer.Value = {};
 
             % Create filter_AddImage
-            app.filter_AddImage = uiimage(app.Tab2_Grid);
+            app.filter_AddImage = uiimage(app.Tab2Grid);
             app.filter_AddImage.ImageClickedFcn = createCallbackFcn(app, @filter_AddFilterImageClicked, true);
             app.filter_AddImage.Layout.Row = 3;
             app.filter_AddImage.Layout.Column = 2;
+            app.filter_AddImage.HorizontalAlignment = 'right';
             app.filter_AddImage.ImageSource = 'addSymbol_32.png';
 
             % Create filter_Tree
-            app.filter_Tree = uitree(app.Tab2_Grid);
+            app.filter_Tree = uitree(app.Tab2Grid);
             app.filter_Tree.SelectionChangedFcn = createCallbackFcn(app, @filter_TreeSelectionChanged, true);
             app.filter_Tree.FontSize = 10.5;
+            app.filter_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_Tree.Layout.Row = 4;
             app.filter_Tree.Layout.Column = [1 2];
 
             % Create filter_DataBinningLabel
-            app.filter_DataBinningLabel = uilabel(app.Tab2_Grid);
+            app.filter_DataBinningLabel = uilabel(app.Tab2Grid);
             app.filter_DataBinningLabel.VerticalAlignment = 'bottom';
             app.filter_DataBinningLabel.WordWrap = 'on';
             app.filter_DataBinningLabel.FontSize = 10;
+            app.filter_DataBinningLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningLabel.Layout.Row = 5;
             app.filter_DataBinningLabel.Layout.Column = [1 2];
             app.filter_DataBinningLabel.Interpreter = 'html';
             app.filter_DataBinningLabel.Text = {'DATA-BINNING'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Agrupa medições em quadrículas, sumarizando-as por meio de função estatística.</p>'};
 
             % Create filter_DataBinningPanel
-            app.filter_DataBinningPanel = uipanel(app.Tab2_Grid);
+            app.filter_DataBinningPanel = uipanel(app.Tab2Grid);
             app.filter_DataBinningPanel.AutoResizeChildren = 'off';
+            app.filter_DataBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.filter_DataBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.filter_DataBinningPanel.Layout.Row = 6;
             app.filter_DataBinningPanel.Layout.Column = [1 2];
 
@@ -3093,6 +3204,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_DataBinningLengthLabel.VerticalAlignment = 'bottom';
             app.filter_DataBinningLengthLabel.WordWrap = 'on';
             app.filter_DataBinningLengthLabel.FontSize = 10;
+            app.filter_DataBinningLengthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningLengthLabel.Layout.Row = 1;
             app.filter_DataBinningLengthLabel.Layout.Column = 1;
             app.filter_DataBinningLengthLabel.Interpreter = 'html';
@@ -3104,8 +3216,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_DataBinningLength.Limits = [50 1500];
             app.filter_DataBinningLength.RoundFractionalValues = 'on';
             app.filter_DataBinningLength.ValueDisplayFormat = '%.0f';
-            app.filter_DataBinningLength.ValueChangedFcn = createCallbackFcn(app, @axesTool_DataSourceChanged, true);
+            app.filter_DataBinningLength.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
             app.filter_DataBinningLength.FontSize = 11;
+            app.filter_DataBinningLength.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningLength.Layout.Row = 2;
             app.filter_DataBinningLength.Layout.Column = 1;
             app.filter_DataBinningLength.Value = 100;
@@ -3115,6 +3228,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_DataBinningFcnLabel.VerticalAlignment = 'bottom';
             app.filter_DataBinningFcnLabel.WordWrap = 'on';
             app.filter_DataBinningFcnLabel.FontSize = 10;
+            app.filter_DataBinningFcnLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningFcnLabel.Layout.Row = 1;
             app.filter_DataBinningFcnLabel.Layout.Column = 2;
             app.filter_DataBinningFcnLabel.Text = {'Função'; 'estatística:'};
@@ -3122,38 +3236,44 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create filter_DataBinningFcn
             app.filter_DataBinningFcn = uidropdown(app.filter_DataBinningGrid);
             app.filter_DataBinningFcn.Items = {'min', 'mean', 'median', 'rms', 'max'};
-            app.filter_DataBinningFcn.ValueChangedFcn = createCallbackFcn(app, @axesTool_DataSourceChanged, true);
+            app.filter_DataBinningFcn.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
             app.filter_DataBinningFcn.FontSize = 11;
+            app.filter_DataBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningFcn.BackgroundColor = [1 1 1];
             app.filter_DataBinningFcn.Layout.Row = 2;
             app.filter_DataBinningFcn.Layout.Column = 2;
             app.filter_DataBinningFcn.Value = 'rms';
 
-            % Create Tab3_Points
-            app.Tab3_Points = uitab(app.ControlTabGroup);
-            app.Tab3_Points.AutoResizeChildren = 'off';
+            % Create Tab3
+            app.Tab3 = uitab(app.TabGroup);
+            app.Tab3.AutoResizeChildren = 'off';
+            app.Tab3.Title = 'PT. INTERESSE';
+            app.Tab3.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.Tab3.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab3_Grid
-            app.Tab3_Grid = uigridlayout(app.Tab3_Points);
-            app.Tab3_Grid.ColumnWidth = {'1x', 16};
-            app.Tab3_Grid.RowHeight = {22, 92, 118, 8, '1x'};
-            app.Tab3_Grid.ColumnSpacing = 5;
-            app.Tab3_Grid.RowSpacing = 5;
-            app.Tab3_Grid.Padding = [0 0 0 8];
-            app.Tab3_Grid.BackgroundColor = [1 1 1];
+            % Create Tab3Grid
+            app.Tab3Grid = uigridlayout(app.Tab3);
+            app.Tab3Grid.ColumnWidth = {'1x', 22};
+            app.Tab3Grid.RowHeight = {22, 92, 118, 8, '1x'};
+            app.Tab3Grid.ColumnSpacing = 5;
+            app.Tab3Grid.RowSpacing = 5;
+            app.Tab3Grid.Padding = [10 10 10 5];
+            app.Tab3Grid.BackgroundColor = [1 1 1];
 
             % Create points_TreeLabel
-            app.points_TreeLabel = uilabel(app.Tab3_Grid);
+            app.points_TreeLabel = uilabel(app.Tab3Grid);
             app.points_TreeLabel.VerticalAlignment = 'bottom';
             app.points_TreeLabel.FontSize = 10;
+            app.points_TreeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_TreeLabel.Layout.Row = 1;
             app.points_TreeLabel.Layout.Column = 1;
             app.points_TreeLabel.Text = 'TIPO';
 
             % Create points_RadioGroup
-            app.points_RadioGroup = uibuttongroup(app.Tab3_Grid);
+            app.points_RadioGroup = uibuttongroup(app.Tab3Grid);
             app.points_RadioGroup.AutoResizeChildren = 'off';
             app.points_RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @points_RadioGroupSelectionChanged, true);
+            app.points_RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_RadioGroup.BackgroundColor = [1 1 1];
             app.points_RadioGroup.Layout.Row = 2;
             app.points_RadioGroup.Layout.Column = [1 2];
@@ -3164,8 +3284,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_AddRFDataHub = uiradiobutton(app.points_RadioGroup);
             app.points_AddRFDataHub.Text = {'<b>ESTAÇÕES DE TELECOMUNICAÇÕES</b>'; '<p style="color: gray; text-align: justify;">Adiciona estações incluídas no RFDataHub.</font>'};
             app.points_AddRFDataHub.FontSize = 10;
+            app.points_AddRFDataHub.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_AddRFDataHub.Interpreter = 'html';
-            app.points_AddRFDataHub.Position = [11 59 302 25];
+            app.points_AddRFDataHub.Position = [11 58 278 25];
             app.points_AddRFDataHub.Value = true;
 
             % Create points_AddFindPeaks
@@ -3173,12 +3294,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_AddFindPeaks.Text = {'<b>POTÊNCIA DO CANAL</b>'; '<p style="color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
             app.points_AddFindPeaks.WordWrap = 'on';
             app.points_AddFindPeaks.FontSize = 10;
+            app.points_AddFindPeaks.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_AddFindPeaks.Interpreter = 'html';
-            app.points_AddFindPeaks.Position = [12 8 301 44];
+            app.points_AddFindPeaks.Position = [12 7 277 44];
 
             % Create points_AddValuePanel
-            app.points_AddValuePanel = uipanel(app.Tab3_Grid);
+            app.points_AddValuePanel = uipanel(app.Tab3Grid);
             app.points_AddValuePanel.AutoResizeChildren = 'off';
+            app.points_AddValuePanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.points_AddValuePanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.points_AddValuePanel.Layout.Row = 3;
             app.points_AddValuePanel.Layout.Column = [1 2];
 
@@ -3194,6 +3318,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype1Label = uilabel(app.points_AddValueGrid);
             app.points_Subtype1Label.VerticalAlignment = 'bottom';
             app.points_Subtype1Label.FontSize = 10;
+            app.points_Subtype1Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype1Label.Layout.Row = 1;
             app.points_Subtype1Label.Layout.Column = [1 2];
             app.points_Subtype1Label.Text = 'Tipo de registro:';
@@ -3202,6 +3327,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype1DropDown = uidropdown(app.points_AddValueGrid);
             app.points_Subtype1DropDown.Items = {'Lista de frequências (MHz)', 'Índices de registros do RFDataHub'};
             app.points_Subtype1DropDown.FontSize = 11;
+            app.points_Subtype1DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype1DropDown.BackgroundColor = [1 1 1];
             app.points_Subtype1DropDown.Layout.Row = 2;
             app.points_Subtype1DropDown.Layout.Column = [1 3];
@@ -3211,6 +3337,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype1Value = uieditfield(app.points_AddValueGrid, 'text');
             app.points_Subtype1Value.ValueChangedFcn = createCallbackFcn(app, @points_Subtype1ValueValueChanged2, true);
             app.points_Subtype1Value.FontSize = 11;
+            app.points_Subtype1Value.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype1Value.Tooltip = {'Exemplos:'; '• 101.1, 101.3, 101.5 (Lista de frequências)'; '• #1000 #1500 #2000 (RFDataHub)'};
             app.points_Subtype1Value.Layout.Row = 3;
             app.points_Subtype1Value.Layout.Column = [1 3];
@@ -3219,6 +3346,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype1DistanceLabel = uilabel(app.points_AddValueGrid);
             app.points_Subtype1DistanceLabel.WordWrap = 'on';
             app.points_Subtype1DistanceLabel.FontSize = 10;
+            app.points_Subtype1DistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype1DistanceLabel.Layout.Row = 4;
             app.points_Subtype1DistanceLabel.Layout.Column = [1 2];
             app.points_Subtype1DistanceLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
@@ -3229,6 +3357,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype1Distance.RoundFractionalValues = 'on';
             app.points_Subtype1Distance.ValueDisplayFormat = '%d';
             app.points_Subtype1Distance.FontSize = 11;
+            app.points_Subtype1Distance.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype1Distance.Layout.Row = 4;
             app.points_Subtype1Distance.Layout.Column = 3;
             app.points_Subtype1Distance.Value = 30;
@@ -3237,6 +3366,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2Label = uilabel(app.points_AddValueGrid);
             app.points_Subtype2Label.VerticalAlignment = 'bottom';
             app.points_Subtype2Label.FontSize = 10;
+            app.points_Subtype2Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2Label.Layout.Row = 5;
             app.points_Subtype2Label.Layout.Column = [1 2];
             app.points_Subtype2Label.Text = 'Fonte da informação:';
@@ -3245,6 +3375,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2DropDown = uidropdown(app.points_AddValueGrid);
             app.points_Subtype2DropDown.Items = {'Dados brutos', 'Dados processados (Data Binning)'};
             app.points_Subtype2DropDown.FontSize = 11;
+            app.points_Subtype2DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2DropDown.BackgroundColor = [1 1 1];
             app.points_Subtype2DropDown.Layout.Row = 6;
             app.points_Subtype2DropDown.Layout.Column = [1 3];
@@ -3253,6 +3384,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create points_Subtype2NPeaksLabel
             app.points_Subtype2NPeaksLabel = uilabel(app.points_AddValueGrid);
             app.points_Subtype2NPeaksLabel.FontSize = 10;
+            app.points_Subtype2NPeaksLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2NPeaksLabel.Layout.Row = 7;
             app.points_Subtype2NPeaksLabel.Layout.Column = [1 2];
             app.points_Subtype2NPeaksLabel.Text = 'Número de picos:';
@@ -3263,6 +3395,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2NPeaks.RoundFractionalValues = 'on';
             app.points_Subtype2NPeaks.ValueDisplayFormat = '%.0f';
             app.points_Subtype2NPeaks.FontSize = 11;
+            app.points_Subtype2NPeaks.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2NPeaks.Layout.Row = 7;
             app.points_Subtype2NPeaks.Layout.Column = 3;
             app.points_Subtype2NPeaks.Value = 1;
@@ -3271,6 +3404,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2DistanceLabel = uilabel(app.points_AddValueGrid);
             app.points_Subtype2DistanceLabel.WordWrap = 'on';
             app.points_Subtype2DistanceLabel.FontSize = 10;
+            app.points_Subtype2DistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2DistanceLabel.Layout.Row = 8;
             app.points_Subtype2DistanceLabel.Layout.Column = [1 2];
             app.points_Subtype2DistanceLabel.Text = 'Distância mínima entre picos (metros):';
@@ -3282,12 +3416,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2Distance.RoundFractionalValues = 'on';
             app.points_Subtype2Distance.ValueDisplayFormat = '%.0f';
             app.points_Subtype2Distance.FontSize = 11;
+            app.points_Subtype2Distance.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Subtype2Distance.Layout.Row = 8;
             app.points_Subtype2Distance.Layout.Column = 3;
             app.points_Subtype2Distance.Value = 1000;
 
             % Create points_AddImage
-            app.points_AddImage = uiimage(app.Tab3_Grid);
+            app.points_AddImage = uiimage(app.Tab3Grid);
             app.points_AddImage.ScaleMethod = 'scaledown';
             app.points_AddImage.ImageClickedFcn = createCallbackFcn(app, @points_AddPointImageClicked, true);
             app.points_AddImage.Layout.Row = 4;
@@ -3297,56 +3432,63 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_AddImage.ImageSource = 'addSymbol_32.png';
 
             % Create points_Tree
-            app.points_Tree = uitree(app.Tab3_Grid, 'checkbox');
+            app.points_Tree = uitree(app.Tab3Grid, 'checkbox');
             app.points_Tree.FontSize = 10.5;
+            app.points_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Tree.Layout.Row = 5;
             app.points_Tree.Layout.Column = [1 2];
 
             % Assign Checked Nodes
             app.points_Tree.CheckedNodesChangedFcn = createCallbackFcn(app, @points_TreeCheckedNodesChanged, true);
 
-            % Create Tab4_Config
-            app.Tab4_Config = uitab(app.ControlTabGroup);
-            app.Tab4_Config.AutoResizeChildren = 'off';
+            % Create Tab4
+            app.Tab4 = uitab(app.TabGroup);
+            app.Tab4.AutoResizeChildren = 'off';
+            app.Tab4.Title = 'CONFIG';
+            app.Tab4.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.Tab4.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab4_Grid
-            app.Tab4_Grid = uigridlayout(app.Tab4_Config);
-            app.Tab4_Grid.ColumnWidth = {'1x', 16};
-            app.Tab4_Grid.RowHeight = {27, 18, 184, 38, '1x'};
-            app.Tab4_Grid.ColumnSpacing = 5;
-            app.Tab4_Grid.RowSpacing = 5;
-            app.Tab4_Grid.Padding = [0 0 0 8];
-            app.Tab4_Grid.BackgroundColor = [1 1 1];
+            % Create Tab4Grid
+            app.Tab4Grid = uigridlayout(app.Tab4);
+            app.Tab4Grid.ColumnWidth = {'1x', 22};
+            app.Tab4Grid.RowHeight = {22, 184, 22, '1x'};
+            app.Tab4Grid.ColumnSpacing = 5;
+            app.Tab4Grid.RowSpacing = 5;
+            app.Tab4Grid.Padding = [10 10 10 5];
+            app.Tab4Grid.BackgroundColor = [1 1 1];
 
             % Create config_geoAxesLabel
-            app.config_geoAxesLabel = uilabel(app.Tab4_Grid);
+            app.config_geoAxesLabel = uilabel(app.Tab4Grid);
             app.config_geoAxesLabel.VerticalAlignment = 'bottom';
             app.config_geoAxesLabel.WordWrap = 'on';
             app.config_geoAxesLabel.FontSize = 10;
-            app.config_geoAxesLabel.Layout.Row = [1 2];
+            app.config_geoAxesLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_geoAxesLabel.Layout.Row = 1;
             app.config_geoAxesLabel.Layout.Column = [1 2];
-            app.config_geoAxesLabel.Interpreter = 'html';
-            app.config_geoAxesLabel.Text = {'EIXO GEOGRÁFICO'; '<p style="color: gray; font-size: 9px; text-align: justify; padding-right: 2px;">Os parâmetros relacionados ao eixo geográfico, com exceção do VEÍCULO, são customizáveis por canal sob análise.</p>'};
+            app.config_geoAxesLabel.Text = 'EIXO GEOGRÁFICO';
 
             % Create config_Refresh
-            app.config_Refresh = uiimage(app.Tab4_Grid);
+            app.config_Refresh = uiimage(app.Tab4Grid);
+            app.config_Refresh.ScaleMethod = 'none';
             app.config_Refresh.ImageClickedFcn = createCallbackFcn(app, @config_RefreshImageClicked, true);
             app.config_Refresh.Visible = 'off';
             app.config_Refresh.Tooltip = {'Volta à configuração inicial'};
-            app.config_Refresh.Layout.Row = 2;
+            app.config_Refresh.Layout.Row = 1;
             app.config_Refresh.Layout.Column = 2;
             app.config_Refresh.VerticalAlignment = 'bottom';
             app.config_Refresh.ImageSource = 'Refresh_18.png';
 
             % Create config_geoAxesPanel
-            app.config_geoAxesPanel = uipanel(app.Tab4_Grid);
+            app.config_geoAxesPanel = uipanel(app.Tab4Grid);
             app.config_geoAxesPanel.AutoResizeChildren = 'off';
-            app.config_geoAxesPanel.Layout.Row = 3;
+            app.config_geoAxesPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_geoAxesPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.config_geoAxesPanel.Layout.Row = 2;
             app.config_geoAxesPanel.Layout.Column = [1 2];
 
             % Create config_geoAxesGrid
             app.config_geoAxesGrid = uigridlayout(app.config_geoAxesPanel);
-            app.config_geoAxesGrid.ColumnWidth = {56, 70, 36, 36, '1x'};
+            app.config_geoAxesGrid.ColumnWidth = {56, '1x', 36, 36, 36};
             app.config_geoAxesGrid.RowHeight = {17, 64, 22, 22, 22};
             app.config_geoAxesGrid.RowSpacing = 5;
             app.config_geoAxesGrid.Padding = [10 10 10 5];
@@ -3356,6 +3498,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_geoAxesSublabel = uilabel(app.config_geoAxesGrid);
             app.config_geoAxesSublabel.VerticalAlignment = 'bottom';
             app.config_geoAxesSublabel.FontSize = 10;
+            app.config_geoAxesSublabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_geoAxesSublabel.Layout.Row = 1;
             app.config_geoAxesSublabel.Layout.Column = 1;
             app.config_geoAxesSublabel.Text = 'Mapa:';
@@ -3363,12 +3506,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create config_geoAxesSubPanel
             app.config_geoAxesSubPanel = uipanel(app.config_geoAxesGrid);
             app.config_geoAxesSubPanel.AutoResizeChildren = 'off';
+            app.config_geoAxesSubPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_geoAxesSubPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.config_geoAxesSubPanel.Layout.Row = 2;
             app.config_geoAxesSubPanel.Layout.Column = [1 5];
 
             % Create config_geoAxesSubGrid
             app.config_geoAxesSubGrid = uigridlayout(app.config_geoAxesSubPanel);
-            app.config_geoAxesSubGrid.ColumnWidth = {171, 93};
+            app.config_geoAxesSubGrid.ColumnWidth = {127, '1x'};
             app.config_geoAxesSubGrid.RowHeight = {17, 22};
             app.config_geoAxesSubGrid.RowSpacing = 5;
             app.config_geoAxesSubGrid.Padding = [10 10 10 5];
@@ -3378,6 +3523,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BasemapLabel = uilabel(app.config_geoAxesSubGrid);
             app.config_BasemapLabel.VerticalAlignment = 'bottom';
             app.config_BasemapLabel.FontSize = 10;
+            app.config_BasemapLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BasemapLabel.Layout.Row = 1;
             app.config_BasemapLabel.Layout.Column = 1;
             app.config_BasemapLabel.Text = 'Basemap:';
@@ -3387,6 +3533,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
             app.config_Basemap.ValueChangedFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
             app.config_Basemap.FontSize = 11;
+            app.config_Basemap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_Basemap.BackgroundColor = [1 1 1];
             app.config_Basemap.Layout.Row = 2;
             app.config_Basemap.Layout.Column = 1;
@@ -3396,6 +3543,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_ColormapLabel = uilabel(app.config_geoAxesSubGrid);
             app.config_ColormapLabel.VerticalAlignment = 'bottom';
             app.config_ColormapLabel.FontSize = 10;
+            app.config_ColormapLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_ColormapLabel.Layout.Row = 1;
             app.config_ColormapLabel.Layout.Column = 2;
             app.config_ColormapLabel.Text = 'Mapa de cor:';
@@ -3405,6 +3553,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Colormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
             app.config_Colormap.ValueChangedFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
             app.config_Colormap.FontSize = 11;
+            app.config_Colormap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_Colormap.BackgroundColor = [1 1 1];
             app.config_Colormap.Layout.Row = 2;
             app.config_Colormap.Layout.Column = 2;
@@ -3413,6 +3562,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create config_route_Label
             app.config_route_Label = uilabel(app.config_geoAxesGrid);
             app.config_route_Label.FontSize = 10;
+            app.config_route_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_route_Label.Layout.Row = 3;
             app.config_route_Label.Layout.Column = 1;
             app.config_route_Label.Text = 'Rota:';
@@ -3422,6 +3572,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_route_LineStyle.Items = {'none', ':', '-'};
             app.config_route_LineStyle.ValueChangedFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
             app.config_route_LineStyle.FontSize = 11;
+            app.config_route_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_route_LineStyle.BackgroundColor = [1 1 1];
             app.config_route_LineStyle.Layout.Row = 3;
             app.config_route_LineStyle.Layout.Column = 2;
@@ -3448,8 +3599,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_route_Size.Limits = [1 9];
             app.config_route_Size.MajorTicks = [];
             app.config_route_Size.ValueChangingFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
-            app.config_route_Size.MinorTicks = [];
+            app.config_route_Size.MinorTicks = [1 2 3 4 5 6 7 8 9];
             app.config_route_Size.FontSize = 10;
+            app.config_route_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_route_Size.Tooltip = {'Tamanho do marcador'};
             app.config_route_Size.Layout.Row = 3;
             app.config_route_Size.Layout.Column = 5;
@@ -3458,6 +3610,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create config_Car_Label
             app.config_Car_Label = uilabel(app.config_geoAxesGrid);
             app.config_Car_Label.FontSize = 10;
+            app.config_Car_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_Car_Label.Layout.Row = 4;
             app.config_Car_Label.Layout.Column = 1;
             app.config_Car_Label.Text = 'Veículo:';
@@ -3467,6 +3620,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Car_LineStyle.Items = {'none', 'o', 'square', '^'};
             app.config_Car_LineStyle.ValueChangedFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
             app.config_Car_LineStyle.FontSize = 11;
+            app.config_Car_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_Car_LineStyle.BackgroundColor = [1 1 1];
             app.config_Car_LineStyle.Layout.Row = 4;
             app.config_Car_LineStyle.Layout.Column = 2;
@@ -3484,8 +3638,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Car_Size.Limits = [1 19];
             app.config_Car_Size.MajorTicks = [];
             app.config_Car_Size.ValueChangingFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
-            app.config_Car_Size.MinorTicks = [];
+            app.config_Car_Size.MinorTicks = [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19];
             app.config_Car_Size.FontSize = 10;
+            app.config_Car_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_Car_Size.Tooltip = {'Tamanho do marcador'};
             app.config_Car_Size.Layout.Row = 4;
             app.config_Car_Size.Layout.Column = [4 5];
@@ -3495,6 +3650,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_points_Label = uilabel(app.config_geoAxesGrid);
             app.config_points_Label.WordWrap = 'on';
             app.config_points_Label.FontSize = 10;
+            app.config_points_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_points_Label.Layout.Row = 5;
             app.config_points_Label.Layout.Column = [1 2];
             app.config_points_Label.Text = {'Pontos de'; 'interesse:'};
@@ -3504,10 +3660,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_points_LineStyle.Items = {'none', 'o', 'square', '^'};
             app.config_points_LineStyle.ValueChangedFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
             app.config_points_LineStyle.FontSize = 11;
+            app.config_points_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_points_LineStyle.BackgroundColor = [1 1 1];
             app.config_points_LineStyle.Layout.Row = 5;
             app.config_points_LineStyle.Layout.Column = 2;
-            app.config_points_LineStyle.Value = '^';
+            app.config_points_LineStyle.Value = 'none';
 
             % Create config_points_Color
             app.config_points_Color = uicolorpicker(app.config_geoAxesGrid);
@@ -3522,32 +3679,35 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_points_Size.Limits = [6 12];
             app.config_points_Size.MajorTicks = [];
             app.config_points_Size.ValueChangingFcn = createCallbackFcn(app, @config_geoAxesOthersParametersChanged, true);
-            app.config_points_Size.MinorTicks = [];
+            app.config_points_Size.MinorTicks = [6 6.3 6.6 6.9 7.2 7.5 7.8 8.1 8.4 8.7 9 9.3 9.6 9.9 10.2 10.5 10.8 11.1 11.4 11.7 12];
             app.config_points_Size.FontSize = 10;
+            app.config_points_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_points_Size.Tooltip = {'Tamanho do marcador'};
             app.config_points_Size.Layout.Row = 5;
             app.config_points_Size.Layout.Column = [4 5];
             app.config_points_Size.Value = 9;
 
             % Create config_xyAxesLabel
-            app.config_xyAxesLabel = uilabel(app.Tab4_Grid);
+            app.config_xyAxesLabel = uilabel(app.Tab4Grid);
             app.config_xyAxesLabel.VerticalAlignment = 'bottom';
             app.config_xyAxesLabel.WordWrap = 'on';
             app.config_xyAxesLabel.FontSize = 10;
-            app.config_xyAxesLabel.Layout.Row = 4;
+            app.config_xyAxesLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_xyAxesLabel.Layout.Row = 3;
             app.config_xyAxesLabel.Layout.Column = [1 2];
-            app.config_xyAxesLabel.Interpreter = 'html';
-            app.config_xyAxesLabel.Text = {'EIXOS CARTESIANOS'; '<p style="color: gray; font-size: 9px; text-align: justify; padding-right: 2px;">Os parâmetros relacionados aos eixos cartesianos não são customizáveis.</p>'};
+            app.config_xyAxesLabel.Text = 'EIXOS CARTESIANOS';
 
             % Create config_xyAxesPanel
-            app.config_xyAxesPanel = uipanel(app.Tab4_Grid);
+            app.config_xyAxesPanel = uipanel(app.Tab4Grid);
             app.config_xyAxesPanel.AutoResizeChildren = 'off';
-            app.config_xyAxesPanel.Layout.Row = 5;
+            app.config_xyAxesPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_xyAxesPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.config_xyAxesPanel.Layout.Row = 4;
             app.config_xyAxesPanel.Layout.Column = [1 2];
 
             % Create config_xyAxesGrid
             app.config_xyAxesGrid = uigridlayout(app.config_xyAxesPanel);
-            app.config_xyAxesGrid.ColumnWidth = {56, 70, 36, '1x', '1x'};
+            app.config_xyAxesGrid.ColumnWidth = {56, 50, 36, '1x', '1x'};
             app.config_xyAxesGrid.RowHeight = {22, 22, 22, 22, '1x'};
             app.config_xyAxesGrid.RowSpacing = 5;
             app.config_xyAxesGrid.BackgroundColor = [1 1 1];
@@ -3555,6 +3715,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create config_PersistanceLabel
             app.config_PersistanceLabel = uilabel(app.config_xyAxesGrid);
             app.config_PersistanceLabel.FontSize = 10;
+            app.config_PersistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_PersistanceLabel.Layout.Row = 1;
             app.config_PersistanceLabel.Layout.Column = [1 2];
             app.config_PersistanceLabel.Text = 'Persistência:';
@@ -3565,6 +3726,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_PersistanceVisibility.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_PersistanceVisibility.Tooltip = {''};
             app.config_PersistanceVisibility.FontSize = 11;
+            app.config_PersistanceVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_PersistanceVisibility.BackgroundColor = [1 1 1];
             app.config_PersistanceVisibility.Layout.Row = 1;
             app.config_PersistanceVisibility.Layout.Column = 2;
@@ -3574,6 +3736,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chROILabel = uilabel(app.config_xyAxesGrid);
             app.config_chROILabel.WordWrap = 'on';
             app.config_chROILabel.FontSize = 10;
+            app.config_chROILabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chROILabel.Layout.Row = 2;
             app.config_chROILabel.Layout.Column = 1;
             app.config_chROILabel.Text = 'Canal:';
@@ -3584,6 +3747,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chROIVisibility.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chROIVisibility.Tooltip = {''};
             app.config_chROIVisibility.FontSize = 11;
+            app.config_chROIVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chROIVisibility.BackgroundColor = [1 1 1];
             app.config_chROIVisibility.Layout.Row = 2;
             app.config_chROIVisibility.Layout.Column = 2;
@@ -3605,6 +3769,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chROIEdgeAlpha.ValueDisplayFormat = '%.1f';
             app.config_chROIEdgeAlpha.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chROIEdgeAlpha.FontSize = 11;
+            app.config_chROIEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chROIEdgeAlpha.Tooltip = {'Transparência da margem'};
             app.config_chROIEdgeAlpha.Layout.Row = 2;
             app.config_chROIEdgeAlpha.Layout.Column = 4;
@@ -3616,6 +3781,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chROIFaceAlpha.ValueDisplayFormat = '%.1f';
             app.config_chROIFaceAlpha.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chROIFaceAlpha.FontSize = 11;
+            app.config_chROIFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chROIFaceAlpha.Tooltip = {'Transparência da face'};
             app.config_chROIFaceAlpha.Layout.Row = 2;
             app.config_chROIFaceAlpha.Layout.Column = 5;
@@ -3625,6 +3791,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chPowerLabel = uilabel(app.config_xyAxesGrid);
             app.config_chPowerLabel.WordWrap = 'on';
             app.config_chPowerLabel.FontSize = 10;
+            app.config_chPowerLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chPowerLabel.Layout.Row = 3;
             app.config_chPowerLabel.Layout.Column = [1 2];
             app.config_chPowerLabel.Text = {'Potência do'; 'canal:'};
@@ -3635,6 +3802,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chPowerVisibility.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chPowerVisibility.Tooltip = {''};
             app.config_chPowerVisibility.FontSize = 11;
+            app.config_chPowerVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chPowerVisibility.BackgroundColor = [1 1 1];
             app.config_chPowerVisibility.Layout.Row = 3;
             app.config_chPowerVisibility.Layout.Column = 2;
@@ -3656,6 +3824,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chPowerEdgeAlpha.ValueDisplayFormat = '%.1f';
             app.config_chPowerEdgeAlpha.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chPowerEdgeAlpha.FontSize = 11;
+            app.config_chPowerEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chPowerEdgeAlpha.Tooltip = {'Transparência da margem'};
             app.config_chPowerEdgeAlpha.Layout.Row = 3;
             app.config_chPowerEdgeAlpha.Layout.Column = 4;
@@ -3668,6 +3837,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_chPowerFaceAlpha.ValueDisplayFormat = '%.1f';
             app.config_chPowerFaceAlpha.ValueChangedFcn = createCallbackFcn(app, @config_xyAxesParameterChanged, true);
             app.config_chPowerFaceAlpha.FontSize = 11;
+            app.config_chPowerFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_chPowerFaceAlpha.Tooltip = {'Transparência da face'};
             app.config_chPowerFaceAlpha.Layout.Row = 3;
             app.config_chPowerFaceAlpha.Layout.Column = 5;
@@ -3678,6 +3848,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardLabel.VerticalAlignment = 'bottom';
             app.config_BandGuardLabel.WordWrap = 'on';
             app.config_BandGuardLabel.FontSize = 10;
+            app.config_BandGuardLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardLabel.Layout.Row = 4;
             app.config_BandGuardLabel.Layout.Column = [1 2];
             app.config_BandGuardLabel.Text = 'Limites do eixo x:';
@@ -3685,12 +3856,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create config_BandGuardPanel
             app.config_BandGuardPanel = uipanel(app.config_xyAxesGrid);
             app.config_BandGuardPanel.AutoResizeChildren = 'off';
+            app.config_BandGuardPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.config_BandGuardPanel.Layout.Row = 5;
             app.config_BandGuardPanel.Layout.Column = [1 5];
 
             % Create config_BandGuardGrid
             app.config_BandGuardGrid = uigridlayout(app.config_BandGuardPanel);
-            app.config_BandGuardGrid.ColumnWidth = {'1x', 93};
+            app.config_BandGuardGrid.ColumnWidth = {151, '1x'};
             app.config_BandGuardGrid.RowHeight = {17, 22, '1x'};
             app.config_BandGuardGrid.RowSpacing = 5;
             app.config_BandGuardGrid.Padding = [10 10 10 5];
@@ -3700,6 +3873,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardTypeLabel = uilabel(app.config_BandGuardGrid);
             app.config_BandGuardTypeLabel.VerticalAlignment = 'bottom';
             app.config_BandGuardTypeLabel.FontSize = 10;
+            app.config_BandGuardTypeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardTypeLabel.Layout.Row = 1;
             app.config_BandGuardTypeLabel.Layout.Column = 1;
             app.config_BandGuardTypeLabel.Text = 'Tipo:';
@@ -3709,6 +3883,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardType.Items = {'Fixed', 'BWRelated'};
             app.config_BandGuardType.ValueChangedFcn = createCallbackFcn(app, @config_BandGuardValueChanged, true);
             app.config_BandGuardType.FontSize = 11;
+            app.config_BandGuardType.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardType.BackgroundColor = [1 1 1];
             app.config_BandGuardType.Layout.Row = 2;
             app.config_BandGuardType.Layout.Column = 1;
@@ -3718,6 +3893,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardValueLabel = uilabel(app.config_BandGuardGrid);
             app.config_BandGuardValueLabel.VerticalAlignment = 'bottom';
             app.config_BandGuardValueLabel.FontSize = 10;
+            app.config_BandGuardValueLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardValueLabel.Layout.Row = 1;
             app.config_BandGuardValueLabel.Layout.Column = 2;
             app.config_BandGuardValueLabel.Text = 'Multiplicador:';
@@ -3728,6 +3904,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardFixedValue.ValueDisplayFormat = '%.1f';
             app.config_BandGuardFixedValue.ValueChangedFcn = createCallbackFcn(app, @config_BandGuardValueChanged, true);
             app.config_BandGuardFixedValue.FontSize = 11;
+            app.config_BandGuardFixedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardFixedValue.Visible = 'off';
             app.config_BandGuardFixedValue.Layout.Row = 2;
             app.config_BandGuardFixedValue.Layout.Column = 2;
@@ -3740,302 +3917,142 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_BandGuardBWRelatedValue.ValueDisplayFormat = '%.0f';
             app.config_BandGuardBWRelatedValue.ValueChangedFcn = createCallbackFcn(app, @config_BandGuardValueChanged, true);
             app.config_BandGuardBWRelatedValue.FontSize = 11;
+            app.config_BandGuardBWRelatedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_BandGuardBWRelatedValue.Layout.Row = 2;
             app.config_BandGuardBWRelatedValue.Layout.Column = 2;
             app.config_BandGuardBWRelatedValue.Value = 6;
 
-            % Create menu_MainGrid
-            app.menu_MainGrid = uigridlayout(app.GridLayout);
-            app.menu_MainGrid.ColumnWidth = {'1x', 22, 22, 22};
-            app.menu_MainGrid.RowHeight = {'1x', 3};
-            app.menu_MainGrid.ColumnSpacing = 2;
-            app.menu_MainGrid.RowSpacing = 0;
-            app.menu_MainGrid.Padding = [0 0 0 0];
-            app.menu_MainGrid.Layout.Row = [2 3];
-            app.menu_MainGrid.Layout.Column = 2;
-            app.menu_MainGrid.BackgroundColor = [1 1 1];
+            % Create Document
+            app.Document = uipanel(app.GridLayout);
+            app.Document.AutoResizeChildren = 'off';
+            app.Document.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.Document.BorderType = 'none';
+            app.Document.BackgroundColor = [1 1 1];
+            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Column = [4 7];
 
-            % Create menuUnderline
-            app.menuUnderline = uiimage(app.menu_MainGrid);
-            app.menuUnderline.ScaleMethod = 'scaleup';
-            app.menuUnderline.Layout.Row = 2;
-            app.menuUnderline.Layout.Column = 1;
-            app.menuUnderline.ImageSource = 'LineH.png';
-
-            % Create menu_Button1Grid
-            app.menu_Button1Grid = uigridlayout(app.menu_MainGrid);
-            app.menu_Button1Grid.ColumnWidth = {18, '1x'};
-            app.menu_Button1Grid.RowHeight = {'1x'};
-            app.menu_Button1Grid.ColumnSpacing = 2;
-            app.menu_Button1Grid.Padding = [2 0 0 0];
-            app.menu_Button1Grid.Layout.Row = 1;
-            app.menu_Button1Grid.Layout.Column = 1;
-            app.menu_Button1Grid.BackgroundColor = [0.749 0.749 0.749];
-
-            % Create menu_Button1Label
-            app.menu_Button1Label = uilabel(app.menu_Button1Grid);
-            app.menu_Button1Label.FontSize = 11;
-            app.menu_Button1Label.Layout.Row = 1;
-            app.menu_Button1Label.Layout.Column = 2;
-            app.menu_Button1Label.Text = 'DRIVE-TEST';
-
-            % Create menu_Button1Icon
-            app.menu_Button1Icon = uiimage(app.menu_Button1Grid);
-            app.menu_Button1Icon.ScaleMethod = 'none';
-            app.menu_Button1Icon.ImageClickedFcn = createCallbackFcn(app, @general_MenuSelectionChanged, true);
-            app.menu_Button1Icon.Tag = '1';
-            app.menu_Button1Icon.Layout.Row = 1;
-            app.menu_Button1Icon.Layout.Column = [1 2];
-            app.menu_Button1Icon.HorizontalAlignment = 'left';
-            app.menu_Button1Icon.ImageSource = 'Channel_18.png';
-
-            % Create menu_Button2Grid
-            app.menu_Button2Grid = uigridlayout(app.menu_MainGrid);
-            app.menu_Button2Grid.ColumnWidth = {18, 0};
-            app.menu_Button2Grid.RowHeight = {'1x'};
-            app.menu_Button2Grid.ColumnSpacing = 2;
-            app.menu_Button2Grid.Padding = [2 0 0 0];
-            app.menu_Button2Grid.Layout.Row = 1;
-            app.menu_Button2Grid.Layout.Column = 2;
-            app.menu_Button2Grid.BackgroundColor = [0.749 0.749 0.749];
-
-            % Create menu_Button2Label
-            app.menu_Button2Label = uilabel(app.menu_Button2Grid);
-            app.menu_Button2Label.FontSize = 11;
-            app.menu_Button2Label.Layout.Row = 1;
-            app.menu_Button2Label.Layout.Column = 2;
-            app.menu_Button2Label.Text = 'FILTRAGEM';
-
-            % Create menu_Button2Icon
-            app.menu_Button2Icon = uiimage(app.menu_Button2Grid);
-            app.menu_Button2Icon.ScaleMethod = 'none';
-            app.menu_Button2Icon.ImageClickedFcn = createCallbackFcn(app, @general_MenuSelectionChanged, true);
-            app.menu_Button2Icon.Tag = '2';
-            app.menu_Button2Icon.Layout.Row = 1;
-            app.menu_Button2Icon.Layout.Column = [1 2];
-            app.menu_Button2Icon.HorizontalAlignment = 'left';
-            app.menu_Button2Icon.ImageSource = 'Filter_18.png';
-
-            % Create menu_Button3Grid
-            app.menu_Button3Grid = uigridlayout(app.menu_MainGrid);
-            app.menu_Button3Grid.ColumnWidth = {18, 0};
-            app.menu_Button3Grid.RowHeight = {'1x'};
-            app.menu_Button3Grid.ColumnSpacing = 2;
-            app.menu_Button3Grid.Padding = [2 0 0 0];
-            app.menu_Button3Grid.Layout.Row = 1;
-            app.menu_Button3Grid.Layout.Column = 3;
-            app.menu_Button3Grid.BackgroundColor = [0.749 0.749 0.749];
-
-            % Create menu_Button3Label
-            app.menu_Button3Label = uilabel(app.menu_Button3Grid);
-            app.menu_Button3Label.FontSize = 11;
-            app.menu_Button3Label.Layout.Row = 1;
-            app.menu_Button3Label.Layout.Column = 2;
-            app.menu_Button3Label.Text = 'PONTOS DE INTERESSE';
-
-            % Create menu_Button3Icon
-            app.menu_Button3Icon = uiimage(app.menu_Button3Grid);
-            app.menu_Button3Icon.ScaleMethod = 'none';
-            app.menu_Button3Icon.ImageClickedFcn = createCallbackFcn(app, @general_MenuSelectionChanged, true);
-            app.menu_Button3Icon.Tag = '3';
-            app.menu_Button3Icon.Layout.Row = 1;
-            app.menu_Button3Icon.Layout.Column = [1 2];
-            app.menu_Button3Icon.HorizontalAlignment = 'left';
-            app.menu_Button3Icon.ImageSource = 'Pin_18.png';
-
-            % Create menu_Button4Grid
-            app.menu_Button4Grid = uigridlayout(app.menu_MainGrid);
-            app.menu_Button4Grid.ColumnWidth = {18, 0};
-            app.menu_Button4Grid.RowHeight = {'1x'};
-            app.menu_Button4Grid.ColumnSpacing = 2;
-            app.menu_Button4Grid.Padding = [2 0 0 0];
-            app.menu_Button4Grid.Layout.Row = 1;
-            app.menu_Button4Grid.Layout.Column = 4;
-            app.menu_Button4Grid.BackgroundColor = [0.749 0.749 0.749];
-
-            % Create menu_Button4Label
-            app.menu_Button4Label = uilabel(app.menu_Button4Grid);
-            app.menu_Button4Label.FontSize = 11;
-            app.menu_Button4Label.Layout.Row = 1;
-            app.menu_Button4Label.Layout.Column = 2;
-            app.menu_Button4Label.Text = 'CONFIGURAÇÕES GERAIS';
-
-            % Create menu_Button4Icon
-            app.menu_Button4Icon = uiimage(app.menu_Button4Grid);
-            app.menu_Button4Icon.ScaleMethod = 'none';
-            app.menu_Button4Icon.ImageClickedFcn = createCallbackFcn(app, @general_MenuSelectionChanged, true);
-            app.menu_Button4Icon.Tag = '4';
-            app.menu_Button4Icon.Layout.Row = 1;
-            app.menu_Button4Icon.Layout.Column = [1 2];
-            app.menu_Button4Icon.HorizontalAlignment = 'left';
-            app.menu_Button4Icon.ImageSource = 'Settings_18.png';
-
-            % Create plotPanel
-            app.plotPanel = uipanel(app.GridLayout);
-            app.plotPanel.AutoResizeChildren = 'off';
-            app.plotPanel.BorderType = 'none';
-            app.plotPanel.BackgroundColor = [1 1 1];
-            app.plotPanel.Layout.Row = [2 5];
-            app.plotPanel.Layout.Column = [4 6];
-
-            % Create axesToolbarGrid
-            app.axesToolbarGrid = uigridlayout(app.GridLayout);
-            app.axesToolbarGrid.ColumnWidth = {22, 22, 5, '1x', 5, 22, 22, 5, '1x'};
-            app.axesToolbarGrid.RowHeight = {2, '1x'};
-            app.axesToolbarGrid.ColumnSpacing = 0;
-            app.axesToolbarGrid.RowSpacing = 0;
-            app.axesToolbarGrid.Padding = [2 3 2 6];
-            app.axesToolbarGrid.Layout.Row = [1 2];
-            app.axesToolbarGrid.Layout.Column = 5;
-            app.axesToolbarGrid.BackgroundColor = [1 1 1];
+            % Create AxesToolbar
+            app.AxesToolbar = uigridlayout(app.GridLayout);
+            app.AxesToolbar.ColumnWidth = {22, 22, 5, '1x', 5, 22, 22, 5, '1x'};
+            app.AxesToolbar.RowHeight = {22};
+            app.AxesToolbar.ColumnSpacing = 0;
+            app.AxesToolbar.RowSpacing = 0;
+            app.AxesToolbar.Padding = [2 2 2 0];
+            app.AxesToolbar.Layout.Row = 3;
+            app.AxesToolbar.Layout.Column = 5;
+            app.AxesToolbar.BackgroundColor = [1 1 1];
 
             % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.axesToolbarGrid);
+            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
             app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @axesTool_InteractionImageClicked, true);
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
             app.axesTool_RestoreView.Tooltip = {'RestoreView'};
-            app.axesTool_RestoreView.Layout.Row = [1 2];
+            app.axesTool_RestoreView.Layout.Row = 1;
             app.axesTool_RestoreView.Layout.Column = 1;
             app.axesTool_RestoreView.ImageSource = 'Home_18.png';
 
             % Create axesTool_RegionZoom
-            app.axesTool_RegionZoom = uiimage(app.axesToolbarGrid);
+            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
             app.axesTool_RegionZoom.ScaleMethod = 'none';
-            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @axesTool_InteractionImageClicked, true);
+            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
             app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
-            app.axesTool_RegionZoom.Layout.Row = [1 2];
+            app.axesTool_RegionZoom.Layout.Row = 1;
             app.axesTool_RegionZoom.Layout.Column = 2;
-            app.axesTool_RegionZoom.VerticalAlignment = 'top';
             app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
+            % Create axesTool_DropDown
+            app.axesTool_DropDown = uidropdown(app.AxesToolbar);
+            app.axesTool_DropDown.Items = {'Dados brutos', 'Dados processados'};
+            app.axesTool_DropDown.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
+            app.axesTool_DropDown.FontSize = 11;
+            app.axesTool_DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.axesTool_DropDown.BackgroundColor = [1 1 1];
+            app.axesTool_DropDown.Layout.Row = 1;
+            app.axesTool_DropDown.Layout.Column = 4;
+            app.axesTool_DropDown.Value = 'Dados brutos';
+
             % Create axesTool_DistortionPlot
-            app.axesTool_DistortionPlot = uiimage(app.axesToolbarGrid);
-            app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @axesTool_PlotTypeValueChanged, true);
+            app.axesTool_DistortionPlot = uiimage(app.AxesToolbar);
+            app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
             app.axesTool_DistortionPlot.Tooltip = {'Distortion'};
-            app.axesTool_DistortionPlot.Layout.Row = 2;
+            app.axesTool_DistortionPlot.Layout.Row = 1;
             app.axesTool_DistortionPlot.Layout.Column = 6;
             app.axesTool_DistortionPlot.ImageSource = 'DriveTestDistortion_32.png';
 
             % Create axesTool_DensityPlot
-            app.axesTool_DensityPlot = uiimage(app.axesToolbarGrid);
-            app.axesTool_DensityPlot.ImageClickedFcn = createCallbackFcn(app, @axesTool_PlotTypeValueChanged, true);
+            app.axesTool_DensityPlot = uiimage(app.AxesToolbar);
+            app.axesTool_DensityPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
             app.axesTool_DensityPlot.Enable = 'off';
             app.axesTool_DensityPlot.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
-            app.axesTool_DensityPlot.Layout.Row = 2;
+            app.axesTool_DensityPlot.Layout.Row = 1;
             app.axesTool_DensityPlot.Layout.Column = 7;
             app.axesTool_DensityPlot.ImageSource = 'DriveTestDensity_32.png';
 
             % Create axesTool_PlotSize
-            app.axesTool_PlotSize = uislider(app.axesToolbarGrid);
+            app.axesTool_PlotSize = uislider(app.AxesToolbar);
             app.axesTool_PlotSize.Limits = [1 19];
             app.axesTool_PlotSize.MajorTicks = [1 10 19];
             app.axesTool_PlotSize.MajorTickLabels = {''};
-            app.axesTool_PlotSize.ValueChangedFcn = createCallbackFcn(app, @axesTool_PlotSizeValueChanged, true);
-            app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @axesTool_PlotSizeValueChanging, true);
-            app.axesTool_PlotSize.Layout.Row = 2;
+            app.axesTool_PlotSize.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanged, true);
+            app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanging, true);
+            app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.axesTool_PlotSize.Layout.Row = 1;
             app.axesTool_PlotSize.Layout.Column = 9;
             app.axesTool_PlotSize.Value = 1;
 
-            % Create DropDown
-            app.DropDown = uidropdown(app.axesToolbarGrid);
-            app.DropDown.Items = {'Dados brutos', 'Dados processados'};
-            app.DropDown.ValueChangedFcn = createCallbackFcn(app, @axesTool_DataSourceChanged, true);
-            app.DropDown.FontSize = 11;
-            app.DropDown.BackgroundColor = [1 1 1];
-            app.DropDown.Layout.Row = [1 2];
-            app.DropDown.Layout.Column = 4;
-            app.DropDown.Value = 'Dados brutos';
+            % Create DockModuleGroup
+            app.DockModuleGroup = uigridlayout(app.GridLayout);
+            app.DockModuleGroup.RowHeight = {'1x'};
+            app.DockModuleGroup.ColumnSpacing = 2;
+            app.DockModuleGroup.Padding = [5 2 5 2];
+            app.DockModuleGroup.Visible = 'off';
+            app.DockModuleGroup.Layout.Row = [2 3];
+            app.DockModuleGroup.Layout.Column = [7 8];
+            app.DockModuleGroup.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create toolGrid
-            app.toolGrid = uigridlayout(app.GridLayout);
-            app.toolGrid.ColumnWidth = {22, 22, 22, 248, 196, '1x', 22, 22};
-            app.toolGrid.RowHeight = {4, 17, 2};
-            app.toolGrid.ColumnSpacing = 5;
-            app.toolGrid.RowSpacing = 0;
-            app.toolGrid.Padding = [0 5 0 5];
-            app.toolGrid.Layout.Row = 7;
-            app.toolGrid.Layout.Column = [1 7];
-            app.toolGrid.BackgroundColor = [0.9412 0.9412 0.9412];
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModuleGroup);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Close.Tag = 'DRIVETEST';
+            app.dockModule_Close.Tooltip = {'Fecha módulo'};
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
-            % Create tool_ControlPanelVisibility
-            app.tool_ControlPanelVisibility = uiimage(app.toolGrid);
-            app.tool_ControlPanelVisibility.ImageClickedFcn = createCallbackFcn(app, @tool_LeftPanelVisibilityImageClicked, true);
-            app.tool_ControlPanelVisibility.Layout.Row = 2;
-            app.tool_ControlPanelVisibility.Layout.Column = 1;
-            app.tool_ControlPanelVisibility.VerticalAlignment = 'bottom';
-            app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
+            % Create dockModule_Undock
+            app.dockModule_Undock = uiimage(app.DockModuleGroup);
+            app.dockModule_Undock.ScaleMethod = 'none';
+            app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Undock.Tag = 'DRIVETEST';
+            app.dockModule_Undock.Enable = 'off';
+            app.dockModule_Undock.Tooltip = {'Reabre módulo em outra janela'};
+            app.dockModule_Undock.Layout.Row = 1;
+            app.dockModule_Undock.Layout.Column = 1;
+            app.dockModule_Undock.ImageSource = 'Undock_18White.png';
 
-            % Create tool_Play
-            app.tool_Play = uiimage(app.toolGrid);
-            app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlImageClicked, true);
-            app.tool_Play.Tooltip = {'Playback'};
-            app.tool_Play.Layout.Row = 2;
-            app.tool_Play.Layout.Column = 2;
-            app.tool_Play.ImageSource = 'play_32.png';
-
-            % Create tool_LoopControl
-            app.tool_LoopControl = uiimage(app.toolGrid);
-            app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlImageClicked, true);
-            app.tool_LoopControl.Tag = 'loop';
-            app.tool_LoopControl.Tooltip = {'Loop do playback'};
-            app.tool_LoopControl.Layout.Row = 2;
-            app.tool_LoopControl.Layout.Column = 3;
-            app.tool_LoopControl.ImageSource = 'playbackLoop_32Blue.png';
-
-            % Create tool_TimestampSlider
-            app.tool_TimestampSlider = uislider(app.toolGrid);
-            app.tool_TimestampSlider.MajorTicks = [0 50 100];
-            app.tool_TimestampSlider.MajorTickLabels = {''};
-            app.tool_TimestampSlider.ValueChangingFcn = createCallbackFcn(app, @tool_TimelineSliderValueChanging, true);
-            app.tool_TimestampSlider.MinorTicks = [0 2.5 5 7.5 10 12.5 15 17.5 20 22.5 25 27.5 30 32.5 35 37.5 40 42.5 45 47.5 50 52.5 55 57.5 60 62.5 65 67.5 70 72.5 75 77.5 80 82.5 85 87.5 90 92.5 95 97.5 100];
-            app.tool_TimestampSlider.FontSize = 8;
-            app.tool_TimestampSlider.Layout.Row = 2;
-            app.tool_TimestampSlider.Layout.Column = 4;
-
-            % Create tool_TimestampLabel
-            app.tool_TimestampLabel = uilabel(app.toolGrid);
-            app.tool_TimestampLabel.WordWrap = 'on';
-            app.tool_TimestampLabel.FontSize = 10;
-            app.tool_TimestampLabel.Layout.Row = [1 3];
-            app.tool_TimestampLabel.Layout.Column = 5;
-            app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
-
-            % Create filter_Summary
-            app.filter_Summary = uiimage(app.toolGrid);
-            app.filter_Summary.ImageClickedFcn = createCallbackFcn(app, @tool_SummaryImageClicked, true);
-            app.filter_Summary.Tooltip = {'Informações acerca do processo de análise dos dados'};
-            app.filter_Summary.Layout.Row = 2;
-            app.filter_Summary.Layout.Column = 8;
-            app.filter_Summary.ImageSource = 'Info_32.png';
-
-            % Create filter_DataBinningExport
-            app.filter_DataBinningExport = uiimage(app.toolGrid);
-            app.filter_DataBinningExport.ScaleMethod = 'none';
-            app.filter_DataBinningExport.ImageClickedFcn = createCallbackFcn(app, @tool_ExportFileButtonPushed, true);
-            app.filter_DataBinningExport.Tooltip = {'Exporta análise em arquivos XLSX e KML'};
-            app.filter_DataBinningExport.Layout.Row = 2;
-            app.filter_DataBinningExport.Layout.Column = 7;
-            app.filter_DataBinningExport.ImageSource = 'Export_16.png';
-
-            % Create filter_ContextMenu
-            app.filter_ContextMenu = uicontextmenu(app.UIFigure);
+            % Create ContextMenu2
+            app.ContextMenu2 = uicontextmenu(app.UIFigure);
 
             % Create filter_delButton
-            app.filter_delButton = uimenu(app.filter_ContextMenu);
+            app.filter_delButton = uimenu(app.ContextMenu2);
             app.filter_delButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
+            app.filter_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_delButton.Text = 'Excluir';
 
             % Create filter_delAllButton
-            app.filter_delAllButton = uimenu(app.filter_ContextMenu);
+            app.filter_delAllButton = uimenu(app.ContextMenu2);
             app.filter_delAllButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
+            app.filter_delAllButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_delAllButton.Text = 'Excluir todos';
 
-            % Create points_ContextMenu
-            app.points_ContextMenu = uicontextmenu(app.UIFigure);
+            % Create ContextMenu1
+            app.ContextMenu1 = uicontextmenu(app.UIFigure);
 
             % Create points_delButton
-            app.points_delButton = uimenu(app.points_ContextMenu);
+            app.points_delButton = uimenu(app.ContextMenu1);
             app.points_delButton.MenuSelectedFcn = createCallbackFcn(app, @points_delButtonMenuSelected, true);
+            app.points_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_delButton.Text = 'Excluir';
 
             % Show the figure after all components are created

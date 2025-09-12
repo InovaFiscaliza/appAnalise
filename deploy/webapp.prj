@@ -27,7 +27,6 @@
       <file>C:\InovaFiscaliza\appAnalise\src\+class</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+model</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+plot</file>
-      <file>C:\InovaFiscaliza\appAnalise\src\+report</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+reportLibConnection</file>
       <file>C:\InovaFiscaliza\appAnalise\src\+util</file>
       <file>C:\InovaFiscaliza\appAnalise\src\config</file>
@@ -44,14 +43,7 @@
     <workflow />
     <matlab>
       <root>C:\Program Files\MATLAB\R2024a</root>
-      <toolboxes>
-        <toolbox name="neuralnetwork" />
-      </toolboxes>
-      <toolbox>
-        <neuralnetwork>
-          <enabled>true</enabled>
-        </neuralnetwork>
-      </toolbox>
+      <toolboxes />
     </matlab>
     <platform>
       <unix>false</unix>
