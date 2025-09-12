@@ -1,85 +1,88 @@
-classdef (Abstract) Controller
+function Controller(app, operationType)
 
-    properties (Constant)
-        %-----------------------------------------------------------------%
-        fileName   = 'reportLibConfig.cfg'
-        docVersion = dictionary(["Preliminar", "Definitiva"], ["preview", "final"])
+    arguments
+        app
+        operationType char {mustBeMember(operationType, {'Report'})}
     end
 
-    methods (Static)
-        %-----------------------------------------------------------------%
-        function [modelFileContent, projectFolder, programDataFolder] = Read(rootFolder)
-            [projectFolder, ...
-             programDataFolder]  = appUtil.Path(class.Constants.appName, rootFolder);
-            fileName             = reportLibConnection.Controller.fileName;
-        
-            projectFilePath      = fullfile(projectFolder,     fileName);
-            programDataFilePath  = fullfile(programDataFolder, fileName);
-        
-            try
-                modelFileContent = jsondecode(fileread(programDataFilePath));
-            catch
-                modelFileContent = jsondecode(fileread(projectFilePath));
-            end        
+    d = uiprogressdlg(app.UIFigure, 'Indeterminate', 'on', 'Interpreter', 'html', 'Cancelable', 'on', 'CancelText', 'Cancelar', 'Message', 'Em andamento...');
+
+    try    
+        reportTemplateIndex = find(strcmp(app.report_ModelName.Items, app.report_ModelName.Value), 1) - 1;
+        [idxThreads, reportInfo]   = reportLibConnection.GeneralInfo(app, operationType, reportTemplateIndex);
+
+        % Verifica se o template e relatório selecionado demanda
+        % arquivos externos (imagens e tabelas).
+        if contains(reportInfo.Model.Script, '"Origin": "External"')
+            msg = '<p style="font-size:12px; text-align: justify;">Confirma que foram relacionados os arquivos externos ao appAnalise estabelecidos no modelo?</p>';
+            selection = uiconfirm(app.UIFigure, msg, '', 'Options', {'OK', 'Cancelar'}, 'DefaultOption', 1, 'CancelOption', 2, 'Icon', 'question', 'Interpreter', 'html');
+            
+            if selection == "Cancelar"
+                return
+            end
         end
 
+        % Identifica emissões, caso não se trate da versão definita e esteja 
+        % habilitado.
+        if app.report_Version.Value ~= "Definitiva"
+            for ii = idxThreads
+                checkIfOccupancyPerBinExist(app.specData(ii))
 
-        %-----------------------------------------------------------------%
-        function [HTMLDocFullPath, CSVDocFullPath] = Run(app, webView)
-            % A função Controller, da reportLib, espera os argumentos reportInfo 
-            % e dataOverview.
-            [modelFileContent, ...
-             projectFolder,    ...
-             programDataFolder] = reportLibConnection.Controller.Read(app.rootFolder);
+                ManualMode = app.specData(ii).UserData.reportAlgorithms.Detection.ManualMode;
+                if ~ManualMode
+                    Attributes = app.specData(ii).UserData.reportAlgorithms.Detection.Parameters;
+                    Attributes.Algorithm = app.specData(ii).UserData.reportAlgorithms.Detection.Algorithm;
 
-            docIndex   = find(strcmp({modelFileContent.Name}, app.report_ModelName.Value), 1);
-            docType    = modelFileContent(docIndex).DocumentType;
-            docScript  = jsondecode(fileread(fullfile(programDataFolder, modelFileContent(docIndex).File)));            
-            docVersion = reportLibConnection.Controller.docVersion(app.report_Version.Value);
-            
-            % reportInfo
-            reportInfo = struct('App',      app,                                         ...
-                                'Version',  util.getAppVersion(app.rootFolder, app.entryPointFolder, app.General.fileFolder.tempPath), ...
-                                'Path',     struct('rootFolder',     app.rootFolder,     ...
-                                                   'appConnection',  projectFolder,      ...
-                                                   'appDataFolder',  programDataFolder),     ...
-                                'Model',    struct('Name',           app.report_ModelName.Value, ...
-                                                   'DocumentType',   docType,                    ...
-                                                   'Script',         docScript,                  ...
-                                                   'Version',        docVersion),                ...
-                                'Function', struct('var_Issue',      num2str(app.report_Issue.Value),   ...
-                                                   'tableFcn1',      'reportLibConnection.reportTable_type1(analyzedData.InfoSet.reportTable, tableSettings)', ...
-                                                   'tableFcn2',      'reportLibConnection.reportTable_type2(analyzedData.InfoSet.reportTable, tableSettings)'));
-            
-            % dataOverview (aceita recorrência, registra imagens e tabelas externas
-            % no campo "HTML")
-            dataOverview(1).ID      = app.report_EntityID.Value;
-            dataOverview(1).InfoSet = struct('EntityName',  upper(app.report_Entity.Value),     ...
-                                             'EntityID',    app.report_EntityID.Value,          ...
-                                             'EntityType',  upper(app.report_EntityType.Value), ...
-                                             'reportTable', app.listOfProducts);
-            dataOverview(1).HTML    = [];
-            
-            % Documentos:
-            switch docVersion
-                case 'preview'; tempFullPath = tempname;
-                case 'final';   tempFullPath = class.Constants.DefaultFileName(app.config_Folder_userPath.Value, 'Report', app.report_Issue.Value);
+                    util.Detection.Controller(app.specData, ii, Attributes, true, app.channelObj);
+                end
             end
-            HTMLDocFullPath = [tempFullPath '.html'];
-            JSONDocFullPath = [tempFullPath '.json'];
-            MATDocFullPath  = [tempFullPath '.mat'];
-            
-            HTMLDocContent  = reportLib.Controller(reportInfo, dataOverview);
-            writematrix(HTMLDocContent, HTMLDocFullPath, 'QuoteStrings', 'none', 'FileType', 'text')
-            if webView                
-                web(HTMLDocFullPath)
-            end
-
-            JSONDoc = '...';
-            MATDoc  = '...';
-
-            writematrix(JSONDoc, JSONDocFullPath, "Content", "text", "QuoteStrings", "none");
-            save(MATDoc, MATDocFullPath, '-mat', '-nocompression');
         end
+
+        % Cria relatório...
+        htmlReport = reportLibConnection.ReportGenerator(app, idxThreads, reportInfo, d);
+
+        switch app.report_Version.Value
+            case 'Definitiva'
+                [baseFullFileName, baseFileName] = appUtil.DefaultFileName(app.General.fileFolder.tempPath, 'Report', app.report_Issue.Value);
+                HTMLDocFullPath = [baseFullFileName '.html'];
+                fileID = fopen(HTMLDocFullPath, 'w', 'native', 'ISO-8859-1');
+
+            case 'Preliminar'
+                [baseFullFileName, baseFileName] = appUtil.DefaultFileName(app.General.fileFolder.tempPath, '~Report', app.report_Issue.Value);
+                HTMLDocFullPath = [baseFullFileName '.html'];
+                fileID = fopen(HTMLDocFullPath, 'w');
+        end
+        
+        fprintf(fileID, '%s', htmlReport);
+        fclose(fileID);
+
+        switch app.report_Version.Value
+            case 'Definitiva'
+                JSONFile = [baseFullFileName '.json'];
+                MATFile  = [baseFullFileName '.mat'];
+                ZIPFile  = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', {'*.zip', 'appAnalise (*.zip)'}, fullfile(app.General.fileFolder.userPath, [baseFileName '.zip']));
+                if isempty(ZIPFile)
+                    return
+                end
+                
+                [ReportProject, emissionFiscalizaTable] = reportLibConnection.table.fiscalizaStructureFields(app, idxThreads, reportInfo, 'REPORT: JSONFile');
+
+                save(MATFile, 'ReportProject', '-mat', '-v7.3')
+                writematrix(emissionFiscalizaTable, JSONFile, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
+                zip(ZIPFile, {HTMLDocFullPath, JSONFile, MATFile})
+                
+                app.projectData.generatedFiles.lastHTMLDocFullPath = HTMLDocFullPath;
+                app.projectData.generatedFiles.lastTableFullPath   = JSONFile;
+                app.projectData.generatedFiles.lastMATFullPath     = MATFile;
+                app.projectData.generatedFiles.lastZIPFullPath     = ZIPFile;
+
+            case 'Preliminar'
+                web(HTMLDocFullPath, '-new')
+        end
+        
+    catch ME
+        appUtil.modalWindow(app.UIFigure, 'error', getReport(ME));
     end
+
+    delete(d)
 end

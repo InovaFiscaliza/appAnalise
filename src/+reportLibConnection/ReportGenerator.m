@@ -89,7 +89,7 @@ function htmlReport = ReportGenerator(app, idxThreads, reportInfo, progressDialo
                             FootnoteVersion.(FootnoteFields{jj}) = jsonencode(FootnoteVersion.(FootnoteFields{jj}));
                         end
 
-                        FootnoteFieldsText{end+1} = sprintf('<b>%s</b>: %s', FootnoteFields{jj}, FootnoteVersion.(FootnoteFields{jj}));
+                        FootnoteFieldsText{end+1} = sprintf('<b>%s</b>: %s', FootnoteFields{jj}, string(FootnoteVersion.(FootnoteFields{jj})));
                 end
             end
             FootnoteFieldsText = strjoin(FootnoteFieldsText, ', ');
