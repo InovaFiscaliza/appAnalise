@@ -892,7 +892,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 % a seguir evita erro.
                 if isvalid(app)
                     if ~strcmp(app.mainApp.executionMode, 'webApp')
-                        figure(hFigure)
+                        figure(app.UIFigure)
                     end
                     
                     app.progressDialog.Visible = 'hidden';

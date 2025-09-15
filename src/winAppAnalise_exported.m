@@ -598,7 +598,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                 update(app.specData(idxThread), 'UserData:Emissions', 'Edit', 'IsTruncated', idxEmission, isTruncated, app.channelObj)
 
-                                play_FindPeaks_TreeSelectionChanged(app)            
+                                if isequal(idxThread, app.play_PlotPanel.UserData.NodeData)
+                                    selectedEmission = [app.play_FindPeaks_Tree.SelectedNodes.NodeData];
+                                    play_EmissionList(app, idxThread, selectedEmission)
+                                end
                                 play_UpdateAuxiliarApps(app)
                             case 'PeakDescriptionChanged'
                                 play_FindPeaks_TreeSelectionChanged(app)

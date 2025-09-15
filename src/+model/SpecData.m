@@ -457,6 +457,11 @@ classdef SpecData < model.SpecDataBase
                     
                     obj(kk).Data{1}(1,idx2:idx3) = SpecInfo(jj).Data{1};
                     obj(kk).Data{2}(:,idx2:idx3) = SpecInfo(jj).Data{2};
+
+                    if numel(SpecInfo(jj).Data) == 5
+                        obj(kk).Data{4}(:,idx2:idx3) = SpecInfo(jj).Data{4};
+                        obj(kk).Data{5}(:,idx2:idx3) = SpecInfo(jj).Data{5};
+                    end
         
                     if ~isempty(prjInfo)
                         obj(kk).UserData(1) = SpecInfo(jj).UserData;
@@ -884,7 +889,13 @@ classdef SpecData < model.SpecDataBase
                         obj(ll).RelatedFiles(end+1:end+nFiles,:) = metaData(mm).Data(kk).RelatedFiles;
                     end
                 end
-                preallocateData(obj(ll));
+
+                fileFormatName = '';
+                try
+                    fileFormatName = jsondecode(obj(ll).MetaData.Others).FileFormat;
+                catch
+                end
+                preallocateData(obj(ll), fileFormatName);
             end
         end
 
