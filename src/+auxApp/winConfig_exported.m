@@ -10,6 +10,8 @@ classdef winConfig_exported < matlab.apps.AppBase
         TabGroup                   matlab.ui.container.TabGroup
         Tab1                       matlab.ui.container.Tab
         Tab1Grid                   matlab.ui.container.GridLayout
+        tool_RFDataHubButton       matlab.ui.control.Image
+        tool_versionInfoRefresh    matlab.ui.control.Image
         openAuxiliarApp2Debug      matlab.ui.control.CheckBox
         openAuxiliarAppAsDocked    matlab.ui.control.CheckBox
         versionInfo                matlab.ui.control.Label
@@ -57,9 +59,8 @@ classdef winConfig_exported < matlab.apps.AppBase
         DataHubPOST                matlab.ui.control.EditField
         DATAHUBPOSTLabel           matlab.ui.control.Label
         Toolbar                    matlab.ui.container.GridLayout
+        tool_openDevTools_2        matlab.ui.control.Image
         tool_openDevTools          matlab.ui.control.Image
-        tool_RFDataHubButton       matlab.ui.control.Image
-        tool_versionInfoRefresh    matlab.ui.control.Image
     end
 
     
@@ -91,7 +92,7 @@ classdef winConfig_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         DefaultValues = struct('File',      struct('DataType', true, 'DataTypeLabel', 'remove', 'Antenna', true, 'AntennaLabel', 'remove', 'AntennaAttributes', {{'Name', 'Azimuth', 'Elevation', 'Polarization', 'Height', 'SwitchPort', 'LNBChannel'}}, 'Distance', 100, 'ChannelManualMode', false, 'DetectionManualMode', false), ...
-                               'Graphics',  struct('openGL', 'hardware', 'Format', 'jpeg', 'Resolution', '120', 'Dock', true),                                                                                                                                                                                                        ...
+                               'Graphics',  struct('Format', 'jpeg', 'Resolution', '120', 'Dock', true), ...
                                'Elevation', struct('Points', '256', 'ForceSearch', false, 'Server', 'Open-Elevation'))
     end
 
@@ -238,8 +239,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             ui.TextView.update(app.versionInfo, util.HtmlTextGenerator.AppInfo(app.mainApp.General, app.mainApp.rootFolder, app.mainApp.executionMode));
 
             % Modo de operação:
-            app.openAuxiliarAppAsDocked.Value   = app.mainApp.General.operationMode.Dock;
-            app.openAuxiliarApp2Debug.Value     = app.mainApp.General.operationMode.Debug;
+            app.openAuxiliarAppAsDocked.Value = app.mainApp.General.operationMode.Dock;
+            app.openAuxiliarApp2Debug.Value   = app.mainApp.General.operationMode.Debug;
         end
 
         %-----------------------------------------------------------------%
@@ -522,7 +523,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                     set(app.mainApp.UIAxes2, 'YScale', app.yOccupancyScale.Value)
 
                 case app.InitialBW_kHz
-                    app.mainApp.General.Detection.InitialBW_kHz = app.InitialBW_kHz.Value;
+                    app.mainApp.General.Detection.InitialBW_kHz  = app.InitialBW_kHz.Value;
 
                 case app.openAuxiliarAppAsDocked
                     app.mainApp.General.operationMode.Dock  = app.openAuxiliarAppAsDocked.Value;
@@ -534,7 +535,6 @@ classdef winConfig_exported < matlab.apps.AppBase
                     app.mainApp.General.Image = struct('Format', app.DefaultValues.Graphics.Format, 'Resolution', app.DefaultValues.Graphics.Resolution);
             end
 
-            app.mainApp.General_I.openGL                    = app.mainApp.General.openGL;
             app.mainApp.General_I.Image                     = app.mainApp.General.Image;
             app.mainApp.General_I.operationMode             = app.mainApp.General.operationMode;
             app.mainApp.General_I.Detection.InitialBW_kHz   = app.mainApp.General.Detection.InitialBW_kHz;
@@ -621,6 +621,21 @@ classdef winConfig_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Image clicked function: tool_openDevTools_2
+        function simulationModeValueChanged(app, event)
+            
+            msgQuestion   = 'Deseja abrir arquivos de simulação?';
+            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            
+            if strcmp(userSelection, 'Não')
+                return
+            end
+
+            app.mainApp.General.operationMode.Simulation = true;
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'simulationModeChanged')
+            
+        end
     end
 
     % Component initialization
@@ -668,44 +683,33 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 22, '1x', 22, 1};
+            app.Toolbar.ColumnWidth = {22, '1x', 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
-            app.Toolbar.Padding = [5 5 0 5];
+            app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 6;
             app.Toolbar.Layout.Column = [1 5];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
-
-            % Create tool_versionInfoRefresh
-            app.tool_versionInfoRefresh = uiimage(app.Toolbar);
-            app.tool_versionInfoRefresh.ScaleMethod = 'none';
-            app.tool_versionInfoRefresh.ImageClickedFcn = createCallbackFcn(app, @Toolbar_AppEnvRefreshButtonPushed, true);
-            app.tool_versionInfoRefresh.Enable = 'off';
-            app.tool_versionInfoRefresh.Tooltip = {'Verifica atualizações'};
-            app.tool_versionInfoRefresh.Layout.Row = 2;
-            app.tool_versionInfoRefresh.Layout.Column = 1;
-            app.tool_versionInfoRefresh.VerticalAlignment = 'bottom';
-            app.tool_versionInfoRefresh.ImageSource = 'Refresh_18.png';
-
-            % Create tool_RFDataHubButton
-            app.tool_RFDataHubButton = uiimage(app.Toolbar);
-            app.tool_RFDataHubButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_RFDataHubButtonPushed, true);
-            app.tool_RFDataHubButton.Enable = 'off';
-            app.tool_RFDataHubButton.Tooltip = {'Atualiza RFDataHub'};
-            app.tool_RFDataHubButton.Layout.Row = 2;
-            app.tool_RFDataHubButton.Layout.Column = 2;
-            app.tool_RFDataHubButton.ImageSource = 'mosaic_32.png';
 
             % Create tool_openDevTools
             app.tool_openDevTools = uiimage(app.Toolbar);
             app.tool_openDevTools.ScaleMethod = 'none';
             app.tool_openDevTools.ImageClickedFcn = createCallbackFcn(app, @Toolbar_OpenDevToolsClicked, true);
             app.tool_openDevTools.Enable = 'off';
-            app.tool_openDevTools.Tooltip = {'DevTools'};
+            app.tool_openDevTools.Tooltip = {'Abre DevTools'};
             app.tool_openDevTools.Layout.Row = 2;
-            app.tool_openDevTools.Layout.Column = 4;
+            app.tool_openDevTools.Layout.Column = 3;
             app.tool_openDevTools.ImageSource = 'Debug_18.png';
+
+            % Create tool_openDevTools_2
+            app.tool_openDevTools_2 = uiimage(app.Toolbar);
+            app.tool_openDevTools_2.ScaleMethod = 'none';
+            app.tool_openDevTools_2.ImageClickedFcn = createCallbackFcn(app, @simulationModeValueChanged, true);
+            app.tool_openDevTools_2.Tooltip = {'Leitura arquivos de simulação'};
+            app.tool_openDevTools_2.Layout.Row = 2;
+            app.tool_openDevTools_2.Layout.Column = 1;
+            app.tool_openDevTools_2.ImageSource = 'Import_16.png';
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
@@ -722,8 +726,9 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create Tab1Grid
             app.Tab1Grid = uigridlayout(app.Tab1);
-            app.Tab1Grid.ColumnWidth = {'1x'};
+            app.Tab1Grid.ColumnWidth = {'1x', 22, 22};
             app.Tab1Grid.RowHeight = {17, '1x', 1, 22, 15};
+            app.Tab1Grid.ColumnSpacing = 5;
             app.Tab1Grid.RowSpacing = 5;
             app.Tab1Grid.BackgroundColor = [1 1 1];
 
@@ -742,7 +747,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.versionInfo.WordWrap = 'on';
             app.versionInfo.FontSize = 11;
             app.versionInfo.Layout.Row = 2;
-            app.versionInfo.Layout.Column = 1;
+            app.versionInfo.Layout.Column = [1 3];
             app.versionInfo.Interpreter = 'html';
             app.versionInfo.Text = '';
 
@@ -765,6 +770,26 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.openAuxiliarApp2Debug.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.openAuxiliarApp2Debug.Layout.Row = 5;
             app.openAuxiliarApp2Debug.Layout.Column = 1;
+
+            % Create tool_versionInfoRefresh
+            app.tool_versionInfoRefresh = uiimage(app.Tab1Grid);
+            app.tool_versionInfoRefresh.ScaleMethod = 'none';
+            app.tool_versionInfoRefresh.ImageClickedFcn = createCallbackFcn(app, @Toolbar_AppEnvRefreshButtonPushed, true);
+            app.tool_versionInfoRefresh.Enable = 'off';
+            app.tool_versionInfoRefresh.Tooltip = {'Verifica atualizações'};
+            app.tool_versionInfoRefresh.Layout.Row = 1;
+            app.tool_versionInfoRefresh.Layout.Column = 2;
+            app.tool_versionInfoRefresh.VerticalAlignment = 'bottom';
+            app.tool_versionInfoRefresh.ImageSource = 'Refresh_18.png';
+
+            % Create tool_RFDataHubButton
+            app.tool_RFDataHubButton = uiimage(app.Tab1Grid);
+            app.tool_RFDataHubButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_RFDataHubButtonPushed, true);
+            app.tool_RFDataHubButton.Enable = 'off';
+            app.tool_RFDataHubButton.Tooltip = {'Atualiza RFDataHub'};
+            app.tool_RFDataHubButton.Layout.Row = 1;
+            app.tool_RFDataHubButton.Layout.Column = 3;
+            app.tool_RFDataHubButton.ImageSource = 'mosaic_32.png';
 
             % Create Tab2
             app.Tab2 = uitab(app.TabGroup);

@@ -84,14 +84,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         misc_ControlsTab1Info           matlab.ui.container.GridLayout
         misc_Panel1                     matlab.ui.container.Panel
         misc_Grid1                      matlab.ui.container.GridLayout
-        misc_DeleteInvalidSweepsLabel   matlab.ui.control.Label
-        misc_DeleteInvalidSweeps        matlab.ui.control.Button
         misc_DeleteAllLabel             matlab.ui.control.Label
         misc_DeleteAll                  matlab.ui.control.Button
         misc_AddCorrectionLabel         matlab.ui.control.Label
         misc_AddCorrection              matlab.ui.control.Button
         misc_EditLocationLabel          matlab.ui.control.Label
         misc_EditLocation               matlab.ui.control.Button
+        misc_LevelFilteringLabel        matlab.ui.control.Label
+        misc_LevelFiltering             matlab.ui.control.Button
         misc_TimeFilteringLabel         matlab.ui.control.Label
         misc_TimeFiltering              matlab.ui.control.Button
         misc_ImportLabel                matlab.ui.control.Label
@@ -537,6 +537,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                 dialogBox    = struct('id', 'login',    'label', 'Usuário: ', 'type', 'text');
                                 dialogBox(2) = struct('id', 'password', 'label', 'Senha: ',   'type', 'password');
                                 sendEventToHTMLSource(app.jsBackDoor, 'customForm', struct('UUID', 'openDevTools', 'Fields', dialogBox))
+                            case 'simulationModeChanged'
+                                if app.General.operationMode.Simulation
+                                    file_ButtonPushed_OpenFile(app)
+
+                                    % Muda programaticamente o modo p/ ARQUIVOS.
+                                    set(app.menu_Button1, 'Enable', 1, 'Value', 1)                    
+                                    menu_mainButtonPushed(app, struct('Source', app.menu_Button1, 'PreviousValue', false))
+                                end
                             otherwise
                                 error('UnexpectedCall')
                         end
@@ -605,7 +613,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                           'auxApp.dockAddFiles',       'auxApp.dockAddFiles_exported',       ... % REPORT:EXTERNALFILES
                           'auxApp.dockTimeFiltering',  'auxApp.dockTimeFiltering_exported',  ... % MISCELLANEOUS:TIMEFILTERING
                           'auxApp.dockEditLocation',   'auxApp.dockEditLocation_exported',   ... % MISCELLANEOUS:EDITLOCATION
-                          'auxApp.dockAddKFactor',     'auxApp.dockAddKFactor_exported'}         % MISCELLANEOUS:ADDKFACTOR
+                          'auxApp.dockAddKFactor',     'auxApp.dockAddKFactor_exported',     ... % MISCELLANEOUS:ADDKFACTOR
+                          'auxApp.dockLevelFiltering', 'auxApp.dockLevelFiltering_exported'}     % MISCELLANEOUS:LEVELFILTERING
                         
                         % Esse ramo do switch trata chamados de módulos auxiliares dos 
                         % modos "REPORT" e "MISCELLANEOUS". Algumas das funcionalidades 
@@ -642,6 +651,17 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     report_TreeBuilding(app)
 
                                 case 'MISCELLANEOUS'
+                                    SelectedNodesTextList = misc_SelectedNodesText(app);
+                                    play_TreeRebuilding(app, SelectedNodesTextList)
+                                
+                                case 'MISCELLANEOUS:LEVELFILTERING'
+                                    editedData = varargin{3};
+                                    copyMode   = varargin{4};
+
+                                    if strcmp(copyMode, 'copy')              
+                                        app.specData(end+1:end+numel(editedData)) = editedData;
+                                    end
+                                    
                                     SelectedNodesTextList = misc_SelectedNodesText(app);
                                     play_TreeRebuilding(app, SelectedNodesTextList)
                             end
@@ -681,7 +701,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function jsBackDoor_Customizations(app, tabIndex)
+        function jsBackDoor_AppCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
                 customizationStatus = [false, false, false, false, false, false];
@@ -707,7 +727,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                 app.file_Metadata,      ... % ui.TextView
                                 app.popupContainerGrid, ...
                                 app.file_Tree,          ...
-                                app.file_FilteringTree, ...
                                 app.NOMEDAEMPRESAMetadadosOutrascoisasLabel ...
                             };
 
@@ -717,9 +736,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                                     struct('appName', appName, 'dataTag', elDataTag{2}, 'style',    struct('backgroundColor', 'rgba(255,255,255,0.65)')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{5}, 'selector', '[class="mwTextNode"]', 'style', struct('textAlign', 'justify')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{3}, 'listener', struct('componentName', 'mainApp.file_Tree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{4}, 'listener', struct('componentName', 'mainApp.file_FilteringTree',   'keyEvents', {{'Delete', 'Backspace'}}))  ...
+                                    struct('appName', appName, 'dataTag', elDataTag{4}, 'selector', '[class="mwTextNode"]', 'style', struct('textAlign', 'justify')), ...
+                                    struct('appName', appName, 'dataTag', elDataTag{3}, 'listener', struct('componentName', 'mainApp.file_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
                                 });
                             end
         
@@ -753,6 +771,38 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                             % Inicialização de componentes que não são renderizados 
                             % inicialmente por estarem em aba invisível.
+                            
+                            % Painel "PLAYBACK > ASPECTOS GERAIS"
+                            if ismember(num2str(app.General.Integration.Trace), app.play_TraceIntegration.Items)
+                                app.play_TraceIntegration.Value       = num2str(app.General.Integration.Trace);
+                            else
+                                app.General_I.Integration.Trace       = Inf;
+                                app.General.Integration.Trace         = Inf;
+                            end
+                
+                            app.tool_LayoutLeft.UserData              = true;
+                            app.tool_LayoutRight.UserData             = true;
+                
+                            % Painel "PLAYBACK > ASPECTOS GERAIS > PERSISTÊNCIA"
+                            app.play_Persistance_Interpolation.Value  = app.General.Plot.Persistance.Interpolation;
+                            app.play_Persistance_WindowSize.Value     = app.General.Plot.Persistance.WindowSize;
+                            app.play_Persistance_WindowSizeValue.Text = app.General.Plot.Persistance.WindowSize;
+                            app.play_Persistance_Colormap.Value       = app.General.Plot.Persistance.Colormap;
+                            app.play_Persistance_cLim1.Value          = app.General.Plot.Persistance.LevelLimits(1);
+                            app.play_Persistance_cLim2.Value          = app.General.Plot.Persistance.LevelLimits(2);
+                            play_ControlsPanelSelectionChanged(app)
+                
+                            % Painel "PLAYBACK > ASPECTOS GERAIS > WATERFALL"
+                            app.play_Waterfall_Fcn.Value              = app.General.Plot.Waterfall.Fcn;
+                            app.play_Waterfall_Colorbar.Value         = app.General.Plot.Waterfall.Colorbar;
+                            app.play_Waterfall_Decimation.Value       = app.General.Plot.Waterfall.Decimation;
+                            app.play_Waterfall_MeshStyle.Value        = app.General.Plot.Waterfall.MeshStyle;
+                            app.play_Waterfall_Timeline.Value         = app.General.Plot.WaterfallTime.Visible;
+                            app.play_Waterfall_Colormap.Value         = app.General.Plot.Waterfall.Colormap;
+                            app.play_Waterfall_cLim1.Value            = app.General.Plot.Waterfall.LevelLimits(1);
+                            app.play_Waterfall_cLim2.Value            = app.General.Plot.Waterfall.LevelLimits(2);
+
+                            % Painel "PLAYBACK > CANAIS"
                             channelList = {};
                             for ii = 1:numel(app.channelObj.Channel)
                                 channelList{end+1} = sprintf('%d: %.3f - %.3f MHz (%s)', ii, app.channelObj.Channel(ii).Band(1), ...
@@ -762,6 +812,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             app.play_Channel_List.Items = channelList;
                             play_Channel_RadioGroupSelectionChanged(app)
                             
+                            % Painel "PLAYBACK > EMISSÕES"
                             app.play_FindPeaks_Class.Items = app.channelObj.FindPeaks.Name;
                             play_FindPeaks_ClassValueChanged(app)
                 
@@ -770,6 +821,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             app.play_FindPeaks_Algorithm.Value = 'FindPeaks+OCC';
                             play_FindPeaks_AlgorithmValueChanged(app)
                 
+                            % Painel "RELATÓRIO"
                             app.report_Unit.Items      = app.General.ui.unit.options;
                             app.report_ModelName.Items = [{''}; app.General.Models.Name];
                             
@@ -782,6 +834,50 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % nesta figura são controladas pelos próprios
                             % módulos.
                     end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function jsBackDoor_Customizations(app, tabIndex, subTabIndex)
+            switch tabIndex
+                case 1 % FILE
+                    persistent customizationStatus_subTab1
+                    if isempty(customizationStatus_subTab1)
+                        customizationStatus_subTab1 = [false, false];
+                    end
+
+                    if customizationStatus_subTab1(subTabIndex)
+                        return
+                    end
+
+                    appName = class(app);
+                    customizationStatus_subTab1(subTabIndex) = true;
+        
+                    switch subTabIndex
+                        case 1
+                            % Desnecessário pois elementos já renderizados
+                            % na página...
+
+                        case 2
+                            app.file_FilteringValue_ID.UserData.render        = true;
+                            app.file_FilteringValue_Frequency.UserData.render = true;
+                            app.file_FilteringTree.UserData.render            = true;
+
+                            file_FilterOptions(app)
+                            file_FilterCheck(app)
+
+                            elToModify = {app.file_FilteringTree};
+                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                            if ~isempty(elDataTag)
+                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'mainApp.file_FilteringTree',   'keyEvents', {{'Delete', 'Backspace'}}))  ...
+                                });
+                            end
+                    end
+
+                otherwise % PLAYBACK+RELATÓRIO+MISCELÂNEAS
+                    % Ainda desnecessário porque não foi implantado um sistema 
+                    % com TabGroup, mas controle de visibilidade de grids.
             end
         end
     end
@@ -829,8 +925,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.rootFolder = appUtil.RootFolder(appName, MFilePath);
 
             % Customizações...
-            jsBackDoor_Customizations(app, 0)
-            jsBackDoor_Customizations(app, 1)
+            jsBackDoor_AppCustomizations(app, 0)
+            jsBackDoor_AppCustomizations(app, 1)
             pause(.100)
 
             % Inicia operações de gerar tela inicial, customizar componentes e
@@ -868,12 +964,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'webApp'
                     % Força a exclusão do SplashScreen do MATLAB Web Server.
                     sendEventToHTMLSource(app.jsBackDoor, "delProgressDialog");
-
-                    % Webapp também não suporta outras janelas, de forma que os 
-                    % módulos auxiliares devem ser abertos na própria janela
-                    % do appAnalise.
-                    app.dockModule_Undock.Visible     = 0;
-
+                    
                     app.General_I.operationMode.Debug = false;
                     app.General_I.operationMode.Dock  = true;
                     
@@ -969,7 +1060,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function startup_GUIComponents(app)
             % Cria o objeto que conecta o TabGroup com o GraphicMenu.
-            app.tabGroupController = tabGroupGraphicMenu(app.menu_Grid, app.TabGroup, app.progressDialog, @app.jsBackDoor_Customizations, @app.menu_LayoutControl);
+            app.tabGroupController = tabGroupGraphicMenu(app.menu_Grid, app.TabGroup, app.progressDialog, @app.jsBackDoor_AppCustomizations, @app.menu_LayoutControl);
 
             addComponent(app.tabGroupController, "Built-in", "",                         app.menu_Button1, "AlwaysOn", struct('On', 'OpenFile_32Yellow.png',         'Off', 'OpenFile_32White.png'),         matlab.graphics.GraphicsPlaceholder, 1)
             addComponent(app.tabGroupController, "Built-in", "",                         app.menu_Button2, "AlwaysOn", struct('On', 'Playback_32Yellow.png',         'Off', 'Playback_32White.png'),         matlab.graphics.GraphicsPlaceholder, 2)
@@ -983,6 +1074,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Salva na propriedade "UserData" as opções de ícone e o índice 
             % da aba, simplificando os ajustes decorrentes de uma alteração...
             app.file_Tree.UserData                    = struct('previousSelectedFileIndex', [], 'previousSelectedFileThread', []);
+            app.file_FilteringValue_ID.UserData       = struct('id', '', 'render', false);
+            app.file_FilteringValue_Frequency.UserData= struct('id', '', 'render', false);
+            app.file_FilteringTree.UserData           = struct('id', '', 'render', false);
+
             app.play_Channel_ShowPlot.UserData        = false;
             
             app.axesTool_Pan.UserData                 = false;
@@ -995,39 +1090,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.axesTool_Waterfall.UserData           = struct('Value', false);
 
             app.play_PlotPanel.UserData               = [];
-
-            % Painel "PLAYBACK > ASPECTOS GERAIS"
-            if ismember(num2str(app.General.Integration.Trace), app.play_TraceIntegration.Items)
-                app.play_TraceIntegration.Value       = num2str(app.General.Integration.Trace);
-            else
-                app.General_I.Integration.Trace       = Inf;
-                app.General.Integration.Trace         = Inf;
-            end
-
-            app.tool_LayoutLeft.UserData              = true;
-            app.tool_LayoutRight.UserData             = true;
-
-            % Painel "PLAYBACK > ASPECTOS GERAIS > PERSISTÊNCIA"
-            app.play_Persistance_Interpolation.Value  = app.General.Plot.Persistance.Interpolation;
-            app.play_Persistance_WindowSize.Value     = app.General.Plot.Persistance.WindowSize;
-            app.play_Persistance_WindowSizeValue.Text = app.General.Plot.Persistance.WindowSize;
-            app.play_Persistance_Colormap.Value       = app.General.Plot.Persistance.Colormap;
-            app.play_Persistance_cLim1.Value          = app.General.Plot.Persistance.LevelLimits(1);
-            app.play_Persistance_cLim2.Value          = app.General.Plot.Persistance.LevelLimits(2);
-            play_ControlsPanelSelectionChanged(app)
-
-            % Painel "PLAYBACK > ASPECTOS GERAIS > WATERFALL"
-            app.play_Waterfall_Fcn.Value              = app.General.Plot.Waterfall.Fcn;
-            app.play_Waterfall_Colorbar.Value         = app.General.Plot.Waterfall.Colorbar;
-            app.play_Waterfall_Decimation.Value       = app.General.Plot.Waterfall.Decimation;
-            app.play_Waterfall_MeshStyle.Value        = app.General.Plot.Waterfall.MeshStyle;
-            app.play_Waterfall_Timeline.Value         = app.General.Plot.WaterfallTime.Visible;
-            app.play_Waterfall_Colormap.Value         = app.General.Plot.Waterfall.Colormap;
-            app.play_Waterfall_cLim1.Value            = app.General.Plot.Waterfall.LevelLimits(1);
-            app.play_Waterfall_cLim2.Value            = app.General.Plot.Waterfall.LevelLimits(2);
-
-            % Painel "PLAYBACK > CANAIS"
-            app.report_ThreadAlgorithms.UserData = struct('idxThread', [], 'id', '');
+            app.report_ThreadAlgorithms.UserData      = struct('idxThread', [], 'id', '');
 
             DataHubWarningLamp(app)
         end
@@ -1148,10 +1211,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                                  'MESCLAR FLUXOS',             ...
                                                                  'EXCLUIR FLUXO(S)',           ...
                                                                  'IMPORTAR ANÁLISE',           ...
-                                                                 'FILTRAR FLUXO(S)',           ...
+                                                                 'APLICAR FILTRO TEMPORAL',    ...
+                                                                 'APLICAR FILTRO NÍVEL',       ...
                                                                  'EDITAR LOCAL',               ...
-                                                                 'APLICAR CORREÇÃO',           ...
-                                                                 'EXCLUIR VARREDURAS INVÁLIDAS'})}
+                                                                 'APLICAR CORREÇÃO'})}
             end
 
             userSelection = 'Sim';
@@ -1282,7 +1345,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         function menu_LayoutPopupApp(app, auxiliarApp, varargin)
             arguments
                 app
-                auxiliarApp char {mustBeMember(auxiliarApp, {'Detection', 'Classification', 'AddFiles', 'TimeFiltering', 'EditLocation', 'AddKFactor', 'AddChannel'})}
+                auxiliarApp char {mustBeMember(auxiliarApp, {'Detection', 'Classification', 'AddFiles', 'TimeFiltering', 'EditLocation', 'AddKFactor', 'AddChannel', 'LevelFiltering'})}
             end
 
             arguments (Repeating)
@@ -1291,13 +1354,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Inicialmente ajusta as dimensões do container.
             switch auxiliarApp
-                case 'Detection';      screenWidth  = 412; screenHeight = 282;
-                case 'Classification'; screenWidth  = 534; screenHeight = 248;
-                case 'AddFiles';       screenWidth  = 880; screenHeight = 480;
-                case 'TimeFiltering';  screenWidth  = 640; screenHeight = 480;
-                case 'EditLocation';   screenWidth  = 394; screenHeight = 194;
-                case 'AddKFactor';     screenWidth  = 480; screenHeight = 360;
-                case 'AddChannel';     screenWidth  = 560; screenHeight = 480;
+                case 'Detection';      screenWidth = 412; screenHeight = 282;
+                case 'Classification'; screenWidth = 534; screenHeight = 248;
+                case 'AddFiles';       screenWidth = 880; screenHeight = 480;
+                case 'TimeFiltering';  screenWidth = 640; screenHeight = 480;
+                case 'LevelFiltering'; screenWidth = 540; screenHeight = 300;
+                case 'EditLocation';   screenWidth = 394; screenHeight = 194;
+                case 'AddKFactor';     screenWidth = 480; screenHeight = 360;
+                case 'AddChannel';     screenWidth = 560; screenHeight = 480;                
             end
 
             ui.PopUpContainer(app, class.Constants.appName, screenWidth, screenHeight)
@@ -1528,6 +1592,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function file_FilterOptions(app)
+            % Se app.file_FilteringValue_ID e file_FilteringValue_Frequency 
+            % ainda não foram renderizados, então não faz sentido passar por 
+            % aqui...
+            if ~app.file_FilteringValue_ID.UserData.render && ~app.file_FilteringValue_Frequency.UserData.render
+                return
+            end
+
             bandList = table('Size', [0,3], ...
                              'VariableTypes', {'double', 'double', 'string'}, ...
                              'VariableNames', {'FreqStart', 'FreqStop', 'Band'});
@@ -1544,14 +1615,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
             bandList = sortrows(bandList, {'FreqStart', 'FreqStop'});
 
+            app.file_FilteringValue_ID.Items = unique(string(sort(IDList)), "rows", "stable");
             app.file_FilteringValue_Frequency.Items = unique(bandList.Band, "rows", "stable");
-            app.file_FilteringValue_ID.Items        = unique(string(sort(IDList)), "rows", "stable");
         end
 
         %-----------------------------------------------------------------%
         function file_FilterCheck(app)
-            hFilter = allchild(app.file_FilteringTree);
+            % Se app.file_FilteringTree ainda não foi renderizado, então
+            % não faz sentido passar por aqui...
+            if ~app.file_FilteringTree.UserData.render
+                return
+            end
 
+            hFilter = allchild(app.file_FilteringTree);
             if isempty(hFilter)
                 for ii = 1:numel(app.metaData)
                     for jj = 1:numel(app.metaData(ii).Data)
@@ -3177,7 +3253,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function misc_DeleteInvalidSweepsController(app, idx)
+        function misc_DeleteSweepsController(app, idx)
 
         end
     end
@@ -3405,6 +3481,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         currentSelectedFileIndex = struct('previousSelectedFileIndex',  idxFile, ...
                                                           'previousSelectedFileThread', idxThread);
                     end
+                else
+                    
                 end
             end
 
@@ -5340,7 +5418,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     end
 
                     reportTemplateIndex = find(strcmp(app.report_ModelName.Items, app.report_ModelName.Value), 1) - 1;
-                    [idx, reportInfo]   = report.GeneralInfo(app, 'Report', reportTemplateIndex);
+                    [idx, reportInfo]   = reportLibConnection.GeneralInfo(app, 'Report', reportTemplateIndex);
                     
                     generatedZIPFile = '';
                     if ~isempty(app.projectData.generatedFiles) && isfield(app.projectData.generatedFiles, 'lastZIPFullPath') && isfile(app.projectData.generatedFiles.lastZIPFullPath)
@@ -5506,11 +5584,20 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     %-----------------------------------------------------%
                     case app.misc_TimeFiltering
-                        if strcmp(auxAppStatus(app, 'FILTRAR FLUXO(S)'), 'Não')
+                        if strcmp(auxAppStatus(app, 'APLICAR FILTRO TEMPORAL'), 'Não')
                             return
                         end
 
                         menu_LayoutPopupApp(app, 'TimeFiltering', idxThreads)
+                        return
+
+                    %-----------------------------------------------------%
+                    case app.misc_LevelFiltering
+                        if strcmp(auxAppStatus(app, 'APLICAR FILTRO NÍVEL'), 'Não')
+                            return
+                        end
+
+                        menu_LayoutPopupApp(app, 'LevelFiltering', idxThreads)
                         return
 
                     %-----------------------------------------------------%
@@ -5548,14 +5635,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         
                         menu_LayoutPopupApp(app, 'AddKFactor', idxThreads)
                         return
-
-                    %-----------------------------------------------------%
-                    case app.misc_DeleteInvalidSweeps
-                        if strcmp(auxAppStatus(app, 'EXCLUIR VARREDURAS INVÁLIDAS'), 'Não')
-                            return
-                        end
-
-                        misc_DeleteInvalidSweepsController(app, idxThreads)
                 end
 
                 SelectedNodesTextList = misc_SelectedNodesText(app);
@@ -5564,6 +5643,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             catch ME
                 appUtil.modalWindow(app.UIFigure, 'error', getReport(ME));
             end
+
+        end
+
+        % Selection change function: TabGroup2
+        function TabGroupSelectionChanged(app, event)
+            
+            [~, tabIndex] = ismember(app.TabGroup.SelectedTab, app.TabGroup.Children);
+            [~, subTabIndex] = ismember(app.TabGroup2.SelectedTab, app.TabGroup2.Children);
+            jsBackDoor_Customizations(app, tabIndex, subTabIndex)
 
         end
     end
@@ -5639,7 +5727,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.file_toolGrid.RowHeight = {3, 17, 2};
             app.file_toolGrid.ColumnSpacing = 5;
             app.file_toolGrid.RowSpacing = 0;
-            app.file_toolGrid.Padding = [5 6 5 6];
+            app.file_toolGrid.Padding = [10 6 10 6];
             app.file_toolGrid.Layout.Row = 5;
             app.file_toolGrid.Layout.Column = [1 7];
 
@@ -5673,6 +5761,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create TabGroup2
             app.TabGroup2 = uitabgroup(app.file_Grid);
             app.TabGroup2.AutoResizeChildren = 'off';
+            app.TabGroup2.SelectionChangedFcn = createCallbackFcn(app, @TabGroupSelectionChanged, true);
             app.TabGroup2.Layout.Row = 1;
             app.TabGroup2.Layout.Column = [2 6];
 
@@ -5884,7 +5973,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create play_ControlsGrid
             app.play_ControlsGrid = uigridlayout(app.play_Grid);
             app.play_ControlsGrid.ColumnWidth = {'1x'};
-            app.play_ControlsGrid.RowHeight = {26, '1x', '1x', '1x', 0, 0};
+            app.play_ControlsGrid.RowHeight = {26, '1x', 0, 0, 0, 0};
             app.play_ControlsGrid.ColumnSpacing = 5;
             app.play_ControlsGrid.RowSpacing = 5;
             app.play_ControlsGrid.Padding = [0 0 0 0];
@@ -7978,7 +8067,26 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_TimeFilteringLabel.FontSize = 10;
             app.misc_TimeFilteringLabel.Layout.Row = 6;
             app.misc_TimeFilteringLabel.Layout.Column = [1 3];
-            app.misc_TimeFilteringLabel.Text = 'Filtrar fluxo(s)';
+            app.misc_TimeFilteringLabel.Text = 'Filtro temporal';
+
+            % Create misc_LevelFiltering
+            app.misc_LevelFiltering = uibutton(app.misc_Grid1, 'push');
+            app.misc_LevelFiltering.ButtonPushedFcn = createCallbackFcn(app, @misc_OperationsCallbacks, true);
+            app.misc_LevelFiltering.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'clear_breakpoints_16.png');
+            app.misc_LevelFiltering.BackgroundColor = [1 1 1];
+            app.misc_LevelFiltering.Tooltip = {''};
+            app.misc_LevelFiltering.Layout.Row = 5;
+            app.misc_LevelFiltering.Layout.Column = 5;
+            app.misc_LevelFiltering.Text = '';
+
+            % Create misc_LevelFilteringLabel
+            app.misc_LevelFilteringLabel = uilabel(app.misc_Grid1);
+            app.misc_LevelFilteringLabel.HorizontalAlignment = 'center';
+            app.misc_LevelFilteringLabel.WordWrap = 'on';
+            app.misc_LevelFilteringLabel.FontSize = 10;
+            app.misc_LevelFilteringLabel.Layout.Row = 6;
+            app.misc_LevelFilteringLabel.Layout.Column = [4 6];
+            app.misc_LevelFilteringLabel.Text = {'Filtro'; 'nível'};
 
             % Create misc_EditLocation
             app.misc_EditLocation = uibutton(app.misc_Grid1, 'push');
@@ -7987,7 +8095,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_EditLocation.BackgroundColor = [1 1 1];
             app.misc_EditLocation.Tooltip = {''};
             app.misc_EditLocation.Layout.Row = 5;
-            app.misc_EditLocation.Layout.Column = 5;
+            app.misc_EditLocation.Layout.Column = 8;
             app.misc_EditLocation.Text = '';
 
             % Create misc_EditLocationLabel
@@ -7996,7 +8104,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_EditLocationLabel.WordWrap = 'on';
             app.misc_EditLocationLabel.FontSize = 10;
             app.misc_EditLocationLabel.Layout.Row = 6;
-            app.misc_EditLocationLabel.Layout.Column = [4 6];
+            app.misc_EditLocationLabel.Layout.Column = [7 9];
             app.misc_EditLocationLabel.Text = {'Editar'; 'Local'};
 
             % Create misc_AddCorrection
@@ -8006,7 +8114,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_AddCorrection.BackgroundColor = [1 1 1];
             app.misc_AddCorrection.Tooltip = {''};
             app.misc_AddCorrection.Layout.Row = 5;
-            app.misc_AddCorrection.Layout.Column = 8;
+            app.misc_AddCorrection.Layout.Column = 11;
             app.misc_AddCorrection.Text = '';
 
             % Create misc_AddCorrectionLabel
@@ -8015,7 +8123,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_AddCorrectionLabel.WordWrap = 'on';
             app.misc_AddCorrectionLabel.FontSize = 10;
             app.misc_AddCorrectionLabel.Layout.Row = 6;
-            app.misc_AddCorrectionLabel.Layout.Column = [7 9];
+            app.misc_AddCorrectionLabel.Layout.Column = [10 12];
             app.misc_AddCorrectionLabel.Text = {'Aplicar'; 'correção'};
 
             % Create misc_DeleteAll
@@ -8036,25 +8144,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.misc_DeleteAllLabel.Layout.Row = 12;
             app.misc_DeleteAllLabel.Layout.Column = [1 3];
             app.misc_DeleteAllLabel.Text = 'Reiniciar análise';
-
-            % Create misc_DeleteInvalidSweeps
-            app.misc_DeleteInvalidSweeps = uibutton(app.misc_Grid1, 'push');
-            app.misc_DeleteInvalidSweeps.ButtonPushedFcn = createCallbackFcn(app, @misc_OperationsCallbacks, true);
-            app.misc_DeleteInvalidSweeps.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'clear_breakpoints_16.png');
-            app.misc_DeleteInvalidSweeps.BackgroundColor = [1 1 1];
-            app.misc_DeleteInvalidSweeps.Tooltip = {''};
-            app.misc_DeleteInvalidSweeps.Layout.Row = 8;
-            app.misc_DeleteInvalidSweeps.Layout.Column = 2;
-            app.misc_DeleteInvalidSweeps.Text = '';
-
-            % Create misc_DeleteInvalidSweepsLabel
-            app.misc_DeleteInvalidSweepsLabel = uilabel(app.misc_Grid1);
-            app.misc_DeleteInvalidSweepsLabel.HorizontalAlignment = 'center';
-            app.misc_DeleteInvalidSweepsLabel.WordWrap = 'on';
-            app.misc_DeleteInvalidSweepsLabel.FontSize = 10;
-            app.misc_DeleteInvalidSweepsLabel.Layout.Row = 9;
-            app.misc_DeleteInvalidSweepsLabel.Layout.Column = [1 3];
-            app.misc_DeleteInvalidSweepsLabel.Text = {'Eliminar'; 'inválidas'};
 
             % Create submenu_Grid
             app.submenu_Grid = uigridlayout(app.play_ControlsGrid);

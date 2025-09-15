@@ -368,23 +368,19 @@ classdef SpecData < model.SpecDataBase
 
         %-----------------------------------------------------------------%
         function checkIfOccupancyPerBinExist(obj)
-            if isempty(obj.UserData.occMethod.CacheIndex)
+            if isempty(obj.UserData.occMethod.CacheIndex) || ~isequal(size(obj.UserData.occInfIntegration), size(obj.Data{2}))
                 occParameters = RF.Occupancy.ParametersDefault();
                 occTHR        = RF.Occupancy.Threshold(occParameters.Method, occParameters, obj, 'bin');
                 occData       = RF.Occupancy.run(obj.Data{1}, obj.Data{2}, occParameters.Method, occTHR, occParameters.IntegrationTime);
     
                 obj.UserData.occMethod.CacheIndex = 1;
                 obj.UserData.occCache             = struct('Info', occParameters, 'THR', occTHR, 'Data', {occData});
+                obj.UserData.occInfIntegration    = obj.Data{2} > occTHR;
             else
                 occIndex      = obj.UserData.occMethod.CacheIndex;
                 occParameters = obj.UserData.occCache(occIndex).Info;
 
                 obj.UserData.reportAlgorithms.Occupancy = occParameters;
-            end
-
-            if isempty(obj.UserData.occInfIntegration)
-                occTHR = obj.UserData.occCache.THR;
-                obj.UserData.occInfIntegration    = obj.Data{2} > occTHR;
             end
         end
 
@@ -681,9 +677,12 @@ classdef SpecData < model.SpecDataBase
 
             % LOG
             obj.UserData.LOG{end+1} = jsonencode(FilterLOG);
-            
-            % ESTATÍSTICA BÁSICA
+
+            % REINICIA CARACTERÍSTICAS RELACIONADAS À INFORMAÇÃO ESPECTRAL
             basicStats(obj)
+
+            obj.UserData.occMethod.CacheIndex = [];
+            checkIfOccupancyPerBinExist(obj)
 
             % Ajusta a informação da propriedade "RelatedFiles", que armazena
             % o período de observação de cada arquivo, o número de amostras
