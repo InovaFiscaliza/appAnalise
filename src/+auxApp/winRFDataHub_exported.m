@@ -7,6 +7,16 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         DockModuleGroup                 matlab.ui.container.GridLayout
         dockModule_Undock               matlab.ui.control.Image
         dockModule_Close                matlab.ui.control.Image
+        Document                        matlab.ui.container.GridLayout
+        AxesToolbar                     matlab.ui.container.GridLayout
+        axesTool_RegionZoom             matlab.ui.control.Image
+        axesTool_RestoreView            matlab.ui.control.Image
+        plotPanel                       matlab.ui.container.Panel
+        chReportUndock                  matlab.ui.control.Image
+        chReportHotDownload             matlab.ui.control.Image
+        chReportDownloadTime            matlab.ui.control.Label
+        chReportHTML                    matlab.ui.control.HTML
+        UITable                         matlab.ui.control.Table
         TabGroup                        matlab.ui.container.TabGroup
         Tab1                            matlab.ui.container.Tab
         Tab1Grid                        matlab.ui.container.GridLayout
@@ -115,16 +125,6 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         config_geoAxesSublabel          matlab.ui.control.Label
         config_Refresh                  matlab.ui.control.Image
         config_geoAxesLabel             matlab.ui.control.Label
-        Document                        matlab.ui.container.GridLayout
-        AxesToolbar                     matlab.ui.container.GridLayout
-        axesTool_RegionZoom             matlab.ui.control.Image
-        axesTool_RestoreView            matlab.ui.control.Image
-        plotPanel                       matlab.ui.container.Panel
-        chReportUndock                  matlab.ui.control.Image
-        chReportHotDownload             matlab.ui.control.Image
-        chReportDownloadTime            matlab.ui.control.Label
-        chReportHTML                    matlab.ui.control.HTML
-        UITable                         matlab.ui.control.Table
         Toolbar                         matlab.ui.container.GridLayout
         tool_tableNRowsIcon             matlab.ui.control.Image
         tool_tableNRows                 matlab.ui.control.Label
@@ -286,6 +286,11 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                                     struct('appName', appName, 'dataTag', elDataTag{1}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
                                 });
                             end
+
+                            % Elevação:
+                            app.config_ElevationAPISource.Value    = app.General.Elevation.Server;
+                            app.config_ElevationNPoints.Value      = num2str(app.General.Elevation.Points);
+                            app.config_ElevationForceSearch.Value  = app.General.Elevation.ForceSearch;
                     end
             end
         end
@@ -434,12 +439,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.referenceRX_EditionMode.UserData = false;
             app.tool_TableVisibility.UserData    = 1;
             app.tool_RFLinkButton.UserData       = false;
-            app.tool_PDFButton.UserData          = false;            
-
-            % Elevação:
-            app.config_ElevationAPISource.Value    = app.General.Elevation.Server;
-            app.config_ElevationNPoints.Value      = num2str(app.General.Elevation.Points);
-            app.config_ElevationForceSearch.Value  = app.General.Elevation.ForceSearch;
+            app.tool_PDFButton.UserData          = false;
         end
     end
 
@@ -1469,25 +1469,27 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_ControlPanelVisibility
-                    if app.GridLayout.ColumnWidth{2}
+                    if app.TabGroup.Visible
                         app.tool_ControlPanelVisibility.ImageSource = 'ArrowRight_32.png';
-                        app.GridLayout.ColumnWidth(2:3) = {0,0};
+                        app.TabGroup.Visible = 0;
+                        app.Document.Layout.Column = [2 5];
                     else
                         app.tool_ControlPanelVisibility.ImageSource = 'ArrowLeft_32.png';
-                        app.GridLayout.ColumnWidth(2:3) = {320,10};
+                        app.TabGroup.Visible = 1;
+                        app.Document.Layout.Column = [4 5];
                     end
 
                 case app.tool_TableVisibility
                     app.tool_TableVisibility.UserData = mod(app.tool_TableVisibility.UserData + 1, 3);
                     switch app.tool_TableVisibility.UserData
                         case 0
-                            app.UITable.Visible        = 0;
+                            app.UITable.Visible    = 0;
                             app.Document.RowHeight = {24,'1x',0,0};
                         case 1
-                            app.UITable.Visible        = 1;
+                            app.UITable.Visible    = 1;
                             app.Document.RowHeight = {24,'1x',10,'.4x'};
                         case 2
-                            app.UITable.Visible        = 1;
+                            app.UITable.Visible    = 1;
                             app.Document.RowHeight = {0,0,0,'1x'};
                     end
 
@@ -2165,103 +2167,6 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.tool_tableNRowsIcon.Layout.Row = 2;
             app.tool_tableNRowsIcon.Layout.Column = 8;
             app.tool_tableNRowsIcon.ImageSource = 'Filter_18.png';
-
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 50, '1x', 0, 0, 0, 0};
-            app.Document.RowHeight = {24, '1x', 10, '0.4x'};
-            app.Document.ColumnSpacing = 0;
-            app.Document.RowSpacing = 0;
-            app.Document.Padding = [0 0 0 0];
-            app.Document.Layout.Row = [3 4];
-            app.Document.Layout.Column = [4 5];
-            app.Document.BackgroundColor = [1 1 1];
-
-            % Create UITable
-            app.UITable = uitable(app.Document);
-            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
-            app.UITable.ColumnName = {'ID'; 'FREQUÊNCIA|(MHz)'; 'DESCRIÇÃO|(Entidade+Fistel+Multiplicidade+Localidade)'; 'SERVIÇO'; 'ESTAÇÃO'; 'LARGURA|(kHz)'; 'DISTÂNCIA|(km)'};
-            app.UITable.ColumnWidth = {60, 110, 'auto', 75, 75, 75, 90};
-            app.UITable.RowName = {};
-            app.UITable.ColumnSortable = [false true false true true true true];
-            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @UITableSelectionChanged, true);
-            app.UITable.Multiselect = 'off';
-            app.UITable.ForegroundColor = [0.149 0.149 0.149];
-            app.UITable.Layout.Row = 4;
-            app.UITable.Layout.Column = [1 7];
-            app.UITable.FontSize = 10.5;
-
-            % Create chReportHTML
-            app.chReportHTML = uihtml(app.Document);
-            app.chReportHTML.HTMLSource = 'Warning2.html';
-            app.chReportHTML.Layout.Row = 2;
-            app.chReportHTML.Layout.Column = [5 7];
-
-            % Create chReportDownloadTime
-            app.chReportDownloadTime = uilabel(app.Document);
-            app.chReportDownloadTime.BackgroundColor = [0.2 0.2 0.2];
-            app.chReportDownloadTime.HorizontalAlignment = 'center';
-            app.chReportDownloadTime.FontSize = 10;
-            app.chReportDownloadTime.FontColor = [0.902 0.902 0.902];
-            app.chReportDownloadTime.Layout.Row = 1;
-            app.chReportDownloadTime.Layout.Column = [5 7];
-            app.chReportDownloadTime.Text = '';
-
-            % Create chReportHotDownload
-            app.chReportHotDownload = uiimage(app.Document);
-            app.chReportHotDownload.ScaleMethod = 'none';
-            app.chReportHotDownload.ImageClickedFcn = createCallbackFcn(app, @PDFToolbar_ReportImageClicked, true);
-            app.chReportHotDownload.Visible = 'off';
-            app.chReportHotDownload.Tooltip = {'Baixa versão atual do documento'};
-            app.chReportHotDownload.Layout.Row = 1;
-            app.chReportHotDownload.Layout.Column = 5;
-            app.chReportHotDownload.ImageSource = 'Refresh_18White.png';
-
-            % Create chReportUndock
-            app.chReportUndock = uiimage(app.Document);
-            app.chReportUndock.ScaleMethod = 'none';
-            app.chReportUndock.ImageClickedFcn = createCallbackFcn(app, @PDFToolbar_ReportImageClicked, true);
-            app.chReportUndock.Visible = 'off';
-            app.chReportUndock.Tooltip = {'Abre documento em leitor externo'};
-            app.chReportUndock.Layout.Row = 1;
-            app.chReportUndock.Layout.Column = 6;
-            app.chReportUndock.ImageSource = 'Undock_18White.png';
-
-            % Create plotPanel
-            app.plotPanel = uipanel(app.Document);
-            app.plotPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.plotPanel.BorderType = 'none';
-            app.plotPanel.BackgroundColor = [1 1 1];
-            app.plotPanel.Layout.Row = [1 2];
-            app.plotPanel.Layout.Column = [1 3];
-
-            % Create AxesToolbar
-            app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {22, 22};
-            app.AxesToolbar.RowHeight = {22};
-            app.AxesToolbar.ColumnSpacing = 0;
-            app.AxesToolbar.Padding = [2 2 2 0];
-            app.AxesToolbar.Layout.Row = 1;
-            app.AxesToolbar.Layout.Column = 2;
-            app.AxesToolbar.BackgroundColor = [1 1 1];
-
-            % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
-            app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
-            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
-            app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 1;
-            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
-
-            % Create axesTool_RegionZoom
-            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
-            app.axesTool_RegionZoom.ScaleMethod = 'none';
-            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
-            app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
-            app.axesTool_RegionZoom.Layout.Row = 1;
-            app.axesTool_RegionZoom.Layout.Column = 2;
-            app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
@@ -3256,6 +3161,103 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.config_ElevationForceSearch.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_ElevationForceSearch.Layout.Row = 3;
             app.config_ElevationForceSearch.Layout.Column = [1 2];
+
+            % Create Document
+            app.Document = uigridlayout(app.GridLayout);
+            app.Document.ColumnWidth = {5, 50, '1x', 0, 0, 0, 0};
+            app.Document.RowHeight = {24, '1x', 10, '0.4x'};
+            app.Document.ColumnSpacing = 0;
+            app.Document.RowSpacing = 0;
+            app.Document.Padding = [0 0 0 0];
+            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Column = [4 5];
+            app.Document.BackgroundColor = [1 1 1];
+
+            % Create UITable
+            app.UITable = uitable(app.Document);
+            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
+            app.UITable.ColumnName = {'ID'; 'FREQUÊNCIA|(MHz)'; 'DESCRIÇÃO|(Entidade+Fistel+Multiplicidade+Localidade)'; 'SERVIÇO'; 'ESTAÇÃO'; 'LARGURA|(kHz)'; 'DISTÂNCIA|(km)'};
+            app.UITable.ColumnWidth = {60, 110, 'auto', 75, 75, 75, 90};
+            app.UITable.RowName = {};
+            app.UITable.ColumnSortable = [false true false true true true true];
+            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @UITableSelectionChanged, true);
+            app.UITable.Multiselect = 'off';
+            app.UITable.ForegroundColor = [0.149 0.149 0.149];
+            app.UITable.Layout.Row = 4;
+            app.UITable.Layout.Column = [1 7];
+            app.UITable.FontSize = 10.5;
+
+            % Create chReportHTML
+            app.chReportHTML = uihtml(app.Document);
+            app.chReportHTML.HTMLSource = 'Warning2.html';
+            app.chReportHTML.Layout.Row = 2;
+            app.chReportHTML.Layout.Column = [5 7];
+
+            % Create chReportDownloadTime
+            app.chReportDownloadTime = uilabel(app.Document);
+            app.chReportDownloadTime.BackgroundColor = [0.2 0.2 0.2];
+            app.chReportDownloadTime.HorizontalAlignment = 'center';
+            app.chReportDownloadTime.FontSize = 10;
+            app.chReportDownloadTime.FontColor = [0.902 0.902 0.902];
+            app.chReportDownloadTime.Layout.Row = 1;
+            app.chReportDownloadTime.Layout.Column = [5 7];
+            app.chReportDownloadTime.Text = '';
+
+            % Create chReportHotDownload
+            app.chReportHotDownload = uiimage(app.Document);
+            app.chReportHotDownload.ScaleMethod = 'none';
+            app.chReportHotDownload.ImageClickedFcn = createCallbackFcn(app, @PDFToolbar_ReportImageClicked, true);
+            app.chReportHotDownload.Visible = 'off';
+            app.chReportHotDownload.Tooltip = {'Baixa versão atual do documento'};
+            app.chReportHotDownload.Layout.Row = 1;
+            app.chReportHotDownload.Layout.Column = 5;
+            app.chReportHotDownload.ImageSource = 'Refresh_18White.png';
+
+            % Create chReportUndock
+            app.chReportUndock = uiimage(app.Document);
+            app.chReportUndock.ScaleMethod = 'none';
+            app.chReportUndock.ImageClickedFcn = createCallbackFcn(app, @PDFToolbar_ReportImageClicked, true);
+            app.chReportUndock.Visible = 'off';
+            app.chReportUndock.Tooltip = {'Abre documento em leitor externo'};
+            app.chReportUndock.Layout.Row = 1;
+            app.chReportUndock.Layout.Column = 6;
+            app.chReportUndock.ImageSource = 'Undock_18White.png';
+
+            % Create plotPanel
+            app.plotPanel = uipanel(app.Document);
+            app.plotPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.plotPanel.BorderType = 'none';
+            app.plotPanel.BackgroundColor = [1 1 1];
+            app.plotPanel.Layout.Row = [1 2];
+            app.plotPanel.Layout.Column = [1 3];
+
+            % Create AxesToolbar
+            app.AxesToolbar = uigridlayout(app.Document);
+            app.AxesToolbar.ColumnWidth = {22, 22};
+            app.AxesToolbar.RowHeight = {22};
+            app.AxesToolbar.ColumnSpacing = 0;
+            app.AxesToolbar.Padding = [2 2 2 0];
+            app.AxesToolbar.Layout.Row = 1;
+            app.AxesToolbar.Layout.Column = 2;
+            app.AxesToolbar.BackgroundColor = [1 1 1];
+
+            % Create axesTool_RestoreView
+            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
+            app.axesTool_RestoreView.ScaleMethod = 'none';
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
+            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
+            app.axesTool_RestoreView.Layout.Row = 1;
+            app.axesTool_RestoreView.Layout.Column = 1;
+            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
+
+            % Create axesTool_RegionZoom
+            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
+            app.axesTool_RegionZoom.ScaleMethod = 'none';
+            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
+            app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
+            app.axesTool_RegionZoom.Layout.Row = 1;
+            app.axesTool_RegionZoom.Layout.Column = 2;
+            app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
             % Create DockModuleGroup
             app.DockModuleGroup = uigridlayout(app.GridLayout);
