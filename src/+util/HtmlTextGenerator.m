@@ -15,7 +15,7 @@ classdef (Abstract) HtmlTextGenerator
     
     methods (Static = true)
         %-----------------------------------------------------------------%
-        % APPANALISE:INFO
+        % WINAPPANALISE - INFO
         %-----------------------------------------------------------------%
         function htmlContent = AppInfo(appGeneral, rootFolder, executionMode, outputFormat)
             arguments
@@ -58,8 +58,7 @@ classdef (Abstract) HtmlTextGenerator
 
 
         %-----------------------------------------------------------------%
-        % APPANALISE:FILE
-        % APPANALISE:PLAYBACK
+        % WINAPPANALISE - MODOS "FILE" E "PLAYBACK"
         %-----------------------------------------------------------------%
         function htmlContent = Thread(dataSource, varargin)
             if isa(dataSource, 'model.MetaData')
@@ -145,6 +144,36 @@ classdef (Abstract) HtmlTextGenerator
         
             freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', threadTag);
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
+        end
+
+
+        %-----------------------------------------------------------------%
+        % WINAPPANALISE - MODO "REPORT"
+        %-----------------------------------------------------------------%
+        function htmlContent = ReportAlgorithms(specData)
+            threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+        
+            if specData.UserData.bandLimitsStatus && height(specData.UserData.bandLimitsTable)
+                detectionBands = strjoin(arrayfun(@(x,y) sprintf('%.3f - %.3f MHz', x, y), specData.UserData.bandLimitsTable.FreqStart, ...
+                                                                                           specData.UserData.bandLimitsTable.FreqStop, 'UniformOutput', false), ', ');
+            else
+                detectionBands = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, ...
+                                                            specData.MetaData.FreqStop /1e+6);
+            end
+        
+            dataStruct    = struct('group', 'OCUPAÇÃO', 'value', specData.UserData.reportAlgorithms.Occupancy);
+            dataStruct(2) = struct('group', 'DETECÇÃO ASSISTIDA', 'value', struct('Origin', 'PLAYBACK', 'BandLimits', detectionBands));
+            if ~specData.UserData.reportAlgorithms.Detection.ManualMode
+                dataStruct(end+1) = struct('group', 'DETECÇÃO NÃO ASSISTIDA', 'value', struct('Origin',     'RELATÓRIO', ...
+                                                                                              'BandLimits',  detectionBands,     ...
+                                                                                              'Algorithm',   specData.UserData.reportAlgorithms.Detection.Algorithm, ...
+                                                                                              'Parameters',  jsonencode(specData.UserData.reportAlgorithms.Detection.Parameters)));
+            end
+            dataStruct(end+1) = struct('group', 'CLASSIFICAÇÃO', 'value', struct('Algorithm',  specData.UserData.reportAlgorithms.Classification.Algorithm, ...
+                                                                                 'Parameters', specData.UserData.reportAlgorithms.Classification.Parameters));
+            
+            freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', threadTag);
+            htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", freeInitialText);
         end
 
 
@@ -284,6 +313,12 @@ classdef (Abstract) HtmlTextGenerator
             dataStruct(1)   = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
             dataStruct(2)   = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s - %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
             dataStruct(3)   = struct('group', 'METADADOS',           'value', metaData);
+
+            gpsInfo = specData(idxThread).GPS;
+            if ~specData(idxThread).GPS.Status
+                gpsInfo = '🔴 Não identificada informação válida';
+            end
+            dataStruct(4)   = struct('group', 'GPS',                 'value', gpsInfo);
         
             freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', emissionTag);
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
@@ -294,36 +329,6 @@ classdef (Abstract) HtmlTextGenerator
                                                         'Frequency', FreqCenter,                               ...
                                                         'BW_kHz',    BW_kHz,                                   ...
                                                         'Tag',       emissionTag));
-        end
-
-
-        %-----------------------------------------------------------------%
-        % APPANALISE:REPORT
-        %-----------------------------------------------------------------%
-        function htmlContent = ReportAlgorithms(specData)
-            threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
-        
-            if specData.UserData.bandLimitsStatus && height(specData.UserData.bandLimitsTable)
-                detectionBands = strjoin(arrayfun(@(x,y) sprintf('%.3f - %.3f MHz', x, y), specData.UserData.bandLimitsTable.FreqStart, ...
-                                                                                           specData.UserData.bandLimitsTable.FreqStop, 'UniformOutput', false), ', ');
-            else
-                detectionBands = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, ...
-                                                            specData.MetaData.FreqStop /1e+6);
-            end
-        
-            dataStruct    = struct('group', 'OCUPAÇÃO', 'value', specData.UserData.reportAlgorithms.Occupancy);
-            dataStruct(2) = struct('group', 'DETECÇÃO ASSISTIDA', 'value', struct('Origin', 'PLAYBACK', 'BandLimits', detectionBands));
-            if ~specData.UserData.reportAlgorithms.Detection.ManualMode
-                dataStruct(end+1) = struct('group', 'DETECÇÃO NÃO ASSISTIDA', 'value', struct('Origin',     'RELATÓRIO', ...
-                                                                                              'BandLimits',  detectionBands,     ...
-                                                                                              'Algorithm',   specData.UserData.reportAlgorithms.Detection.Algorithm, ...
-                                                                                              'Parameters',  jsonencode(specData.UserData.reportAlgorithms.Detection.Parameters)));
-            end
-            dataStruct(end+1) = struct('group', 'CLASSIFICAÇÃO', 'value', struct('Algorithm',  specData.UserData.reportAlgorithms.Classification.Algorithm, ...
-                                                                                 'Parameters', specData.UserData.reportAlgorithms.Classification.Parameters));
-            
-            freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', threadTag);
-            htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", freeInitialText);
         end
 
 
@@ -383,7 +388,7 @@ classdef (Abstract) HtmlTextGenerator
 
 
         %-----------------------------------------------------------------%
-        % RFDATAHUB
+        % AUXAPP.RFDATAHUB
         %-----------------------------------------------------------------%
         function htmlContent = Station(rfDataHub, idxRFDataHub, rfDataHubLOG, appGeneral)
             % stationTag
@@ -469,35 +474,6 @@ classdef (Abstract) HtmlTextGenerator
                                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>', stationTag)                                                                                                                                                                                                                                                     ...
                                sprintf('<font style="font-size: 11px;">%s</font><br><br>', stationInfo.Description)];
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
-        end
-
-
-        %-----------------------------------------------------------------%
-        % AUXAPP.DOCKWELCOMEPAGE
-        %-----------------------------------------------------------------%
-        function htmlContent = ReleaseNotes(MFilePath)
-            releaseNotes = readtable(fullfile(MFilePath, 'resources', 'ReleaseNotes.txt'), 'Delimiter', '\t');
-            [Release, ~, idxRelease] = unique(releaseNotes.Release, 'stable');
-        
-            htmlContent  = {'<div style="color: black; font-family: Helvetica, Arial, sans-serif; font-size: 11px; text-align: justify; margin: 3px 10px 10px 10px;">'};
-            for ii = 1:numel(Release)
-                idxReleaseTable = find(idxRelease==ii);
-                [Version, ~, idxVersion] = unique(releaseNotes.Version(idxReleaseTable), 'stable');
-                htmlContent{end+1} = sprintf('<p style="color: white; background-color: red; display: inline-block; vertical-align: top; padding: 5px; border-radius: 5px; font-size: 10px;">%s</p><br>', Release{ii});
-        
-                for jj = 1:numel(Version)
-                    idxVersionTable = find(idxVersion==jj);
-                    htmlContent{end+1} = sprintf('<span style="color: gray; font-size: 10px; display: inline-block; vertical-align: sub;">v. %.2f (%s)</span>', Version(jj), releaseNotes.Date(idxReleaseTable(jj)));
-        
-                    for kk = idxVersionTable'
-                        htmlContent{end+1} = sprintf('<p>•&thinsp;%s</p>', releaseNotes.Description{idxReleaseTable(kk)});
-                    end
-                end
-                htmlContent{end+1} = '';
-            end
-            htmlContent{end+1} = '</div>';
-        
-            htmlContent = strjoin(htmlContent, '\n');
         end
     end
 end

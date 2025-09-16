@@ -1386,9 +1386,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function DeleteAll(app)
             DeleteProject(app, 'appAnalise:MISC:RestartAnalysis')
-
             closeModule(app.tabGroupController, ["DRIVETEST", "SIGNALANALYSIS", "RFDATAHUB"], app.General)
-
             file_DataReaderError(app)
             file_specReadButtonVisibility(app)
         end
@@ -1748,9 +1746,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         
                     % GPS
                     if ~app.specData(jj).GPS.Status
-                        uitreenode(specNode, 'Text',     'GPS', ...
-                                             'NodeData', jj,    ...
-                                             'Icon',     'Warn_18.png');
+                        uitreenode(specNode, 'Text', '🔴 GPS', 'NodeData', jj);
                     else
                         gpsNode = uitreenode(specNode, 'Text', sprintf('%.6f, %.6f (%s)', app.specData(jj).GPS.Latitude,  ...
                                                                                           app.specData(jj).GPS.Longitude, ...

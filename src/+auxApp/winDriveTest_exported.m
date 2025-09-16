@@ -205,6 +205,30 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     end
 
 
+    properties (Access = private, Constant)
+        defaultConfigValues = struct(...
+            'Colormap',          'turbo', ...
+            'route_LineStyle',   ':', ...
+            'route_Size',        1, ...
+            'route_OutColor',    [0.502 0.502 0.502], ...
+            'route_InColor',     [0.8706 0.5412 0.5412], ...
+            'Car_LineStyle',     'square', ...
+            'Car_Color',         [1,0,0], ...
+            'Car_Size',          10, ...
+            'points_LineStyle',  '^', ...
+            'points_Color',      [0,0,0], ...
+            'points_Size',       9, ...
+            'persistancePlot',   'on', ...
+            'chROIVisibility',   'on', ...
+            'chROIEdgeAlpha',    0, ...
+            'chROIFaceAlpha',    .4, ...
+            'chPowerVisibility', 'on', ...
+            'chPowerEdgeAlpha',  1, ...
+            'chPowerFaceAlpha',  .4 ...
+        )
+    end
+
+
     methods
         %-----------------------------------------------------------------%
         % IPC: COMUNICAÇÃO ENTRE PROCESSOS
@@ -628,6 +652,36 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
+        function checkIfCustomConfigParameter(app)
+            currentConfigValues = struct(...
+                'Colormap',          app.config_Colormap.Value, ...
+                'route_LineStyle',   app.config_route_LineStyle.Value, ...
+                'route_Size',        app.config_route_Size.Value, ...
+                'route_OutColor',    app.config_route_OutColor.Value, ...
+                'route_InColor',     app.config_route_InColor.Value, ...
+                'Car_LineStyle',     app.config_Car_LineStyle.Value, ...
+                'Car_Color',         app.config_Car_Color.Value, ...
+                'Car_Size',          app.config_Car_Size.Value, ...
+                'points_LineStyle',  app.config_points_LineStyle.Value, ...
+                'points_Color',      app.config_points_Color.Value, ...
+                'points_Size',       app.config_points_Size.Value, ...
+                'persistancePlot',   app.config_PersistanceVisibility.Value, ...
+                'chROIVisibility',   app.config_chROIVisibility.Value, ...
+                'chROIEdgeAlpha',    app.config_chROIEdgeAlpha.Value, ...
+                'chROIFaceAlpha',    app.config_chROIFaceAlpha.Value, ...
+                'chPowerVisibility', app.config_chPowerVisibility.Value, ...
+                'chPowerEdgeAlpha',  app.config_chPowerEdgeAlpha.Value, ...
+                'chPowerFaceAlpha',  app.config_chPowerFaceAlpha.Value ...
+            );
+
+            if isequal(app.defaultConfigValues, currentConfigValues)
+                app.config_Refresh.Visible = 0;
+            else
+                app.config_Refresh.Visible = 1;
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function checkChannelAssigned(app, idxThread, idxEmission)            
             if isempty(idxEmission)
                 chAssigned = util.emissionChannel(app.specData, idxThread, idxEmission, app.mainApp.channelObj);
@@ -828,28 +882,28 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function prePlot_Startup(app, idxThread, idxEmission, operationType)
             app.progressDialog.Visible = 'visible';
 
-            try
-                if isempty(app.UIAxes1.Legend)
-                    lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
-                    lgd.Title.FontSize = 8.5;
-                end
-                app.UIAxes1.Legend.Title.String = sprintf('%.3f MHz ⌂ %.1f kHz', app.channelFrequency.Value, app.channelBandWidth.Value);
+            % Cria legenda programaticamente, caso não exista.
+            if isempty(app.UIAxes1.Legend)
+                lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                lgd.Title.FontSize = 8.5;
+            end
+            app.UIAxes1.Legend.Title.String = sprintf('%.3f MHz ⌂ %.1f kHz', app.channelFrequency.Value, app.channelBandWidth.Value);
 
+            % O objeto app.tempBandObj armazena propriedades de app.specData(idxThreads) 
+            % que simplifica o processo do plot, em especial na passagem de 
+            % argumentos para as funções plot.draw2D, plot.Waterfall e plot.Persitance.
+            GuardBand  = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', getFrequencyScreenSpanInMHz(app, 'Screen')));
+            axesLimits = update(app.tempBandObj, idxThread, GuardBand, idxEmission);
+            prePlot_restartProperties(app, axesLimits, operationType)
+
+            try
                 % Afere as tabelas que suportarão os plots e aplica os valores 
                 % dos parâmetros, customizando o plot, caso aplicável. 
                 prePlot_updateTables(app, idxThread, idxEmission, operationType)
 
                 % Leitura de propriedades customizadas, caso habilitado o
                 % flag do relatório.
-                prePlot_customProperties(app, idxThread, idxEmission, operationType)
-    
-                % O objeto app.tempBandObj armazena propriedades de app.specData(idxThreads) 
-                % que simplifica o processo do plot, em especial na passagem de 
-                % argumentos para as funções plot.draw2D, plot.Waterfall e plot.Persitance.
-                GuardBand  = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', getFrequencyScreenSpanInMHz(app, 'Screen')));
-                axesLimits = update(app.tempBandObj, idxThread, GuardBand, idxEmission);
-
-                prePlot_restartProperties(app, axesLimits, operationType)
+                prePlot_customProperties(app, idxThread, idxEmission, operationType)                
                 plot_CreatePlot(app, idxThread, operationType)
 
             catch ME
@@ -2086,7 +2140,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             [idxThread, idxEmission] = specDataIndex(app);
             updateCustomProperty(app, idxThread, idxEmission)
-            app.config_Refresh.Visible = 1;
+            checkIfCustomConfigParameter(app)
             
         end
 
@@ -2141,7 +2195,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             [idxThread, idxEmission] = specDataIndex(app);
             updateCustomProperty(app, idxThread, idxEmission)
-            app.config_Refresh.Visible = 1;
+            checkIfCustomConfigParameter(app)
 
         end
 
@@ -2181,7 +2235,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             [idxThread, idxEmission] = specDataIndex(app);
             updateCustomProperty(app, idxThread, idxEmission)
-            app.config_Refresh.Visible = 1;
+            checkIfCustomConfigParameter(app)
             
         end
 
@@ -2215,7 +2269,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     app.restoreView(3).xLim = xLim;
             end
 
-            app.config_Refresh.Visible = 1;
+            checkIfCustomConfigParameter(app)
 
         end
 
@@ -2225,31 +2279,31 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Trava função do Waterfall em "image" para que seja possível
             % sincronizar os eixos app.UIAxes3.YAxes e app.UIAxes4.XAxis.
             app.General = app.mainApp.General;
-            app.General.Plot.Waterfall.Fcn           = 'image';
+            app.General.Plot.Waterfall.Fcn         = 'image';
 
             % % Eixo geográfico - app.UIAxes1
-            app.config_Colormap.Value                = 'turbo';            
-            app.config_route_LineStyle.Value         = ':';
-            app.config_route_Size.Value              = 1;            
-            app.config_route_OutColor.Value          = [.5,.5,.5];
-            app.config_route_InColor.Value           = [.87,.54,.54];
-            app.config_Car_LineStyle.Value           = 'square';
-            app.config_Car_Color.Value               = [1,0,0];
-            app.config_Car_Size.Value                = 10;            
-            app.config_points_LineStyle.Value        = 'none';            
-            app.config_points_Color.Value            = [0,0,0];
-            app.config_points_Size.Value             = 9;
+            app.config_Colormap.Value              = app.defaultConfigValues.Colormap;            
+            app.config_route_LineStyle.Value       = app.defaultConfigValues.route_LineStyle;
+            app.config_route_Size.Value            = app.defaultConfigValues.route_Size;
+            app.config_route_OutColor.Value        = app.defaultConfigValues.route_OutColor;
+            app.config_route_InColor.Value         = app.defaultConfigValues.route_InColor;
+            app.config_Car_LineStyle.Value         = app.defaultConfigValues.Car_LineStyle;
+            app.config_Car_Color.Value             = app.defaultConfigValues.Car_Color;
+            app.config_Car_Size.Value              = app.defaultConfigValues.Car_Size;
+            app.config_points_LineStyle.Value      = app.defaultConfigValues.points_LineStyle;
+            app.config_points_Color.Value          = app.defaultConfigValues.points_Color;
+            app.config_points_Size.Value           = app.defaultConfigValues.points_Size;
 
             % % Eixos cartesianos - app.UIAxes2, app.UIAxes3 e app.UIAxes4
-            app.config_PersistanceVisibility.Value   = 'on';
-            app.config_chROIVisibility.Value         = 'on';
-            app.config_chROIColor.Value              = app.General.Plot.ChannelROI.Color;
-            app.config_chROIEdgeAlpha.Value          = 0;
-            app.config_chROIFaceAlpha.Value          = .4;
-            app.config_chPowerVisibility.Value       = 'on';
-            app.config_chPowerColor.Value            = app.UIAxes3.Colormap(end,:);
-            app.config_chPowerEdgeAlpha.Value        = 1;
-            app.config_chPowerFaceAlpha.Value        = .4;
+            app.config_PersistanceVisibility.Value = app.defaultConfigValues.persistancePlot;
+            app.config_chROIVisibility.Value       = app.defaultConfigValues.chROIVisibility;
+            app.config_chROIColor.Value            = app.General.Plot.ChannelROI.Color;
+            app.config_chROIEdgeAlpha.Value        = app.defaultConfigValues.chROIEdgeAlpha;
+            app.config_chROIFaceAlpha.Value        = app.defaultConfigValues.chROIFaceAlpha;
+            app.config_chPowerVisibility.Value     = app.defaultConfigValues.chPowerVisibility;
+            app.config_chPowerColor.Value          = app.UIAxes3.Colormap(end,:);
+            app.config_chPowerEdgeAlpha.Value      = app.defaultConfigValues.chPowerEdgeAlpha;
+            app.config_chPowerFaceAlpha.Value      = app.defaultConfigValues.chPowerFaceAlpha;
             
             % % Atualiza o plot...
             operationType = 'RefreshPlotParameters';
@@ -2276,7 +2330,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
             end
 
-            app.config_Refresh.Visible = 0;
+            checkIfCustomConfigParameter(app)
 
         end
 
@@ -3664,7 +3718,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_points_LineStyle.BackgroundColor = [1 1 1];
             app.config_points_LineStyle.Layout.Row = 5;
             app.config_points_LineStyle.Layout.Column = 2;
-            app.config_points_LineStyle.Value = 'none';
+            app.config_points_LineStyle.Value = '^';
 
             % Create config_points_Color
             app.config_points_Color = uicolorpicker(app.config_geoAxesGrid);
