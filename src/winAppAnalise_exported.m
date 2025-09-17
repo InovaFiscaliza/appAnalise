@@ -3292,6 +3292,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             if strcmp(app.progressDialog.Visible, 'visible')
                 app.progressDialog.Visible = 'hidden';
+                return
             end
 
             if ~strcmp(app.executionMode, 'webApp')

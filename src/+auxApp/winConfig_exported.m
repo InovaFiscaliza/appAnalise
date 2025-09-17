@@ -59,7 +59,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         DataHubPOST                matlab.ui.control.EditField
         DATAHUBPOSTLabel           matlab.ui.control.Label
         Toolbar                    matlab.ui.container.GridLayout
-        tool_openDevTools_2        matlab.ui.control.Image
+        tool_simulationMode        matlab.ui.control.Image
         tool_openDevTools          matlab.ui.control.Image
     end
 
@@ -460,6 +460,21 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         end
 
+        % Image clicked function: tool_simulationMode
+        function Toolbar_SimulationModeButtonPushed(app, event)
+            
+            msgQuestion   = 'Deseja abrir arquivos de simulação?';
+            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            
+            if strcmp(userSelection, 'Não')
+                return
+            end
+
+            app.mainApp.General.operationMode.Simulation = true;
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'simulationModeChanged')
+            
+        end
+
         % Image clicked function: tool_openDevTools
         function Toolbar_OpenDevToolsClicked(app, event)
             
@@ -621,21 +636,6 @@ classdef winConfig_exported < matlab.apps.AppBase
             end
 
         end
-
-        % Image clicked function: tool_openDevTools_2
-        function simulationModeValueChanged(app, event)
-            
-            msgQuestion   = 'Deseja abrir arquivos de simulação?';
-            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
-            
-            if strcmp(userSelection, 'Não')
-                return
-            end
-
-            app.mainApp.General.operationMode.Simulation = true;
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'simulationModeChanged')
-            
-        end
     end
 
     % Component initialization
@@ -702,14 +702,14 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.tool_openDevTools.Layout.Column = 3;
             app.tool_openDevTools.ImageSource = 'Debug_18.png';
 
-            % Create tool_openDevTools_2
-            app.tool_openDevTools_2 = uiimage(app.Toolbar);
-            app.tool_openDevTools_2.ScaleMethod = 'none';
-            app.tool_openDevTools_2.ImageClickedFcn = createCallbackFcn(app, @simulationModeValueChanged, true);
-            app.tool_openDevTools_2.Tooltip = {'Leitura arquivos de simulação'};
-            app.tool_openDevTools_2.Layout.Row = 2;
-            app.tool_openDevTools_2.Layout.Column = 1;
-            app.tool_openDevTools_2.ImageSource = 'Import_16.png';
+            % Create tool_simulationMode
+            app.tool_simulationMode = uiimage(app.Toolbar);
+            app.tool_simulationMode.ScaleMethod = 'none';
+            app.tool_simulationMode.ImageClickedFcn = createCallbackFcn(app, @Toolbar_SimulationModeButtonPushed, true);
+            app.tool_simulationMode.Tooltip = {'Leitura arquivos de simulação'};
+            app.tool_simulationMode.Layout.Row = 2;
+            app.tool_simulationMode.Layout.Column = 1;
+            app.tool_simulationMode.ImageSource = 'Import_16.png';
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
