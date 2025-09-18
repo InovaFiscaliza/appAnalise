@@ -932,8 +932,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             jsBackDoor_AppCustomizations(app, 1)
             pause(.100)
 
-            % Inicia operações de gerar tela inicial, customizar componentes e
-            % de ler informações constantes em arquivos externos, aplicando-as.
             startup_ConfigFileRead(app, appName, MFilePath)
             startup_AppProperties(app)
             startup_GUIComponents(app)
@@ -962,6 +960,18 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             mkdir(tempDir)
             app.General_I.fileFolder.tempPath  = tempDir;
             app.General_I.fileFolder.MFilePath = MFilePath;
+            
+            if ~strcmp(app.General_I.Plot.Waterfall.Decimation, 'auto')
+                app.General_I.Plot.Waterfall.Decimation = 'auto';
+            end
+        
+            if isempty(app.General_I.Merge.Distance)
+                app.General_I.Merge.Distance = Inf;
+            end
+        
+            if isempty(app.General_I.Integration.Trace)
+                app.General_I.Integration.Trace = Inf;
+            end
 
             switch app.executionMode
                 case 'webApp'
@@ -996,19 +1006,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         case 'MATLABEnvironment'
                             app.General_I.operationMode.Debug = true;
                     end
-            end
-
-            % Especificidades do parser do JSON. 
-            if ~strcmp(app.General_I.Plot.Waterfall.Decimation, 'auto')
-                app.General_I.Plot.Waterfall.Decimation = 'auto';
-            end
-        
-            if isempty(app.General_I.Merge.Distance)
-                app.General_I.Merge.Distance = Inf;
-            end
-        
-            if isempty(app.General_I.Integration.Trace)
-                app.General_I.Integration.Trace = Inf;
             end
 
             % "RFDataHub.mat"

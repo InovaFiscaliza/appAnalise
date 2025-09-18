@@ -1441,9 +1441,9 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     appGeneral = app.mainApp.General;
                     appGeneral.operationMode.Dock = false;
                     
-                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
-
                     inputArguments = ipcMainMatlabCallsHandler(app.mainApp, app, 'dockButtonPushed', auxAppTag);
+                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
+                    
                     openModule(app.mainApp.tabGroupController, relatedButton, false, appGeneral, inputArguments{:})
                     closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General, 'undock')
                     

@@ -70,7 +70,6 @@ classdef winConfig_exported < matlab.apps.AppBase
         isDocked = false
         
         mainApp
-        rootFolder
 
         % A função do timer é executada uma única vez após a renderização
         % da figura, lendo arquivos de configuração, iniciando modo de operação
@@ -388,10 +387,10 @@ classdef winConfig_exported < matlab.apps.AppBase
                 case app.dockModule_Undock
                     appGeneral = app.mainApp.General;
                     appGeneral.operationMode.Dock = false;
-                    
-                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
 
                     inputArguments = ipcMainMatlabCallsHandler(app.mainApp, app, 'dockButtonPushed', auxAppTag);
+                    app.mainApp.tabGroupController.Components.appHandle{idx} = [];
+                    
                     openModule(app.mainApp.tabGroupController, relatedButton, false, appGeneral, inputArguments{:})
                     closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General, 'undock')
                     
@@ -463,7 +462,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         % Image clicked function: tool_simulationMode
         function Toolbar_SimulationModeButtonPushed(app, event)
             
-            msgQuestion   = 'Deseja abrir arquivos de simulação?';
+            msgQuestion   = 'Deseja abrir arquivos de <b>simulação</b>?';
             userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
             
             if strcmp(userSelection, 'Não')
@@ -591,7 +590,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         function Config_FolderButtonPushed(app, event)
             
             try
-                relatedFolder = eval(sprintf('app.config_Folder_%s.Value', event.Source.Tag));                    
+                relatedFolder = eval(sprintf('app.%s.Value', event.Source.Tag));                    
             catch
                 relatedFolder = app.mainApp.General.fileFolder.(event.Source.Tag);
             end
@@ -605,7 +604,9 @@ classdef winConfig_exported < matlab.apps.AppBase
             end
             
             selectedFolder = uigetdir(initialFolder);
-            figure(app.UIFigure)
+            if ~strcmp(app.mainApp.executionMode, 'webApp')
+                figure(app.UIFigure)
+            end
 
             if selectedFolder
                 switch event.Source
