@@ -357,7 +357,8 @@ classdef (Abstract) HtmlTextGenerator
                 
                 % Validação:
                 if isequal(presentVersion, stableVersion)
-                    msgWarning   = 'O appAnalise está atualizado.';                    
+                    msgWarning    = 'O appAnalise está atualizado.';
+                    updatedModule = {'appAnalise', 'RFDataHub'};
                 else
                     nonUpdatedModule = {};
                     if strcmp(presentVersion.(appName), stableVersion.(appName))

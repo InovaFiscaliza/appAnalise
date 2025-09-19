@@ -34,6 +34,12 @@ function [idxThreads, reportInfo] = GeneralInfo(app, Mode, reportTemplateIndex)
                         'DetectionMode', detectionMode,                                  ...
                         'Filename',      '');
 
+    fieldsUnnecessary = {'rootFolder', 'entryPointFolder', 'tempSessionFolder', 'ctfRoot'};
+    fieldsUnnecessary(cellfun(@(x) ~isfield(app.General.AppVersion.application, x), fieldsUnnecessary)) = [];
+    if ~isempty(fieldsUnnecessary)
+        reportInfo.Version.application = rmfield(reportInfo.Version.application, fieldsUnnecessary);
+    end
+
     if reportTemplateIndex >= 1
         [projectFolder, ...
          programDataFolder]  = appUtil.Path(class.Constants.appName, app.rootFolder);

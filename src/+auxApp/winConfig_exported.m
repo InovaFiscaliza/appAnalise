@@ -417,10 +417,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             [htmlContent, app.stableVersion, updatedModule] = util.HtmlTextGenerator.checkAvailableUpdate(app.mainApp.General, app.mainApp.rootFolder);
             appUtil.modalWindow(app.UIFigure, "info", htmlContent);
-            
-            if ~ismember('RFDataHub', updatedModule)
-                app.tool_RFDataHubButton.Enable = 1;
-            end          
+            app.tool_RFDataHubButton.Enable = ~ismember('RFDataHub', updatedModule);
 
             app.progressDialog.Visible = 'hidden';
 
@@ -435,7 +432,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
             end
 
-            d = appUtil.modalWindow(app.UIFigure, "progressdlg", 'Em andamento... esse processo pode demorar alguns minutos!');
+            d = appUtil.modalWindow(app.UIFigure, "progressdlg", 'Em andamento... esse processo demorará alguns minutos!');
 
             try
                 appName = class.Constants.appName;
@@ -444,8 +441,10 @@ classdef winConfig_exported < matlab.apps.AppBase
 
                 % Atualiza versão.
                 global RFDataHub_info
-                app.mainApp.General.AppVersion.database      = RFDataHub_info;
-                app.mainApp.General.AppVersion.database.name = 'RFDataHub';
+                fieldList = fieldnames(RFDataHub_info);
+                for ii = 1:numel(fieldList)
+                    app.mainApp.General.AppVersion.database.(fieldList{ii}) = RFDataHub_info.(fieldList{ii});
+                end
 
                 app.stableVersion.rfDataHub = RFDataHub_info;
                 app.tool_RFDataHubButton.Enable = 0;

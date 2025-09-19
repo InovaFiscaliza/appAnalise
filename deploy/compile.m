@@ -60,16 +60,22 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
     % Atualiza base de dados, caso necessário.
     RFDataHubOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RFDataHub.mat');
     RFDataHubEditedFile   = fullfile(fullfile(ccTools.fcn.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RFDataHub.mat');
-    if isfile(RFDataHubEditedFile)
-        load(RFDataHubOriginalFile, 'RFDataHub_info')
-        originalReleaseDate = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
+    
+    load(RFDataHubOriginalFile, 'RFDataHub_info')
+    originalReleaseDate   = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
 
+    if isfile(RFDataHubEditedFile)
         load(RFDataHubEditedFile, 'RFDataHub_info')
-        editedReleaseDate   = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
+        editedReleaseDate = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
 
         if editedReleaseDate > originalReleaseDate
+            originalReleaseDate = editedReleaseDate;
             copyfile(RFDataHubEditedFile, RFDataHubOriginalFile, 'f');
         end
+    end
+
+    if hours(datetime('now') - originalReleaseDate) > 24*7
+        error('RFDataHubNonUpdated')
     end
 
     % Gera as versões desktop e webapp.
