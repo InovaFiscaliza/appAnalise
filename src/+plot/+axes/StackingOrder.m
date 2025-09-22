@@ -2,13 +2,11 @@ classdef (Abstract) StackingOrder
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        winAppAnalise     = {'mkrLabels', 'occTHR', 'mkrROI', 'ROI', 'Average', 'ClearWrite', 'MaxHold', 'mkrLine', 'Channel', 'BandLimits', 'Persistance', 'MinHold', 'WaterfallTime', 'Waterfall'}
-        
+        winAppAnalise     = {'mkrLabels', 'occTHR', 'mkrROI', 'ROI', 'Average', 'ClearWrite', 'MaxHold', 'mkrLine', 'Channel', 'BandLimits', 'Persistance', 'MinHold', 'WaterfallTime', 'Waterfall'}        
         winDriveTest      = {'FilterROI', 'Car', 'Points', 'Distortion', 'Density', 'InRoute', 'OutRoute', ...    % app.UIAxes1   (GeographicAxes)
                              'ChannelROI', 'ClearWrite', 'Persistance', 'Timeline', 'Waterfall', 'ChannelPower'}  % app.UIAxes2-4 (CartesianAxes)
         winSignalAnalysis = {'EmissionROI', 'Average', 'MaxHold', 'MinHold'}                                      % app.UIAxes2   (CartesianAxes)
-        winRFDataHub      = {'FilterROI', 'RFLink', 'TX', 'RX', 'Stations'}                                       % app.UIAxes1   (GeographicAxes)
-
+        RFDataHub         = {'FilterROI', 'RFLink', 'TX', 'RX', 'Stations'}                                       % app.UIAxes1   (GeographicAxes)
         RFLink            = {'StationLabel', 'Station', 'Link', 'Fresnel', 'FirstObstruction', 'Footnote', 'Terrain'}
     end
 
@@ -20,14 +18,14 @@ classdef (Abstract) StackingOrder
                 case {'appAnalise:PLAYBACK', 'appAnalise:REPORT', 'appAnalise:REPORT:BAND', 'appAnalise:REPORT:CHANNEL', 'appAnalise:REPORT:EMISSION'}
                     refStackingOrder = plot.axes.StackingOrder.winAppAnalise;
 
-                case 'appAnalise:RFDATAHUB'
-                    refStackingOrder = plot.axes.StackingOrder.winRFDataHub;
-
                 case 'appAnalise:DRIVETEST'
                     refStackingOrder = plot.axes.StackingOrder.winDriveTest;
 
                 case 'appAnalise:SIGNALANALYSIS'
                     refStackingOrder = plot.axes.StackingOrder.winSignalAnalysis;
+
+                case 'RFDataHub'
+                    refStackingOrder = plot.axes.StackingOrder.RFDataHub;
 
                 case 'RFLink'
                     refStackingOrder = plot.axes.StackingOrder.RFLink;

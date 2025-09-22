@@ -163,7 +163,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         progressDialog
 
         % Propriedades do app.
-        specData = model.SpecData.empty
+        referenceData
 
         %-----------------------------------------------------------------%
         % ESPECIFICIDADES AUXAPP.WINDRIVETEST
@@ -720,25 +720,37 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function  rxSite = referenceRX_InitialValue(app)
             refRXFlag = false;
-            for ii = 1:numel(app.specData)
-                if app.specData(ii).GPS.Status
-                    rxLatitude  = app.specData(ii).GPS.Latitude;
-                    rxLongitude = app.specData(ii).GPS.Longitude;
 
-                    % Salvo engano, o campo de altura só existe nos arquivos 
-                    % gerados pelo appColeta, no formato "10m", por exemplo.
-                    rxHeight = [];
-                    if isfield(app.specData(ii).MetaData.Antenna, 'Height')
-                        rxHeight = str2double(extractBefore(app.specData(ii).MetaData.Antenna.Height, 'm'));
+            switch class(app.mainApp)
+                case 'winAppAnalise'
+                    for ii = 1:numel(app.referenceData)
+                        if app.referenceData(ii).GPS.Status
+                            rxLatitude  = app.referenceData(ii).GPS.Latitude;
+                            rxLongitude = app.referenceData(ii).GPS.Longitude;
+        
+                            % Salvo engano, o campo de altura só existe nos arquivos 
+                            % gerados pelo appColeta, no formato "10m", por exemplo.
+                            rxHeight = [];
+                            if isfield(app.referenceData(ii).MetaData.Antenna, 'Height')
+                                rxHeight = str2double(extractBefore(app.referenceData(ii).MetaData.Antenna.Height, 'm'));
+                            end
+        
+                            if isempty(rxHeight) || isnan(rxHeight) || (rxHeight <= 0) || isinf(rxHeight)
+                                rxHeight = app.General.RFDataHub.DefaultRX.Height;
+                            end
+                            
+                            refRXFlag   = true;
+                            break
+                        end
                     end
-
-                    if isempty(rxHeight) || isnan(rxHeight) || (rxHeight <= 0) || isinf(rxHeight)
-                        rxHeight = app.General.RFDataHub.DefaultRX.Height;
-                    end
-                    
-                    refRXFlag = true;
-                    break
-                end
+        
+                    case 'winMonitorRNI'
+                        if ~isempty(app.referenceData)
+                            rxLatitude  = app.referenceData(1).Latitude;
+                            rxLongitude = app.referenceData(1).Longitude;
+                            rxHeight    = app.General.RFDataHub.DefaultRX.Height;
+                            refRXFlag   = true;
+                        end
             end
 
             if ~refRXFlag
@@ -1060,7 +1072,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             plot_RX(app)
             UITableSelectionChanged(app, struct('Source', app.UITable))
             
-            plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:RFDATAHUB')
+            plot.axes.StackingOrder.execute(app.UIAxes1, 'RFDataHub')
             app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', app.UIAxes1.LatitudeLimits, 'yLim', app.UIAxes1.LongitudeLimits, 'cLim', 'auto');
 
             app.progressDialog.Visible = 'hidden';
@@ -1402,9 +1414,24 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         % Code that executes after component creation
         function startupFcn(app, mainApp, filterTable, rfDataHubAnnotation)
             
-            app.mainApp  = mainApp;
-            app.General  = mainApp.General;
-            app.specData = mainApp.specData;
+            % Módulo auxiliar RFDataHub, consumido, em 18/09/2025, tanto pelo 
+            % appAnalise quanto pelo monitorRNI. Toda modificação deste módulo
+            % demanda a posterior atualização MANUAL do ".mlapp" em todos os
+            % projetos.
+
+            % RFDataHub v. 1.00.0 (18/09/2025)
+
+            app.mainApp = mainApp;
+            app.General = mainApp.General;
+
+            switch class(mainApp)
+                case 'winAppAnalise'
+                    app.referenceData = mainApp.specData;
+                case 'winMonitorRNI'
+                    app.referenceData = mainApp.measData;
+                otherwise
+                    error('UnexpectedCaller')
+            end
     
             if nargin == 4
                 app.filterTable = filterTable;
@@ -1417,6 +1444,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                 app.jsBackDoor = mainApp.jsBackDoor;
                 startup_Controller(app)
             else
+                app.UIFigure.Name = class.Constants.appName;
                 appUtil.winPosition(app.UIFigure)
                 startup_timerCreation(app)
             end
@@ -1443,7 +1471,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     
                     inputArguments = ipcMainMatlabCallsHandler(app.mainApp, app, 'dockButtonPushed', auxAppTag);
                     app.mainApp.tabGroupController.Components.appHandle{idx} = [];
-                    
+
                     openModule(app.mainApp.tabGroupController, relatedButton, false, appGeneral, inputArguments{:})
                     closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General, 'undock')
                     
@@ -1993,7 +2021,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         case 'on'
                             [idxRFDataHub, idxSelectedRow] = getRFDataHubIndex(app);
                             plot_TX(app, idxRFDataHub, idxSelectedRow)
-                            plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:RFDATAHUB')
+                            plot.axes.StackingOrder.execute(app.UIAxes1, 'RFDataHub')
                             
                         case 'off'
                             hDataTip = findobj(app.UIAxes1.Children, 'Type', 'datatip', 'Tag', 'TX');

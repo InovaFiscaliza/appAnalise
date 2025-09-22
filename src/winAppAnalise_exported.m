@@ -5689,11 +5689,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create Tab1_File
             app.Tab1_File = uitab(app.TabGroup);
+            app.Tab1_File.AutoResizeChildren = 'off';
             app.Tab1_File.Title = 'FILE';
 
             % Create file_Grid
             app.file_Grid = uigridlayout(app.Tab1_File);
-            app.file_Grid.ColumnWidth = {10, 320, '1x', 10, 320, 16, 10};
+            app.file_Grid.ColumnWidth = {10, '1x', '1x', 10, '0.25x', 360, 10};
             app.file_Grid.RowHeight = {94, 10, '1x', 10, 34};
             app.file_Grid.ColumnSpacing = 0;
             app.file_Grid.RowSpacing = 0;
@@ -5787,6 +5788,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create FILTROTab
             app.FILTROTab = uitab(app.TabGroup2);
+            app.FILTROTab.AutoResizeChildren = 'off';
             app.FILTROTab.Title = 'FILTRO';
 
             % Create file_FilteringGrid
@@ -7050,6 +7052,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create play_Channel_ExternalFilePanel
             app.play_Channel_ExternalFilePanel = uipanel(app.play_ControlsTab2Info);
+            app.play_Channel_ExternalFilePanel.AutoResizeChildren = 'off';
             app.play_Channel_ExternalFilePanel.Layout.Row = 4;
             app.play_Channel_ExternalFilePanel.Layout.Column = [1 3];
 
@@ -7575,6 +7578,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create play_FindPeaks_ExternalFilePanel
             app.play_FindPeaks_ExternalFilePanel = uipanel(app.play_ControlsTab3Info);
+            app.play_FindPeaks_ExternalFilePanel.AutoResizeChildren = 'off';
             app.play_FindPeaks_ExternalFilePanel.Layout.Row = 4;
             app.play_FindPeaks_ExternalFilePanel.Layout.Column = [1 4];
 
@@ -8440,18 +8444,22 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create Tab3_DriveTest
             app.Tab3_DriveTest = uitab(app.TabGroup);
+            app.Tab3_DriveTest.AutoResizeChildren = 'off';
             app.Tab3_DriveTest.Title = 'DRIVE-TEST';
 
             % Create Tab4_SignalAnalysis
             app.Tab4_SignalAnalysis = uitab(app.TabGroup);
+            app.Tab4_SignalAnalysis.AutoResizeChildren = 'off';
             app.Tab4_SignalAnalysis.Title = 'SIGNALANALYSIS';
 
             % Create Tab5_RFDataHub
             app.Tab5_RFDataHub = uitab(app.TabGroup);
+            app.Tab5_RFDataHub.AutoResizeChildren = 'off';
             app.Tab5_RFDataHub.Title = 'RFDATAHUB';
 
             % Create Tab6_Config
             app.Tab6_Config = uitab(app.TabGroup);
+            app.Tab6_Config.AutoResizeChildren = 'off';
             app.Tab6_Config.Title = 'CONFIG';
 
             % Create menu_Grid
