@@ -2923,6 +2923,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create spectralThreadPanel
             app.spectralThreadPanel = uipanel(app.Tab1Grid);
+            app.spectralThreadPanel.AutoResizeChildren = 'off';
             app.spectralThreadPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.spectralThreadPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.spectralThreadPanel.Layout.Row = 2;

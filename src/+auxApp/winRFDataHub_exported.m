@@ -2205,6 +2205,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create Tab1
             app.Tab1 = uitab(app.TabGroup);
+            app.Tab1.AutoResizeChildren = 'off';
             app.Tab1.Title = 'RFDATAHUB';
             app.Tab1.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.Tab1.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2286,6 +2287,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create referenceTX_Panel
             app.referenceTX_Panel = uipanel(app.Tab1Grid);
+            app.referenceTX_Panel.AutoResizeChildren = 'off';
             app.referenceTX_Panel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.referenceTX_Panel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.referenceTX_Panel.Layout.Row = 2;
@@ -2384,6 +2386,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create Tab2
             app.Tab2 = uitab(app.TabGroup);
+            app.Tab2.AutoResizeChildren = 'off';
             app.Tab2.Title = 'FILTRO';
             app.Tab2.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.Tab2.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2399,6 +2402,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create referenceRX_Panel
             app.referenceRX_Panel = uipanel(app.Tab2Grid);
+            app.referenceRX_Panel.AutoResizeChildren = 'off';
             app.referenceRX_Panel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.referenceRX_Panel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.referenceRX_Panel.Layout.Row = 2;
@@ -2939,6 +2943,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create config_geoAxesPanel
             app.config_geoAxesPanel = uipanel(app.Tab3Grid);
+            app.config_geoAxesPanel.AutoResizeChildren = 'off';
             app.config_geoAxesPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_geoAxesPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.config_geoAxesPanel.Layout.Row = 2;
@@ -2963,6 +2968,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create config_geoAxesSubPanel
             app.config_geoAxesSubPanel = uipanel(app.config_geoAxesGrid);
+            app.config_geoAxesSubPanel.AutoResizeChildren = 'off';
             app.config_geoAxesSubPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_geoAxesSubPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.config_geoAxesSubPanel.Layout.Row = 2;
@@ -3253,6 +3259,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create plotPanel
             app.plotPanel = uipanel(app.Document);
+            app.plotPanel.AutoResizeChildren = 'off';
             app.plotPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.plotPanel.BorderType = 'none';
             app.plotPanel.BackgroundColor = [1 1 1];

@@ -825,6 +825,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create analysis_FilePanel
             app.analysis_FilePanel = uipanel(app.Tab2Grid);
+            app.analysis_FilePanel.AutoResizeChildren = 'off';
             app.analysis_FilePanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.analysis_FilePanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.analysis_FilePanel.Layout.Row = 2;
@@ -929,6 +930,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create analysis_GraphicsPanel
             app.analysis_GraphicsPanel = uipanel(app.Tab2Grid);
+            app.analysis_GraphicsPanel.AutoResizeChildren = 'off';
             app.analysis_GraphicsPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.analysis_GraphicsPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.analysis_GraphicsPanel.Layout.Row = 4;
