@@ -4088,6 +4088,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create ContextMenu2
             app.ContextMenu2 = uicontextmenu(app.UIFigure);
+            app.ContextMenu2.Tag = 'auxApp.winDriveTest';
 
             % Create filter_delButton
             app.filter_delButton = uimenu(app.ContextMenu2);
@@ -4103,6 +4104,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create ContextMenu1
             app.ContextMenu1 = uicontextmenu(app.UIFigure);
+            app.ContextMenu1.Tag = 'auxApp.winDriveTest';
 
             % Create points_delButton
             app.points_delButton = uimenu(app.ContextMenu1);

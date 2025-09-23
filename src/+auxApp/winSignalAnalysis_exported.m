@@ -1544,6 +1544,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'auxApp.winSignalAnalysis';
 
             % Create ContextMenu_editEmission
             app.ContextMenu_editEmission = uimenu(app.ContextMenu);
