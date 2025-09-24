@@ -8664,6 +8664,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create file_ContextMenu_Tree1
             app.file_ContextMenu_Tree1 = uicontextmenu(app.UIFigure);
+            app.file_ContextMenu_Tree1.Tag = 'winAppAnalise';
 
             % Create file_ContextMenu_delTree1Node
             app.file_ContextMenu_delTree1Node = uimenu(app.file_ContextMenu_Tree1);
@@ -8673,6 +8674,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create file_ContextMenu_Tree2
             app.file_ContextMenu_Tree2 = uicontextmenu(app.UIFigure);
+            app.file_ContextMenu_Tree2.Tag = 'winAppAnalise';
 
             % Create file_ContextMenu_delTree2Node
             app.file_ContextMenu_delTree2Node = uimenu(app.file_ContextMenu_Tree2);
@@ -8682,6 +8684,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create play_FindPeaks_ContextMenu
             app.play_FindPeaks_ContextMenu = uicontextmenu(app.UIFigure);
+            app.play_FindPeaks_ContextMenu.Tag = 'winAppAnalise';
 
             % Create play_FindPeaks_ContextMenu_search
             app.play_FindPeaks_ContextMenu_search = uimenu(app.play_FindPeaks_ContextMenu);
@@ -8711,6 +8714,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create play_Channel_ContextMenu
             app.play_Channel_ContextMenu = uicontextmenu(app.UIFigure);
+            app.play_Channel_ContextMenu.Tag = 'winAppAnalise';
 
             % Create play_Channel_ContextMenu_addBandLimit
             app.play_Channel_ContextMenu_addBandLimit = uimenu(app.play_Channel_ContextMenu);
@@ -8731,6 +8735,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create report_ContextMenu
             app.report_ContextMenu = uicontextmenu(app.UIFigure);
+            app.report_ContextMenu.Tag = 'winAppAnalise';
 
             % Create report_ContextMenu_del
             app.report_ContextMenu_del = uimenu(app.report_ContextMenu);
@@ -8741,6 +8746,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create play_BandLimits_ContextMenu
             app.play_BandLimits_ContextMenu = uicontextmenu(app.UIFigure);
+            app.play_BandLimits_ContextMenu.Tag = 'winAppAnalise';
 
             % Create play_BandLimits_ContextMenu_del
             app.play_BandLimits_ContextMenu_del = uimenu(app.play_BandLimits_ContextMenu);
