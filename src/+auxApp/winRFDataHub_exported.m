@@ -963,7 +963,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             idx1 = find(strcmp(app.filterTable.Order, 'Node'))';
             if ~isempty(idx1)
-                checkedNodes = {};
+                checkedNodes = [];
                 for ii = idx1
                     idx2 = find(app.filterTable.RelatedID == app.filterTable.ID(ii))';
                     if isempty(idx2)
