@@ -378,9 +378,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         % Controla a seleção da TabGroup a partir do menu.
         tabGroupController
-
-        % Garante que startup_controller será executada uma única vez.
-        rendererFlag = false
+        renderCount = 0
 
         % Janela de progresso já criada no DOM. Dessa forma, controla-se 
         % apenas a sua visibilidade - e tornando desnecessário criá-la a
@@ -397,6 +395,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         metaData    = model.MetaData.empty
         specData    = model.SpecData.empty
         projectData
+
+        rfDataHub
+        rfDataHubLOG
+        rfDataHubSummary
 
         bandObj
         channelObj
@@ -439,10 +441,42 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 switch event.HTMLEventName
                     % JSBACKDOOR (compCustomization.js)
                     case 'renderer'
-                        if ~app.rendererFlag
-                            app.rendererFlag = true;
+                        if ~app.renderCount
                             startup_Controller(app)
+                        else
+                            % Esse fluxo será executado especificamente na
+                            % versão webapp, quando o navegador atualiza a
+                            % página (decorrente de F5 ou CTRL+F5).
+
+                            selectedNodes = app.file_Tree.SelectedNodes;
+                            if ~isempty(app.file_Tree.SelectedNodes)
+                                app.file_Tree.SelectedNodes = [];
+                                file_TreeSelectionChanged(app)
+                            end
+
+                            if ~app.menu_Button1.Value
+                                app.menu_Button1.Value = true;                    
+                                menu_mainButtonPushed(app, struct('Source', app.menu_Button1, 'PreviousValue', false))
+                                drawnow
+                            end
+
+                            closeModule(app.tabGroupController, ["DRIVETEST", "SIGNALANALYSIS", "RFDATAHUB", "CONFIG"], app.General)
+    
+                            if ~isempty(app.AppInfo.Tag)
+                                app.AppInfo.Tag = '';
+                            end
+
+                            startup_Controller(app)
+
+                            if ~isempty(selectedNodes)
+                                app.file_Tree.SelectedNodes = selectedNodes;
+                                file_TreeSelectionChanged(app)
+                            end
+
+                            app.progressDialog.Visible = 'hidden';
                         end
+                        
+                        app.renderCount = app.renderCount+1;
 
                     case 'unload'
                         closeFcn(app)
@@ -713,7 +747,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             switch tabIndex
                 case 0
                     sendEventToHTMLSource(app.jsBackDoor, 'startup', app.executionMode);
-                    app.progressDialog  = ccTools.ProgressDialog(app.jsBackDoor);
                     customizationStatus = [false, false, false, false, false, false];
 
                 otherwise
@@ -911,38 +944,47 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function startup_Controller(app)
             drawnow
+
+            if ~app.renderCount
+                % Essa propriedade registra o tipo de execução da aplicação, podendo
+                % ser: 'built-in', 'desktopApp' ou 'webApp'.
+                app.executionMode  = appUtil.ExecutionMode(app.UIFigure);
+                if ~strcmp(app.executionMode, 'webApp')
+                    app.FigurePosition.Visible = 1;
+                    appUtil.winMinSize(app.UIFigure, class.Constants.windowMinSize)
+                end
+    
+                % Identifica o local deste arquivo .MLAPP, caso se trate das versões 
+                % "built-in" ou "webapp", ou do .EXE relacionado, caso se trate da
+                % versão executável (neste caso, o ctfroot indicará o local do .MLAPP).
+                appName = class.Constants.appName;
+                MFilePath = fileparts(mfilename('fullpath'));
+                app.rootFolder = appUtil.RootFolder(appName, MFilePath);
+
+                % Customizações...
+                jsBackDoor_AppCustomizations(app, 0)
+                jsBackDoor_AppCustomizations(app, 1)
+                pause(.100)
+
+                % Cria tela de progresso...
+                app.progressDialog = ccTools.ProgressDialog(app.jsBackDoor);
+    
+                startup_ConfigFileRead(app, appName, MFilePath)
+                startup_AppProperties(app)
+                startup_GUIComponents(app)
+    
+                % Por fim, exclui-se o splashscreen, um segundo após envio do comando 
+                % para que diminua a transparência do background.
+                sendEventToHTMLSource(app.jsBackDoor, 'turningBackgroundColorInvisible', struct('componentName', 'SplashScreen', 'componentDataTag', struct(app.SplashScreen).Controller.ViewModel.Id));
+                drawnow
             
-            % Essa propriedade registra o tipo de execução da aplicação, podendo
-            % ser: 'built-in', 'desktopApp' ou 'webApp'.
-            app.executionMode = appUtil.ExecutionMode(app.UIFigure);
-            if ~strcmp(app.executionMode, 'webApp')
-                app.FigurePosition.Visible = 1;
-                appUtil.winMinSize(app.UIFigure, class.Constants.windowMinSize)
-            end
-
-            % Identifica o local deste arquivo .MLAPP, caso se trate das versões 
-            % "built-in" ou "webapp", ou do .EXE relacionado, caso se trate da
-            % versão executável (neste caso, o ctfroot indicará o local do .MLAPP).
-            appName = class.Constants.appName;
-            MFilePath = fileparts(mfilename('fullpath'));
-            app.rootFolder = appUtil.RootFolder(appName, MFilePath);
-
-            % Customizações...
-            jsBackDoor_AppCustomizations(app, 0)
-            jsBackDoor_AppCustomizations(app, 1)
-            pause(.100)
-
-            startup_ConfigFileRead(app, appName, MFilePath)
-            startup_AppProperties(app)
-            startup_GUIComponents(app)
-
-            sendEventToHTMLSource(app.jsBackDoor, 'turningBackgroundColorInvisible', struct('componentName', 'SplashScreen', 'componentDataTag', struct(app.SplashScreen).Controller.ViewModel.Id));
-            drawnow
-
-            % Por fim, exclui-se o splashscreen.
-            if isvalid(app.popupContainerGrid)
                 pause(1)
                 delete(app.popupContainerGrid)
+
+            else
+                jsBackDoor_AppCustomizations(app, 0)
+                jsBackDoor_AppCustomizations(app, 1)
+                pause(.100)
             end
         end
 
@@ -1052,6 +1094,20 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_AppProperties(app)
+            % RFDataHub
+            global RFDataHub
+            global RFDataHubLog
+
+            app.rfDataHub        = RFDataHub;
+            app.rfDataHubLOG     = RFDataHubLog;
+            app.rfDataHubSummary = summary(RFDataHub(:, {'Source', 'State'}));
+
+            % A coluna "Source" possui agrupamentos da fonte dos dados,
+            % decorrente da mesclagem de estações.
+            tempSourceList = cellfun(@(x) strsplit(x, ' | '), app.rfDataHubSummary.Source.Categories, 'UniformOutput', false);
+            app.rfDataHubSummary.Source.RawCategories = unique(horzcat(tempSourceList{:}))';
+
+            % app.projectData
             app.projectData = projectLib(app);
             app.bandObj     = class.Band('appAnalise:PLAYBACK', app);
             app.channelObj  = class.ChannelLib(class.Constants.appName, app.rootFolder);
@@ -1093,6 +1149,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.report_ThreadAlgorithms.UserData      = struct('idxThread', [], 'id', '');
 
             DataHubWarningLamp(app)
+            addStyle(app.file_Tree, uistyle('Interpreter', 'html'))
         end
 
         %-----------------------------------------------------------------%
@@ -1523,6 +1580,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         function file_TreeBuilding(app)
             if ~isempty(app.file_Tree.Children)
                 delete(app.file_Tree.Children)
+                
+                oldStyleIndex = find(app.file_Tree.StyleConfigurations.Target == "node");
+                if ~isempty(oldStyleIndex)
+                    removeStyle(app.file_Tree, oldStyleIndex)
+                end
+
                 app.file_Tree.UserData = struct('previousSelectedFileIndex', [], 'previousSelectedFileThread', []);
             end
 
@@ -3335,7 +3398,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case app.AppInfo
                     if isempty(app.AppInfo.Tag)
                         app.progressDialog.Visible = 'visible';
-                        app.AppInfo.Tag = util.HtmlTextGenerator.AppInfo(app.General, app.rootFolder, app.executionMode, "popup");
+                        app.AppInfo.Tag = util.HtmlTextGenerator.AppInfo(app.General, app.rootFolder, app.executionMode, app.renderCount, "popup");
                         app.progressDialog.Visible = 'hidden';
                     end
 
@@ -5071,8 +5134,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         % Menu selected function: play_FindPeaks_ContextMenu_search
         function play_RFDataHubButtonPushed(app, event)
             
-            global RFDataHub
-
             idxThread = app.play_PlotPanel.UserData.NodeData;
             idxEmission = app.play_FindPeaks_Tree.SelectedNodes(1).NodeData;
 
@@ -5086,11 +5147,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Identifica na base de dados offline (anateldb) aqueles registros 
             % que possuem a mesma frequência (tolerância: 1e-5).
-            idxRFDataHub = find(abs(RFDataHub.Frequency - Truncated) <= class.Constants.floatDiffTolerance);
+            idxRFDataHub = find(abs(app.rfDataHub.Frequency - Truncated) <= class.Constants.floatDiffTolerance);
             if ~isempty(idxRFDataHub)
-                auxDistance      = deg2km(distance(app.specData(idxThread).GPS.Latitude, app.specData(idxThread).GPS.Longitude, RFDataHub.Latitude(idxRFDataHub), RFDataHub.Longitude(idxRFDataHub)));
+                auxDistance      = deg2km(distance(app.specData(idxThread).GPS.Latitude, app.specData(idxThread).GPS.Longitude, app.rfDataHub.Latitude(idxRFDataHub), app.rfDataHub.Longitude(idxRFDataHub)));
                 [Distance, idx4] = min(auxDistance);
-                Description      = model.RFDataHub.Description(RFDataHub, idxRFDataHub(idx4));
+                Description      = model.RFDataHub.Description(app.rfDataHub, idxRFDataHub(idx4));
 
                 if app.specData(idxThread).UserData.Emissions.isTruncated(idxEmission)
                     msg = sprintf(['A frequência central da emissão (%.3f MHz) foi truncada em <b>%.5f MHz</b>.\n\n'                            ...

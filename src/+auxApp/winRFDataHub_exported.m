@@ -337,43 +337,21 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_AppProperties(app)
+            % RFDataHub
+            global RFDataHub
+            global RFDataHubLog
+
+            app.rfDataHub        = RFDataHub;
+            app.rfDataHubLOG     = RFDataHubLog;
+            app.rfDataHubSummary = app.mainApp.rfDataHubSummary;
+
             % refRX: armazena o valor inicial da estação receptora de referência
             %        para fins de análise da edição.
             rxSite = referenceRX_InitialValue(app);
             app.referenceRX_Refresh.UserData.InitialValue = rxSite;
             referenceRX_UpdatePanel(app, rxSite)
 
-            % app.rfDataHub
-            global RFDataHub
-            global RFDataHubLog
-            
-            app.rfDataHub = RFDataHub;
-            app.rfDataHubLOG = RFDataHubLog;
-            
-            % Contorna erro da função inROI, que retorna como se todos os
-            % pontos estivessem internos ao ROI, quando as coordenadas
-            % estão em float32. No float64 isso não acontece... aberto BUG
-            % na Mathworks, que indicou estar ciente.
-            app.rfDataHub.Latitude    = double(app.rfDataHub.Latitude);
-            app.rfDataHub.Longitude   = double(app.rfDataHub.Longitude);
-
-            app.rfDataHub.ID          = "#" + string((1:height(RFDataHub))');
-            app.rfDataHub.Description = "[" + string(RFDataHub.Source) + "] " + string(RFDataHub.Status) + ", " + string(RFDataHub.StationClass) + ", " + string(RFDataHub.Name) + ", " + string(RFDataHub.Location) + "/" + string(RFDataHub.State) + " (M=" + string(RFDataHub.MergeCount) + ")";
             referenceRX_CalculateDistance(app, rxSite)
-                        
-            % app.rfDataHubSummary
-            app.rfDataHubSummary = summary(RFDataHub);
-
-            % A coluna "Source" possui agrupamentos da fonte dos dados,
-            % decorrente da mesclagem de estações.
-            tempSourceList = cellfun(@(x) strsplit(x, ' | '), app.rfDataHubSummary.Source.Categories, 'UniformOutput', false);
-            app.rfDataHubSummary.Source.RawCategories = unique(horzcat(tempSourceList{:}))';
-
-            % A coluna "Location" não está sendo corretamente ordenada por
-            % conta dos caracteres especiais.
-            tempLocationList = textAnalysis.preProcessedData(app.rfDataHubSummary.Location.Categories);
-            [app.rfDataHubSummary.Location.CacheCategories, idxSort] = sort(tempLocationList);
-            app.rfDataHubSummary.Location.Categories = app.rfDataHubSummary.Location.Categories(idxSort);
 
             % lastPrimarySearch
             filter_getReferenceSearch(app)
@@ -949,7 +927,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function columnName = filter_FilterType2ColumnNames(app, filterType)
             filterTypes = ["Fonte", "Frequência", "Largura banda", "Classe emissão", "Entidade", "Fistel", "Serviço", "Estação", "UF",    "Município", "Distância"];
-            columnNames = ["Source", "Frequency", "BW",            "EmissionClass",  "Name",     "Fistel", "Service", "Station", "State", "Location",  "Distance"];
+            columnNames = ["Source", "Frequency", "BW",            "EmissionClass",  "_Name",    "Fistel", "Service", "Station", "State", "_Location", "Distance"];
             d = dictionary(filterTypes, columnNames);
 
             columnName = d(filterType);            
@@ -1898,9 +1876,15 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     Value = struct('handle', hROI, 'specification', plot.ROI.specification(hROI));
             end
 
+            columnName = selectedFilterType.Tag;
+            [~, columnIndex] = ismember(columnName, app.rfDataHub.Properties.VariableNames);
+            if ~columnIndex
+                columnIndex = -1;                                         % ROI
+            end
+
             newFilter     = {Order, height(app.filterTable)+1, RelatedID,           ...
                              selectedFilterType.Text, selectedFilterOperation.Text, ...
-                             str2double(selectedFilterType.Tag), Value, true, UUID};
+                             columnIndex, Value, true, UUID};
             newFilterFlag = true;
 
             for ii = 1:height(app.filterTable)
@@ -2122,7 +2106,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
-            app.Toolbar.Padding = [5 5 10 5];
+            app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 6;
             app.Toolbar.Layout.Column = [1 7];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
@@ -2176,6 +2160,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.tool_ExportButton = uiimage(app.Toolbar);
             app.tool_ExportButton.ScaleMethod = 'none';
             app.tool_ExportButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_exportButtonPushed, true);
+            app.tool_ExportButton.Tooltip = {'Exporta planilha filtrada'};
             app.tool_ExportButton.Layout.Row = 2;
             app.tool_ExportButton.Layout.Column = 6;
             app.tool_ExportButton.ImageSource = 'Export_16.png';
@@ -2789,7 +2774,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType1
             app.filter_SecondaryType1 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType1.Tag = '16';
+            app.filter_SecondaryType1.Tag = 'Source';
             app.filter_SecondaryType1.Text = 'Fonte';
             app.filter_SecondaryType1.FontSize = 10.5;
             app.filter_SecondaryType1.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2798,7 +2783,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType2
             app.filter_SecondaryType2 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType2.Tag = '1';
+            app.filter_SecondaryType2.Tag = 'Frequency';
             app.filter_SecondaryType2.Text = 'Frequência';
             app.filter_SecondaryType2.FontSize = 10.5;
             app.filter_SecondaryType2.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2807,7 +2792,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType3
             app.filter_SecondaryType3 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType3.Tag = '13';
+            app.filter_SecondaryType3.Tag = 'BW';
             app.filter_SecondaryType3.Text = 'Largura banda';
             app.filter_SecondaryType3.FontSize = 10.5;
             app.filter_SecondaryType3.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2816,7 +2801,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType4
             app.filter_SecondaryType4 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType4.Tag = '12';
+            app.filter_SecondaryType4.Tag = 'EmissionClass';
             app.filter_SecondaryType4.Text = 'Classe emissão';
             app.filter_SecondaryType4.FontSize = 10.5;
             app.filter_SecondaryType4.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2825,7 +2810,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType5
             app.filter_SecondaryType5 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType5.Tag = '2';
+            app.filter_SecondaryType5.Tag = '_Name';
             app.filter_SecondaryType5.Text = 'Entidade';
             app.filter_SecondaryType5.FontSize = 10.5;
             app.filter_SecondaryType5.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2834,7 +2819,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType6
             app.filter_SecondaryType6 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType6.Tag = '3';
+            app.filter_SecondaryType6.Tag = 'Fistel';
             app.filter_SecondaryType6.Text = 'Fistel';
             app.filter_SecondaryType6.FontSize = 10.5;
             app.filter_SecondaryType6.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2843,7 +2828,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType7
             app.filter_SecondaryType7 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType7.Tag = '4';
+            app.filter_SecondaryType7.Tag = 'Service';
             app.filter_SecondaryType7.Text = 'Serviço';
             app.filter_SecondaryType7.FontSize = 10.5;
             app.filter_SecondaryType7.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2852,7 +2837,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType8
             app.filter_SecondaryType8 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType8.Tag = '5';
+            app.filter_SecondaryType8.Tag = 'Station';
             app.filter_SecondaryType8.Text = 'Estação';
             app.filter_SecondaryType8.FontSize = 10.5;
             app.filter_SecondaryType8.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2861,7 +2846,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType9
             app.filter_SecondaryType9 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType9.Tag = '10';
+            app.filter_SecondaryType9.Tag = 'State';
             app.filter_SecondaryType9.Text = 'UF';
             app.filter_SecondaryType9.FontSize = 10.5;
             app.filter_SecondaryType9.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2870,7 +2855,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType10
             app.filter_SecondaryType10 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType10.Tag = '9';
+            app.filter_SecondaryType10.Tag = '_Location';
             app.filter_SecondaryType10.Text = 'Município';
             app.filter_SecondaryType10.FontSize = 10.5;
             app.filter_SecondaryType10.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2879,7 +2864,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType11
             app.filter_SecondaryType11 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType11.Tag = '32';
+            app.filter_SecondaryType11.Tag = 'Distance';
             app.filter_SecondaryType11.Text = 'Distância';
             app.filter_SecondaryType11.FontSize = 10.5;
             app.filter_SecondaryType11.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2898,7 +2883,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create filter_SecondaryType13
             app.filter_SecondaryType13 = uiradiobutton(app.filter_SecondaryTypePanel);
-            app.filter_SecondaryType13.Tag = '27';
+            app.filter_SecondaryType13.Tag = 'AntennaPattern';
             app.filter_SecondaryType13.Text = 'Padrão de antena';
             app.filter_SecondaryType13.FontSize = 10.5;
             app.filter_SecondaryType13.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];

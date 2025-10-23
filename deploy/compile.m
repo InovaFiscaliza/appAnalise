@@ -227,11 +227,19 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
 
         % Cria release no GitHub, caso aplicável.
         if githubReleaseFlag
+            cd(githubCLIFolder)
+            try                
+                ghMessage1 = sprintf('gh release upload %s "%s" --repo InovaFiscaliza/.github --clobber', appName, fullfile(finalFolder, sprintf('%s_Installer.zip', appName)));
+                [~, ghStatus1] = system(ghMessage1);
+                warning(ghStatus1)
+            catch ME
+                warning(ME.message)
+            end
+
             try
-                cd(githubCLIFolder)
-                ghMessage = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
-                [~, ghStatus] = system(ghMessage);
-                warning(ghStatus)
+                ghMessage2 = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
+                [~, ghStatus2] = system(ghMessage2);
+                warning(ghStatus2)
             catch ME
                 warning(ME.message)
             end

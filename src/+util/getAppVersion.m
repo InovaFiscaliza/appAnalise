@@ -30,13 +30,6 @@ function appVersion = getAppVersion(rootFolder, entryPointFolder, temporaryDir)
                                 'computerName', ccTools.fcn.OperationSystem('computerName'), ...
                                 'userName',     ccTools.fcn.OperationSystem('userName'));
 
-    % OpenGL
-    graphRender = '';
-    try
-        graphRender = jsonencode(rendererinfo);
-    catch
-    end
-
     % MATLAB    
     [matVersion, matReleaseDate] = version;
     matProducts = struct2table(ver);
@@ -44,8 +37,7 @@ function appVersion = getAppVersion(rootFolder, entryPointFolder, temporaryDir)
                                'version',  sprintf('%s (Release date: %s)', matVersion, matReleaseDate),   ...
                                'pid',      feature('getpid'),                                              ...
                                'rootPath', matlabroot,                                                     ...
-                               'products', strjoin(matProducts.Name + " v. " + matProducts.Version, ', '), ...
-                               'renderer', graphRender);
+                               'products', strjoin(matProducts.Name + " v. " + matProducts.Version, ', '));
 
     % RFDataHub
     global RFDataHub_info

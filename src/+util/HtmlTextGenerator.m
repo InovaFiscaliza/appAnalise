@@ -17,11 +17,12 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         % WINAPPANALISE - INFO
         %-----------------------------------------------------------------%
-        function htmlContent = AppInfo(appGeneral, rootFolder, executionMode, outputFormat)
+        function htmlContent = AppInfo(appGeneral, rootFolder, executionMode, renderCount, outputFormat)
             arguments
                 appGeneral 
                 rootFolder 
                 executionMode 
+                renderCount
                 outputFormat char {mustBeMember(outputFormat, {'popup', 'textview'})} = 'textview'
             end
         
@@ -46,6 +47,7 @@ classdef (Abstract) HtmlTextGenerator
             if ~isempty(appVersion.browser)
                 dataStruct(3) = struct('group', 'NAVEGADOR',  'value', rmfield(appVersion.browser, 'name'));
             end
+            dataStruct(end+1) = struct('group', 'RENDERIZAÇÕES','value', renderCount);
             dataStruct(end+1) = struct('group', 'APLICATIVO', 'value', appVersion.application);
 
             global RFDataHub

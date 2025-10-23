@@ -4,7 +4,7 @@ classdef (Abstract) Constants
         %-----------------------------------------------------------------%
         appName       = 'appAnalise'
         appRelease    = 'R2024a'
-        appVersion    = '1.88.3'
+        appVersion    = '1.88.4'
 
         windowSize    = [1244, 660]
         windowMinSize = [ 950, 660]
