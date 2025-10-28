@@ -632,11 +632,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'PeakDescriptionChanged')
                     
                 case app.TXLocation_EditConfirm % Latitude | Longitude | AntennaHeight
-                    app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Latitude      = single(app.TXLatitude.Value);
-                    app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Longitude     = single(app.TXLongitude.Value);
+                    app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Latitude      = app.TXLatitude.Value;
+                    app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Longitude     = app.TXLongitude.Value;
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.AntennaHeight = app.TXAntennaHeight.Value;
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Distance      = deg2km(distance(app.specData(idxThread).GPS.Latitude, app.specData(idxThread).GPS.Longitude, ...
-                                                                                                                                        single(app.TXLatitude.Value), single(app.TXLongitude.Value)));
+                                                                                                                                        app.TXLatitude.Value, app.TXLongitude.Value));
 
                 otherwise
                     oldRegulatory = app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Regulatory;
@@ -648,16 +648,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.RiskLevel     = app.RiskLevel.Value;
 
                     if newRegulatory ~= "Licenciada"
-                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Service   = int16(-1);
-                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Station   = int32(-1);
+                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Service     = int16(-1);
+                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Station     = int32(-1);
                         app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Description = '[EXC]';
-                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Details   = '';
+                        app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Details     = '';
 
                         if oldRegulatory == "Licenciada"
-                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Latitude      = single(-1);
-                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Longitude     = single(-1);
+                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Latitude      = -1;
+                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Longitude     = -1;
                             app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.AntennaHeight = 0;
-                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Distance      = single(-1);
+                            app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Distance      = -1;
                         end
                     end
             end
