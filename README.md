@@ -28,6 +28,6 @@ Caso o aplicativo seja executado diretamente no MATLAB, é necessário:
 ```
 
 3. Abrir o projeto **appAnalise.prj**.
-4. Executar **appAnalise.mlapp**.
+4. Executar **winAppAnalise.mlapp**.
 
 Outras informações em https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/appAnalise.aspx
