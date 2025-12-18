@@ -933,7 +933,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_timerFcn(app)
-            if ccTools.fcn.UIFigureRenderStatus(app.UIFigure)
+            if ui.FigureRenderStatus(app.UIFigure)
                 stop(app.timerObj)
                 delete(app.timerObj)
 
@@ -967,7 +967,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 pause(.100)
 
                 % Cria tela de progresso...
-                app.progressDialog = ccTools.ProgressDialog(app.jsBackDoor);
+                app.progressDialog = ui.ProgressDialog(app.jsBackDoor);
     
                 startup_ConfigFileRead(app, appName, MFilePath)
                 startup_AppProperties(app)
@@ -1108,7 +1108,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.rfDataHubSummary.Source.RawCategories = unique(horzcat(tempSourceList{:}))';
 
             % app.projectData
-            app.projectData = projectLib(app);
+            app.projectData = model.projectLib(app, app.rootFolder);
             app.bandObj     = class.Band('appAnalise:PLAYBACK', app);
             app.channelObj  = class.ChannelLib(class.Constants.appName, app.rootFolder);
         end

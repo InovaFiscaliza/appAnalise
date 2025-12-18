@@ -120,7 +120,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_timerFcn(app, idxThreads)
-            if ccTools.fcn.UIFigureRenderStatus(app.UIFigure)
+            if ui.FigureRenderStatus(app.UIFigure)
                 stop(app.timerObj)
                 delete(app.timerObj)
                 

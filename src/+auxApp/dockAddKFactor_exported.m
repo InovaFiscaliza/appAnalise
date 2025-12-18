@@ -98,7 +98,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_timerFcn(app, idxThread)
-            if ccTools.fcn.UIFigureRenderStatus(app.UIFigure)
+            if ui.FigureRenderStatus(app.UIFigure)
                 stop(app.timerObj)
                 delete(app.timerObj)
 

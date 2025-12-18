@@ -229,7 +229,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         app.progressDialog = app.mainApp.progressDialog;
                     else
                         sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                        app.progressDialog = ccTools.ProgressDialog(app.jsBackDoor);                        
+                        app.progressDialog = ui.ProgressDialog(app.jsBackDoor);                        
                     end
                     customizationStatus = [false, false, false];
 
@@ -311,7 +311,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function startup_timerFcn(app)
-            if ccTools.fcn.UIFigureRenderStatus(app.UIFigure)
+            if ui.FigureRenderStatus(app.UIFigure)
                 stop(app.timerObj)
                 delete(app.timerObj)
                 
@@ -1593,7 +1593,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                             URL = char(app.rfDataHub.URL(idxRFDataHub));
                             web(URL, '-new')
                         otherwise
-                            ccTools.fcn.OperationSystem('openFile', app.chReportHTML.HTMLSource)
+                            appUtil.OperationSystem('openFile', app.chReportHTML.HTMLSource)
                     end                    
                     Toolbar_InteractionImageClicked(app, struct('Source', app.tool_PDFButton))
             end
@@ -3319,13 +3319,13 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.filter_delButton = uimenu(app.filter_ContextMenu);
             app.filter_delButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
             app.filter_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delButton.Text = 'Excluir';
+            app.filter_delButton.Text = '❌ Excluir';
 
             % Create filter_delAllButton
             app.filter_delAllButton = uimenu(app.filter_ContextMenu);
             app.filter_delAllButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
             app.filter_delAllButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delAllButton.Text = 'Excluir todos';
+            app.filter_delAllButton.Text = '⛔ Excluir todos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

@@ -408,7 +408,7 @@ classdef SpecData < model.SpecDataBase
                 % Insere a coluna "Base64", que retorna um Hash do tag da emissão, no
                 % formato "100.300 MHz ⌂ 256.0 kHz", por exemplo. Esse Hash é usado p/
                 % identificar as emissões únicas.
-                emissionsBase64Hash = cellfun(@(x) Base64Hash.encode(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissionsTable.Frequency, emissionsTable.BW_kHz, "UniformOutput", false), 'UniformOutput', false);
+                emissionsBase64Hash = cellfun(@(x) Hash.base64encode(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissionsTable.Frequency, emissionsTable.BW_kHz, "UniformOutput", false), 'UniformOutput', false);
                 [~, uniqueIndex]    = unique(emissionsBase64Hash);
                 emissionsTable      = sortrows(emissionsTable(uniqueIndex, :), {'idxFrequency', 'BW_kHz'});
 
@@ -583,25 +583,39 @@ classdef SpecData < model.SpecDataBase
             % </VALIDATION>
             
             % <PROCESS>
-            mergeType = identifyMergeType(obj, mergeTable);
-            nThreads  = numel(idxThreads);
+            mergeType  = identifyMergeType(obj, mergeTable);
+            nThreads   = numel(idxThreads);
+            azTaskFlag = false;
 
             switch mergeType
                 case 'co-channel'
                     refIndex     = 1;
                     timeArray    = [];
                     dataMatrix   = [];
+                    azimuth      = [];
+                    trustLevel   = [];
                     relatedFiles = [];
-                    
+
                     for ii = 1:nThreads
                         timeArray    = [timeArray,    obj(idxThreads(ii)).Data{1}]; 
                         dataMatrix   = [dataMatrix,   obj(idxThreads(ii)).Data{2}];
                         relatedFiles = [relatedFiles; obj(idxThreads(ii)).RelatedFiles];
+
+                        if numel(obj(idxThreads(ii)).Data) == 5
+                            azTaskFlag = true;
+                            azimuth    = [azimuth,    obj(idxThreads(ii)).Data{4}];
+                            trustLevel = [trustLevel, obj(idxThreads(ii)).Data{5}];
+                        end
                     end
     
                     if ~issorted(timeArray)
                         [timeArray, idxSort] = sort(timeArray);
-                        dataMatrix           = dataMatrix(:,idxSort);
+                        dataMatrix = dataMatrix(:,idxSort);
+
+                        if azTaskFlag
+                            azimuth    = azimuth(:,idxSort);
+                            trustLevel = trustLevel(:,idxSort);
+                        end
                     end
 
                     if ~issorted(relatedFiles.BeginTime)
@@ -661,6 +675,11 @@ classdef SpecData < model.SpecDataBase
             obj(idxThreads(refIndex)).MetaData.Resolution = max(resolutionList);
             obj(idxThreads(refIndex)).Data{2}  = dataMatrix;
             basicStats(obj(idxThreads(refIndex)))
+
+            if azTaskFlag
+                obj(idxThreads(refIndex)).Data{4} = azimuth;
+                obj(idxThreads(refIndex)).Data{5} = trustLevel;
+            end
 
             othersIndex = setdiff(1:nThreads, refIndex);
             delete(obj(idxThreads(othersIndex)))
