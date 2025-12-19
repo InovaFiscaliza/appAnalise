@@ -265,6 +265,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'mainApp', 'auxApp.dockTimeFiltering')
             delete(app)
             
         end
@@ -698,6 +699,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'auxApp.dockTimeFiltering';
 
             % Create btnDelete
             app.btnDelete = uimenu(app.ContextMenu);

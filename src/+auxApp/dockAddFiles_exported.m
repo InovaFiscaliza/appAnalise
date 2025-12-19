@@ -153,6 +153,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'mainApp', 'auxApp.dockAddFiles')
             delete(app)
             
         end
@@ -456,6 +457,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'auxApp.dockAddFiles';
 
             % Create btnDelete
             app.btnDelete = uimenu(app.ContextMenu);

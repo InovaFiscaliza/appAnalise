@@ -461,6 +461,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             end
 
                             closeModule(app.tabGroupController, ["DRIVETEST", "SIGNALANALYSIS", "RFDATAHUB", "CONFIG"], app.General)
+
+                            if ~isempty(app.popupContainer)
+                                delete(app.popupContainer)
+                            end
     
                             if ~isempty(app.AppInfo.Tag)
                                 app.AppInfo.Tag = '';
@@ -665,47 +669,65 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         % evita que o módulo seja "fechado" (por meio da invisibilidade do 
                         % app.popupContainer.Parent).
 
-                        updateFlag = varargin{1};
-                        returnFlag = varargin{2};
+                        switch operationType
+                            case 'closeFcn'
+                                context   = varargin{1};
+                                moduleTag = varargin{2};
 
-                        if updateFlag
-                            switch operationType
-                                case 'PLAYBACK:CHANNEL'
-                                    channel2Add   = varargin{3};
-                                    typeOfChannel = varargin{4};
-                                    idxThreads    = varargin{5};
-                                    play_Channel_AddChannel(app, channel2Add, typeOfChannel, idxThreads)
+                                switch context
+                                    case 'mainApp'
+                                        hApp = app;
+                                    otherwise
+                                        hApp = auxAppHandle(app, context);
+                                end
 
-                                case {'REPORT:DETECTION', 'REPORT:CLASSIFICATION'}
-                                    idxThread     = varargin{3};
+                                if ~isempty(hApp)
+                                    deleteContextMenu(app.tabGroupController, hApp.UIFigure, moduleTag)
+                                end
 
-                                    % Esse estado força a atualização do painel
-                                    app.report_ThreadAlgorithms.UserData.idxThread = [];
-                                    report_Algorithms(app, idxThread)
-                                    report_SaveWarn(app)
-
-                                case 'REPORT:EXTERNALFILES'
-                                    report_TreeBuilding(app)
-
-                                case 'MISCELLANEOUS'
-                                    SelectedNodesTextList = misc_SelectedNodesText(app);
-                                    play_TreeRebuilding(app, SelectedNodesTextList)
-                                
-                                case 'MISCELLANEOUS:LEVELFILTERING'
-                                    editedData = varargin{3};
-                                    copyMode   = varargin{4};
-
-                                    if strcmp(copyMode, 'copy')              
-                                        app.specData(end+1:end+numel(editedData)) = editedData;
+                            otherwise
+                                updateFlag = varargin{1};
+                                returnFlag = varargin{2};
+        
+                                if updateFlag
+                                    switch operationType
+                                        case 'PLAYBACK:CHANNEL'
+                                            channel2Add   = varargin{3};
+                                            typeOfChannel = varargin{4};
+                                            idxThreads    = varargin{5};
+                                            play_Channel_AddChannel(app, channel2Add, typeOfChannel, idxThreads)
+        
+                                        case {'REPORT:DETECTION', 'REPORT:CLASSIFICATION'}
+                                            idxThread     = varargin{3};
+        
+                                            % Esse estado força a atualização do painel
+                                            app.report_ThreadAlgorithms.UserData.idxThread = [];
+                                            report_Algorithms(app, idxThread)
+                                            report_SaveWarn(app)
+        
+                                        case 'REPORT:EXTERNALFILES'
+                                            report_TreeBuilding(app)
+        
+                                        case 'MISCELLANEOUS'
+                                            SelectedNodesTextList = misc_SelectedNodesText(app);
+                                            play_TreeRebuilding(app, SelectedNodesTextList)
+                                        
+                                        case 'MISCELLANEOUS:LEVELFILTERING'
+                                            editedData = varargin{3};
+                                            copyMode   = varargin{4};
+        
+                                            if strcmp(copyMode, 'copy')              
+                                                app.specData(end+1:end+numel(editedData)) = editedData;
+                                            end
+                                            
+                                            SelectedNodesTextList = misc_SelectedNodesText(app);
+                                            play_TreeRebuilding(app, SelectedNodesTextList)
                                     end
-                                    
-                                    SelectedNodesTextList = misc_SelectedNodesText(app);
-                                    play_TreeRebuilding(app, SelectedNodesTextList)
-                            end
-                        end
-
-                        if returnFlag
-                            return
+                                end
+        
+                                if returnFlag
+                                    return
+                                end
                         end
                         
                         if ~isempty(app.popupContainer) || isvalid(app.popupContainer)
