@@ -575,7 +575,7 @@ classdef SpecData < model.SpecDataBase
                                        '<font style="font-size: 11px;">%s</font>\n\nDeseja continuar esse processo de mesclagem, o que '   ...
                                        'resultará em um fluxo que armazenará como metadados os maiores valores de resolução e passo da varredura?'], strjoin(msgQuestion, '\n'));
                 
-                userSelection = appUtil.modalWindow(hFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+                userSelection = ui.Dialog(hFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
                 if userSelection == "Não"
                     return
                 end

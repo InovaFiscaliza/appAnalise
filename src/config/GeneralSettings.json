@@ -1,5 +1,5 @@
 {
-    "version": 1.03,
+    "version": 1.04,
     "operationMode": {
         "Debug": false,
         "Dock": false,
@@ -23,7 +23,6 @@
         "DataHub_POST": "",
         "lastVisited": ""
     },
-    "openGL": "hardware",
     "Image": {
         "Format": "jpeg",
         "Resolution": 120

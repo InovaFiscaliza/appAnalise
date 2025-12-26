@@ -4,7 +4,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
-        DockModuleGroup                 matlab.ui.container.GridLayout
+        DockModule                      matlab.ui.container.GridLayout
         dockModule_Undock               matlab.ui.control.Image
         dockModule_Close                matlab.ui.control.Image
         Document                        matlab.ui.container.GridLayout
@@ -134,90 +134,81 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         tool_RFLinkButton               matlab.ui.control.Image
         tool_TableVisibility            matlab.ui.control.Image
         tool_ControlPanelVisibility     matlab.ui.control.Image
-        filter_ContextMenu              matlab.ui.container.ContextMenu
-        filter_delButton                matlab.ui.container.Menu
-        filter_delAllButton             matlab.ui.container.Menu
+        ContextMenu                     matlab.ui.container.ContextMenu
+        contextmenu_del                 matlab.ui.container.Menu
+        contextmenu_delAll              matlab.ui.container.Menu
     end
 
     
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        Role = 'secondaryApp'
+    end
+
+
     properties (Access = public)
         %-----------------------------------------------------------------%
         Container
         isDocked = false
-
         mainApp
-        General
-        rootFolder
-
-        % A função do timer é executada uma única vez após a renderização
-        % da figura, lendo arquivos de configuração, iniciando modo de operação
-        % paralelo etc. A ideia é deixar o MATLAB focar apenas na criação dos 
-        % componentes essenciais da GUI (especificados em "createComponents"), 
-        % mostrando a GUI para o usuário o mais rápido possível.
-        timerObj
         jsBackDoor
-
-        % Janela de progresso já criada no DOM. Dessa forma, controla-se 
-        % apenas a sua visibilidade - e tornando desnecessário criá-la a
-        % cada chamada (usando uiprogressdlg, por exemplo).
         progressDialog
 
-        % Propriedades do app.
         referenceData
 
-        %-----------------------------------------------------------------%
-        % ESPECIFICIDADES AUXAPP.WINDRIVETEST
-        %-----------------------------------------------------------------%
         rfDataHub
         rfDataHubLOG
         rfDataHubSummary
-        rfDataHubAnnotation = table(string.empty, int32([]), struct('Latitude', {}, 'Longitude', {}, 'AntennaHeight', {}), 'VariableNames', {'ID', 'Station', 'TXSite'})
+        rfDataHubAnnotation = table( ...
+            string.empty, ...
+            int32([]), ...
+            struct('Latitude', {}, 'Longitude', {}, 'AntennaHeight', {}), ...
+            'VariableNames', {'ID', 'Station', 'TXSite'} ...
+        )
         
         UIAxes1
         UIAxes2
         UIAxes3
-        restoreView    = struct('ID', {}, 'xLim', {}, 'yLim', {}, 'cLim', {})
+        restoreView = struct( ...
+            'ID', {}, ...
+            'xLim', {}, ...
+            'yLim', {}, ...
+            'cLim', {} ...
+        )
 
-        elevationObj   = RF.Elevation
+        elevationObj = RF.Elevation
         ChannelReportObj
 
-        filterTable    = table('Size',          [0, 9],                                                                      ...
-                               'VariableTypes', {'cell', 'int8', 'int8', 'cell', 'cell', 'int8', 'cell', 'logical', 'cell'}, ...
-                               'VariableNames', {'Order', 'ID', 'RelatedID', 'Type', 'Operation', 'Column', 'Value', 'Enable', 'uuid'})
+        filterTable = table( ...
+            'Size', [0, 9], ...
+            'VariableTypes', {'cell', 'int8', 'int8', 'cell', 'cell', 'int8', 'cell', 'logical', 'cell'}, ...
+            'VariableNames', {'Order', 'ID', 'RelatedID', 'Type', 'Operation', 'Column', 'Value', 'Enable', 'uuid'} ...
+        )
     end
 
 
-    methods
-        function ipcSecundaryJSEventsHandler(app, event)
+    methods (Access = public)
+        %-----------------------------------------------------------------%
+        function ipcSecondaryJSEventsHandler(app, event)
             try
                 switch event.HTMLEventName
                     case 'renderer'
-                        startup_Controller(app)
+                        appEngine.activate(app, app.Role)
+
                     case 'auxApp.winRFDataHub.filter_Tree'
-                        filter_delFilter(app, struct('Source', app.filter_delButton))
+                        filter_delFilter(app, struct('Source', app.contextmenu_del))
+
                     otherwise
                         error('UnexpectedEvent')
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
-    end
 
-    
-    methods (Access = private)
         %-----------------------------------------------------------------%
-        % INICIALIZAÇÃO
-        %-----------------------------------------------------------------%
-        function jsBackDoor_Initialization(app)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                 ...
-                                                  "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt), ...
-                                                  "Visible",              "off");
-        end
-
-        %-------------------------------------------------------------------------%
-        function jsBackDoor_Customizations(app, tabIndex)
+        function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
                 customizationStatus = [false, false, false];
@@ -245,7 +236,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         case 1 % RFDATAHUB
                             % Grid botões "dock":
                             if app.isDocked
-                                elToModify = {app.DockModuleGroup};
+                                elToModify = {app.DockModule};
                                 elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
                                 if ~isempty(elDataTag)
                                     sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
@@ -288,55 +279,15 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                             end
 
                             % Elevação:
-                            app.config_ElevationAPISource.Value    = app.General.Elevation.Server;
-                            app.config_ElevationNPoints.Value      = num2str(app.General.Elevation.Points);
-                            app.config_ElevationForceSearch.Value  = app.General.Elevation.ForceSearch;
+                            app.config_ElevationAPISource.Value    = app.mainApp.General.Elevation.Server;
+                            app.config_ElevationNPoints.Value      = num2str(app.mainApp.General.Elevation.Points);
+                            app.config_ElevationForceSearch.Value  = app.mainApp.General.Elevation.ForceSearch;
                     end
             end
         end
 
         %-----------------------------------------------------------------%
-        function startup_timerCreation(app)            
-            % A criação desse timer tem como objetivo garantir uma renderização 
-            % mais rápida dos componentes principais da GUI, possibilitando a 
-            % visualização da sua tela inicialpelo usuário. Trata-se de aspecto 
-            % essencial quando o app é compilado como webapp.
-
-            app.timerObj = timer("ExecutionMode", "fixedSpacing", ...
-                                 "StartDelay",    1.5,            ...
-                                 "Period",        .1,             ...
-                                 "TimerFcn",      @(~,~)app.startup_timerFcn);
-            start(app.timerObj)
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_timerFcn(app)
-            if ui.FigureRenderStatus(app.UIFigure)
-                stop(app.timerObj)
-                delete(app.timerObj)
-                
-                jsBackDoor_Initialization(app)
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_Controller(app)
-            drawnow
-            jsBackDoor_Customizations(app, 0)
-            jsBackDoor_Customizations(app, 1)
-
-            app.progressDialog.Visible = 'visible';
-            
-            startup_AppProperties(app)
-            startup_AxesCreation(app)
-            startup_GUIComponents(app)
-            filter_TableFiltering(app)            
-            
-            app.progressDialog.Visible = 'hidden';
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_AppProperties(app)
+        function initializeAppProperties(app)
             % RFDataHub
             global RFDataHub
             global RFDataHubLog
@@ -357,6 +308,30 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             filter_getReferenceSearch(app)
         end
 
+        %-----------------------------------------------------------------%
+        function initializeUIComponents(app)
+            if ~strcmp(app.mainApp.executionMode, 'webApp')
+                app.dockModule_Undock.Enable = 1;
+            end
+
+            % Controles de funcionalidades:
+            app.referenceTX_EditionMode.UserData = false;
+            app.referenceRX_EditionMode.UserData = false;
+            app.tool_TableVisibility.UserData    = 1;
+            app.tool_RFLinkButton.UserData       = false;
+            app.tool_PDFButton.UserData          = false;
+
+            startup_AxesCreation(app)
+        end
+
+        %-----------------------------------------------------------------%
+        function applyInitialLayout(app)
+            filter_TableFiltering(app)
+        end
+    end
+
+
+    methods (Access = private)
         %-----------------------------------------------------------------%
         function startup_AxesCreation(app)
             hParent     = tiledlayout(app.plotPanel, 2, 2, "Padding", "none", "TileSpacing", "none");
@@ -406,23 +381,6 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             plot.axes.Interactivity.DefaultCreation(app.UIAxes2, dataTipInteraction)
         end
 
-        %-----------------------------------------------------------------%
-        function startup_GUIComponents(app)
-            if ~strcmp(app.mainApp.executionMode, 'webApp')
-                app.dockModule_Undock.Enable = 1;
-            end
-
-            % Controles de funcionalidades:
-            app.referenceTX_EditionMode.UserData = false;
-            app.referenceRX_EditionMode.UserData = false;
-            app.tool_TableVisibility.UserData    = 1;
-            app.tool_RFLinkButton.UserData       = false;
-            app.tool_PDFButton.UserData          = false;
-        end
-    end
-
-
-    methods (Access = private)
         %-----------------------------------------------------------------%
         function [idxRFDataHub, idxSelectedRow] = getRFDataHubIndex(app)
             if isempty(app.UITable.Selection)
@@ -687,7 +645,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             txLongitude  = round(double(app.rfDataHub.Longitude(idxRFDataHub)), 6);
             txHeight     = round(str2double(char(app.rfDataHub.AntennaHeight(idxRFDataHub))), 1);
             if txHeight < 0
-                txHeight = app.General.RFDataHub.DefaultTX.Height;
+                txHeight = app.mainApp.General.RFDataHub.DefaultTX.Height;
             end
         end
 
@@ -714,7 +672,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                             end
         
                             if isempty(rxHeight) || isnan(rxHeight) || (rxHeight <= 0) || isinf(rxHeight)
-                                rxHeight = app.General.RFDataHub.DefaultRX.Height;
+                                rxHeight = app.mainApp.General.RFDataHub.DefaultRX.Height;
                             end
                             
                             refRXFlag   = true;
@@ -726,15 +684,15 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         if ~isempty(app.referenceData)
                             rxLatitude  = app.referenceData(1).Latitude;
                             rxLongitude = app.referenceData(1).Longitude;
-                            rxHeight    = app.General.RFDataHub.DefaultRX.Height;
+                            rxHeight    = app.mainApp.General.RFDataHub.DefaultRX.Height;
                             refRXFlag   = true;
                         end
             end
 
             if ~refRXFlag
-                rxLatitude  = app.General.RFDataHub.DefaultRX.Latitude;
-                rxLongitude = app.General.RFDataHub.DefaultRX.Longitude;
-                rxHeight    = app.General.RFDataHub.DefaultRX.Height;
+                rxLatitude  = app.mainApp.General.RFDataHub.DefaultRX.Latitude;
+                rxLongitude = app.mainApp.General.RFDataHub.DefaultRX.Longitude;
+                rxHeight    = app.mainApp.General.RFDataHub.DefaultRX.Height;
             end
 
             rxSite = struct('Name',          'RX',        ...
@@ -850,9 +808,9 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             % Inicialização do filtro, evitando carregar todas as estações
             % da base no plot.
             if isempty(app.filterTable)
-                filterType          = app.General.RFDataHub.DefaultFilter.ColumnLabel;
-                filterValue         = app.General.RFDataHub.DefaultFilter.Value;
-                filterOperation     = app.General.RFDataHub.DefaultFilter.Operation;
+                filterType          = app.mainApp.General.RFDataHub.DefaultFilter.ColumnLabel;
+                filterValue         = app.mainApp.General.RFDataHub.DefaultFilter.Value;
+                filterOperation     = app.mainApp.General.RFDataHub.DefaultFilter.Operation;
     
                 hFilterNames        = findobj(app.filter_SecondaryTypePanel.Children,  'Type', 'uiradiobutton');
                 hFilterOperations   = findobj(app.filter_SecondaryValuePanel.Children, 'Type', 'uitogglebutton');
@@ -949,20 +907,20 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                                                                                                                 app.filterTable.Type{ii},                      ...
                                                                                                                 app.filterTable.Operation{ii},                 ...
                                                                                                                 filter_Value(app, app.filterTable.Value{ii})), ...
-                                                                 'NodeData', ii, 'ContextMenu', app.filter_ContextMenu);
+                                                                 'NodeData', ii, 'ContextMenu', app.ContextMenu);
                         if app.filterTable.Enable(ii)
                             checkedNodes = [checkedNodes, parentNode];
                         end
 
                     else
                         parentNode = uitreenode(app.filter_Tree, 'Text', '*.*', ...
-                                                                 'NodeData', [ii, idx2], 'ContextMenu', app.filter_ContextMenu);
+                                                                 'NodeData', [ii, idx2], 'ContextMenu', app.ContextMenu);
                         for jj = [ii, idx2]
                             childNode = uitreenode(parentNode, 'Text', sprintf('#%d: RFDataHub.("%s") %s %s', app.filterTable.ID(jj),                        ...
                                                                                                               app.filterTable.Type{jj},                      ...
                                                                                                               app.filterTable.Operation{jj},                 ...
                                                                                                               filter_Value(app, app.filterTable.Value{jj})), ...
-                                                               'NodeData', jj, 'ContextMenu', app.filter_ContextMenu);
+                                                               'NodeData', jj, 'ContextMenu', app.ContextMenu);
         
                             if app.filterTable.Enable(jj)
                                 checkedNodes = [checkedNodes, childNode];
@@ -1154,7 +1112,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     % ELEVAÇÃO DO LINK TX-RX
                     [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, str2double(app.config_ElevationNPoints.Value), app.config_ElevationForceSearch.Value, app.config_ElevationAPISource.Value);
                     if ~isempty(msgWarning)
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                        ui.Dialog(app.UIFigure, 'warning', msgWarning);
                     end
         
                     % PLOT: RFLink Map
@@ -1224,7 +1182,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     layout_restartChannelReport(app)
     
                     if ismember(operationType, {'Cache+RealTime', 'RealTime'}) && ~isempty(msgError)
-                        appUtil.modalWindow(app.UIFigure, 'error', msgError);
+                        ui.Dialog(app.UIFigure, 'error', msgError);
                     end
                 end
     
@@ -1396,35 +1354,25 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             % appAnalise quanto pelo monitorRNI. Toda modificação deste módulo
             % demanda a posterior atualização MANUAL do ".mlapp" em todos os
             % projetos.
-
-            % RFDataHub v. 1.00.0 (18/09/2025)
-
-            app.mainApp = mainApp;
-            app.General = mainApp.General;
-
-            switch class(mainApp)
-                case 'winAppAnalise'
-                    app.referenceData = mainApp.specData;
-                case 'winMonitorRNI'
-                    app.referenceData = mainApp.measData;
-                otherwise
-                    error('UnexpectedCaller')
-            end
-    
-            if nargin == 4
-                app.filterTable = filterTable;
-                app.rfDataHubAnnotation = rfDataHubAnnotation;
-            end
-    
-            if app.isDocked
-                app.GridLayout.Padding(4) = 30;
-                app.DockModuleGroup.Visible = 1;
-                app.jsBackDoor = mainApp.jsBackDoor;
-                startup_Controller(app)
-            else
+            try
+                switch class(mainApp)
+                    case 'winAppAnalise'
+                        app.referenceData = mainApp.specData;
+                    case 'winMonitorRNI'
+                        app.referenceData = mainApp.measData;
+                    otherwise
+                        error('UnexpectedCaller')
+                end
                 app.UIFigure.Name = class.Constants.appName;
-                appUtil.winPosition(app.UIFigure)
-                startup_timerCreation(app)
+        
+                if nargin == 4
+                    app.filterTable = filterTable;
+                    app.rfDataHubAnnotation = rfDataHubAnnotation;
+                end
+
+                appEngine.boot(app, app.Role, mainApp)
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
 
         end
@@ -1465,7 +1413,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         function TabGroupSelectionChanged(app, event)
             
             [~, tabIndex] = ismember(app.TabGroup.SelectedTab, app.TabGroup.Children);
-            jsBackDoor_Customizations(app, tabIndex)
+            applyJSCustomizations(app, tabIndex)
 
         end
 
@@ -1542,8 +1490,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         function Toolbar_exportButtonPushed(app, event)
 
                 nameFormatMap = {'*.xlsx', 'Excel (*.xlsx)'};
-                defaultName   = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'RFDataHub', -1); 
-                fileFullPath  = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
+                defaultName   = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'RFDataHub', -1); 
+                fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
                 if isempty(fileFullPath)
                     return
                 end
@@ -1555,7 +1503,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     tempRFDataHub = model.RFDataHub.ColumnNames(app.rfDataHub(idxRFDataHubArray,1:29), 'eng2port');
                     writetable(tempRFDataHub, fileFullPath, 'WriteMode', 'overwritesheet')
                 catch ME
-                    appUtil.modalWindow(app.UIFigure, 'warning', getReport(ME));
+                    ui.Dialog(app.UIFigure, 'warning', getReport(ME));
                 end
 
                 app.progressDialog.Visible = 'hidden';
@@ -1593,7 +1541,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                             URL = char(app.rfDataHub.URL(idxRFDataHub));
                             web(URL, '-new')
                         otherwise
-                            appUtil.OperationSystem('openFile', app.chReportHTML.HTMLSource)
+                            appEngine.util.OperationSystem('openFile', app.chReportHTML.HTMLSource)
                     end                    
                     Toolbar_InteractionImageClicked(app, struct('Source', app.tool_PDFButton))
             end
@@ -1648,7 +1596,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             end
 
             % Painel HTML
-            ui.TextView.update(app.stationInfo, util.HtmlTextGenerator.Station(app.rfDataHub, idxRFDataHub, app.rfDataHubLOG, app.General));
+            ui.TextView.update(app.stationInfo, util.HtmlTextGenerator.Station(app.rfDataHub, idxRFDataHub, app.rfDataHubLOG, app.mainApp.General));
             app.stationInfoImage.Visible = 'off';
 
             % Painel PDF
@@ -1896,7 +1844,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             if ~newFilterFlag
                 msg = 'Filtro já incluído!';
-                appUtil.modalWindow(app.UIFigure, 'warning', msg);
+                ui.Dialog(app.UIFigure, 'warning', msg);
                 if exist('hROI', 'var')
                     delete(hROI)
                 end
@@ -1910,7 +1858,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         end
 
-        % Menu selected function: filter_delAllButton, filter_delButton
+        % Menu selected function: contextmenu_del, contextmenu_delAll
         function filter_delFilter(app, event)
             
             if isempty(app.filterTable)
@@ -1918,7 +1866,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             end
 
             switch event.Source
-                case app.filter_delButton
+                case app.contextmenu_del
                     if isempty(app.filter_Tree.SelectedNodes)
                         return
                     end
@@ -1928,7 +1876,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     % filtros, inserindo na lista os seus filhos.
                     idx1 = [idx1, find(ismember(app.filterTable.RelatedID, idx1))'];
 
-                case app.filter_delAllButton
+                case app.contextmenu_delAll
                     idx1 = 1:height(app.filterTable);
             end 
     
@@ -2033,10 +1981,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             % os callbacks de cada parâmetro. O botão ficará invisível até 
             % ajuste desses pontos.
 
-            app.General = app.mainApp.General;
-
-            app.config_ElevationAPISource.Value = app.General.Elevation.Server;
-            app.config_ElevationNPoints.Value      = num2str(app.General.Elevation.Points);
+            app.config_ElevationAPISource.Value = app.mainApp.General.Elevation.Server;
+            app.config_ElevationNPoints.Value      = num2str(app.mainApp.General.Elevation.Points);
 
             % % Eixo geográfico - app.UIAxes1
             app.config_Colormap.Value             = 'turbo';            
@@ -3280,18 +3226,18 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.axesTool_RegionZoom.Layout.Column = 2;
             app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
-            % Create DockModuleGroup
-            app.DockModuleGroup = uigridlayout(app.GridLayout);
-            app.DockModuleGroup.RowHeight = {'1x'};
-            app.DockModuleGroup.ColumnSpacing = 2;
-            app.DockModuleGroup.Padding = [5 2 5 2];
-            app.DockModuleGroup.Visible = 'off';
-            app.DockModuleGroup.Layout.Row = [2 3];
-            app.DockModuleGroup.Layout.Column = [5 6];
-            app.DockModuleGroup.BackgroundColor = [0.2 0.2 0.2];
+            % Create DockModule
+            app.DockModule = uigridlayout(app.GridLayout);
+            app.DockModule.RowHeight = {'1x'};
+            app.DockModule.ColumnSpacing = 2;
+            app.DockModule.Padding = [5 2 5 2];
+            app.DockModule.Visible = 'off';
+            app.DockModule.Layout.Row = [2 3];
+            app.DockModule.Layout.Column = [5 6];
+            app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModuleGroup);
+            app.dockModule_Close = uiimage(app.DockModule);
             app.dockModule_Close.ScaleMethod = 'none';
             app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Close.Tag = 'DRIVETEST';
@@ -3301,7 +3247,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Create dockModule_Undock
-            app.dockModule_Undock = uiimage(app.DockModuleGroup);
+            app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Undock.Tag = 'DRIVETEST';
@@ -3311,21 +3257,21 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.dockModule_Undock.Layout.Column = 1;
             app.dockModule_Undock.ImageSource = 'Undock_18White.png';
 
-            % Create filter_ContextMenu
-            app.filter_ContextMenu = uicontextmenu(app.UIFigure);
-            app.filter_ContextMenu.Tag = 'auxApp.winRFDataHub';
+            % Create ContextMenu
+            app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'auxApp.winRFDataHub';
 
-            % Create filter_delButton
-            app.filter_delButton = uimenu(app.filter_ContextMenu);
-            app.filter_delButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.filter_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delButton.Text = '❌ Excluir';
+            % Create contextmenu_del
+            app.contextmenu_del = uimenu(app.ContextMenu);
+            app.contextmenu_del.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
+            app.contextmenu_del.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.contextmenu_del.Text = '❌ Excluir';
 
-            % Create filter_delAllButton
-            app.filter_delAllButton = uimenu(app.filter_ContextMenu);
-            app.filter_delAllButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.filter_delAllButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delAllButton.Text = '⛔ Excluir todos';
+            % Create contextmenu_delAll
+            app.contextmenu_delAll = uimenu(app.ContextMenu);
+            app.contextmenu_delAll.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
+            app.contextmenu_delAll.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.contextmenu_delAll.Text = '⛔ Excluir todos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

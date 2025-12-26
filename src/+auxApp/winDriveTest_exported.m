@@ -4,7 +4,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
-        DockModuleGroup                 matlab.ui.container.GridLayout
+        DockModule                      matlab.ui.container.GridLayout
         dockModule_Undock               matlab.ui.control.Image
         dockModule_Close                matlab.ui.control.Image
         AxesToolbar                     matlab.ui.container.GridLayout
@@ -15,9 +15,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         axesTool_RegionZoom             matlab.ui.control.Image
         axesTool_RestoreView            matlab.ui.control.Image
         Document                        matlab.ui.container.Panel
-        TabGroup                        matlab.ui.container.TabGroup
-        Tab1                            matlab.ui.container.Tab
-        Tab1Grid                        matlab.ui.container.GridLayout
+        SubTabGroup                     matlab.ui.container.TabGroup
+        SubTab1                         matlab.ui.container.Tab
+        SubGrid1                        matlab.ui.container.GridLayout
         reportFlag                      matlab.ui.control.CheckBox
         channelPanel                    matlab.ui.container.Panel
         channelGrid                     matlab.ui.container.GridLayout
@@ -43,8 +43,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         spectralThreadEditConfirm       matlab.ui.control.Image
         spectralThreadEdit              matlab.ui.control.Image
         spectralThreadLabel             matlab.ui.control.Label
-        Tab2                            matlab.ui.container.Tab
-        Tab2Grid                        matlab.ui.container.GridLayout
+        SubTab2                         matlab.ui.container.Tab
+        SubGrid2                        matlab.ui.container.GridLayout
         filter_DataBinningPanel         matlab.ui.container.Panel
         filter_DataBinningGrid          matlab.ui.container.GridLayout
         filter_DataBinningFcn           matlab.ui.control.DropDown
@@ -64,8 +64,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         filter_Geographic               matlab.ui.control.RadioButton
         filter_THR                      matlab.ui.control.RadioButton
         filter_TreeLabel                matlab.ui.control.Label
-        Tab3                            matlab.ui.container.Tab
-        Tab3Grid                        matlab.ui.container.GridLayout
+        SubTab3                         matlab.ui.container.Tab
+        SubGrid3                        matlab.ui.container.GridLayout
         points_Tree                     matlab.ui.container.CheckBoxTree
         points_AddImage                 matlab.ui.control.Image
         points_AddValuePanel            matlab.ui.container.Panel
@@ -85,8 +85,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         points_AddFindPeaks             matlab.ui.control.RadioButton
         points_AddRFDataHub             matlab.ui.control.RadioButton
         points_TreeLabel                matlab.ui.control.Label
-        Tab4                            matlab.ui.container.Tab
-        Tab4Grid                        matlab.ui.container.GridLayout
+        SubTab4                         matlab.ui.container.Tab
+        SubGrid4                        matlab.ui.container.GridLayout
         config_xyAxesPanel              matlab.ui.container.Panel
         config_xyAxesGrid               matlab.ui.container.GridLayout
         config_BandGuardPanel           matlab.ui.container.Panel
@@ -150,32 +150,28 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     end
 
     
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        Role = 'secondaryApp'
+    end
+
+
     properties (Access = public)
         %-----------------------------------------------------------------%
         Container
         isDocked = false
-
         mainApp
+        jsBackDoor
+        progressDialog
+    end
+
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
         General
         General_I
         specData
 
-        % A função do timer é executada uma única vez após a renderização
-        % da figura, lendo arquivos de configuração, iniciando modo de operação
-        % paralelo etc. A ideia é deixar o MATLAB focar apenas na criação dos 
-        % componentes essenciais da GUI (especificados em "createComponents"), 
-        % mostrando a GUI para o usuário o mais rápido possível.
-        timerObj
-        jsBackDoor
-
-        % Janela de progresso já criada no DOM. Dessa forma, controla-se 
-        % apenas a sua visibilidade - e tornando desnecessário criá-la a
-        % cada chamada (usando uiprogressdlg, por exemplo).
-        progressDialog        
-
-        %-----------------------------------------------------------------%
-        % ESPECIFICIDADES AUXAPP.WINDRIVETEST
-        %-----------------------------------------------------------------%
         tempBandObj
         KMLObj
 
@@ -206,6 +202,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
 
     properties (Access = private, Constant)
+        %-----------------------------------------------------------------%
         defaultConfigValues = struct(...
             'Colormap',          'turbo', ...
             'route_LineStyle',   ':', ...
@@ -229,30 +226,31 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     end
 
 
-    methods
+    methods (Access = public)
         %-----------------------------------------------------------------%
-        % IPC: COMUNICAÇÃO ENTRE PROCESSOS
-        %-----------------------------------------------------------------%
-        function ipcSecundaryJSEventsHandler(app, event, varargin)
+        function ipcSecondaryJSEventsHandler(app, event, varargin)
             try
                 switch event.HTMLEventName
                     case 'renderer'
-                        startup_Controller(app, varargin{:})
+                        appEngine.activate(app, app.Role)
+
                     case 'auxApp.winDriveTest.filter_Tree'
                         filter_delFilter(app, struct('Source', app.filter_delButton))
+
                     case 'auxApp.winDriveTest.points_Tree'
                         points_delButtonMenuSelected(app)
+
                     otherwise
                         error('UnexpectedEvent')
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
 
         %-----------------------------------------------------------------%
-        function ipcSecundaryMatlabCallsHandler(app, callingApp, varargin)
+        function ipcSecondaryMatlabCallsHandler(app, callingApp, varargin)
             try
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
@@ -271,29 +269,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         else
                             general_EmissionChanged(app, struct('Source', app.emissionList))
                         end
+
                     otherwise
-                        error('UnexpectedCall')
+                        error('UnexpectedCaller')
                 end
             
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
-        end
-    end
-
-
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % JSBACKDOOR: CUSTOMIZAÇÃO GUI (ESTÉTICA/COMPORTAMENTAL)
-        %-----------------------------------------------------------------%
-        function jsBackDoor_Initialization(app, varargin)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                              ...
-                                                  "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt, varargin{:}), ...
-                                                  "Visible",              "off");
         end
 
         %-------------------------------------------------------------------------%
-        function jsBackDoor_Customizations(app, tabIndex)
+        function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
                 customizationStatus = [false, false, false, false];
@@ -321,7 +308,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         case 1
                             % Grid botões "dock":
                             if app.isDocked
-                                elToModify = {app.DockModuleGroup};
+                                elToModify = {app.DockModule};
                                 elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
                                 if ~isempty(elDataTag)
                                     sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
@@ -331,16 +318,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             end
 
                             % Outros elementos:
-                            elToModify = {app.TabGroup, app.AxesToolbar, app.reportFlag, app.emissionInfo};
+                            elToModify = {app.AxesToolbar, app.reportFlag, app.emissionInfo};
                             elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
                             if ~isempty(elDataTag)
                                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('border', 'none', 'backgroundColor', 'transparent')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{2}, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{3}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
+                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                                    struct('appName', appName, 'dataTag', elDataTag{2}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
                                 });
 
-                                ui.TextView.startup(app.jsBackDoor, elToModify{4}, appName);
+                                ui.TextView.startup(app.jsBackDoor, elToModify{3}, appName);
                             end
 
                         case 2
@@ -369,50 +355,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     end
             end
         end
-    end
-
-    
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % INICIALIZAÇÃO
-        %-----------------------------------------------------------------%
-        function startup_timerCreation(app, idxThread, idxEmission)
-            app.timerObj = timer("ExecutionMode", "fixedSpacing", ...
-                                 "StartDelay",    1.5,            ...
-                                 "Period",        .1,             ...
-                                 "TimerFcn",      @(~,~)startup_timerFcn(app, idxThread, idxEmission));
-            start(app.timerObj)
-        end
 
         %-----------------------------------------------------------------%
-        function startup_timerFcn(app, idxThread, idxEmission)
-            if ui.FigureRenderStatus(app.UIFigure)
-                stop(app.timerObj)
-                delete(app.timerObj)
-
-                drawnow
-                jsBackDoor_Initialization(app, idxThread, idxEmission)
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_Controller(app, idxThread, idxEmission)
-            drawnow
-            jsBackDoor_Customizations(app, 0)
-            jsBackDoor_Customizations(app, 1)
-
-            app.progressDialog.Visible = 'visible';
-
-            startup_AppProperties(app)
-            startup_AxesCreation(app)
-            startup_GUIComponents(app, idxThread, idxEmission)
-            general_EmissionChanged(app, struct('updateType', 'AppStartup'))            
-
-            app.progressDialog.Visible = 'hidden';
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_AppProperties(app)
+        function initializeAppProperties(app)
             app.tempBandObj = class.Band('appAnalise:DRIVETEST', app);
 
             app.General_I.Plot.Waterfall.Fcn = 'image';
@@ -421,8 +366,33 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if strcmp(app.mainApp.executionMode, 'webApp')
                 app.config_Basemap.Value = 'none';
             end
+
+            startup_AxesCreation(app)
         end
 
+        %-----------------------------------------------------------------%
+        function initializeUIComponents(app)
+            if ~strcmp(app.mainApp.executionMode, 'webApp')
+                app.dockModule_Undock.Enable = 1;
+            end
+
+            % Controle do modo de edição:
+            app.spectralThreadEdit.UserData = false;
+            app.channelEditMode.UserData    = false;
+
+            % Lista as emissões:
+            layout_ThreadTreeBuilding(app, idxThread, idxEmission)
+
+        end
+
+        %-----------------------------------------------------------------%
+        function applyInitialLayout(app)
+            general_EmissionChanged(app, struct('updateType', 'AppStartup'))
+        end
+    end
+
+
+    methods (Access = private)
         %-----------------------------------------------------------------%
         function startup_AxesCreation(app)
             hParent     = tiledlayout(app.Document, 24, 16, "Padding", "none", "TileSpacing", "none");
@@ -469,10 +439,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.UIAxes4.View = [270, 90];
             app.UIAxes4.YAxis.Direction = "reverse";
 
-            % Legenda
-            % lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
-            % lgd.Title.FontSize = 8.5;
-
             % Colorbar
             colorBar = colorbar(app.UIAxes1, "Location", "layout", "TickDirection", "none", "PickableParts", "none", "FontSize", 7, "Color", "white", 'AxisLocation', 'in', 'Box', 'off');
             colorBar.Layout.Tile = 284;
@@ -485,25 +451,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             plot.axes.Interactivity.DataCursorMode(app.UIAxes3, true)
         end
 
-        %-----------------------------------------------------------------%
-        function startup_GUIComponents(app, idxThread, idxEmission)
-            if ~strcmp(app.mainApp.executionMode, 'webApp')
-                app.dockModule_Undock.Enable = 1;
-            end
-
-            % Controle do modo de edição:
-            app.spectralThreadEdit.UserData = false;
-            app.channelEditMode.UserData    = false;
-
-            % Lista as emissões:
-            layout_ThreadTreeBuilding(app, idxThread, idxEmission)
-        end
-    end
-
-
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % LAYOUT
         %-----------------------------------------------------------------%
         function layout_ThreadTreeBuilding(app, idxThread, idxEmission)
             if ~isempty(app.spectralThreadTree.Children)
@@ -599,14 +546,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             switch editionStatus
                 case 'on'
                     set(app.spectralThreadEdit, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do fluxo espectral', 'UserData', true)
-                    app.Tab1Grid.RowHeight{3} = '1x';
+                    app.SubGrid1.RowHeight{3} = '1x';
                     app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {18, 18};
                     app.spectralThreadEditConfirm.Enable = 1;
                     app.spectralThreadEditCancel.Enable  = 1;
 
                 case 'off'
                     set(app.spectralThreadEdit, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do fluxo espectral',   'UserData', false)
-                    app.Tab1Grid.RowHeight{3} = 0;
+                    app.SubGrid1.RowHeight{3} = 0;
                     app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {0, 0};
                     app.spectralThreadEditConfirm.Enable = 0;
                     app.spectralThreadEditCancel.Enable  = 0;
@@ -917,7 +864,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     filter_TreeBuilding(app)
                     filter_UpdatePlot(app)
                 else
-                    appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
                 end
             end
 
@@ -1578,7 +1525,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     end
 
 
-    methods
+    methods (Access = public)
         %-----------------------------------------------------------------%
         % ÍNDICES DO FLUXO ESPECTRAL E DA EMISSÃO
         %-----------------------------------------------------------------%
@@ -1634,21 +1581,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, idxThread, idxEmission)
+        function startupFcn(app, mainApp)
 
-            app.mainApp    = mainApp;
-            app.General    = mainApp.General;
-            app.General_I  = mainApp.General_I;
-            app.specData   = mainApp.specData;
+            try
+                app.General   = mainApp.General;
+                app.General_I = mainApp.General_I;
+                app.specData  = mainApp.specData;
 
-            if app.isDocked
-                app.GridLayout.Padding(4) = 30;
-                app.DockModuleGroup.Visible = 1;
-                app.jsBackDoor = mainApp.jsBackDoor;
-                startup_Controller(app, idxThread, idxEmission)
-            else
-                appUtil.winPosition(app.UIFigure)
-                startup_timerCreation(app, idxThread, idxEmission)
+                appEngine.boot(app, app.Role, mainApp)
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
             
         end
@@ -1685,11 +1627,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Selection change function: TabGroup
-        function TabGroupSelectionChanged(app, event)
+        % Selection change function: SubTabGroup
+        function SubTabGroupSelectionChanged(app, event)
             
-            [~, tabIndex] = ismember(app.TabGroup.SelectedTab, app.TabGroup.Children);
-            jsBackDoor_Customizations(app, tabIndex)
+            [~, tabIndex] = ismember(app.SubTabGroup.SelectedTab, app.SubTabGroup.Children);
+            applyJSCustomizations(app, tabIndex)
 
         end
 
@@ -1770,8 +1712,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function Toolbar_ExportFileButtonPushed(app, event)
             
             nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
-            Basename      = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'DriveTest', app.mainApp.report_Issue.Value);
-            fileFullPath  = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', nameFormatMap, Basename);
+            Basename      = appEngine.util.DefaultFileName(app.General.fileFolder.userPath, 'DriveTest', app.mainApp.report_Issue.Value);
+            fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, Basename);
             if isempty(fileFullPath)
                 return
             end
@@ -1784,9 +1726,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             try
                 msgWarning = util.exportDriveTestAnalysis(app.specRawTable, app.specFilteredTable, app.specBinTable, Basename, fileFullPath, dataSource, hPlot, channelTag);
-                appUtil.modalWindow(app.UIFigure, 'info', msgWarning);
+                ui.Dialog(app.UIFigure, 'info', msgWarning);
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
 
             app.progressDialog.Visible = 'hidden';
@@ -1796,7 +1738,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: tool_FilterSummary
         function Toolbar_SummaryImageClicked(app, event)
             
-            appUtil.modalWindow(app.UIFigure, 'info', app.tool_FilterSummary.UserData);
+            ui.Dialog(app.UIFigure, 'info', app.tool_FilterSummary.UserData);
 
         end
 
@@ -2339,7 +2281,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch app.filter_RadioGroup.SelectedObject
                 case app.filter_THR
-                    app.Tab2Grid.RowHeight{2} = 96;
+                    app.SubGrid2.RowHeight{2} = 96;
                     app.filter_THR.Position(2) = 46;
                     app.filter_Geographic.Position(2) = 8;
 
@@ -2361,7 +2303,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch app.filter_GeographicType.Value
                 case 'Arquivo externo KML/KMZ'
-                    app.Tab2Grid.RowHeight{2} = 208;
+                    app.SubGrid2.RowHeight{2} = 208;
 
                     app.filter_THR.Position(2)                 = 158;
                     app.filter_Geographic.Position(2)          = 120;
@@ -2375,7 +2317,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     set(findobj(app.filter_RadioGroup.Children, 'Tag', 'KML'), 'Visible', 1)
 
                 otherwise
-                    app.Tab2Grid.RowHeight{2} = 140;
+                    app.SubGrid2.RowHeight{2} = 140;
 
                     app.filter_THR.Position(2)                 = 90;
                     app.filter_Geographic.Position(2)          = 52;
@@ -2390,7 +2332,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: filter_KMLOpenFile
         function filter_KMLOpenFileClicked(app, event)
             
-            [~, filePath, ~, fileName] = appUtil.modalWindow(app.UIFigure, 'uigetfile', '', {'*.kml;*.kmz', '(*.kml, *.kmz)'}, app.General.fileFolder.lastVisited);
+            [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.kml;*.kmz', '(*.kml, *.kmz)'}, app.General.fileFolder.lastVisited);
 
             if ~isempty(fileName)
                 app.progressDialog.Visible = 'visible';
@@ -2414,7 +2356,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     app.filter_KMLFilename.Value  = '';
                     app.filter_KMLFileLayer.Items = {};
 
-                    appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
                 end
 
                 app.progressDialog.Visible = 'hidden';
@@ -2432,7 +2374,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     if ismember('Level', app.filterTable.type)
                         msgWarning = ['Já foi incluído o filtro de nível, cujo <i>threshold</i> pode ser ajustado ' ...
                                       'diretamente no eixo que apresenta a potência do canal sob análise.'];
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                        ui.Dialog(app.UIFigure, 'warning', msgWarning);
                         return
                     end
 
@@ -2452,7 +2394,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         case 'Arquivo externo KML/KMZ'
                             if isempty(app.filter_KMLFilename.Value)
                                 msgWarning = 'É preciso escolher um arquivo KML/KMZ antes de adicioná-lo como filtro geográfico.';
-                                appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                                ui.Dialog(app.UIFigure, 'warning', msgWarning);
                                 return
                             end
                             
@@ -2477,7 +2419,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 end
 
                             catch ME
-                                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                                ui.Dialog(app.UIFigure, 'error', ME.message);
                                 return
                             end
 
@@ -2614,7 +2556,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 idxRawPoints = regexp(entryText, '#(\d+)', 'tokens');
                                 if isempty(idxRawPoints)
                                     msgWarning = 'Valor inválido! Deve ser inserida lista de IDs dos registros do RFDataHub. Por exemplos: #1000 #1500 #2000';
-                                    appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
                                     return
                                 end
                                 idxRawPoints = str2double([idxRawPoints{:}]);
@@ -2623,7 +2565,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 freqList = regexp(entryText, '(\d+.\d+)', 'tokens');
                                 if isempty(freqList)
                                     msgWarning = 'Valor inválido! Deve ser inserida lista de frequências em MHz. Por exemplos: 101.1, 101.3, 101.5';
-                                    appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
                                     return
                                 end
                                 freqList = cellfun(@(x) str2double(x), [freqList{:}]);
@@ -2671,7 +2613,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         else
                             error('Não identificada estação de telecomunicações que atenda ao critério.')
                         end
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgLOG);
+                        ui.Dialog(app.UIFigure, 'warning', msgLOG);
     
                     %---------------------------------------------------------%
                     case app.points_AddFindPeaks
@@ -2682,11 +2624,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         points_AddNewPoint2Table(app, newRow)
 
                         msgLOG = sprintf('Identificado(s) %d ponto(s) que atende(m) ao critério.', numel(idxRawPoints));
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgLOG);
+                        ui.Dialog(app.UIFigure, 'warning', msgLOG);
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
                 return
             end
 
@@ -2850,31 +2792,31 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_FilterSummary.Layout.Column = 8;
             app.tool_FilterSummary.ImageSource = 'Info_32.png';
 
-            % Create TabGroup
-            app.TabGroup = uitabgroup(app.GridLayout);
-            app.TabGroup.AutoResizeChildren = 'off';
-            app.TabGroup.SelectionChangedFcn = createCallbackFcn(app, @TabGroupSelectionChanged, true);
-            app.TabGroup.Layout.Row = [3 4];
-            app.TabGroup.Layout.Column = 2;
+            % Create SubTabGroup
+            app.SubTabGroup = uitabgroup(app.GridLayout);
+            app.SubTabGroup.AutoResizeChildren = 'off';
+            app.SubTabGroup.SelectionChangedFcn = createCallbackFcn(app, @SubTabGroupSelectionChanged, true);
+            app.SubTabGroup.Layout.Row = [3 4];
+            app.SubTabGroup.Layout.Column = 2;
 
-            % Create Tab1
-            app.Tab1 = uitab(app.TabGroup);
-            app.Tab1.AutoResizeChildren = 'off';
-            app.Tab1.Title = 'DT';
-            app.Tab1.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.Tab1.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            % Create SubTab1
+            app.SubTab1 = uitab(app.SubTabGroup);
+            app.SubTab1.AutoResizeChildren = 'off';
+            app.SubTab1.Title = 'DT';
+            app.SubTab1.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.SubTab1.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab1Grid
-            app.Tab1Grid = uigridlayout(app.Tab1);
-            app.Tab1Grid.ColumnWidth = {'1x', 88};
-            app.Tab1Grid.RowHeight = {22, 44, 0, 22, 22, '1x', 22, 69, 5, 26};
-            app.Tab1Grid.ColumnSpacing = 5;
-            app.Tab1Grid.RowSpacing = 5;
-            app.Tab1Grid.Padding = [10 10 10 5];
-            app.Tab1Grid.BackgroundColor = [1 1 1];
+            % Create SubGrid1
+            app.SubGrid1 = uigridlayout(app.SubTab1);
+            app.SubGrid1.ColumnWidth = {'1x', 88};
+            app.SubGrid1.RowHeight = {22, 44, 0, 22, 22, '1x', 22, 69, 5, 26};
+            app.SubGrid1.ColumnSpacing = 5;
+            app.SubGrid1.RowSpacing = 5;
+            app.SubGrid1.Padding = [10 10 10 5];
+            app.SubGrid1.BackgroundColor = [1 1 1];
 
             % Create spectralThreadLabel
-            app.spectralThreadLabel = uilabel(app.Tab1Grid);
+            app.spectralThreadLabel = uilabel(app.SubGrid1);
             app.spectralThreadLabel.VerticalAlignment = 'bottom';
             app.spectralThreadLabel.FontSize = 10;
             app.spectralThreadLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2883,7 +2825,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.spectralThreadLabel.Text = 'FLUXO ESPECTRAL';
 
             % Create spectralThreadEditGrid
-            app.spectralThreadEditGrid = uigridlayout(app.Tab1Grid);
+            app.spectralThreadEditGrid = uigridlayout(app.SubGrid1);
             app.spectralThreadEditGrid.ColumnWidth = {'1x', 18, 0, 0};
             app.spectralThreadEditGrid.RowHeight = {'1x'};
             app.spectralThreadEditGrid.ColumnSpacing = 5;
@@ -2922,7 +2864,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.spectralThreadEditCancel.ImageSource = 'Delete_32Red.png';
 
             % Create spectralThreadPanel
-            app.spectralThreadPanel = uipanel(app.Tab1Grid);
+            app.spectralThreadPanel = uipanel(app.SubGrid1);
             app.spectralThreadPanel.AutoResizeChildren = 'off';
             app.spectralThreadPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.spectralThreadPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -2945,14 +2887,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.spectralThread.Text = '';
 
             % Create spectralThreadTree
-            app.spectralThreadTree = uitree(app.Tab1Grid);
+            app.spectralThreadTree = uitree(app.SubGrid1);
             app.spectralThreadTree.FontSize = 10;
             app.spectralThreadTree.FontColor = [0.651 0.651 0.651];
             app.spectralThreadTree.Layout.Row = 3;
             app.spectralThreadTree.Layout.Column = [1 2];
 
             % Create emissionListLabel
-            app.emissionListLabel = uilabel(app.Tab1Grid);
+            app.emissionListLabel = uilabel(app.SubGrid1);
             app.emissionListLabel.VerticalAlignment = 'bottom';
             app.emissionListLabel.FontSize = 10;
             app.emissionListLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2961,7 +2903,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.emissionListLabel.Text = 'EMISSÃO';
 
             % Create emissionList
-            app.emissionList = uidropdown(app.Tab1Grid);
+            app.emissionList = uidropdown(app.SubGrid1);
             app.emissionList.Items = {};
             app.emissionList.ValueChangedFcn = createCallbackFcn(app, @general_EmissionChanged, true);
             app.emissionList.FontSize = 11;
@@ -2972,7 +2914,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.emissionList.Value = {};
 
             % Create emissionInfo
-            app.emissionInfo = uilabel(app.Tab1Grid);
+            app.emissionInfo = uilabel(app.SubGrid1);
             app.emissionInfo.VerticalAlignment = 'top';
             app.emissionInfo.WordWrap = 'on';
             app.emissionInfo.FontSize = 11;
@@ -2983,7 +2925,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.emissionInfo.Text = '';
 
             % Create channelLabel
-            app.channelLabel = uilabel(app.Tab1Grid);
+            app.channelLabel = uilabel(app.SubGrid1);
             app.channelLabel.VerticalAlignment = 'bottom';
             app.channelLabel.FontSize = 10;
             app.channelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2992,7 +2934,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelLabel.Text = 'CANAL SOB ANÁLISE';
 
             % Create channelEditGrid
-            app.channelEditGrid = uigridlayout(app.Tab1Grid);
+            app.channelEditGrid = uigridlayout(app.SubGrid1);
             app.channelEditGrid.ColumnWidth = {'1x', 18, 18, 0, 0};
             app.channelEditGrid.RowHeight = {'1x'};
             app.channelEditGrid.ColumnSpacing = 5;
@@ -3041,7 +2983,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelEditCancel.ImageSource = 'Delete_32Red.png';
 
             % Create channelPanel
-            app.channelPanel = uipanel(app.Tab1Grid);
+            app.channelPanel = uipanel(app.SubGrid1);
             app.channelPanel.AutoResizeChildren = 'off';
             app.channelPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.channelPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -3090,7 +3032,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelBandWidth.Layout.Column = 2;
 
             % Create reportFlag
-            app.reportFlag = uicheckbox(app.Tab1Grid);
+            app.reportFlag = uicheckbox(app.SubGrid1);
             app.reportFlag.ValueChangedFcn = createCallbackFcn(app, @general_ReportFlagCheckBoxClicked, true);
             app.reportFlag.Text = 'Customizar plot relacionado à emissão, habilitando-o para inclusão em relatório.';
             app.reportFlag.WordWrap = 'on';
@@ -3099,24 +3041,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.reportFlag.Layout.Row = 10;
             app.reportFlag.Layout.Column = [1 2];
 
-            % Create Tab2
-            app.Tab2 = uitab(app.TabGroup);
-            app.Tab2.AutoResizeChildren = 'off';
-            app.Tab2.Title = 'FILTRO';
-            app.Tab2.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.Tab2.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            % Create SubTab2
+            app.SubTab2 = uitab(app.SubTabGroup);
+            app.SubTab2.AutoResizeChildren = 'off';
+            app.SubTab2.Title = 'FILTRO';
+            app.SubTab2.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.SubTab2.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab2Grid
-            app.Tab2Grid = uigridlayout(app.Tab2);
-            app.Tab2Grid.ColumnWidth = {'1x', 22};
-            app.Tab2Grid.RowHeight = {22, 96, 8, '1x', 54, 74};
-            app.Tab2Grid.ColumnSpacing = 5;
-            app.Tab2Grid.RowSpacing = 5;
-            app.Tab2Grid.Padding = [10 10 10 5];
-            app.Tab2Grid.BackgroundColor = [1 1 1];
+            % Create SubGrid2
+            app.SubGrid2 = uigridlayout(app.SubTab2);
+            app.SubGrid2.ColumnWidth = {'1x', 22};
+            app.SubGrid2.RowHeight = {22, 96, 8, '1x', 54, 74};
+            app.SubGrid2.ColumnSpacing = 5;
+            app.SubGrid2.RowSpacing = 5;
+            app.SubGrid2.Padding = [10 10 10 5];
+            app.SubGrid2.BackgroundColor = [1 1 1];
 
             % Create filter_TreeLabel
-            app.filter_TreeLabel = uilabel(app.Tab2Grid);
+            app.filter_TreeLabel = uilabel(app.SubGrid2);
             app.filter_TreeLabel.VerticalAlignment = 'bottom';
             app.filter_TreeLabel.FontSize = 10;
             app.filter_TreeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -3125,7 +3067,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_TreeLabel.Text = 'ORDINÁRIA';
 
             % Create filter_RadioGroup
-            app.filter_RadioGroup = uibuttongroup(app.Tab2Grid);
+            app.filter_RadioGroup = uibuttongroup(app.SubGrid2);
             app.filter_RadioGroup.AutoResizeChildren = 'off';
             app.filter_RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @filter_RadioGroupSelectionChanged, true);
             app.filter_RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -3212,7 +3154,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_KMLFileLayer.Value = {};
 
             % Create filter_AddImage
-            app.filter_AddImage = uiimage(app.Tab2Grid);
+            app.filter_AddImage = uiimage(app.SubGrid2);
             app.filter_AddImage.ImageClickedFcn = createCallbackFcn(app, @filter_AddFilterImageClicked, true);
             app.filter_AddImage.Layout.Row = 3;
             app.filter_AddImage.Layout.Column = 2;
@@ -3220,7 +3162,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_AddImage.ImageSource = 'addSymbol_32.png';
 
             % Create filter_Tree
-            app.filter_Tree = uitree(app.Tab2Grid);
+            app.filter_Tree = uitree(app.SubGrid2);
             app.filter_Tree.SelectionChangedFcn = createCallbackFcn(app, @filter_TreeSelectionChanged, true);
             app.filter_Tree.FontSize = 10.5;
             app.filter_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -3228,7 +3170,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_Tree.Layout.Column = [1 2];
 
             % Create filter_DataBinningLabel
-            app.filter_DataBinningLabel = uilabel(app.Tab2Grid);
+            app.filter_DataBinningLabel = uilabel(app.SubGrid2);
             app.filter_DataBinningLabel.VerticalAlignment = 'bottom';
             app.filter_DataBinningLabel.WordWrap = 'on';
             app.filter_DataBinningLabel.FontSize = 10;
@@ -3239,7 +3181,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_DataBinningLabel.Text = {'DATA-BINNING'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Agrupa medições em quadrículas, sumarizando-as por meio de função estatística.</p>'};
 
             % Create filter_DataBinningPanel
-            app.filter_DataBinningPanel = uipanel(app.Tab2Grid);
+            app.filter_DataBinningPanel = uipanel(app.SubGrid2);
             app.filter_DataBinningPanel.AutoResizeChildren = 'off';
             app.filter_DataBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.filter_DataBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -3299,24 +3241,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filter_DataBinningFcn.Layout.Column = 2;
             app.filter_DataBinningFcn.Value = 'rms';
 
-            % Create Tab3
-            app.Tab3 = uitab(app.TabGroup);
-            app.Tab3.AutoResizeChildren = 'off';
-            app.Tab3.Title = 'PT. INTERESSE';
-            app.Tab3.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.Tab3.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            % Create SubTab3
+            app.SubTab3 = uitab(app.SubTabGroup);
+            app.SubTab3.AutoResizeChildren = 'off';
+            app.SubTab3.Title = 'PT. INTERESSE';
+            app.SubTab3.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.SubTab3.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab3Grid
-            app.Tab3Grid = uigridlayout(app.Tab3);
-            app.Tab3Grid.ColumnWidth = {'1x', 22};
-            app.Tab3Grid.RowHeight = {22, 92, 118, 8, '1x'};
-            app.Tab3Grid.ColumnSpacing = 5;
-            app.Tab3Grid.RowSpacing = 5;
-            app.Tab3Grid.Padding = [10 10 10 5];
-            app.Tab3Grid.BackgroundColor = [1 1 1];
+            % Create SubGrid3
+            app.SubGrid3 = uigridlayout(app.SubTab3);
+            app.SubGrid3.ColumnWidth = {'1x', 22};
+            app.SubGrid3.RowHeight = {22, 92, 118, 8, '1x'};
+            app.SubGrid3.ColumnSpacing = 5;
+            app.SubGrid3.RowSpacing = 5;
+            app.SubGrid3.Padding = [10 10 10 5];
+            app.SubGrid3.BackgroundColor = [1 1 1];
 
             % Create points_TreeLabel
-            app.points_TreeLabel = uilabel(app.Tab3Grid);
+            app.points_TreeLabel = uilabel(app.SubGrid3);
             app.points_TreeLabel.VerticalAlignment = 'bottom';
             app.points_TreeLabel.FontSize = 10;
             app.points_TreeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -3325,7 +3267,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_TreeLabel.Text = 'TIPO';
 
             % Create points_RadioGroup
-            app.points_RadioGroup = uibuttongroup(app.Tab3Grid);
+            app.points_RadioGroup = uibuttongroup(app.SubGrid3);
             app.points_RadioGroup.AutoResizeChildren = 'off';
             app.points_RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @points_RadioGroupSelectionChanged, true);
             app.points_RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -3354,7 +3296,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_AddFindPeaks.Position = [12 7 277 44];
 
             % Create points_AddValuePanel
-            app.points_AddValuePanel = uipanel(app.Tab3Grid);
+            app.points_AddValuePanel = uipanel(app.SubGrid3);
             app.points_AddValuePanel.AutoResizeChildren = 'off';
             app.points_AddValuePanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_AddValuePanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -3477,7 +3419,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_Subtype2Distance.Value = 1000;
 
             % Create points_AddImage
-            app.points_AddImage = uiimage(app.Tab3Grid);
+            app.points_AddImage = uiimage(app.SubGrid3);
             app.points_AddImage.ScaleMethod = 'scaledown';
             app.points_AddImage.ImageClickedFcn = createCallbackFcn(app, @points_AddPointImageClicked, true);
             app.points_AddImage.Layout.Row = 4;
@@ -3487,7 +3429,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.points_AddImage.ImageSource = 'addSymbol_32.png';
 
             % Create points_Tree
-            app.points_Tree = uitree(app.Tab3Grid, 'checkbox');
+            app.points_Tree = uitree(app.SubGrid3, 'checkbox');
             app.points_Tree.FontSize = 10.5;
             app.points_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.points_Tree.Layout.Row = 5;
@@ -3496,24 +3438,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Assign Checked Nodes
             app.points_Tree.CheckedNodesChangedFcn = createCallbackFcn(app, @points_TreeCheckedNodesChanged, true);
 
-            % Create Tab4
-            app.Tab4 = uitab(app.TabGroup);
-            app.Tab4.AutoResizeChildren = 'off';
-            app.Tab4.Title = 'CONFIG';
-            app.Tab4.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.Tab4.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            % Create SubTab4
+            app.SubTab4 = uitab(app.SubTabGroup);
+            app.SubTab4.AutoResizeChildren = 'off';
+            app.SubTab4.Title = 'CONFIG';
+            app.SubTab4.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.SubTab4.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
-            % Create Tab4Grid
-            app.Tab4Grid = uigridlayout(app.Tab4);
-            app.Tab4Grid.ColumnWidth = {'1x', 22};
-            app.Tab4Grid.RowHeight = {22, 184, 22, '1x'};
-            app.Tab4Grid.ColumnSpacing = 5;
-            app.Tab4Grid.RowSpacing = 5;
-            app.Tab4Grid.Padding = [10 10 10 5];
-            app.Tab4Grid.BackgroundColor = [1 1 1];
+            % Create SubGrid4
+            app.SubGrid4 = uigridlayout(app.SubTab4);
+            app.SubGrid4.ColumnWidth = {'1x', 22};
+            app.SubGrid4.RowHeight = {22, 184, 22, '1x'};
+            app.SubGrid4.ColumnSpacing = 5;
+            app.SubGrid4.RowSpacing = 5;
+            app.SubGrid4.Padding = [10 10 10 5];
+            app.SubGrid4.BackgroundColor = [1 1 1];
 
             % Create config_geoAxesLabel
-            app.config_geoAxesLabel = uilabel(app.Tab4Grid);
+            app.config_geoAxesLabel = uilabel(app.SubGrid4);
             app.config_geoAxesLabel.VerticalAlignment = 'bottom';
             app.config_geoAxesLabel.WordWrap = 'on';
             app.config_geoAxesLabel.FontSize = 10;
@@ -3523,7 +3465,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_geoAxesLabel.Text = 'EIXO GEOGRÁFICO';
 
             % Create config_Refresh
-            app.config_Refresh = uiimage(app.Tab4Grid);
+            app.config_Refresh = uiimage(app.SubGrid4);
             app.config_Refresh.ScaleMethod = 'none';
             app.config_Refresh.ImageClickedFcn = createCallbackFcn(app, @config_RefreshImageClicked, true);
             app.config_Refresh.Visible = 'off';
@@ -3534,7 +3476,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Refresh.ImageSource = 'Refresh_18.png';
 
             % Create config_geoAxesPanel
-            app.config_geoAxesPanel = uipanel(app.Tab4Grid);
+            app.config_geoAxesPanel = uipanel(app.SubGrid4);
             app.config_geoAxesPanel.AutoResizeChildren = 'off';
             app.config_geoAxesPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_geoAxesPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -3743,7 +3685,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_points_Size.Value = 9;
 
             % Create config_xyAxesLabel
-            app.config_xyAxesLabel = uilabel(app.Tab4Grid);
+            app.config_xyAxesLabel = uilabel(app.SubGrid4);
             app.config_xyAxesLabel.VerticalAlignment = 'bottom';
             app.config_xyAxesLabel.WordWrap = 'on';
             app.config_xyAxesLabel.FontSize = 10;
@@ -3753,7 +3695,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_xyAxesLabel.Text = 'EIXOS CARTESIANOS';
 
             % Create config_xyAxesPanel
-            app.config_xyAxesPanel = uipanel(app.Tab4Grid);
+            app.config_xyAxesPanel = uipanel(app.SubGrid4);
             app.config_xyAxesPanel.AutoResizeChildren = 'off';
             app.config_xyAxesPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.config_xyAxesPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
@@ -4055,18 +3997,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_PlotSize.Layout.Column = 9;
             app.axesTool_PlotSize.Value = 1;
 
-            % Create DockModuleGroup
-            app.DockModuleGroup = uigridlayout(app.GridLayout);
-            app.DockModuleGroup.RowHeight = {'1x'};
-            app.DockModuleGroup.ColumnSpacing = 2;
-            app.DockModuleGroup.Padding = [5 2 5 2];
-            app.DockModuleGroup.Visible = 'off';
-            app.DockModuleGroup.Layout.Row = [2 3];
-            app.DockModuleGroup.Layout.Column = [7 8];
-            app.DockModuleGroup.BackgroundColor = [0.2 0.2 0.2];
+            % Create DockModule
+            app.DockModule = uigridlayout(app.GridLayout);
+            app.DockModule.RowHeight = {'1x'};
+            app.DockModule.ColumnSpacing = 2;
+            app.DockModule.Padding = [5 2 5 2];
+            app.DockModule.Visible = 'off';
+            app.DockModule.Layout.Row = [2 3];
+            app.DockModule.Layout.Column = [7 8];
+            app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModuleGroup);
+            app.dockModule_Close = uiimage(app.DockModule);
             app.dockModule_Close.ScaleMethod = 'none';
             app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Close.Tag = 'DRIVETEST';
@@ -4076,7 +4018,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Create dockModule_Undock
-            app.dockModule_Undock = uiimage(app.DockModuleGroup);
+            app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Undock.Tag = 'DRIVETEST';

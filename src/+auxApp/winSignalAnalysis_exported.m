@@ -4,7 +4,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                      matlab.ui.Figure
         GridLayout                    matlab.ui.container.GridLayout
-        DockModuleGroup               matlab.ui.container.GridLayout
+        DockModule                    matlab.ui.container.GridLayout
         dockModule_Undock             matlab.ui.control.Image
         dockModule_Close              matlab.ui.control.Image
         Document                      matlab.ui.container.GridLayout
@@ -59,33 +59,29 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     end
 
     
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        Role = 'secondaryApp'
+    end
+
+
     properties (Access = public)
         %-----------------------------------------------------------------%
         Container
         isDocked = false
-
         mainApp
+        jsBackDoor
+        progressDialog
+    end
+
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
         General
         General_I
         specData
         projectData
 
-        % A função do timer é executada uma única vez após a renderização
-        % da figura, lendo arquivos de configuração, iniciando modo de operação
-        % paralelo etc. A ideia é deixar o MATLAB focar apenas na criação dos 
-        % componentes essenciais da GUI (especificados em "createComponents"), 
-        % mostrando a GUI para o usuário o mais rápido possível.
-        timerObj
-        jsBackDoor
-
-        % Janela de progresso já criada no DOM. Dessa forma, controla-se 
-        % apenas a sua visibilidade - e tornando desnecessário criá-la a
-        % cada chamada (usando uiprogressdlg, por exemplo).
-        progressDialog
-
-        %-----------------------------------------------------------------%
-        % ESPECIFICIDADES AUXAPP.WINSIGNALANALYSIS
-        %-----------------------------------------------------------------%
         tempBandObj
         elevationObj = RF.Elevation
         emissionsTable
@@ -96,54 +92,41 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     end
 
 
-    methods
+    methods (Access = public)
         %-----------------------------------------------------------------%
-        % IPC: COMUNICAÇÃO ENTRE PROCESSOS
-        %-----------------------------------------------------------------%
-        function ipcSecundaryJSEventsHandler(app, event, varargin)
+        function ipcSecondaryJSEventsHandler(app, event, varargin)
             try
                 switch event.HTMLEventName
                     case 'renderer'
                         startup_Controller(app, varargin{:})
+
                     otherwise
                         error('UnexpectedEvent')
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
 
         %-----------------------------------------------------------------%
-        function ipcSecundaryMatlabCallsHandler(app, callingApp, varargin)
+        function ipcSecondaryMatlabCallsHandler(app, callingApp, varargin)
             try
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
                         Toolbar_CheckBoxValueChanged(app)
 
                     otherwise
-                        error('UnexpectedCall')
+                        error('UnexpectedCaller')
                 end
             
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
-    end
-
-
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % JSBACKDOOR: CUSTOMIZAÇÃO GUI (ESTÉTICA/COMPORTAMENTAL)
-        %-----------------------------------------------------------------%
-        function jsBackDoor_Initialization(app, varargin)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                              ...
-                                                  "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt, varargin{:}), ...
-                                                  "Visible",              "off");
-        end
 
         %-----------------------------------------------------------------%
-        function jsBackDoor_Customizations(app)
+        function applyJSCustomizations(app)
             if app.isDocked
                 app.progressDialog = app.mainApp.progressDialog;
             else
@@ -155,7 +138,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Grid botões "dock":
             if app.isDocked
-                elToModify = {app.DockModuleGroup};
+                elToModify = {app.DockModule};
                 elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
                 if ~isempty(elDataTag)
                     sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
@@ -172,62 +155,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 ui.TextView.startup(app.jsBackDoor, elToModify{1}, appName);
             end
         end
-    end
-    
-
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % INICIALIZAÇÃO
-        %-----------------------------------------------------------------%
-        function startup_timerCreation(app, idxPrjPeaks)            
-            % A criação desse timer tem como objetivo garantir uma renderização 
-            % mais rápida dos componentes principais da GUI, possibilitando a 
-            % visualização da sua tela inicialpelo usuário. Trata-se de aspecto 
-            % essencial quando o app é compilado como webapp.
-
-            app.timerObj = timer("ExecutionMode", "fixedSpacing", ...
-                                 "StartDelay",    1.5,            ...
-                                 "Period",        .1,             ...
-                                 "TimerFcn",      @(~,~)app.startup_timerFcn(idxPrjPeaks));
-            start(app.timerObj)
-        end
 
         %-----------------------------------------------------------------%
-        function startup_timerFcn(app, selectedRow)
-            if ui.FigureRenderStatus(app.UIFigure)
-                stop(app.timerObj)
-                delete(app.timerObj)
-
-                jsBackDoor_Initialization(app, selectedRow)
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_Controller(app, selectedRow)
-            drawnow
-            jsBackDoor_Customizations(app)
-
-            app.progressDialog.Visible = 'visible';
-
-            startup_AppProperties(app)
-            startup_GUIComponents(app)
-            startup_Axes(app)
-            drawnow
-
-            pause(.100)
-            Toolbar_CheckBoxValueChanged(app, struct('initialSelection', selectedRow))
-            focus(app.UITable)
-
-            app.progressDialog.Visible = 'hidden';
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_AppProperties(app)
+        function initializeAppProperties(app)
             app.tempBandObj = class.Band('appAnalise:SIGNALANALYSIS', app);
         end
 
         %-----------------------------------------------------------------%
-        function startup_GUIComponents(app)
+        function initializeUIComponents(app)
             if ~strcmp(app.mainApp.executionMode, 'webApp')
                 app.dockModule_Undock.Enable = 1;
             end
@@ -235,8 +170,20 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.axesTool_Pan.UserData = false;
             app.TXLocation_EditMode.UserData = false;
             app.UITable.RowName = 'numbered';
+
+            startup_Axes(app)
         end
 
+        %-----------------------------------------------------------------%
+        function applyInitialLayout(app)
+            pause(.100)
+            Toolbar_CheckBoxValueChanged(app, struct('initialSelection', selectedRow))
+            focus(app.UITable)
+        end
+    end
+
+
+    methods (Access = private)
         %-----------------------------------------------------------------%
         function startup_Axes(app)
             % Axes creation:
@@ -305,9 +252,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.progressDialog.Visible = 'hidden';
             end
         end
-    end
-
-    methods (Access = private)
+        
         %-----------------------------------------------------------------%
         function layout_editRFDataHubStation(app, editionStatus)
             arguments
@@ -521,7 +466,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             else
                 msgWarning = 'Não identificado o fluxo de dados relacionado à emissão...';
-                appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                ui.Dialog(app.UIFigure, 'warning', msgWarning);
             end
         end
 
@@ -534,7 +479,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 % ELEVAÇÃO DO LINK TX-RX
                 [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.General.Elevation.Points, app.General.Elevation.ForceSearch, app.General.Elevation.Server);
                 if ~isempty(msgWarning)
-                    appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
                 end
     
                 % PLOT: RFLink
@@ -688,11 +633,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             if app.isDocked
                 app.GridLayout.Padding(4) = 30;
-                app.DockModuleGroup.Visible = 1;
+                app.DockModule.Visible = 1;
                 app.jsBackDoor = mainApp.jsBackDoor;
                 startup_Controller(app, selectedRow)
             else
-                appUtil.winPosition(app.UIFigure)
+                appEngine.util.setWindowPosition(app.UIFigure)
                 startup_timerCreation(app, selectedRow)
             end
             
@@ -750,7 +695,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         iconWarning = 'none';
                     end
                     msgWarning = sprintf('%s\n%s', 'Lista global de exceções:', strjoin(globalEmissiontList, '\n'));
-                    appUtil.modalWindow(app.UIFigure, iconWarning, msgWarning);
+                    ui.Dialog(app.UIFigure, iconWarning, msgWarning);
 
                 %---------------------------------------------------------%
                 case app.tool_ExportJSONFile
@@ -764,8 +709,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     emissionFiscalizaTable = reportLibConnection.table.fiscalizaJsonFile(app.specData, idxThreads, emissionSummaryTable);
     
                     nameFormatMap   = {'*.json', 'appAnalise (*.json)'};
-                    defaultFilename = class.Constants.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'preReport', app.mainApp.report_Issue.Value);
-                    JSONFullPath    = appUtil.modalWindow(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultFilename);
+                    defaultFilename = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'preReport', app.mainApp.report_Issue.Value);
+                    JSONFullPath    = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultFilename);
                     if isempty(JSONFullPath)
                         return
                     end
@@ -944,7 +889,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                                                         'Distance',    sprintf('%.1f km', stationInfo.Distance)));
 
                 msgQuestion    = sprintf('%s<br><font style="font-size: 12px;">Confirma edição?<font>', textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", '', 'popup'));
-                userSelection  = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                userSelection  = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
                 switch userSelection
                     case 'Sim'
                         AddException(app, app.StationID, stationInfo)
@@ -954,7 +899,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             catch ME
                 app.StationID.Value = num2str(app.specData(idxThread).UserData.Emissions.Classification(idxEmission).userModified.Station);
-                appUtil.modalWindow(app.UIFigure, 'warning', getReport(ME));
+                ui.Dialog(app.UIFigure, 'warning', getReport(ME));
             end
             
         end
@@ -970,7 +915,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                                   'campo "Estação / ID", inserindo o número da estação ou a ID do registro no RFDataHub. ' ...
                                   'O seu formato é numérico, com a ressalva de que quando inserido a ID do registro '      ...
                                   'deve ser colocado o caractere "#" à frente do número. Por exemplo: 123456 ou #123456.'];
-                    appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
                     return
 
                 otherwise % case {'Licenciada UTE', 'Não licenciada', 'Não passível de licenciamento'}
@@ -981,7 +926,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         msgWarning = ['O campo "Informações complementares" não pode ficar vazio para registros ' ...
                                       'relacionados a uma estação "Licenciada UTE", "Não licenciada" ou "Não passível de licenciamento".<br><br>' ...
                                       'Edite o campo "Informações complementares" antes de alterar a "Situação".'];
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                        ui.Dialog(app.UIFigure, 'warning', msgWarning);
                         return
                     end
             end
@@ -1003,7 +948,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 msgWarning = ['O campo "Informações complementares" não pode ficar vazio para registros ' ...
                               'relacionados a uma estação "Licenciada UTE", "Não licenciada" ou "Não passível de licenciamento".<br><br>' ...
                               'Edite o campo "Informações complementares" antes de alterar o "Tipo de emissão".'];
-                appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                ui.Dialog(app.UIFigure, 'warning', msgWarning);
                 return
             end
 
@@ -1029,7 +974,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     
                         msgWarning = ['O campo "Informações complementares" não pode ficar vazio para registros ' ...
                                       'relacionados a uma estação "Licenciada UTE", "Não licenciada" ou "Não passível de licenciamento".'];
-                        appUtil.modalWindow(app.UIFigure, 'warning', msgWarning);
+                        ui.Dialog(app.UIFigure, 'warning', msgWarning);
                         return
                     end
 
@@ -1511,18 +1456,18 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.axesTool_Warning.VerticalAlignment = 'bottom';
             app.axesTool_Warning.ImageSource = 'Warn_18.png';
 
-            % Create DockModuleGroup
-            app.DockModuleGroup = uigridlayout(app.GridLayout);
-            app.DockModuleGroup.RowHeight = {'1x'};
-            app.DockModuleGroup.ColumnSpacing = 2;
-            app.DockModuleGroup.Padding = [5 2 5 2];
-            app.DockModuleGroup.Visible = 'off';
-            app.DockModuleGroup.Layout.Row = [2 3];
-            app.DockModuleGroup.Layout.Column = [5 6];
-            app.DockModuleGroup.BackgroundColor = [0.2 0.2 0.2];
+            % Create DockModule
+            app.DockModule = uigridlayout(app.GridLayout);
+            app.DockModule.RowHeight = {'1x'};
+            app.DockModule.ColumnSpacing = 2;
+            app.DockModule.Padding = [5 2 5 2];
+            app.DockModule.Visible = 'off';
+            app.DockModule.Layout.Row = [2 3];
+            app.DockModule.Layout.Column = [5 6];
+            app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModuleGroup);
+            app.dockModule_Close = uiimage(app.DockModule);
             app.dockModule_Close.ScaleMethod = 'none';
             app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Close.Tag = 'DRIVETEST';
@@ -1532,7 +1477,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Create dockModule_Undock
-            app.dockModule_Undock = uiimage(app.DockModuleGroup);
+            app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
             app.dockModule_Undock.Tag = 'DRIVETEST';

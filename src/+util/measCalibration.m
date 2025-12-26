@@ -70,9 +70,9 @@ end
 
 
 %-------------------------------------------------------------------------%
-function kFactorTable = FactorTable(RootFolder, Name)
+function kFactorTable = FactorTable(rootFolder, Name)
     [projectFolder, ...
-     programDataFolder] = appUtil.Path(class.Constants.appName, RootFolder);
+     programDataFolder] = appEngine.util.Path(class.Constants.appName, rootFolder);
     try
         kFactorTable = jsondecode(fileread(fullfile(programDataFolder, 'Calibration.json')));
     catch

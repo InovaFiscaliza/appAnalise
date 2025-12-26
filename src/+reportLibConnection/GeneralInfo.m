@@ -42,7 +42,7 @@ function [idxThreads, reportInfo] = GeneralInfo(app, Mode, reportTemplateIndex)
 
     if reportTemplateIndex >= 1
         [projectFolder, ...
-         programDataFolder]  = appUtil.Path(class.Constants.appName, app.rootFolder);
+         programDataFolder]  = appEngine.util.Path(class.Constants.appName, app.rootFolder);
 
         if isfile(fullfile(programDataFolder, 'ReportTemplates', app.General.Models.Template{reportTemplateIndex}))
             reportTemplateScript = fileread(fullfile(programDataFolder, 'ReportTemplates', app.General.Models.Template{reportTemplateIndex}));

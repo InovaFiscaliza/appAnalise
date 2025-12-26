@@ -38,7 +38,7 @@ classdef specData < handle
                 varargin
             end
 
-            appUtil.disablingWarningMessages()
+            appEngine.util.disableWarnings()
 
             switch operationType 
                 case {'MetaData', 'SpecData'}
