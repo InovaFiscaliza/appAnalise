@@ -49,7 +49,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
     end
@@ -60,7 +60,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
         % JSBACKDOOR: CUSTOMIZAÇÃO GUI (ESTÉTICA/COMPORTAMENTAL)
         %-----------------------------------------------------------------%
         function jsBackDoor_Initialization(app, varargin)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                              ...
+            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appEngine.util.jsBackDoorHTMLSource(),                              ...
                                                   "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt, varargin{:}), ...
                                                   "Visible",              "off");
         end
@@ -112,7 +112,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
             jsBackDoor_Customizations(app)
 
             [projectFolder, ...
-             programDataFolder] = appUtil.Path(class.Constants.appName, app.rootFolder);
+             programDataFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
             try
                 kFactorTable = jsondecode(fileread(fullfile(programDataFolder, 'Calibration.json')));
             catch
@@ -181,7 +181,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
                 util.measCalibration(app.specData, app.rootFolder, operationType, idxThread, idxCalibration, kFactorName)
             catch ME
                 msgError = ME.message;
-                appUtil.modalWindow(app.UIFigure, 'warning', ME.message);
+                ui.Dialog(app.UIFigure, 'warning', ME.message);
             end
         end
 
@@ -214,7 +214,7 @@ classdef dockAddKFactor_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'mainApp', 'auxApp.dockAddKFactor')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcnCallFromPopupApp', 'mainApp', 'auxApp.dockAddKFactor')
             delete(app)
             
         end

@@ -153,7 +153,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'mainApp', 'auxApp.dockAddFiles')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcnCallFromPopupApp', 'mainApp', 'auxApp.dockAddFiles')
             delete(app)
             
         end
@@ -174,7 +174,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
             % Questiona usuário se o arquivo deve ser inserido na lista de
             % arquivo relacionado a todos os fluxos espectrais
             msgQuestion   = 'Deseja adicionar o(s) arquivo(s) selecionado(s) a todos os fluxos espectrais a processar?';
-            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
             switch userSelection
                 case 'Sim'
                     idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
@@ -267,7 +267,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
         function btnImport_2ImageClicked(app, event)
             
             msgQuestion   = 'Deseja reiniciar o mapeamento entre o projeto e arquivos externos?';
-            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
             if strcmp(userSelection, 'Não')
                 return
             end

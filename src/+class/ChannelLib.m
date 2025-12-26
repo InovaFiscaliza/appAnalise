@@ -18,7 +18,7 @@ classdef ChannelLib < handle
             end
 
             [projectFolder, ...
-             programDataFolder] = appUtil.Path(appName, rootFolder);
+             programDataFolder] = appEngine.util.Path(appName, rootFolder);
             try
                 channelTempLib  = jsondecode(fileread(fullfile(programDataFolder, 'ChannelLib.json')));
             catch
@@ -36,7 +36,7 @@ classdef ChannelLib < handle
         %-----------------------------------------------------------------%
         function Save(obj, appName, rootFolder)
             [~, ...
-             programDataFolder] = appUtil.Path(appName, rootFolder);
+             programDataFolder] = appEngine.util.Path(appName, rootFolder);
             programDataFilePath = fullfile(programDataFolder, 'ChannelLib.json');
 
             try

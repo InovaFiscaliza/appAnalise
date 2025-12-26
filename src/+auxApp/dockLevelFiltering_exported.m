@@ -81,7 +81,7 @@ classdef dockLevelFiltering_exported < matlab.apps.AppBase
                     end
 
                     if ~fcnHandleFlag
-                        appUtil.modalWindow(app.mainApp.UIFigure, 'warning', 'Deve ser selecionado ao menos um dos tipos de análise.');
+                        ui.Dialog(app.mainApp.UIFigure, 'warning', 'Deve ser selecionado ao menos um dos tipos de análise.');
                         return
                     end
 
@@ -91,7 +91,7 @@ classdef dockLevelFiltering_exported < matlab.apps.AppBase
                         fcnHandleStr ...
                     );
 
-                    appUtil.modalWindow(app.mainApp.UIFigure, 'info', strjoin(filteringLog, '\n\n'));
+                    ui.Dialog(app.mainApp.UIFigure, 'info', strjoin(filteringLog, '\n\n'));
                     updateFlag = ~isempty(editedData);
                     args = {editedData, 'copy'};
 

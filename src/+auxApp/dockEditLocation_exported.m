@@ -213,7 +213,7 @@ classdef dockEditLocation_exported < matlab.apps.AppBase
                         app.rxCity.Value = cityName;
 
                         msgQuestion      = 'Deseja atualizar, além da localidade, as informações de Latitude e Longitude?';
-                        userSelection    = appUtil.modalWindow(app.mainApp.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);        
+                        userSelection    = ui.Dialog(app.mainApp.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);        
                         if userSelection == "Não"
                             return
                         end
@@ -226,7 +226,7 @@ classdef dockEditLocation_exported < matlab.apps.AppBase
                         
                         msgWarning       = sprintf(['Não encontrada em base do IBGE o município <b>"%s"</b>. Favor corrigir ' ...
                                                     'eventual erro na grafia, inserindo os acentos, no formato Município/UF.'], app.rxCity.Value);
-                        appUtil.modalWindow(app.mainApp.UIFigure, 'warning', msgWarning);
+                        ui.Dialog(app.mainApp.UIFigure, 'warning', msgWarning);
                     end
             end
             

@@ -68,7 +68,7 @@ function Controller(app, operationType)
                 [ReportProject, emissionFiscalizaTable] = reportLibConnection.table.fiscalizaStructureFields(app, idxThreads, reportInfo, 'REPORT: JSONFile');
 
                 save(MATFile, 'ReportProject', '-mat', '-v7.3')
-                writematrix(emissionFiscalizaTable, JSONFile, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
+                writematrix(emissionFiscalizaTable, JSONFile, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8", "WriteMode", "overwrite")
                 zip(ZIPFile, {HTMLDocFullPath, JSONFile, MATFile})
                 
                 app.projectData.generatedFiles.lastHTMLDocFullPath = HTMLDocFullPath;

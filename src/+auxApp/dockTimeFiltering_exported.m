@@ -69,7 +69,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
     end
@@ -80,7 +80,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
         % JSBACKDOOR
         %-----------------------------------------------------------------%
         function jsBackDoor_Initialization(app, varargin)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                              ...
+            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appEngine.util.jsBackDoorHTMLSource(),                       ...
                                                   "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt, varargin{:}), ...
                                                   "Visible",              "off");
         end
@@ -265,7 +265,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'mainApp', 'auxApp.dockTimeFiltering')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcnCallFromPopupApp', 'mainApp', 'auxApp.dockTimeFiltering')
             delete(app)
             
         end
@@ -392,7 +392,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
                 Filtering(app)
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'warning', ME.message);
+                ui.Dialog(app.UIFigure, 'warning', ME.message);
             end
 
         end

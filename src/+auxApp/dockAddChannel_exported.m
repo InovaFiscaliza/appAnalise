@@ -90,7 +90,7 @@ classdef dockAddChannel_exported < matlab.apps.AppBase
                                               'fluxo espectral selecionado, caso se sobreponham à faixa de frequência, substituindo '    ...
                                               'eventuais canalizações inseridas manualmente que tenham um dos supracitados nomes.\n\n'   ...
                                               'Deseja analisar a inclusão desses registros para os outros fluxos?'], strjoin({chList.Name}, ', '));
-                    userSelection  = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+                    userSelection  = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
 
                     switch userSelection
                         case 'Não'

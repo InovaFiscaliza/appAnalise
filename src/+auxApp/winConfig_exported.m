@@ -111,7 +111,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                 end
 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
     end
@@ -122,7 +122,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         % JSBACKDOOR
         %-----------------------------------------------------------------%
         function jsBackDoor_Initialization(app)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appUtil.jsBackDoorHTMLSource(),                 ...
+            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appEngine.util.jsBackDoorHTMLSource(),                 ...
                                                   "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt), ...
                                                   "Visible",              "off");
         end
@@ -345,7 +345,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function saveGeneralSettings(app)
-            appUtil.generalSettingsSave(class.Constants.appName, app.mainApp.rootFolder, app.mainApp.General_I, app.mainApp.executionMode)
+            appEngine.util.generalSettingsSave(class.Constants.appName, app.mainApp.rootFolder, app.mainApp.General_I, app.mainApp.executionMode)
         end
     end
     
@@ -364,7 +364,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                 app.jsBackDoor = mainApp.jsBackDoor;
                 startup_Controller(app)
             else
-                appUtil.winPosition(app.UIFigure)
+                appEngine.util.setWindowPosition(app.UIFigure)
                 startup_timerCreation(app)
             end
             
@@ -416,7 +416,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.progressDialog.Visible = 'visible';
 
             [htmlContent, app.stableVersion, updatedModule] = util.HtmlTextGenerator.checkAvailableUpdate(app.mainApp.General, app.mainApp.rootFolder);
-            appUtil.modalWindow(app.UIFigure, "info", htmlContent);
+            ui.Dialog(app.UIFigure, "info", htmlContent);
             app.tool_RFDataHubButton.Enable = ~ismember('RFDataHub', updatedModule);
 
             app.progressDialog.Visible = 'hidden';
@@ -428,11 +428,11 @@ classdef winConfig_exported < matlab.apps.AppBase
             
             if isequal(rmfield(app.mainApp.General.AppVersion.database, 'name'),  app.stableVersion.rfDataHub)
                 app.tool_RFDataHubButton.Enable = 0;
-                appUtil.modalWindow(app.UIFigure, 'warning', 'Módulo RFDataHub já atualizado!');
+                ui.Dialog(app.UIFigure, 'warning', 'Módulo RFDataHub já atualizado!');
                 return
             end
 
-            d = appUtil.modalWindow(app.UIFigure, "progressdlg", 'Em andamento... esse processo demorará alguns minutos!');
+            d = ui.Dialog(app.UIFigure, "progressdlg", 'Em andamento... esse processo demorará alguns minutos!');
 
             try
                 appName = class.Constants.appName;
@@ -450,7 +450,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                 app.tool_RFDataHubButton.Enable = 0;
                 
             catch ME
-                appUtil.modalWindow(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
 
             General_updatePanel(app)
@@ -462,7 +462,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         function Toolbar_SimulationModeButtonPushed(app, event)
             
             msgQuestion   = 'Deseja abrir arquivos de <b>simulação</b>?';
-            userSelection = appUtil.modalWindow(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
             
             if strcmp(userSelection, 'Não')
                 return
@@ -615,7 +615,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                         else
                             selectedFolderFiles = dir(selectedFolder);
                             if ~ismember('.appanalise_post', {selectedFolderFiles.name})
-                                appUtil.modalWindow(app.UIFigure, 'error', 'Não se trata da pasta "DataHub - POST", do appAnalise.');
+                                ui.Dialog(app.UIFigure, 'error', 'Não se trata da pasta "DataHub - POST", do appAnalise.');
                                 return
                             end
 

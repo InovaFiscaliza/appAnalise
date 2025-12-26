@@ -7,7 +7,7 @@ function varargout = publicLink(appName, rootFolder, requiredLinks, fileName)
     end
 
     varargout = {};
-    [projectFolder, programDataFolder] = appUtil.Path(appName, rootFolder);
+    [projectFolder, programDataFolder] = appEngine.util.Path(appName, rootFolder);
 
     try
         fileContent = jsondecode(fileread(fullfile(programDataFolder, fileName)));
