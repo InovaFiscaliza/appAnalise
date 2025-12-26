@@ -554,6 +554,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                             tabNavigatorButtonPushed(app, struct('Source', app.Tab1Button, 'PreviousValue', false))
                                         end
 
+                                    case 'onYAxesScaleChange'
+                                        if ~isempty(app.UIAxes2) && isvalid(app.UIAxes2)
+                                            set(app.UIAxes2, 'YScale', app.General.Plot.Axes.yOccupancyScale)
+                                        end
+
+                                    case 'onRFDataHubUpdate'
+                                        initializeRFDataHub(app)
+                                        ipcMainMatlabCallAuxiliarApp(app, 'RFDATAHUB', 'MATLAB', operationType)
+
                                     otherwise
                                         error('UnexpectedCall')
                                 end
@@ -868,7 +877,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             play_FindPeaks_AlgorithmValueChanged(app)
                 
                             % Painel "RELATÓRIO"
-                            app.report_Unit.Items      = app.General.ui.unit.options;
+                            app.report_Unit.Items      = app.General.eFiscaliza.defaultValues.unit;
                             app.report_ModelName.Items = [{''}; app.General.Models.Name];
                             
                             if app.General.operationMode.Simulation
@@ -975,6 +984,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % Base64 são menores (uma imagem com Basemap "sattelite" pode 
                     % ter 500 kB, enquanto uma imagem sem Basemap pode ter 25 kB).
                     app.General_I.Plot.GeographicAxes.Basemap = 'none';
+                    app.General_I.Report.Basemap              = 'none';
 
                 otherwise    
                     % Resgata a pasta de trabalho do usuário (configurável).
@@ -997,16 +1007,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 model.RFDataHub.read(appName, app.rootFolder, tempDir)
             end
 
-            % Um dos arquivos que compõem a subpasta "config", copiada para
-            % "ProgramData/ANATEL/appAnalise" na primeira execução, é o arquivo 
-            % "ReportTemplates.json".
-            [projectFolder, programDataFolder] = appEngine.util.Path(appName, app.rootFolder);
-            if isfile(fullfile(programDataFolder, 'ReportTemplates.json'))
-                reportTemplateFile = fullfile(programDataFolder, 'ReportTemplates.json');
-            else
-                reportTemplateFile = fullfile(projectFolder,     'ReportTemplates.json');
-            end
-
             % Leitura de arquivo "IBGE.mat", salvando-o em memória como 
             % variável global.
             [~, msgError] = gpsLib.checkIfIBGEIsGlobal();
@@ -1026,27 +1026,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             app.General            = app.General_I;
             app.General.AppVersion = util.getAppVersion(app.rootFolder, MFilePath, tempDir);
-            app.General.Models     = struct2table(jsondecode(fileread(reportTemplateFile)));
-            app.General.Report     = '';
             sendEventToHTMLSource(app.jsBackDoor, 'getNavigatorBasicInformation')
         end
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
-            % RFDataHub
-            global RFDataHub
-            global RFDataHubLog
+            initializeRFDataHub(app)
 
-            app.rfDataHub        = RFDataHub;
-            app.rfDataHubLOG     = RFDataHubLog;
-            app.rfDataHubSummary = summary(RFDataHub(:, {'Source', 'State'}));
-
-            % A coluna "Source" possui agrupamentos da fonte dos dados,
-            % decorrente da mesclagem de estações.
-            tempSourceList = cellfun(@(x) strsplit(x, ' | '), app.rfDataHubSummary.Source.Categories, 'UniformOutput', false);
-            app.rfDataHubSummary.Source.RawCategories = unique(horzcat(tempSourceList{:}))';
-
-            % app.projectData
             app.projectData = model.projectLib(app, app.rootFolder);
             app.bandObj     = class.Band('appAnalise:PLAYBACK', app);
             app.channelObj  = class.ChannelLib(class.Constants.appName, app.rootFolder);
@@ -1085,13 +1071,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.play_PlotPanel.UserData               = [];
             app.report_ThreadAlgorithms.UserData      = struct('idxThread', [], 'id', '');
 
-            DataHubWarningLamp(app)
             addStyle(app.file_Tree, uistyle('Interpreter', 'html'))
         end
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            % ...
+            DataHubWarningLamp(app)
         end
     end
 
@@ -1104,6 +1089,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             else
                 app.DataHubLamp.Visible = 1;
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function initializeRFDataHub(app)
+            global RFDataHub
+            global RFDataHubLog
+
+            app.rfDataHub        = RFDataHub;
+            app.rfDataHubLOG     = RFDataHubLog;
+            app.rfDataHubSummary = summary(RFDataHub(:, {'Source', 'State'}));
+
+            % A coluna "Source" possui agrupamentos da fonte dos dados,
+            % decorrente da mesclagem de estações.
+            tempSourceList = cellfun(@(x) strsplit(x, ' | '), app.rfDataHubSummary.Source.Categories, 'UniformOutput', false);
+            app.rfDataHubSummary.Source.RawCategories = unique(horzcat(tempSourceList{:}))';
         end
 
         %-----------------------------------------------------------------%

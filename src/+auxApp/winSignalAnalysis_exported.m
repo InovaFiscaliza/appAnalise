@@ -646,7 +646,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'SIGNALANALYSIS')
             delete(app)
             
         end

@@ -409,7 +409,7 @@ classdef (Abstract) HtmlTextGenerator
                 serviceIDs     = int16(str2double(extractBefore(serviceOptions, '-')));
                 id2nameTable   = table(serviceIDs, serviceOptions, 'VariableNames', {'ID', 'Serviço'});
             end
-            stationService = fiscalizaGUI.serviceMapping(stationInfo.Service);
+            stationService = ws.eFiscaliza.serviceMapping(stationInfo.Service);
         
             [~, idxService] = ismember(stationInfo.Service, id2nameTable.ID);
             if idxService
@@ -449,15 +449,20 @@ classdef (Abstract) HtmlTextGenerator
             end
         
             % dataStruct2HTMLContent
-            dataStruct(1) = struct('group', 'Service',                  'value', stationService);
-            dataStruct(2) = struct('group', 'Station',                  'value', stationNumber);
-            dataStruct(3) = struct('group', 'Localização',              'value', stationLocation);
-            dataStruct(4) = struct('group', 'Altura',                   'value', stationHeight);
+            dataStruct(1) = struct('group', 'Service',     'value', stationService);
+            dataStruct(2) = struct('group', 'Station',     'value', stationNumber);
+            dataStruct(3) = struct('group', 'Localização', 'value', stationLocation);
+            dataStruct(4) = struct('group', 'Altura',      'value', stationHeight);
 
-            columns2Del   = {'AntennaPattern', 'BW', 'Description', 'Distance', 'Fistel', 'Frequency',     ...
-                             'ID', 'Latitude', 'LocationID', 'Location', 'Log', 'Longitude', 'MergeCount', ...
-                             'Name', 'Station', 'StationClass', 'Status', 'Service', 'Source', 'State', 'URL'};
-            dataStruct(5) = struct('group', 'OUTROS ASPECTOS TÉCNICOS', 'value', rmfield(stationInfo, columns2Del));        
+            editedStationInfo = rmfield(stationInfo, { ...
+                'AntennaPattern', 'BW', 'Description', 'Distance', 'Fistel', 'Frequency',     ...
+                'ID', 'Latitude', 'LocationID', 'Location', 'Log', 'Longitude', 'MergeCount', ...
+                'Name', 'Station', 'StationClass', 'Status', 'Service', 'Source', 'State', 'URL', 'x_Name', 'x_Location' ...
+            });
+            if any(cellfun(@(x) ~isequal(x, categorical(-1)), struct2cell(editedStationInfo)))
+                dataStruct(end+1) = struct('group', 'OUTROS ASPECTOS TÉCNICOS', 'value', editedStationInfo);
+            end
+
             if mergeCount > 1
                 dataStruct(end+1) = struct('group', 'NÚMERO ESTAÇÕES AGRUPADAS', 'value', string(mergeCount));
             end

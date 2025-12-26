@@ -2,65 +2,88 @@ classdef winConfig_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                   matlab.ui.Figure
-        GridLayout                 matlab.ui.container.GridLayout
-        DockModule                 matlab.ui.container.GridLayout
-        dockModule_Undock          matlab.ui.control.Image
-        dockModule_Close           matlab.ui.control.Image
-        SubTabGroup                matlab.ui.container.TabGroup
-        SubTab1                    matlab.ui.container.Tab
-        SubGrid1                   matlab.ui.container.GridLayout
-        tool_RFDataHubButton       matlab.ui.control.Image
-        tool_versionInfoRefresh    matlab.ui.control.Image
-        openAuxiliarApp2Debug      matlab.ui.control.CheckBox
-        openAuxiliarAppAsDocked    matlab.ui.control.CheckBox
-        versionInfo                matlab.ui.control.Label
-        versionInfoLabel           matlab.ui.control.Label
-        SubTab2                    matlab.ui.container.Tab
-        SubGrid2                   matlab.ui.container.GridLayout
-        analysis_ElevationPanel    matlab.ui.container.Panel
-        analysis_ElevationGrid     matlab.ui.container.GridLayout
-        elevationForceSearch       matlab.ui.control.CheckBox
-        elevationNPoints           matlab.ui.control.DropDown
-        elevationNPointsLabel      matlab.ui.control.Label
-        elevationAPIServer         matlab.ui.control.DropDown
-        elevationAPIServerLabel    matlab.ui.control.Label
-        analysis_ElevationRefresh  matlab.ui.control.Image
-        analysis_ElevationLabel    matlab.ui.control.Label
-        analysis_GraphicsPanel     matlab.ui.container.Panel
-        analysis_GraphicsGrid      matlab.ui.container.GridLayout
-        InitialBW_kHz              matlab.ui.control.Spinner
-        InitialBW_kHzLabel         matlab.ui.control.Label
-        yOccupancyScale            matlab.ui.control.DropDown
-        yOccupancyScaleLabel       matlab.ui.control.Label
-        imgResolution              matlab.ui.control.DropDown
-        imgResolutionLabel         matlab.ui.control.Label
-        imgFormat                  matlab.ui.control.DropDown
-        imgFormatLabel             matlab.ui.control.Label
-        analysis_GraphicsRefresh   matlab.ui.control.Image
-        analysis_GraphicsLabel     matlab.ui.control.Label
-        analysis_FilePanel         matlab.ui.container.Panel
-        analysis_FileGrid          matlab.ui.container.GridLayout
-        detectionManualMode        matlab.ui.control.CheckBox
-        channelManualMode          matlab.ui.control.CheckBox
-        mergeDistance              matlab.ui.control.Spinner
-        mergeLabel2                matlab.ui.control.Label
-        mergeAntenna               matlab.ui.control.CheckBox
-        mergeDataType              matlab.ui.control.CheckBox
-        mergeLabel1                matlab.ui.control.Label
-        analysis_FileRefresh       matlab.ui.control.Image
-        analysis_FileLabel         matlab.ui.control.Label
-        SubTab3                    matlab.ui.container.Tab
-        SubGrid3                   matlab.ui.container.GridLayout
-        userPathButton             matlab.ui.control.Image
-        userPath                   matlab.ui.control.EditField
-        userPathLabel              matlab.ui.control.Label
-        DataHubPOSTButton          matlab.ui.control.Image
-        DataHubPOST                matlab.ui.control.EditField
-        DATAHUBPOSTLabel           matlab.ui.control.Label
-        Toolbar                    matlab.ui.container.GridLayout
-        tool_simulationMode        matlab.ui.control.Image
-        tool_openDevTools          matlab.ui.control.Image
+        UIFigure                     matlab.ui.Figure
+        GridLayout                   matlab.ui.container.GridLayout
+        DockModule                   matlab.ui.container.GridLayout
+        dockModule_Undock            matlab.ui.control.Image
+        dockModule_Close             matlab.ui.control.Image
+        SubTabGroup                  matlab.ui.container.TabGroup
+        SubTab1                      matlab.ui.container.Tab
+        SubGrid1                     matlab.ui.container.GridLayout
+        tool_RFDataHubButton         matlab.ui.control.Image
+        tool_versionInfoRefresh      matlab.ui.control.Image
+        openAuxiliarApp2Debug        matlab.ui.control.CheckBox
+        openAuxiliarAppAsDocked      matlab.ui.control.CheckBox
+        versionInfo                  matlab.ui.control.Label
+        versionInfoLabel             matlab.ui.control.Label
+        SubTab2                      matlab.ui.container.Tab
+        SubGrid2                     matlab.ui.container.GridLayout
+        analysis_ElevationPanel      matlab.ui.container.Panel
+        analysis_ElevationGrid       matlab.ui.container.GridLayout
+        elevationForceSearch         matlab.ui.control.CheckBox
+        elevationNPoints             matlab.ui.control.DropDown
+        elevationNPointsLabel        matlab.ui.control.Label
+        elevationAPIServer           matlab.ui.control.DropDown
+        elevationAPIServerLabel      matlab.ui.control.Label
+        configAnalysisLabel3         matlab.ui.control.Label
+        analysis_GraphicsPanel       matlab.ui.container.Panel
+        analysis_GraphicsGrid        matlab.ui.container.GridLayout
+        InitialBW_kHz                matlab.ui.control.Spinner
+        InitialBW_kHzLabel           matlab.ui.control.Label
+        yOccupancyScale              matlab.ui.control.DropDown
+        yOccupancyScaleLabel         matlab.ui.control.Label
+        configAnalysisLabel2         matlab.ui.control.Label
+        analysis_FilePanel           matlab.ui.container.Panel
+        analysis_FileGrid            matlab.ui.container.GridLayout
+        detectionManualMode          matlab.ui.control.CheckBox
+        channelManualMode            matlab.ui.control.CheckBox
+        mergeDistance                matlab.ui.control.Spinner
+        mergeLabel2                  matlab.ui.control.Label
+        mergeAntenna                 matlab.ui.control.CheckBox
+        mergeDataType                matlab.ui.control.CheckBox
+        mergeLabel1                  matlab.ui.control.Label
+        configAnalysisRefresh        matlab.ui.control.Image
+        configAnalysisLabel1         matlab.ui.control.Label
+        SubTab3                      matlab.ui.container.Tab
+        SubGrid3                     matlab.ui.container.GridLayout
+        reportPanel                  matlab.ui.container.Panel
+        reportGrid_2                 matlab.ui.container.GridLayout
+        prjFileCompressionMode       matlab.ui.control.DropDown
+        prjFileCompressionModeLabel  matlab.ui.control.Label
+        reportBinningPanel           matlab.ui.container.Panel
+        reportBinningGrid            matlab.ui.container.GridLayout
+        reportBinningFcn             matlab.ui.control.DropDown
+        reportBinningFcnLabel        matlab.ui.control.Label
+        reportBinningLength          matlab.ui.control.Spinner
+        reportBinningLengthLabel     matlab.ui.control.Label
+        reportBinningLabel           matlab.ui.control.Label
+        reportImgDpi                 matlab.ui.control.DropDown
+        reportImgFormat              matlab.ui.control.DropDown
+        reportImageLabel             matlab.ui.control.Label
+        reportBasemap                matlab.ui.control.DropDown
+        reportBasemapLabel           matlab.ui.control.Label
+        reportDocType                matlab.ui.control.DropDown
+        reportDocTypeLabel           matlab.ui.control.Label
+        reportLabel                  matlab.ui.control.Label
+        eFiscalizaPanel              matlab.ui.container.Panel
+        eFiscalizaGrid               matlab.ui.container.GridLayout
+        reportUnit                   matlab.ui.control.DropDown
+        reportUnitLabel              matlab.ui.control.Label
+        reportSystem                 matlab.ui.control.DropDown
+        reportSystemLabel            matlab.ui.control.Label
+        eFiscalizaRefresh            matlab.ui.control.Image
+        eFiscalizaLabel              matlab.ui.control.Label
+        SubTab4                      matlab.ui.container.Tab
+        SubGrid4                     matlab.ui.container.GridLayout
+        userPathButton               matlab.ui.control.Image
+        userPath                     matlab.ui.control.EditField
+        userPathLabel                matlab.ui.control.Label
+        DataHubPOSTButton            matlab.ui.control.Image
+        DataHubPOST                  matlab.ui.control.EditField
+        DATAHUBPOSTLabel             matlab.ui.control.Label
+        Toolbar                      matlab.ui.container.GridLayout
+        tool_simulationMode          matlab.ui.control.Image
+        tool_openDevTools            matlab.ui.control.Image
     end
 
     
@@ -93,7 +116,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             try
                 switch event.HTMLEventName
                     case 'renderer'
-                        startup_Controller(app)
+                        appEngine.activate(app, app.Role)
 
                     otherwise
                         error('UnexpectedEvent')
@@ -108,7 +131,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
-                customizationStatus = [false, false, false];
+                customizationStatus = [false, false, false, false];
             end
 
             switch tabIndex
@@ -119,7 +142,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                         sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
                         app.progressDialog = ui.ProgressDialog(app.jsBackDoor);
                     end
-                    customizationStatus = [false, false, false];
+                    customizationStatus = [false, false, false, false];
 
                 otherwise
                     if customizationStatus(tabIndex)
@@ -150,11 +173,12 @@ classdef winConfig_exported < matlab.apps.AppBase
                             end
 
                         case 2
-                            updatePanel_File(app)
-                            updatePanel_Graphics(app)
-                            updatePanel_Elevation(app)
+                            updatePanel_Analysis(app)
 
                         case 3
+                            updatePanel_Report(app)
+
+                        case 4
                             if ~strcmp(app.mainApp.executionMode, 'webApp')
                                 set([app.DataHubPOSTButton, app.userPathButton], 'Enable', 1)
                             end
@@ -173,9 +197,10 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             app.defaultValues = struct('Elevation', projectGeneral.Elevation, ...
                                        'Merge',     projectGeneral.Merge, ...
-                                       'Image',     projectGeneral.Image, ...
                                        'Channel',   projectGeneral.Channel, ...
-                                       'Detection', projectGeneral.Detection);
+                                       'Detection', projectGeneral.Detection, ...
+                                       'Plot',      projectGeneral.Plot, ...
+                                       'Report',    projectGeneral.Report);
         end
 
         %-----------------------------------------------------------------%
@@ -213,7 +238,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function updatePanel_File(app)
+        function updatePanel_Analysis(app)
             % Mesclagem de fluxos espectrais
             switch app.mainApp.General.Merge.DataType
                 case 'keep';   app.mergeDataType.Value = 0;
@@ -225,82 +250,41 @@ classdef winConfig_exported < matlab.apps.AppBase
                 case 'remove'; app.mergeAntenna.Value = 1;
             end
 
-            app.mergeDistance.Value = app.mainApp.General.Merge.Distance;
+            app.mergeDistance.Value        = app.mainApp.General.Merge.Distance;
 
-            app.channelManualMode.Value   = app.mainApp.General.Channel.ManualMode;
-            app.detectionManualMode.Value = app.mainApp.General.Detection.ManualMode;
+            % PLAYBACK AXES
+            app.yOccupancyScale.Value      = app.mainApp.General.Plot.Axes.yOccupancyScale;
             
-            if File_checkEdition(app)
-                app.analysis_FileRefresh.Visible = 1;
-            else
-                app.analysis_FileRefresh.Visible = 0;
-            end
-        end
+            % DETECTION
+            app.channelManualMode.Value    = app.mainApp.General.Channel.ManualMode;
+            app.detectionManualMode.Value  = app.mainApp.General.Detection.ManualMode;
+            app.InitialBW_kHz.Value        = app.mainApp.General.Detection.InitialBW_kHz;
 
-        %-----------------------------------------------------------------%
-        function editionFlag = File_checkEdition(app)
-            editionFlag = false;
-
-            if (app.mergeDataType.Value       ~= app.DefaultValues.File.DataType)          || ...
-               (app.mergeAntenna.Value        ~= app.DefaultValues.File.Antenna)           || ...
-               (abs(app.mergeDistance.Value - app.DefaultValues.File.Distance) > 1e-5)     || ...
-               (app.channelManualMode.Value   ~= app.DefaultValues.File.ChannelManualMode) || ...
-               (app.detectionManualMode.Value ~= app.DefaultValues.File.DetectionManualMode)
-
-                editionFlag = true;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updatePanel_Graphics(app)
-            % Imagem relatório
-            app.imgFormat.Value     = app.mainApp.General.Image.Format;
-            app.imgResolution.Value = string(app.mainApp.General.Image.Resolution);
-
-            if Graphics_checkEdition(app)
-                app.analysis_GraphicsRefresh.Visible = 1;
-            else
-                app.analysis_GraphicsRefresh.Visible = 0;
-            end
-
-            app.yOccupancyScale.Value = app.mainApp.General.Plot.Axes.yOccupancyScale;
-            app.InitialBW_kHz.Value   = app.mainApp.General.Detection.InitialBW_kHz;
-        end
-
-        %-----------------------------------------------------------------%
-        function editionFlag = Graphics_checkEdition(app)
-            editionFlag = false;
-
-            if ~strcmp(app.imgFormat.Value,     app.DefaultValues.Graphics.Format) || ...
-               ~strcmp(app.imgResolution.Value, app.DefaultValues.Graphics.Resolution)
-
-                editionFlag = true;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updatePanel_Elevation(app)
+            % ELEVATION
             app.elevationNPoints.Value     = num2str(app.mainApp.General.Elevation.Points);
             app.elevationForceSearch.Value = app.mainApp.General.Elevation.ForceSearch;
             app.elevationAPIServer.Value   = app.mainApp.General.Elevation.Server;
 
-            if Elevation_checkEdition(app)
-                app.analysis_ElevationRefresh.Visible = 1;
-            else
-                app.analysis_ElevationRefresh.Visible = 0;
-            end
+            app.configAnalysisRefresh.Visible = checkEdition(app, 'ANALYSIS');
         end
 
         %-----------------------------------------------------------------%
-        function editionFlag = Elevation_checkEdition(app)
-            editionFlag = false;
+        function updatePanel_Report(app)
+            app.reportSystem.Value        = app.mainApp.General.Report.system;
+            set(app.reportUnit, 'Items', app.mainApp.General.eFiscaliza.defaultValues.unit, 'Value', app.mainApp.General.Report.unit)
+            
+            app.reportDocType.Value       = app.mainApp.General.Report.Document;
+            app.reportBasemap.Value       = app.mainApp.General.Report.Basemap;
+            app.reportImgFormat.Value     = app.mainApp.General.Report.Image.Format;
+            app.reportImgDpi.Value        = num2str(app.mainApp.General.Report.Image.Resolution);
+            app.reportBinningLength.Value = app.mainApp.General.Report.DataBinning.length_m;
+            app.reportBinningFcn.Value    = app.mainApp.General.Report.DataBinning.function;
 
-            if ~strcmp(app.elevationNPoints.Value, app.DefaultValues.Elevation.Points)     || ...
-               (app.elevationForceSearch.Value ~= app.DefaultValues.Elevation.ForceSearch) || ...
-               ~strcmp(app.elevationAPIServer.Value, app.DefaultValues.Elevation.Server)
-                
-                editionFlag = true;
+            if ismember(app.mainApp.General.Report.outputCompressionMode, app.prjFileCompressionMode.Items)
+                app.prjFileCompressionMode.Value = app.mainApp.General.Report.outputCompressionMode;
             end
+
+            app.eFiscalizaRefresh.Visible = checkEdition(app, 'REPORT');
         end
 
         %-----------------------------------------------------------------%
@@ -311,6 +295,28 @@ classdef winConfig_exported < matlab.apps.AppBase
             end
 
             app.userPath.Value = app.mainApp.General.fileFolder.userPath;                
+        end
+
+        %-----------------------------------------------------------------%
+        function editionFlag = checkEdition(app, tabName)
+            editionFlag   = false;
+            currentValues = struct('Elevation', app.mainApp.General.Elevation, ...
+                                   'Merge',     app.mainApp.General.Merge, ...
+                                   'Channel',   app.mainApp.General.Channel, ...
+                                   'Detection', app.mainApp.General.Detection, ...
+                                   'Plot',      app.mainApp.General.Plot, ...
+                                   'Report',    app.mainApp.General.Report);
+
+            switch tabName
+                case 'ANALYSIS'
+                    if ~isequal(rmfield(currentValues, 'Report'), rmfield(app.defaultValues, 'Report'))
+                        editionFlag = true;
+                    end
+                case 'REPORT'
+                    if ~isequal(currentValues.Report, app.defaultValues.Report)
+                        editionFlag = true;
+                    end
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -326,16 +332,10 @@ classdef winConfig_exported < matlab.apps.AppBase
         % Code that executes after component creation
         function startupFcn(app, mainApp)
             
-            app.mainApp = mainApp;
-
-            if app.isDocked
-                app.GridLayout.Padding(4) = 30;
-                app.DockModule.Visible = 1;
-                app.jsBackDoor = mainApp.jsBackDoor;
-                startup_Controller(app)
-            else
-                appEngine.util.setWindowPosition(app.UIFigure)
-                startup_timerCreation(app)
+            try
+                appEngine.boot(app, app.Role, mainApp)
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
             
         end
@@ -343,7 +343,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'CONFIG')
             delete(app)
             
         end
@@ -393,41 +393,6 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_RFDataHubButton
-        function Toolbar_RFDataHubButtonPushed(app, event)
-            
-            if isequal(rmfield(app.mainApp.General.AppVersion.database, 'name'),  app.stableVersion.rfDataHub)
-                app.tool_RFDataHubButton.Enable = 0;
-                ui.Dialog(app.UIFigure, 'warning', 'Módulo RFDataHub já atualizado!');
-                return
-            end
-
-            d = ui.Dialog(app.UIFigure, "progressdlg", 'Em andamento... esse processo demorará alguns minutos!');
-
-            try
-                appName = class.Constants.appName;
-                rfDataHubLink = util.publicLink(appName, app.mainApp.rootFolder, 'RFDataHub');
-                model.RFDataHub.update(appName, app.mainApp.rootFolder, app.mainApp.General.fileFolder.tempPath, rfDataHubLink)
-
-                % Atualiza versão.
-                global RFDataHub_info
-                fieldList = fieldnames(RFDataHub_info);
-                for ii = 1:numel(fieldList)
-                    app.mainApp.General.AppVersion.database.(fieldList{ii}) = RFDataHub_info.(fieldList{ii});
-                end
-
-                app.stableVersion.rfDataHub = RFDataHub_info;
-                app.tool_RFDataHubButton.Enable = 0;
-                
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
-            end
-
-            applyInitialLayout(app)
-            delete(d)
-
-        end
-
         % Image clicked function: tool_simulationMode
         function Toolbar_SimulationModeButtonPushed(app, event)
             
@@ -450,9 +415,81 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: analysis_FileRefresh, channelManualMode, 
-        % ...and 4 other components
-        function Config_FileParameterValueChanged(app, event)
+        % Image clicked function: tool_RFDataHubButton
+        function Toolbar_RFDataHubButtonPushed(app, event)
+            
+            if isequal(rmfield(app.mainApp.General.AppVersion.database, 'name'),  app.stableVersion.rfDataHub)
+                app.tool_RFDataHubButton.Enable = 0;
+                ui.Dialog(app.UIFigure, 'warning', 'Módulo RFDataHub já atualizado!');
+                return
+            end
+
+            d = ui.Dialog(app.UIFigure, "progressdlg", 'Em andamento... esse processo pode demorar alguns minutos!');
+
+            try
+                appName = class.Constants.appName;
+                rfDataHubLink = util.publicLink(appName, app.mainApp.rootFolder, 'RFDataHub');
+                model.RFDataHub.update(appName, app.mainApp.rootFolder, app.mainApp.General.fileFolder.tempPath, rfDataHubLink)
+
+                % Atualiza versão.
+                global RFDataHub_info
+
+                app.mainApp.General.AppVersion.database      = RFDataHub_info;
+                app.mainApp.General.AppVersion.database.name = 'RFDataHub';
+                app.stableVersion.rfDataHub = RFDataHub_info;
+                app.tool_RFDataHubButton.Enable = 0;
+
+                ipcMainMatlabCallsHandler(app.mainApp, app, 'onRFDataHubUpdate')
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+
+            applyInitialLayout(app)
+            delete(d)
+
+        end
+
+        % Value changed function: openAuxiliarApp2Debug, 
+        % ...and 1 other component
+        function Config_GeneralParameterValueChanged(app, event)
+            
+            switch event.Source
+                case app.openAuxiliarAppAsDocked
+                    app.mainApp.General.operationMode.Dock  = app.openAuxiliarAppAsDocked.Value;
+
+                case app.openAuxiliarApp2Debug
+                    app.mainApp.General.operationMode.Debug = app.openAuxiliarApp2Debug.Value;
+            end
+
+            app.mainApp.General_I.operationMode = app.mainApp.General.operationMode;
+            saveGeneralSettings(app)
+
+        end
+
+        % Image clicked function: configAnalysisRefresh
+        function Config_AnalysisRefreshImageClicked(app, event)
+            
+            if ~checkEdition(app, 'ANALYSIS')
+                app.configAnalysisRefresh.Visible = 0;
+                return
+
+            else
+                app.mainApp.General.Merge     = app.defaultValues.Merge;                    
+                app.mainApp.General.Channel   = app.defaultValues.Channel;
+                app.mainApp.General.Detection = app.defaultValues.Detection;
+                app.mainApp.General.Elevation = app.defaultValues.Elevation;
+                app.mainApp.General.Plot      = app.defaultValues.Plot;
+
+                updatePanel_Analysis(app)
+                saveGeneralSettings(app)
+            end
+
+        end
+
+        % Value changed function: InitialBW_kHz, channelManualMode, 
+        % ...and 8 other components
+        function Config_AnalysisParameterValueChanged(app, event)
             
             switch event.Source
                 case {app.mergeDataType, app.mergeAntenna, app.mergeDistance}                    
@@ -474,85 +511,89 @@ classdef winConfig_exported < matlab.apps.AppBase
                     app.mainApp.General.Channel.ManualMode   = app.channelManualMode.Value;
                     app.mainApp.General.Detection.ManualMode = app.detectionManualMode.Value;
 
-                case app.analysis_FileRefresh
-                    app.mainApp.General.Merge = struct('DataType',           app.DefaultValues.File.DataTypeLabel,      ...
-                                                       'Antenna',            app.DefaultValues.File.AntennaLabel,       ...
-                                                       'AntennaAttributes', {app.DefaultValues.File.AntennaAttributes}, ...
-                                                       'Distance',           app.DefaultValues.File.Distance);
-                    
-                    app.mainApp.General.Channel.ManualMode   = app.DefaultValues.File.ChannelManualMode;
-                    app.mainApp.General.Detection.ManualMode = app.DefaultValues.File.DetectionManualMode;
-            end
-
-            app.mainApp.General_I.Merge     = app.mainApp.General.Merge;
-            app.mainApp.General_I.Channel   = app.mainApp.General.Channel;
-            app.mainApp.General_I.Detection = app.mainApp.General.Detection;
-
-            saveGeneralSettings(app)
-            updatePanel_File(app)  
-
-        end
-
-        % Callback function: InitialBW_kHz, analysis_GraphicsRefresh, 
-        % ...and 5 other components
-        function Config_GraphicsParameterValueChanged(app, event)
-            
-            switch event.Source
-                case {app.imgFormat, app.imgResolution}
-                    app.mainApp.General.Image = struct('Format', app.imgFormat.Value, 'Resolution', str2double(app.imgResolution.Value));
-
                 case app.yOccupancyScale
                     app.mainApp.General.Plot.Axes.yOccupancyScale = app.yOccupancyScale.Value;
-                    set(app.mainApp.UIAxes2, 'YScale', app.yOccupancyScale.Value)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onYAxesScaleChange')
 
                 case app.InitialBW_kHz
                     app.mainApp.General.Detection.InitialBW_kHz  = app.InitialBW_kHz.Value;
 
-                case app.openAuxiliarAppAsDocked
-                    app.mainApp.General.operationMode.Dock  = app.openAuxiliarAppAsDocked.Value;
-
-                case app.openAuxiliarApp2Debug
-                    app.mainApp.General.operationMode.Debug = app.openAuxiliarApp2Debug.Value;
-
-                case app.analysis_GraphicsRefresh
-                    app.mainApp.General.Image = struct('Format', app.DefaultValues.Graphics.Format, 'Resolution', app.DefaultValues.Graphics.Resolution);
-            end
-
-            app.mainApp.General_I.Image                     = app.mainApp.General.Image;
-            app.mainApp.General_I.operationMode             = app.mainApp.General.operationMode;
-            app.mainApp.General_I.Detection.InitialBW_kHz   = app.mainApp.General.Detection.InitialBW_kHz;
-            app.mainApp.General_I.Plot.Axes.yOccupancyScale = app.mainApp.General.Plot.Axes.yOccupancyScale;
-
-            saveGeneralSettings(app)
-            updatePanel_Graphics(app)
-
-        end
-
-        % Callback function: analysis_ElevationRefresh, elevationAPIServer,
-        % 
-        % ...and 2 other components
-        function Config_ElevationParameterValueChanged(app, event)
-
-            switch event.Source
                 case app.elevationNPoints
-                    app.mainApp.General.Elevation.Points      = str2double(app.elevationNPoints.Value);
+                    app.mainApp.General.Elevation.Points = str2double(app.elevationNPoints.Value);
 
                 case app.elevationForceSearch
                     app.mainApp.General.Elevation.ForceSearch = app.elevationForceSearch.Value;
 
                 case app.elevationAPIServer
-                    app.mainApp.General.Elevation.Server      = app.elevationAPIServer.Value;
-
-                case app.analysis_ElevationRefresh
-                    app.mainApp.General.Elevation = struct('Points',      str2double(app.DefaultValues.Elevation.Points), ...
-                                                           'ForceSearch', app.DefaultValues.Elevation.ForceSearch,        ...
-                                                           'Server',      app.DefaultValues.Elevation.Server);
+                    app.mainApp.General.Elevation.Server = app.elevationAPIServer.Value;
             end
 
+            app.mainApp.General_I.Merge     = app.mainApp.General.Merge;
+            app.mainApp.General_I.Channel   = app.mainApp.General.Channel;
+            app.mainApp.General_I.Detection = app.mainApp.General.Detection;
             app.mainApp.General_I.Elevation = app.mainApp.General.Elevation;
+            app.mainApp.General_I.Plot      = app.mainApp.General.Plot;
+
             saveGeneralSettings(app)
-            updatePanel_Elevation(app)
+            updatePanel_Analysis(app)  
+
+        end
+
+        % Image clicked function: eFiscalizaRefresh
+        function Config_ProjectRefreshImageClicked(app, event)
             
+            if ~checkEdition(app, 'REPORT')
+                app.eFiscalizaRefresh.Visible = 0;
+                return
+            
+            else
+                app.mainApp.General.Report   = app.defaultValues.Report;
+                app.mainApp.General_I.Report = app.mainApp.General.Report;
+                
+                updatePanel_Report(app)
+                saveGeneralSettings(app)
+            end
+
+        end
+
+        % Value changed function: prjFileCompressionMode, reportBasemap, 
+        % ...and 7 other components
+        function Config_ProjectParameterValueChanged(app, event)
+            
+            switch event.Source
+                case app.reportSystem
+                    app.mainApp.General.Report.system = event.Value;
+
+                case app.reportUnit
+                    app.mainApp.General.Report.unit = event.Value;
+
+                case app.reportDocType
+                    app.mainApp.General.Report.Document = event.Value;
+
+                case app.reportBasemap
+                    app.mainApp.General.Report.Basemap = event.Value;
+
+                case app.reportImgFormat
+                    app.mainApp.General.Report.Image.Format = event.Value;
+
+                case app.reportImgDpi
+                    app.mainApp.General.Report.Image.Resolution = str2double(event.Value);
+
+                case app.reportBinningLength
+                    app.mainApp.General.Report.DataBinning.length_m = event.Value;
+
+                case app.reportBinningFcn
+                    app.mainApp.General.Report.DataBinning.function = event.Value;
+
+                case app.prjFileCompressionMode
+                    app.mainApp.General.Report.outputCompressionMode = event.Value;
+            end
+
+            app.mainApp.General_I.Report = app.mainApp.General.Report;
+
+            updatePanel_Report(app)
+            saveGeneralSettings(app)
+
         end
 
         % Image clicked function: DataHubPOSTButton, userPathButton
@@ -723,7 +764,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create openAuxiliarAppAsDocked
             app.openAuxiliarAppAsDocked = uicheckbox(app.SubGrid1);
-            app.openAuxiliarAppAsDocked.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
+            app.openAuxiliarAppAsDocked.ValueChangedFcn = createCallbackFcn(app, @Config_GeneralParameterValueChanged, true);
             app.openAuxiliarAppAsDocked.Enable = 'off';
             app.openAuxiliarAppAsDocked.Text = 'Modo DOCK: módulos auxiliares abertos na janela principal do app';
             app.openAuxiliarAppAsDocked.FontSize = 11;
@@ -733,7 +774,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create openAuxiliarApp2Debug
             app.openAuxiliarApp2Debug = uicheckbox(app.SubGrid1);
-            app.openAuxiliarApp2Debug.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
+            app.openAuxiliarApp2Debug.ValueChangedFcn = createCallbackFcn(app, @Config_GeneralParameterValueChanged, true);
             app.openAuxiliarApp2Debug.Enable = 'off';
             app.openAuxiliarApp2Debug.Text = 'Modo DEBUG';
             app.openAuxiliarApp2Debug.FontSize = 11;
@@ -774,24 +815,24 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.SubGrid2.RowSpacing = 5;
             app.SubGrid2.BackgroundColor = [1 1 1];
 
-            % Create analysis_FileLabel
-            app.analysis_FileLabel = uilabel(app.SubGrid2);
-            app.analysis_FileLabel.VerticalAlignment = 'bottom';
-            app.analysis_FileLabel.FontSize = 10;
-            app.analysis_FileLabel.Layout.Row = 1;
-            app.analysis_FileLabel.Layout.Column = 1;
-            app.analysis_FileLabel.Text = 'LEITURA DOS ARQUIVOS + IDENTIFICAÇÃO AUTOMÁTICA DE CANAIS E EMISSÕES';
+            % Create configAnalysisLabel1
+            app.configAnalysisLabel1 = uilabel(app.SubGrid2);
+            app.configAnalysisLabel1.VerticalAlignment = 'bottom';
+            app.configAnalysisLabel1.FontSize = 10;
+            app.configAnalysisLabel1.Layout.Row = 1;
+            app.configAnalysisLabel1.Layout.Column = 1;
+            app.configAnalysisLabel1.Text = 'LEITURA DOS ARQUIVOS + IDENTIFICAÇÃO AUTOMÁTICA DE CANAIS E EMISSÕES';
 
-            % Create analysis_FileRefresh
-            app.analysis_FileRefresh = uiimage(app.SubGrid2);
-            app.analysis_FileRefresh.ScaleMethod = 'none';
-            app.analysis_FileRefresh.ImageClickedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
-            app.analysis_FileRefresh.Visible = 'off';
-            app.analysis_FileRefresh.Tooltip = {'Volta à configuração inicial'};
-            app.analysis_FileRefresh.Layout.Row = 1;
-            app.analysis_FileRefresh.Layout.Column = 2;
-            app.analysis_FileRefresh.VerticalAlignment = 'bottom';
-            app.analysis_FileRefresh.ImageSource = 'Refresh_18.png';
+            % Create configAnalysisRefresh
+            app.configAnalysisRefresh = uiimage(app.SubGrid2);
+            app.configAnalysisRefresh.ScaleMethod = 'none';
+            app.configAnalysisRefresh.ImageClickedFcn = createCallbackFcn(app, @Config_AnalysisRefreshImageClicked, true);
+            app.configAnalysisRefresh.Visible = 'off';
+            app.configAnalysisRefresh.Tooltip = {'Volta à configuração inicial'};
+            app.configAnalysisRefresh.Layout.Row = 1;
+            app.configAnalysisRefresh.Layout.Column = 2;
+            app.configAnalysisRefresh.VerticalAlignment = 'bottom';
+            app.configAnalysisRefresh.ImageSource = 'Refresh_18.png';
 
             % Create analysis_FilePanel
             app.analysis_FilePanel = uipanel(app.SubGrid2);
@@ -821,7 +862,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create mergeDataType
             app.mergeDataType = uicheckbox(app.analysis_FileGrid);
-            app.mergeDataType.ValueChangedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
+            app.mergeDataType.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.mergeDataType.Text = 'DataType';
             app.mergeDataType.FontSize = 11;
             app.mergeDataType.FontColor = [0.149 0.149 0.149];
@@ -831,7 +872,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create mergeAntenna
             app.mergeAntenna = uicheckbox(app.analysis_FileGrid);
-            app.mergeAntenna.ValueChangedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
+            app.mergeAntenna.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.mergeAntenna.Text = 'Antenna';
             app.mergeAntenna.FontSize = 11;
             app.mergeAntenna.FontColor = [0.149 0.149 0.149];
@@ -854,7 +895,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.mergeDistance.Limits = [50 Inf];
             app.mergeDistance.RoundFractionalValues = 'on';
             app.mergeDistance.ValueDisplayFormat = '%.0f';
-            app.mergeDistance.ValueChangedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
+            app.mergeDistance.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.mergeDistance.FontSize = 11;
             app.mergeDistance.FontColor = [0.149 0.149 0.149];
             app.mergeDistance.Layout.Row = 5;
@@ -863,7 +904,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create channelManualMode
             app.channelManualMode = uicheckbox(app.analysis_FileGrid);
-            app.channelManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
+            app.channelManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.channelManualMode.Text = 'Não identificar automaticamente canais relacionados aos fluxos espectrais na leitura de arquivos.';
             app.channelManualMode.FontSize = 11;
             app.channelManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -872,31 +913,20 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create detectionManualMode
             app.detectionManualMode = uicheckbox(app.analysis_FileGrid);
-            app.detectionManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_FileParameterValueChanged, true);
+            app.detectionManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.detectionManualMode.Text = 'Não detectar automaticamente emissões na geração preliminar do relatório (editável no modo RELATÓRIO).';
             app.detectionManualMode.FontSize = 11;
             app.detectionManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.detectionManualMode.Layout.Row = 7;
             app.detectionManualMode.Layout.Column = [1 3];
 
-            % Create analysis_GraphicsLabel
-            app.analysis_GraphicsLabel = uilabel(app.SubGrid2);
-            app.analysis_GraphicsLabel.VerticalAlignment = 'bottom';
-            app.analysis_GraphicsLabel.FontSize = 10;
-            app.analysis_GraphicsLabel.Layout.Row = 3;
-            app.analysis_GraphicsLabel.Layout.Column = 1;
-            app.analysis_GraphicsLabel.Text = 'IMAGENS + ESCALA PLOT + LARGURA PADRÃO DE EMISSÃO';
-
-            % Create analysis_GraphicsRefresh
-            app.analysis_GraphicsRefresh = uiimage(app.SubGrid2);
-            app.analysis_GraphicsRefresh.ScaleMethod = 'none';
-            app.analysis_GraphicsRefresh.ImageClickedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
-            app.analysis_GraphicsRefresh.Visible = 'off';
-            app.analysis_GraphicsRefresh.Tooltip = {'Volta à configuração inicial'};
-            app.analysis_GraphicsRefresh.Layout.Row = 3;
-            app.analysis_GraphicsRefresh.Layout.Column = 2;
-            app.analysis_GraphicsRefresh.VerticalAlignment = 'bottom';
-            app.analysis_GraphicsRefresh.ImageSource = 'Refresh_18.png';
+            % Create configAnalysisLabel2
+            app.configAnalysisLabel2 = uilabel(app.SubGrid2);
+            app.configAnalysisLabel2.VerticalAlignment = 'bottom';
+            app.configAnalysisLabel2.FontSize = 10;
+            app.configAnalysisLabel2.Layout.Row = 3;
+            app.configAnalysisLabel2.Layout.Column = 1;
+            app.configAnalysisLabel2.Text = 'ESCALA PLOT + LARGURA PADRÃO DE EMISSÃO';
 
             % Create analysis_GraphicsPanel
             app.analysis_GraphicsPanel = uipanel(app.SubGrid2);
@@ -908,69 +938,29 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create analysis_GraphicsGrid
             app.analysis_GraphicsGrid = uigridlayout(app.analysis_GraphicsPanel);
-            app.analysis_GraphicsGrid.ColumnWidth = {220, 100, 110, '1x'};
+            app.analysis_GraphicsGrid.ColumnWidth = {110, '1x'};
             app.analysis_GraphicsGrid.RowHeight = {17, 22, 22, 22};
             app.analysis_GraphicsGrid.RowSpacing = 5;
             app.analysis_GraphicsGrid.Padding = [10 10 10 5];
             app.analysis_GraphicsGrid.BackgroundColor = [1 1 1];
-
-            % Create imgFormatLabel
-            app.imgFormatLabel = uilabel(app.analysis_GraphicsGrid);
-            app.imgFormatLabel.VerticalAlignment = 'bottom';
-            app.imgFormatLabel.FontSize = 11;
-            app.imgFormatLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.imgFormatLabel.Layout.Row = 1;
-            app.imgFormatLabel.Layout.Column = 1;
-            app.imgFormatLabel.Text = 'Formato da imagem (RELATÓRIO):';
-
-            % Create imgFormat
-            app.imgFormat = uidropdown(app.analysis_GraphicsGrid);
-            app.imgFormat.Items = {'jpeg', 'png'};
-            app.imgFormat.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
-            app.imgFormat.FontSize = 11;
-            app.imgFormat.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.imgFormat.BackgroundColor = [1 1 1];
-            app.imgFormat.Layout.Row = 2;
-            app.imgFormat.Layout.Column = 1;
-            app.imgFormat.Value = 'jpeg';
-
-            % Create imgResolutionLabel
-            app.imgResolutionLabel = uilabel(app.analysis_GraphicsGrid);
-            app.imgResolutionLabel.VerticalAlignment = 'bottom';
-            app.imgResolutionLabel.FontSize = 11;
-            app.imgResolutionLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.imgResolutionLabel.Layout.Row = 1;
-            app.imgResolutionLabel.Layout.Column = 2;
-            app.imgResolutionLabel.Text = 'Resolução (dpi):';
-
-            % Create imgResolution
-            app.imgResolution = uidropdown(app.analysis_GraphicsGrid);
-            app.imgResolution.Items = {'100', '120', '150', '200'};
-            app.imgResolution.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
-            app.imgResolution.FontSize = 11;
-            app.imgResolution.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.imgResolution.BackgroundColor = [1 1 1];
-            app.imgResolution.Layout.Row = 2;
-            app.imgResolution.Layout.Column = 2;
-            app.imgResolution.Value = '120';
 
             % Create yOccupancyScaleLabel
             app.yOccupancyScaleLabel = uilabel(app.analysis_GraphicsGrid);
             app.yOccupancyScaleLabel.VerticalAlignment = 'bottom';
             app.yOccupancyScaleLabel.FontSize = 11;
             app.yOccupancyScaleLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.yOccupancyScaleLabel.Layout.Row = 3;
-            app.yOccupancyScaleLabel.Layout.Column = 1;
+            app.yOccupancyScaleLabel.Layout.Row = 1;
+            app.yOccupancyScaleLabel.Layout.Column = [1 2];
             app.yOccupancyScaleLabel.Text = 'Escala de ocupação do plot (PLAYBACK):';
 
             % Create yOccupancyScale
             app.yOccupancyScale = uidropdown(app.analysis_GraphicsGrid);
             app.yOccupancyScale.Items = {'linear', 'log'};
-            app.yOccupancyScale.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
+            app.yOccupancyScale.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.yOccupancyScale.FontSize = 11;
             app.yOccupancyScale.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.yOccupancyScale.BackgroundColor = [1 1 1];
-            app.yOccupancyScale.Layout.Row = 4;
+            app.yOccupancyScale.Layout.Row = 2;
             app.yOccupancyScale.Layout.Column = 1;
             app.yOccupancyScale.Value = 'log';
 
@@ -981,7 +971,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.InitialBW_kHzLabel.FontSize = 11;
             app.InitialBW_kHzLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.InitialBW_kHzLabel.Layout.Row = 3;
-            app.InitialBW_kHzLabel.Layout.Column = [2 4];
+            app.InitialBW_kHzLabel.Layout.Column = [1 2];
             app.InitialBW_kHzLabel.Text = 'Largura de emissão em kHz para emissão criada pelo método "DataTip" (PLAYBACK):';
 
             % Create InitialBW_kHz
@@ -990,29 +980,19 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.InitialBW_kHz.Limits = [0 1000];
             app.InitialBW_kHz.RoundFractionalValues = 'on';
             app.InitialBW_kHz.ValueDisplayFormat = '%.0f';
-            app.InitialBW_kHz.ValueChangedFcn = createCallbackFcn(app, @Config_GraphicsParameterValueChanged, true);
+            app.InitialBW_kHz.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.InitialBW_kHz.FontSize = 11;
             app.InitialBW_kHz.FontColor = [0.149 0.149 0.149];
             app.InitialBW_kHz.Layout.Row = 4;
-            app.InitialBW_kHz.Layout.Column = 2;
+            app.InitialBW_kHz.Layout.Column = 1;
 
-            % Create analysis_ElevationLabel
-            app.analysis_ElevationLabel = uilabel(app.SubGrid2);
-            app.analysis_ElevationLabel.VerticalAlignment = 'bottom';
-            app.analysis_ElevationLabel.FontSize = 10;
-            app.analysis_ElevationLabel.Layout.Row = 5;
-            app.analysis_ElevationLabel.Layout.Column = 1;
-            app.analysis_ElevationLabel.Text = 'ELEVAÇÃO';
-
-            % Create analysis_ElevationRefresh
-            app.analysis_ElevationRefresh = uiimage(app.SubGrid2);
-            app.analysis_ElevationRefresh.ScaleMethod = 'none';
-            app.analysis_ElevationRefresh.ImageClickedFcn = createCallbackFcn(app, @Config_ElevationParameterValueChanged, true);
-            app.analysis_ElevationRefresh.Visible = 'off';
-            app.analysis_ElevationRefresh.Layout.Row = 5;
-            app.analysis_ElevationRefresh.Layout.Column = 2;
-            app.analysis_ElevationRefresh.VerticalAlignment = 'bottom';
-            app.analysis_ElevationRefresh.ImageSource = 'Refresh_18.png';
+            % Create configAnalysisLabel3
+            app.configAnalysisLabel3 = uilabel(app.SubGrid2);
+            app.configAnalysisLabel3.VerticalAlignment = 'bottom';
+            app.configAnalysisLabel3.FontSize = 10;
+            app.configAnalysisLabel3.Layout.Row = 5;
+            app.configAnalysisLabel3.Layout.Column = 1;
+            app.configAnalysisLabel3.Text = 'ELEVAÇÃO';
 
             % Create analysis_ElevationPanel
             app.analysis_ElevationPanel = uipanel(app.SubGrid2);
@@ -1042,7 +1022,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create elevationAPIServer
             app.elevationAPIServer = uidropdown(app.analysis_ElevationGrid);
             app.elevationAPIServer.Items = {'Open-Elevation', 'MathWorks WMS Server'};
-            app.elevationAPIServer.ValueChangedFcn = createCallbackFcn(app, @Config_ElevationParameterValueChanged, true);
+            app.elevationAPIServer.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.elevationAPIServer.FontSize = 11;
             app.elevationAPIServer.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.elevationAPIServer.BackgroundColor = [1 1 1];
@@ -1062,7 +1042,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create elevationNPoints
             app.elevationNPoints = uidropdown(app.analysis_ElevationGrid);
             app.elevationNPoints.Items = {'64', '128', '256', '512', '1024'};
-            app.elevationNPoints.ValueChangedFcn = createCallbackFcn(app, @Config_ElevationParameterValueChanged, true);
+            app.elevationNPoints.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.elevationNPoints.FontSize = 11;
             app.elevationNPoints.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.elevationNPoints.BackgroundColor = [1 1 1];
@@ -1072,7 +1052,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create elevationForceSearch
             app.elevationForceSearch = uicheckbox(app.analysis_ElevationGrid);
-            app.elevationForceSearch.ValueChangedFcn = createCallbackFcn(app, @Config_ElevationParameterValueChanged, true);
+            app.elevationForceSearch.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
             app.elevationForceSearch.Text = 'Força consulta ao servidor (ignorando eventual informação em cache).';
             app.elevationForceSearch.WordWrap = 'on';
             app.elevationForceSearch.FontSize = 11;
@@ -1082,20 +1062,270 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create SubTab3
             app.SubTab3 = uitab(app.SubTabGroup);
-            app.SubTab3.AutoResizeChildren = 'off';
-            app.SubTab3.Title = 'MAPEAMENTO DE PASTAS';
-            app.SubTab3.BackgroundColor = 'none';
+            app.SubTab3.Title = 'PROJETO';
 
             % Create SubGrid3
             app.SubGrid3 = uigridlayout(app.SubTab3);
-            app.SubGrid3.ColumnWidth = {'1x', 20};
-            app.SubGrid3.RowHeight = {17, 22, 22, 22, '1x'};
-            app.SubGrid3.ColumnSpacing = 5;
+            app.SubGrid3.ColumnWidth = {'1x', 22};
+            app.SubGrid3.RowHeight = {17, 70, 22, '1x'};
             app.SubGrid3.RowSpacing = 5;
             app.SubGrid3.BackgroundColor = [1 1 1];
 
+            % Create eFiscalizaLabel
+            app.eFiscalizaLabel = uilabel(app.SubGrid3);
+            app.eFiscalizaLabel.VerticalAlignment = 'bottom';
+            app.eFiscalizaLabel.FontSize = 10;
+            app.eFiscalizaLabel.Layout.Row = 1;
+            app.eFiscalizaLabel.Layout.Column = 1;
+            app.eFiscalizaLabel.Text = 'INICIALIZAÇÃO eFISCALIZA';
+
+            % Create eFiscalizaRefresh
+            app.eFiscalizaRefresh = uiimage(app.SubGrid3);
+            app.eFiscalizaRefresh.ScaleMethod = 'none';
+            app.eFiscalizaRefresh.ImageClickedFcn = createCallbackFcn(app, @Config_ProjectRefreshImageClicked, true);
+            app.eFiscalizaRefresh.Visible = 'off';
+            app.eFiscalizaRefresh.Tooltip = {'Retorna às configurações iniciais'};
+            app.eFiscalizaRefresh.Layout.Row = 1;
+            app.eFiscalizaRefresh.Layout.Column = 2;
+            app.eFiscalizaRefresh.VerticalAlignment = 'bottom';
+            app.eFiscalizaRefresh.ImageSource = 'Refresh_18.png';
+
+            % Create eFiscalizaPanel
+            app.eFiscalizaPanel = uipanel(app.SubGrid3);
+            app.eFiscalizaPanel.AutoResizeChildren = 'off';
+            app.eFiscalizaPanel.Layout.Row = 2;
+            app.eFiscalizaPanel.Layout.Column = [1 2];
+
+            % Create eFiscalizaGrid
+            app.eFiscalizaGrid = uigridlayout(app.eFiscalizaPanel);
+            app.eFiscalizaGrid.ColumnWidth = {350, 110, 110};
+            app.eFiscalizaGrid.RowHeight = {22, 22};
+            app.eFiscalizaGrid.RowSpacing = 5;
+            app.eFiscalizaGrid.BackgroundColor = [1 1 1];
+
+            % Create reportSystemLabel
+            app.reportSystemLabel = uilabel(app.eFiscalizaGrid);
+            app.reportSystemLabel.WordWrap = 'on';
+            app.reportSystemLabel.FontSize = 11;
+            app.reportSystemLabel.Layout.Row = 1;
+            app.reportSystemLabel.Layout.Column = 1;
+            app.reportSystemLabel.Text = 'Ambiente do sistema de gestão à fiscalização:';
+
+            % Create reportSystem
+            app.reportSystem = uidropdown(app.eFiscalizaGrid);
+            app.reportSystem.Items = {'eFiscaliza', 'eFiscaliza TS', 'eFiscaliza HM', 'eFiscaliza DS'};
+            app.reportSystem.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportSystem.FontSize = 11;
+            app.reportSystem.BackgroundColor = [1 1 1];
+            app.reportSystem.Layout.Row = 1;
+            app.reportSystem.Layout.Column = [2 3];
+            app.reportSystem.Value = 'eFiscaliza';
+
+            % Create reportUnitLabel
+            app.reportUnitLabel = uilabel(app.eFiscalizaGrid);
+            app.reportUnitLabel.WordWrap = 'on';
+            app.reportUnitLabel.FontSize = 11;
+            app.reportUnitLabel.Layout.Row = 2;
+            app.reportUnitLabel.Layout.Column = 1;
+            app.reportUnitLabel.Text = 'Unidade responsável pela fiscalização:';
+
+            % Create reportUnit
+            app.reportUnit = uidropdown(app.eFiscalizaGrid);
+            app.reportUnit.Items = {};
+            app.reportUnit.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportUnit.FontSize = 11;
+            app.reportUnit.BackgroundColor = [1 1 1];
+            app.reportUnit.Layout.Row = 2;
+            app.reportUnit.Layout.Column = 2;
+            app.reportUnit.Value = {};
+
+            % Create reportLabel
+            app.reportLabel = uilabel(app.SubGrid3);
+            app.reportLabel.VerticalAlignment = 'bottom';
+            app.reportLabel.FontSize = 10;
+            app.reportLabel.Layout.Row = 3;
+            app.reportLabel.Layout.Column = 1;
+            app.reportLabel.Text = 'RELATÓRIO + BASEMAP + IMAGEM + DATABINNING';
+
+            % Create reportPanel
+            app.reportPanel = uipanel(app.SubGrid3);
+            app.reportPanel.AutoResizeChildren = 'off';
+            app.reportPanel.BackgroundColor = [1 1 1];
+            app.reportPanel.Layout.Row = 4;
+            app.reportPanel.Layout.Column = [1 2];
+
+            % Create reportGrid_2
+            app.reportGrid_2 = uigridlayout(app.reportPanel);
+            app.reportGrid_2.ColumnWidth = {350, 110, 110};
+            app.reportGrid_2.RowHeight = {22, 22, 22, 22, 48, 22, '1x'};
+            app.reportGrid_2.RowSpacing = 5;
+            app.reportGrid_2.BackgroundColor = [1 1 1];
+
+            % Create reportDocTypeLabel
+            app.reportDocTypeLabel = uilabel(app.reportGrid_2);
+            app.reportDocTypeLabel.WordWrap = 'on';
+            app.reportDocTypeLabel.FontSize = 11;
+            app.reportDocTypeLabel.Layout.Row = 1;
+            app.reportDocTypeLabel.Layout.Column = 1;
+            app.reportDocTypeLabel.Text = 'Tipo de documento a gerar:';
+
+            % Create reportDocType
+            app.reportDocType = uidropdown(app.reportGrid_2);
+            app.reportDocType.Items = {'Relatório de Atividades'};
+            app.reportDocType.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportDocType.FontSize = 11;
+            app.reportDocType.BackgroundColor = [1 1 1];
+            app.reportDocType.Layout.Row = 1;
+            app.reportDocType.Layout.Column = [2 3];
+            app.reportDocType.Value = 'Relatório de Atividades';
+
+            % Create reportBasemapLabel
+            app.reportBasemapLabel = uilabel(app.reportGrid_2);
+            app.reportBasemapLabel.FontSize = 11;
+            app.reportBasemapLabel.Layout.Row = 2;
+            app.reportBasemapLabel.Layout.Column = 1;
+            app.reportBasemapLabel.Text = 'Basemap do eixo geográfico dos plots:';
+
+            % Create reportBasemap
+            app.reportBasemap = uidropdown(app.reportGrid_2);
+            app.reportBasemap.Items = {'darkwater', 'none', 'satellite', 'streets-dark', 'streets-light', 'topographic'};
+            app.reportBasemap.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportBasemap.FontSize = 11;
+            app.reportBasemap.BackgroundColor = [1 1 1];
+            app.reportBasemap.Layout.Row = 2;
+            app.reportBasemap.Layout.Column = [2 3];
+            app.reportBasemap.Value = 'darkwater';
+
+            % Create reportImageLabel
+            app.reportImageLabel = uilabel(app.reportGrid_2);
+            app.reportImageLabel.FontSize = 11;
+            app.reportImageLabel.Layout.Row = 3;
+            app.reportImageLabel.Layout.Column = 1;
+            app.reportImageLabel.Text = 'Formato e resolução (dpi) das imagens:';
+
+            % Create reportImgFormat
+            app.reportImgFormat = uidropdown(app.reportGrid_2);
+            app.reportImgFormat.Items = {'jpeg', 'png'};
+            app.reportImgFormat.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportImgFormat.FontSize = 11;
+            app.reportImgFormat.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportImgFormat.BackgroundColor = [1 1 1];
+            app.reportImgFormat.Layout.Row = 3;
+            app.reportImgFormat.Layout.Column = 2;
+            app.reportImgFormat.Value = 'jpeg';
+
+            % Create reportImgDpi
+            app.reportImgDpi = uidropdown(app.reportGrid_2);
+            app.reportImgDpi.Items = {'100', '120', '150', '200'};
+            app.reportImgDpi.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportImgDpi.FontSize = 11;
+            app.reportImgDpi.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportImgDpi.BackgroundColor = [1 1 1];
+            app.reportImgDpi.Layout.Row = 3;
+            app.reportImgDpi.Layout.Column = 3;
+            app.reportImgDpi.Value = '100';
+
+            % Create reportBinningLabel
+            app.reportBinningLabel = uilabel(app.reportGrid_2);
+            app.reportBinningLabel.VerticalAlignment = 'top';
+            app.reportBinningLabel.FontSize = 11;
+            app.reportBinningLabel.Layout.Row = [4 5];
+            app.reportBinningLabel.Layout.Column = 1;
+            app.reportBinningLabel.Text = {'Sumarização de pontos com níveis superiores ao limiar:'; '(Data-Binning)'};
+
+            % Create reportBinningPanel
+            app.reportBinningPanel = uipanel(app.reportGrid_2);
+            app.reportBinningPanel.AutoResizeChildren = 'off';
+            app.reportBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.reportBinningPanel.Layout.Row = [4 5];
+            app.reportBinningPanel.Layout.Column = [2 3];
+
+            % Create reportBinningGrid
+            app.reportBinningGrid = uigridlayout(app.reportBinningPanel);
+            app.reportBinningGrid.ColumnWidth = {100, 100};
+            app.reportBinningGrid.RowHeight = {'1x', 22};
+            app.reportBinningGrid.RowSpacing = 5;
+            app.reportBinningGrid.Padding = [10 10 10 5];
+            app.reportBinningGrid.BackgroundColor = [1 1 1];
+
+            % Create reportBinningLengthLabel
+            app.reportBinningLengthLabel = uilabel(app.reportBinningGrid);
+            app.reportBinningLengthLabel.VerticalAlignment = 'bottom';
+            app.reportBinningLengthLabel.WordWrap = 'on';
+            app.reportBinningLengthLabel.FontSize = 11;
+            app.reportBinningLengthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportBinningLengthLabel.Layout.Row = 1;
+            app.reportBinningLengthLabel.Layout.Column = 1;
+            app.reportBinningLengthLabel.Text = 'Comprimento quadrícula (metros):';
+
+            % Create reportBinningLength
+            app.reportBinningLength = uispinner(app.reportBinningGrid);
+            app.reportBinningLength.Step = 50;
+            app.reportBinningLength.Limits = [50 1500];
+            app.reportBinningLength.RoundFractionalValues = 'on';
+            app.reportBinningLength.ValueDisplayFormat = '%.0f';
+            app.reportBinningLength.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportBinningLength.FontSize = 11;
+            app.reportBinningLength.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportBinningLength.Layout.Row = 2;
+            app.reportBinningLength.Layout.Column = 1;
+            app.reportBinningLength.Value = 100;
+
+            % Create reportBinningFcnLabel
+            app.reportBinningFcnLabel = uilabel(app.reportBinningGrid);
+            app.reportBinningFcnLabel.VerticalAlignment = 'bottom';
+            app.reportBinningFcnLabel.WordWrap = 'on';
+            app.reportBinningFcnLabel.FontSize = 11;
+            app.reportBinningFcnLabel.Layout.Row = 1;
+            app.reportBinningFcnLabel.Layout.Column = 2;
+            app.reportBinningFcnLabel.Text = {'Função'; 'estatística:'};
+
+            % Create reportBinningFcn
+            app.reportBinningFcn = uidropdown(app.reportBinningGrid);
+            app.reportBinningFcn.Items = {'min', 'mean-linear', 'median-linear', 'rms-linear', 'max'};
+            app.reportBinningFcn.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.reportBinningFcn.FontSize = 11;
+            app.reportBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.reportBinningFcn.BackgroundColor = [1 1 1];
+            app.reportBinningFcn.Layout.Row = 2;
+            app.reportBinningFcn.Layout.Column = 2;
+            app.reportBinningFcn.Value = 'min';
+
+            % Create prjFileCompressionModeLabel
+            app.prjFileCompressionModeLabel = uilabel(app.reportGrid_2);
+            app.prjFileCompressionModeLabel.WordWrap = 'on';
+            app.prjFileCompressionModeLabel.FontSize = 11;
+            app.prjFileCompressionModeLabel.Layout.Row = 6;
+            app.prjFileCompressionModeLabel.Layout.Column = 1;
+            app.prjFileCompressionModeLabel.Text = 'Compressão aplicada ao arquivo de saída do projeto?';
+
+            % Create prjFileCompressionMode
+            app.prjFileCompressionMode = uidropdown(app.reportGrid_2);
+            app.prjFileCompressionMode.Items = {'Não', 'Sim'};
+            app.prjFileCompressionMode.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
+            app.prjFileCompressionMode.FontSize = 11;
+            app.prjFileCompressionMode.BackgroundColor = [1 1 1];
+            app.prjFileCompressionMode.Layout.Row = 6;
+            app.prjFileCompressionMode.Layout.Column = 2;
+            app.prjFileCompressionMode.Value = 'Não';
+
+            % Create SubTab4
+            app.SubTab4 = uitab(app.SubTabGroup);
+            app.SubTab4.AutoResizeChildren = 'off';
+            app.SubTab4.Title = 'MAPEAMENTO DE PASTAS';
+            app.SubTab4.BackgroundColor = 'none';
+
+            % Create SubGrid4
+            app.SubGrid4 = uigridlayout(app.SubTab4);
+            app.SubGrid4.ColumnWidth = {'1x', 20};
+            app.SubGrid4.RowHeight = {17, 22, 22, 22, '1x'};
+            app.SubGrid4.ColumnSpacing = 5;
+            app.SubGrid4.RowSpacing = 5;
+            app.SubGrid4.BackgroundColor = [1 1 1];
+
             % Create DATAHUBPOSTLabel
-            app.DATAHUBPOSTLabel = uilabel(app.SubGrid3);
+            app.DATAHUBPOSTLabel = uilabel(app.SubGrid4);
             app.DATAHUBPOSTLabel.VerticalAlignment = 'bottom';
             app.DATAHUBPOSTLabel.FontSize = 10;
             app.DATAHUBPOSTLabel.Layout.Row = 1;
@@ -1103,7 +1333,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.DATAHUBPOSTLabel.Text = 'DATAHUB - POST:';
 
             % Create DataHubPOST
-            app.DataHubPOST = uieditfield(app.SubGrid3, 'text');
+            app.DataHubPOST = uieditfield(app.SubGrid4, 'text');
             app.DataHubPOST.Editable = 'off';
             app.DataHubPOST.FontSize = 11;
             app.DataHubPOST.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -1111,7 +1341,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.DataHubPOST.Layout.Column = 1;
 
             % Create DataHubPOSTButton
-            app.DataHubPOSTButton = uiimage(app.SubGrid3);
+            app.DataHubPOSTButton = uiimage(app.SubGrid4);
             app.DataHubPOSTButton.ImageClickedFcn = createCallbackFcn(app, @Config_FolderButtonPushed, true);
             app.DataHubPOSTButton.Tag = 'DataHub_POST';
             app.DataHubPOSTButton.Enable = 'off';
@@ -1120,7 +1350,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.DataHubPOSTButton.ImageSource = 'OpenFile_36x36.png';
 
             % Create userPathLabel
-            app.userPathLabel = uilabel(app.SubGrid3);
+            app.userPathLabel = uilabel(app.SubGrid4);
             app.userPathLabel.VerticalAlignment = 'bottom';
             app.userPathLabel.FontSize = 10;
             app.userPathLabel.Layout.Row = 3;
@@ -1128,7 +1358,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.userPathLabel.Text = 'PASTA DO USUÁRIO:';
 
             % Create userPath
-            app.userPath = uieditfield(app.SubGrid3, 'text');
+            app.userPath = uieditfield(app.SubGrid4, 'text');
             app.userPath.Editable = 'off';
             app.userPath.FontSize = 11;
             app.userPath.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -1136,7 +1366,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.userPath.Layout.Column = 1;
 
             % Create userPathButton
-            app.userPathButton = uiimage(app.SubGrid3);
+            app.userPathButton = uiimage(app.SubGrid4);
             app.userPathButton.ImageClickedFcn = createCallbackFcn(app, @Config_FolderButtonPushed, true);
             app.userPathButton.Tag = 'userPath';
             app.userPathButton.Enable = 'off';

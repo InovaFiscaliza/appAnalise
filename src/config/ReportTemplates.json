@@ -1,130 +1,86 @@
 [
     {
         "Name": "PMEC 2025",
-        "Template": "PMEC_2025.json",
+        "File": "PMEC_2025.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro utilizado por Aplicações Críticas",
         "Author": "Leonardo Lago Araújo",
         "Version": "1.00",
         "Release": "22/01/2025",
-        "RelatedServices": [
-            "010 - COLETIVO - SERVIÇO MOVEL PESSOAL",
-            "019 - RESTRITO - LIMITADO PRIVADO",
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQÜÊNCIA MODULADA",
-            "231 - COLETIVO - RADIODIFUSÃO COMUNITÁRIA",
-            "507 - RESTRITO - MÓVEL AERONÁUTICO"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": []
+        "UserData": []
     },
     {
         "Name": "PMEC 2025 (DT)",
-        "Template": "PMEC_2025_DT.json",
+        "File": "PMEC_2025_DT.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro utilizado por Aplicações Críticas",
         "Author": "Leonardo Lago Araújo",
         "Version": "1.00",
-        "Release": "22/01/2025  ",
-        "RelatedServices": [
-            "010 - COLETIVO - SERVIÇO MOVEL PESSOAL",
-            "019 - RESTRITO - LIMITADO PRIVADO",
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQÜÊNCIA MODULADA",
-            "231 - COLETIVO - RADIODIFUSÃO COMUNITÁRIA",
-            "507 - RESTRITO - MÓVEL AERONÁUTICO"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": []
+        "Release": "22/01/2025",
+        "UserData": ""
     },
     {
         "Name": "PMRD 2025",
-        "Template": "PMRD_2025.json",
+        "File": "PMRD_2025.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração de Radiodifusão",
         "Author": "Arthur Pisaruk",
         "Version": "1.00",
         "Release": "03/02/2025",
-        "RelatedServices": [
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQÜÊNCIA MODULADA",
-            "231 - COLETIVO - RADIODIFUSÃO COMUNITÁRIA",
-            "247 - COLETIVO - GERADORA DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "248 - COLETIVO - RADIODIFUSÃO DE SONS E IMAGENS",
-            "800 - COLETIVO - RETRANSMISSAO DE T.V.",
-            "801 - COLETIVO - RETRANSMISSÃO DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "805 - COLETIVO - RETRANSMISSÃO DE RÁDIO (RTR) NA AMAZÔNIA LEGAL"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": []
+        "UserData": []
     },
     {
         "Name": "PMEF 2025",
-        "Template": "PMEF_2025.json",
+        "File": "PMEF_2025.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro na Fronteira",
         "Author": "Centralizador PMEF 2024",
         "Version": "1.01",
         "Release": "02/11/2024",
-        "RelatedServices": [
-            "010 - COLETIVO - SERVIÇO MOVEL PESSOAL",
-            "019 - RESTRITO - LIMITADO PRIVADO",
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQÜÊNCIA MODULADA",
-            "231 - COLETIVO - RADIODIFUSÃO COMUNITÁRIA",
-            "247 - COLETIVO - GERADORA DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "248 - COLETIVO - RADIODIFUSÃO DE SONS E IMAGENS",
-            "507 - RESTRITO - MÓVEL AERONÁUTICO",
-            "800 - COLETIVO - RETRANSMISSAO DE T.V.",
-            "801 - COLETIVO - RETRANSMISSÃO DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": {
-            "Image": [
-                "ROMES"
-            ],
-            "Table": [
-                "METODOLOGIA",
-                "ROMES",
-                "SUMÁRIO"
-            ]
+        "UserData": {
+            "ExternalFileTags": {
+                "Image": [
+                    "ROMES"
+                ],
+                "Table": [
+                    "METODOLOGIA",
+                    "ROMES",
+                    "SUMÁRIO"
+                ]
+            }
         }
     },
     {
         "Name": "PMSAT 2024",
-        "Template": "PMSAT_2024.json",
+        "File": "PMSAT_2024.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração de Satélites",
         "Author": "Centralizador PMSAT 2024",
         "Version": "1.01",
         "Release": "02/11/2024",
-        "RelatedServices": [
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQÜÊNCIA MODULADA",
-            "231 - COLETIVO - RADIODIFUSÃO COMUNITÁRIA",
-            "247 - COLETIVO - GERADORA DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "248 - COLETIVO - RADIODIFUSÃO DE SONS E IMAGENS",
-            "800 - COLETIVO - RETRANSMISSAO DE T.V.",
-            "801 - COLETIVO - RETRANSMISSÃO DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "805 - COLETIVO - RETRANSMISSÃO DE RÁDIO (RTR) NA AMAZÔNIA LEGAL"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": []
+        "UserData": []
     },
     {
         "Name": "Grandes Eventos 2025",
-        "Template": "GrandesEventos_2025.json",
+        "File": "GrandesEventos_2025.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
         "Description": "Grandes Eventos 2025",
         "Author": "Breno César Santana Caldas da Silva",
         "Version": "1.00",
         "Release": "03/02/2025",
-        "RelatedServices": [
-            "010 - COLETIVO - SERVIÇO MOVEL PESSOAL",
-            "019 - RESTRITO - LIMITADO PRIVADO",
-            "037 - RESTRITO - USO TEMPORARIO DO ESPECTRO",
-            "230 - COLETIVO - RADIODIFUSÃO SONORA EM FREQUÊNCIA MODULADA",
-            "247 - COLETIVO - GERADORA DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "248 - COLETIVO - RADIODIFUSÃO DE SONS E IMAGENS",
-            "800 - COLETIVO - RETRANSMISSAO DE T.V.",
-            "801 - COLETIVO - RETRANSMISSÃO DE RADIODIFUSÃO DE SONS E IMAGENS - DIGITAL",
-            "805 - COLETIVO - RETRANSMISSÃO DE RÁDIO (RTR) NA AMAZÔNIA LEGAL"
-        ],
-        "JournalTable": [],
-        "ExternalFilesTags": {
-            "Image": [],
-            "Table": [
-                "SUMÁRIO"
-            ]
+        "UserData": {
+            "ExternalFileTags": {
+                "Image": [],
+                "Table": [
+                    "SUMÁRIO"
+                ]
+            }
         }
     }
 ]

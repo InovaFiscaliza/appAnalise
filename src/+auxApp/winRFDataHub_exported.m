@@ -208,6 +208,32 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
+        function ipcSecondaryMatlabCallsHandler(app, callingApp, varargin)
+            try
+                switch class(callingApp)
+                    case {'winAppAnalise', 'winAppAnalise_exported', ...
+                          'winMonitorRNI', 'winMonitorRNI_exported'}
+                        operationType = varargin{1};
+
+                        switch operationType
+                            case 'onRFDataHubUpdate'
+                                initializeRFDataHub(app)
+                                applyInitialLayout(app)
+
+                            otherwise
+                                error('UnexpectedCall')
+                        end
+
+                    otherwise
+                        error('UnexpectedCaller')
+                end
+            
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
@@ -288,13 +314,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
-            % RFDataHub
-            global RFDataHub
-            global RFDataHubLog
-
-            app.rfDataHub        = RFDataHub;
-            app.rfDataHubLOG     = RFDataHubLog;
-            app.rfDataHubSummary = app.mainApp.rfDataHubSummary;
+            initializeRFDataHub(app)
 
             % refRX: armazena o valor inicial da estação receptora de referência
             %        para fins de análise da edição.
@@ -332,6 +352,13 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
 
     methods (Access = private)
+        %-----------------------------------------------------------------%
+        function initializeRFDataHub(app)
+            app.rfDataHub        = app.mainApp.RFDataHub;
+            app.rfDataHubLOG     = app.mainApp.RFDataHubLog;
+            app.rfDataHubSummary = app.mainApp.rfDataHubSummary;
+        end
+        
         %-----------------------------------------------------------------%
         function startup_AxesCreation(app)
             hParent     = tiledlayout(app.plotPanel, 2, 2, "Padding", "none", "TileSpacing", "none");
@@ -1380,7 +1407,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
 
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'RFDATAHUB')
             delete(app)
             
         end

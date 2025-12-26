@@ -1,5 +1,5 @@
 {
-    "version": 1.04,
+    "version": 1.08,
     "operationMode": {
         "Debug": false,
         "Dock": false,
@@ -22,10 +22,6 @@
         "DataHub_GET": "",
         "DataHub_POST": "",
         "lastVisited": ""
-    },
-    "Image": {
-        "Format": "jpeg",
-        "Resolution": 120
     },
     "Plot": {
         "MinHold": {
@@ -235,10 +231,39 @@
         "ManualMode": false,
         "InitialBW_kHz": 0
     },
-    "ui": {
-        "unit": {
-            "default": "",
-            "options": [
+    "Report": {
+        "system": "eFiscaliza",
+        "unit": "",
+        "Document": "Relatório de Atividades",
+        "Basemap": "streets-dark",
+        "Image": {
+            "Format": "jpeg",
+            "Resolution": 120
+        },
+        "DataBinning": {
+            "length_m": 100,
+            "function": "mean-linear"
+        },
+        "outputCompressionMode": "Sim"
+    },
+    "eFiscaliza": {
+        "internal": {
+            "originId": "G",
+            "typeIdMapping": [
+                {"type": "Relatório de Fiscalização", "id": "19"},
+                {"type": "Relatório de Atividades", "id": "306"}
+            ]
+        },
+        "external": {
+            "originId": "R",
+            "typeId": "63"
+        },
+        "legalBasisId": "33",
+        "accessLevelId": "1",
+        "description": "",
+        "note": "Documento gerado no appAnalise",
+        "defaultValues": {
+            "unit": [
                 "",
                 "GR01", "GR01FI1", "GR01FI2", "GR01FI3",
                 "GR02", "GR02FI1", "GR02FI2", "GR02FI3",
@@ -267,23 +292,36 @@
                 "UO111",
                 "UO112",
                 "UO113"
-            ]
-        }
-    },
-    "eFiscaliza": {
-        "internal": {
-            "originId": "G",
-            "typeId": "306"
-        },
-        "external": {
-            "originId": "R",
-            "typeId": "63"
-        },
-        "legalBasisId": "33",
-        "accessLevelId": "1",
-        "description": "",
-        "note": "Documento gerado no appAnalise",
-        "defaultValues": {
+            ],
+            "unitCityMapping": [
+              {"unit": "GR01", "city": "São Paulo/SP"},
+              {"unit": "GR02", "city": "Rio de Janeiro/RJ"},
+              {"unit": "GR03", "city": "Curitiba/PR"},
+              {"unit": "GR04", "city": "Belo Horizonte/MG"},
+              {"unit": "GR05", "city": "Porto Alegre/RS"},
+              {"unit": "GR06", "city": "Recife/PE"},
+              {"unit": "GR07", "city": "Goiânia/GO"},
+              {"unit": "GR08", "city": "Salvador/BA"},
+              {"unit": "GR09", "city": "Fortaleza/CE"},
+              {"unit": "GR10", "city": "Belém/PA"},
+              {"unit": "GR11", "city": "Manaus/AM"},            
+              {"unit": "UO001", "city": "Brasília/DF"},
+              {"unit": "UO021", "city": "Vitória/ES"},
+              {"unit": "UO031", "city": "Florianópolis/SC"},
+              {"unit": "UO061", "city": "Maceió/AL"},
+              {"unit": "UO062", "city": "João Pessoa/PB"},
+              {"unit": "UO071", "city": "Cuiabá/MT"},
+              {"unit": "UO072", "city": "Campo Grande/MS"},
+              {"unit": "UO073", "city": "Palmas/TO"},
+              {"unit": "UO081", "city": "Aracaju/SE"},
+              {"unit": "UO091", "city": "Natal/RN"},
+              {"unit": "UO092", "city": "Teresina/PI"},
+              {"unit": "UO101", "city": "São Luís/MA"},
+              {"unit": "UO102", "city": "Macapá/AP"},
+              {"unit": "UO111", "city": "Porto Velho/RO"},
+              {"unit": "UO112", "city": "Rio Branco/AC"},
+              {"unit": "UO113", "city": "Boa Vista/RR"}
+            ],
             "servicos_da_inspecao": {
                 "value": [
                     "000 - Não Aplicável"
