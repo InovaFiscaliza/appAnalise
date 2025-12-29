@@ -283,76 +283,52 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
-                customizationStatus = [false, false, false, false];
+                customizationStatus = zeros(1, numel(app.SubTabGroup.Children), 'logical');
             end
 
+            if customizationStatus(tabIndex)
+                return
+            end
+
+            appName = class(app);
+
+            customizationStatus(tabIndex) = true;
             switch tabIndex
-                case 0 % STARTUP
-                    if app.isDocked
-                        app.progressDialog = app.mainApp.progressDialog;
-                    else
-                        sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                        app.progressDialog = ui.ProgressDialog(app.jsBackDoor);                        
-                    end
-                    customizationStatus = [false, false, false, false];
+                case 1
+                    elToModify = {app.AxesToolbar, app.reportFlag, app.emissionInfo};
+                    elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                    if ~isempty(elDataTag)
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                            struct('appName', appName, 'dataTag', elDataTag{1}, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                            struct('appName', appName, 'dataTag', elDataTag{2}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
+                        });
 
-                otherwise
-                    if customizationStatus(tabIndex)
-                        return
+                        ui.TextView.startup(app.jsBackDoor, elToModify{3}, appName);
                     end
 
-                    appName = class(app);
-
-                    customizationStatus(tabIndex) = true;
-                    switch tabIndex
-                        case 1
-                            % Grid botões "dock":
-                            if app.isDocked
-                                elToModify = {app.DockModule};
-                                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                                if ~isempty(elDataTag)
-                                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
-                                    });
-                                end
-                            end
-
-                            % Outros elementos:
-                            elToModify = {app.AxesToolbar, app.reportFlag, app.emissionInfo};
-                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                            if ~isempty(elDataTag)
-                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                                    struct('appName', appName, 'dataTag', elDataTag{2}, 'generation', 1, 'style', struct('textAlign', 'justify')) ...
-                                });
-
-                                ui.TextView.startup(app.jsBackDoor, elToModify{3}, appName);
-                            end
-
-                        case 2
-                            elToModify = {app.filter_Tree};
-                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                            if ~isempty(elDataTag)
-                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                                     ...
-                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'auxApp.winDriveTest.filter_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
-                                });
-                            end
-                        
-                        case 3
-                            elToModify = {app.points_Tree};
-                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                            if ~isempty(elDataTag)
-                                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                                     ...
-                                    struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'auxApp.winDriveTest.points_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
-                                });
-                            end
-
-                        case 4
-                            app.config_chROIColor.Value     = app.General.Plot.ChannelROI.Color;
-                            app.config_chROIEdgeAlpha.Value = app.General.Plot.ChannelROI.EdgeAlpha;
-                            app.config_chROIFaceAlpha.Value = app.General.Plot.ChannelROI.FaceAlpha;
-                            app.config_chPowerColor.Value   = app.UIAxes3.Colormap(end,:);
+                case 2
+                    elToModify = {app.filter_Tree};
+                    elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                    if ~isempty(elDataTag)
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                                     ...
+                            struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'auxApp.winDriveTest.filter_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
+                        });
                     end
+                
+                case 3
+                    elToModify = {app.points_Tree};
+                    elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                    if ~isempty(elDataTag)
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                                     ...
+                            struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'auxApp.winDriveTest.points_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
+                        });
+                    end
+
+                case 4
+                    app.config_chROIColor.Value     = app.General.Plot.ChannelROI.Color;
+                    app.config_chROIEdgeAlpha.Value = app.General.Plot.ChannelROI.EdgeAlpha;
+                    app.config_chROIFaceAlpha.Value = app.General.Plot.ChannelROI.FaceAlpha;
+                    app.config_chPowerColor.Value   = app.UIAxes3.Colormap(end,:);
             end
         end
 

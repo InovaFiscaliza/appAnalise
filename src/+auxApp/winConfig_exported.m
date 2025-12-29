@@ -131,59 +131,32 @@ classdef winConfig_exported < matlab.apps.AppBase
         function applyJSCustomizations(app, tabIndex)
             persistent customizationStatus
             if isempty(customizationStatus)
-                customizationStatus = [false, false, false, false];
+                customizationStatus = zeros(1, numel(app.SubTabGroup.Children), 'logical');
             end
 
+            if customizationStatus(tabIndex)
+                return
+            end
+
+            customizationStatus(tabIndex) = true;
             switch tabIndex
-                case 0 % STARTUP
-                    if app.isDocked
-                        app.progressDialog = app.mainApp.progressDialog;
-                    else
-                        sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                        app.progressDialog = ui.ProgressDialog(app.jsBackDoor);
-                    end
-                    customizationStatus = [false, false, false, false];
-
-                otherwise
-                    if customizationStatus(tabIndex)
-                        return
+                case 1
+                    elDataTag = ui.CustomizationBase.getElementsDataTag({app.versionInfo});
+                    if ~isempty(elDataTag)
+                        ui.TextView.startup(app.jsBackDoor, app.versionInfo, class(app));
                     end
 
-                    customizationStatus(tabIndex) = true;
-                    switch tabIndex
-                        case 1
-                            appName = class(app);
+                case 2
+                    updatePanel_Analysis(app)
 
-                            % Grid botões "dock":
-                            if app.isDocked
-                                elToModify = {app.DockModule};
-                                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                                if ~isempty(elDataTag)
-                                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
-                                    });
-                                end
-                            end
-                            
-                            % Outros elementos:
-                            elToModify = {app.versionInfo};
-                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                            if ~isempty(elDataTag)
-                                ui.TextView.startup(app.jsBackDoor, app.versionInfo, appName);
-                            end
+                case 3
+                    updatePanel_Report(app)
 
-                        case 2
-                            updatePanel_Analysis(app)
-
-                        case 3
-                            updatePanel_Report(app)
-
-                        case 4
-                            if ~strcmp(app.mainApp.executionMode, 'webApp')
-                                set([app.DataHubPOSTButton, app.userPathButton], 'Enable', 1)
-                            end
-                            updatePanel_Folder(app)
+                case 4
+                    if ~strcmp(app.mainApp.executionMode, 'webApp')
+                        set([app.DataHubPOSTButton, app.userPathButton], 'Enable', 1)
                     end
+                    updatePanel_Folder(app)
             end
         end
 
