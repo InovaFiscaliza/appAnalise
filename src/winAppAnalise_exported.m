@@ -458,18 +458,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyJSCustomizations(app, tabIndex)
-            persistent customizationStatus
-            if isempty(customizationStatus)
-                customizationStatus = zeros(1, numel(app.SubTabGroup,Children), 'logical');
-            end
-
-            if customizationStatus(tabIndex)
+            if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
                 return
             end
+            app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
 
             appName = class(app);
-
-            customizationStatus(tabIndex) = true;
             switch tabIndex
                 case 1
                     elToModify = {              ...
@@ -2858,7 +2852,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 else
                     msgQuestion = 'Deseja fechar o aplicativo?';
                 end
-    
+
                 userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
                 if userSelection == "Não"
                     return

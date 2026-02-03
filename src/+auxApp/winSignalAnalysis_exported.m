@@ -126,33 +126,30 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function applyJSCustomizations(app)
-            if app.isDocked
-                app.progressDialog = app.mainApp.progressDialog;
-            else
-                sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                app.progressDialog = ui.ProgressDialog(app.jsBackDoor);
+        function applyJSCustomizations(app, tabIndex)
+            persistent customizationStatus
+            if tabIndex == -1
+              % customizationStatus = zeros(1, numel(app.SubTabGroup.Children), 'logical');
+                customizationStatus = false;
+                return
             end
 
-            appName = class(app);
-
-            % Grid botões "dock":
-            if app.isDocked
-                elToModify = {app.DockModule};
-                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                if ~isempty(elDataTag)
-                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
-                    });
-                end
+            if customizationStatus(tabIndex)
+                return
             end
 
-            % Outros elementos:
-            elToModify = {app.selectedEmissionInfo};
-            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-            if ~isempty(elDataTag)
-                appName = class(app);
-                ui.TextView.startup(app.jsBackDoor, elToModify{1}, appName);
+            customizationStatus(tabIndex) = true;
+            switch tabIndex
+                case 1
+                    elToModify = {app.selectedEmissionInfo};
+                    elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
+                    if ~isempty(elDataTag)
+                        ui.TextView.startup(app.jsBackDoor, elToModify{1}, class(app));
+                    end
+
+                otherwise
+                    % Previsto pensando em evolução, caso adicionado uitabgroup 
+                    % com nome "app.SubTabGrid" e seus uitabs...
             end
         end
 
