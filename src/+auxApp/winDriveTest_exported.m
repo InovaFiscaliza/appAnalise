@@ -166,7 +166,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     end
 
 
-    properties (Access = private)
+    properties
         %-----------------------------------------------------------------%
         General
         General_I
@@ -198,6 +198,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         hClearWrite
         hTimeline
         hCar
+
+        inputArgs
     end
 
 
@@ -381,6 +383,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelEditMode.UserData    = false;
 
             % Lista as emissões:
+            idxThread   = app.inputArgs.idxThread;
+            idxEmission = app.inputArgs.idxEmission;
             layout_ThreadTreeBuilding(app, idxThread, idxEmission)
 
         end
@@ -1581,12 +1585,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp)
+        function startupFcn(app, mainApp, idxThread, idxEmission)
 
             try
                 app.General   = mainApp.General;
                 app.General_I = mainApp.General_I;
                 app.specData  = mainApp.specData;
+                app.inputArgs = struct('idxThread', idxThread, 'idxEmission', idxEmission);
 
                 appEngine.boot(app, app.Role, mainApp)
             catch ME

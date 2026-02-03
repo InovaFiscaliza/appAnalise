@@ -75,7 +75,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     end
 
 
-    properties (Access = private)
+    properties
         %-----------------------------------------------------------------%
         General
         General_I
@@ -89,6 +89,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         UIAxes1
         UIAxes2
         restoreView = struct('ID', {}, 'xLim', {}, 'yLim', {}, 'cLim', {})
+
+        inputArgs
     end
 
 
@@ -98,7 +100,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             try
                 switch event.HTMLEventName
                     case 'renderer'
-                        startup_Controller(app, varargin{:})
+                        appEngine.activate(app, app.Role)
 
                     otherwise
                         error('UnexpectedEvent')
@@ -177,6 +179,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
             pause(.100)
+            selectedRow = app.inputArgs.selectedRow;
             Toolbar_CheckBoxValueChanged(app, struct('initialSelection', selectedRow))
             focus(app.UITable)
         end
@@ -626,19 +629,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         % Code that executes after component creation
         function startupFcn(app, mainApp, selectedRow)
             
-            app.mainApp     = mainApp;
-            app.General     = mainApp.General;
-            app.General_I   = mainApp.General_I;
-            app.specData    = mainApp.specData;
-
-            if app.isDocked
-                app.GridLayout.Padding(4) = 30;
-                app.DockModule.Visible = 1;
-                app.jsBackDoor = mainApp.jsBackDoor;
-                startup_Controller(app, selectedRow)
-            else
-                appEngine.util.setWindowPosition(app.UIFigure)
-                startup_timerCreation(app, selectedRow)
+            try
+                app.mainApp     = mainApp;
+                app.General     = mainApp.General;
+                app.General_I   = mainApp.General_I;
+                app.specData    = mainApp.specData;
+                app.inputArgs   = struct('selectedRow', selectedRow);
+            
+                appEngine.boot(app, app.Role, mainApp)
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
             
         end

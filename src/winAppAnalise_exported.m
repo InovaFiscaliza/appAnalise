@@ -1007,6 +1007,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 model.RFDataHub.read(appName, app.rootFolder, tempDir)
             end
 
+            % Um dos arquivos que compõem a subpasta "config", copiada para
+            % "ProgramData/ANATEL/appAnalise" na primeira execução, é o arquivo 
+            % "ReportTemplates.json".
+            [projectFolder, programDataFolder] = appEngine.util.Path(appName, app.rootFolder);
+            if isfile(fullfile(programDataFolder, 'ReportTemplates.json'))
+                reportTemplateFile = fullfile(programDataFolder, 'ReportTemplates.json');
+            else
+                reportTemplateFile = fullfile(projectFolder,     'ReportTemplates.json');
+            end
+
             % Leitura de arquivo "IBGE.mat", salvando-o em memória como 
             % variável global.
             [~, msgError] = gpsLib.checkIfIBGEIsGlobal();
@@ -1026,6 +1036,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             app.General            = app.General_I;
             app.General.AppVersion = util.getAppVersion(app.rootFolder, MFilePath, tempDir);
+            app.General.Models     = struct2table(jsondecode(fileread(reportTemplateFile)));
             sendEventToHTMLSource(app.jsBackDoor, 'getNavigatorBasicInformation')
         end
 
@@ -1040,15 +1051,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeUIComponents(app)
-            app.tabGroupController = ui.TabNavigator(app.NavBar, app.TabGroup, app.progressDialog, @app.applyJSCustomizations, @app.menu_LayoutControl);
+            app.tabGroupController = ui.TabNavigator(app.NavBar, app.TabGroup, app.progressDialog);
             addComponent(app.tabGroupController, "Built-in", "",                         app.Tab1Button, "AlwaysOn", struct('On', 'OpenFile_32Yellow.png',         'Off', 'OpenFile_32White.png'),         matlab.graphics.GraphicsPlaceholder, 1)
             addComponent(app.tabGroupController, "Built-in", "",                         app.Tab2Button, "AlwaysOn", struct('On', 'Playback_32Yellow.png',         'Off', 'Playback_32White.png'),         matlab.graphics.GraphicsPlaceholder, 2)
             addComponent(app.tabGroupController, "Built-in", "",                         app.Tab3Button, "AlwaysOn", struct('On', 'Report_32Yellow.png',           'Off', 'Report_32White.png'),           matlab.graphics.GraphicsPlaceholder, 2)
             addComponent(app.tabGroupController, "Built-in", "",                         app.Tab4Button, "AlwaysOn", struct('On', 'Misc_32Yellow.png',             'Off', 'Misc_32White.png'),             matlab.graphics.GraphicsPlaceholder, 2)
-            addComponent(app.tabGroupController, "External", "auxApp.winDriveTest",      app.Tab5Button, "AlwaysOn", struct('On', 'DriveTestDensity_32Yellow.png', 'Off', 'DriveTestDensity_32White.png'), app.Tab2Button,                    3)
-            addComponent(app.tabGroupController, "External", "auxApp.winSignalAnalysis", app.Tab6Button, "AlwaysOn", struct('On', 'exceptionList_32Yellow.png',    'Off', 'exceptionList_32White.png'),    app.Tab2Button,                    4)
-            addComponent(app.tabGroupController, "External", "auxApp.winRFDataHub",      app.Tab7Button, "AlwaysOn", struct('On', 'mosaic_32Yellow.png',           'Off', 'mosaic_32White.png'),           app.Tab2Button,                    5)
-            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab8Button, "AlwaysOn", struct('On', 'Settings_36Yellow.png',         'Off', 'Settings_36White.png'),         app.Tab2Button,                    6)
+            addComponent(app.tabGroupController, "External", "auxApp.winDriveTest",      app.Tab5Button, "AlwaysOn", struct('On', 'DriveTestDensity_32Yellow.png', 'Off', 'DriveTestDensity_32White.png'), app.Tab2Button,                      3)
+            addComponent(app.tabGroupController, "External", "auxApp.winSignalAnalysis", app.Tab6Button, "AlwaysOn", struct('On', 'exceptionList_32Yellow.png',    'Off', 'exceptionList_32White.png'),    app.Tab2Button,                      4)
+            addComponent(app.tabGroupController, "External", "auxApp.winRFDataHub",      app.Tab7Button, "AlwaysOn", struct('On', 'mosaic_32Yellow.png',           'Off', 'mosaic_32White.png'),           app.Tab2Button,                      5)
+            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab8Button, "AlwaysOn", struct('On', 'Settings_36Yellow.png',         'Off', 'Settings_36White.png'),         app.Tab2Button,                      6)
 
             % Salva na propriedade "UserData" as opções de ícone e o índice 
             % da aba, simplificando os ajustes decorrentes de uma alteração...
@@ -3360,6 +3371,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 app.Tab6Button.Enable = 1;
 
                 tabNavigatorButtonPushed(app, struct('Source', app.Tab2Button, 'PreviousValue', false))
+                applyJSCustomizations(app, 2)
 
                 % Constroi a árvore de fluxos espectrais, deixando selecionado
                 % o primeiro dos fluxos. E constroi a árvore de fluxos espectrais
