@@ -10,6 +10,17 @@ classdef (Abstract) HtmlTextGenerator
 
     properties (Constant)
         %-----------------------------------------------------------------%
+        unicodeToHtmlHexMap = struct( ...
+            'Bullet',          struct('unicode', '•',  'html', '&#x2022;'), ...
+            'Hourglass',       struct('unicode', '⌛', 'html', '&#x231B;'), ...
+            'WhiteCircle',     struct('unicode', '⚪', 'html', '&#x26AA;'), ...
+            'RedCircle',       struct('unicode', '🔴', 'html', '&#x1F534;'), ...
+            'GreenCircle',     struct('unicode', '🟢', 'html', '&#x1F7E2;'), ...
+            'ExclamationMark', struct('unicode', '❗', 'html', '&#x2757;'), ...
+            'PlusSign',        struct('unicode', '➕', 'html', '&#x2795;'), ...
+            'ProhibitedSign',  struct('unicode', '🚫', 'html', '&#x1F6AB;'), ...
+            'HierarchyArrow',  struct('unicode', '↳',  'html', '&#x21B3;') ...
+        );
     end
 
     
@@ -91,14 +102,10 @@ classdef (Abstract) HtmlTextGenerator
             
             if isscalar(specData)
                 threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
-        
-                % Tempo de observação:
-                if isa(dataSource, 'model.SpecData')
-                    dataStruct(end+1) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s - %s', datestr(specData.Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData.Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
-                end
-        
+                observationPeriod = sprintf('%s - %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
+                
                 % Metadados:
-                dataStruct(end+1) = struct('group', 'METADADOS', 'value', rmfield(specData.MetaData, {'DataType'}));
+                dataStruct(end+1) = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}));
                 dataStruct(end).value.FreqStart = sprintf('%d Hz', dataStruct(end).value.FreqStart);
                 dataStruct(end).value.FreqStop  = sprintf('%d Hz', dataStruct(end).value.FreqStop);
 
@@ -110,15 +117,8 @@ classdef (Abstract) HtmlTextGenerator
                     dataStruct(end).value.VBW = sprintf('%.3f kHz', dataStruct(end).value.VBW/1000);
                 end
         
-                % GPS, altura da antena e arquivos:
-                dataStruct(end+1) = struct('group', 'GPS',    'value', specData.GPS);
-                if isprop(specData, 'UserData') && ~isempty(specData.UserData) && ~isempty(specData.UserData.AntennaHeight)
-                    if specData.UserData.AntennaHeight == -1
-                        dataStruct(end+1) = struct('group', 'ANTENA', 'value', '-1');
-                    else
-                        dataStruct(end+1) = struct('group', 'ANTENA', 'value', sprintf('%.1fm', specData.UserData.AntennaHeight));
-                    end
-                end
+                % GPS e arquivos:
+                dataStruct(end+1) = struct('group', 'LOCAL DA MONITORAÇÃO (GPS)', 'value', rmfield(specData.GPS, 'stdRange'));
                 dataStruct(end+1) = struct('group', 'FONTE DA INFORMAÇÃO',                                   ...
                                            'value', struct('File',    strjoin(specData.RelatedFiles.File, ', '), ...
                                                            'nSweeps', sum(specData.RelatedFiles.nSweeps)));
@@ -129,8 +129,8 @@ classdef (Abstract) HtmlTextGenerator
         
                     dataStruct(end+1) = struct('group', upper(specData.RelatedFiles.File{ii}),                            ...
                                                'value', struct('ID',              specData.RelatedFiles.ID(ii),           ...
-                                                               'Task',            specData.RelatedFiles.Task{ii},         ...
-                                                               'Description',     specData.RelatedFiles.Description{ii},  ...
+                                                               'Task',            sprintf('"%s"', specData.RelatedFiles.Task{ii}), ...
+                                                               'Description',     sprintf('"%s"', specData.RelatedFiles.Description{ii}), ...
                                                                'ObservationTime', sprintf('%s - %s', BeginTime, EndTime), ...
                                                                'nSweeps',         specData.RelatedFiles.nSweeps(ii),      ...
                                                                'RevisitTime',     sprintf('%.3f segundos', specData.RelatedFiles.RevisitTime(ii))));
@@ -139,12 +139,14 @@ classdef (Abstract) HtmlTextGenerator
                 if isprop(specData, 'UserData') && ~isempty(specData.UserData) && ~isempty(specData.UserData.LOG)
                     dataStruct(end+1) = struct('group', 'LOG', 'value', strjoin(specData.UserData.LOG));
                 end
+                
+                freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>⌛ %s<br>📍 %s<br><br>', threadTag, observationPeriod, specData.GPS.Location);
             
             else
                 threadTag = strjoin(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
+                freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', threadTag);
             end
         
-            freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', threadTag);
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
         end
 

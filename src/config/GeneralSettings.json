@@ -1,5 +1,5 @@
 {
-    "version": 1.08,
+    "version": 1.09,
     "operationMode": {
         "Debug": false,
         "Dock": false,
@@ -7,8 +7,7 @@
         "DevTools": {
             "login": "admin",
             "password": "admin"
-        },
-        "FreeStorageThreshold": 4
+        }
     },
     "computerName": {
         "desktopApp": "",
@@ -23,7 +22,43 @@
         "DataHub_POST": "",
         "lastVisited": ""
     },
+    "context": {
+        "FILE": [],
+        "PLAYBACK": [],
+        "DRIVETEST": [],
+        "SIGNALANALYSIS": [],
+        "RFDATAHUB": {
+            "tx": {
+                "defaultHeight": 10
+            },
+            "rx": {
+                "default": {
+                    "latitude": -15.805479,
+                    "longitude": -47.882499,
+                    "height": 2
+                },
+                "last": {
+                    "latitude": -15.805479,
+                    "longitude": -47.882499,
+                    "height": 2
+                }
+            },               
+            "filter": {
+                "default": {
+                    "columnLabel": "Distância",
+                    "operation": "≤",
+                    "value": 30
+                },
+                "last": []
+            }
+        }
+    },
     "Plot": {
+        "GeographicAxes": {
+            "Basemap": "satellite",
+            "Colormap": "turbo",
+            "Colorbar": "on"
+        },
         "MinHold": {
             "Fcn": "area",
             "LineStyle": "-",
@@ -143,11 +178,6 @@
             "yOccupancyScale": "log",
             "xGuardBandFactor": 1
         },
-        "GeographicAxes": {
-            "Basemap": "satellite",
-            "Colormap": "turbo",
-            "Colorbar": "on"
-        },
         "OccupancyThreshold": {
             "Color": "#ff0000",
             "LineStyle": "-",
@@ -199,30 +229,9 @@
         ],
         "Distance": 100
     },
-    "RFDataHub": {
-        "DefaultTX": {
-            "Height": 10
-        },
-        "DefaultRX": {
-            "Latitude": -15.805479,
-            "Longitude": -47.882499,
-            "Height": 30
-        },
-        "DefaultFilter": {
-            "ColumnLabel": "Distância",
-            "Operation": "≤",
-            "Value": 30
-        },
-        "lastSearch": []
-    },
     "Integration": {
         "Trace": Infinity,
         "SampleTime": 10
-    },
-    "Elevation": {
-        "Points": 256,
-        "ForceSearch": false,
-        "Server": "Open-Elevation"
     },
     "Channel": {
         "ManualMode": false
@@ -231,20 +240,34 @@
         "ManualMode": false,
         "InitialBW_kHz": 0
     },
-    "Report": {
+    "elevation": {
+        "pointCount": 256,
+        "forceRefresh": false,
+        "provider": "Open-Elevation"
+    },
+    "reportLib": {
         "system": "eFiscaliza",
         "unit": "",
-        "Document": "Relatório de Atividades",
-        "Basemap": "streets-dark",
-        "Image": {
-            "Format": "jpeg",
-            "Resolution": 120
+        "outputCompressionMode": "Sim",
+        "entityType": {
+            "default": "",
+            "options": [
+                "",
+                "Prestadora",
+                "Importador",
+                "Fornecedor",
+                "Usuário"
+            ]
         },
-        "DataBinning": {
-            "length_m": 100,
-            "function": "mean-linear"
+        "basemap": "streets-dark",
+        "image": {
+            "format": "jpeg",
+            "resolutionDpi": 120
         },
-        "outputCompressionMode": "Sim"
+        "dataBinning": {
+            "binLengthMeters": 100,
+            "aggregationFunction": "mean-linear"
+        }
     },
     "eFiscaliza": {
         "internal": {
@@ -261,7 +284,7 @@
         "legalBasisId": "33",
         "accessLevelId": "1",
         "description": "",
-        "note": "Documento gerado no appAnalise",
+        "note": "Documento gerado no monitorSPED",
         "defaultValues": {
             "unit": [
                 "",
@@ -294,22 +317,22 @@
                 "UO113"
             ],
             "unitCityMapping": [
-              {"unit": "GR01", "city": "São Paulo/SP"},
-              {"unit": "GR02", "city": "Rio de Janeiro/RJ"},
-              {"unit": "GR03", "city": "Curitiba/PR"},
-              {"unit": "GR04", "city": "Belo Horizonte/MG"},
-              {"unit": "GR05", "city": "Porto Alegre/RS"},
-              {"unit": "GR06", "city": "Recife/PE"},
-              {"unit": "GR07", "city": "Goiânia/GO"},
-              {"unit": "GR08", "city": "Salvador/BA"},
-              {"unit": "GR09", "city": "Fortaleza/CE"},
-              {"unit": "GR10", "city": "Belém/PA"},
-              {"unit": "GR11", "city": "Manaus/AM"},            
+              {"unit": "GR01",  "city": "São Paulo/SP"},
+              {"unit": "GR02",  "city": "Rio de Janeiro/RJ"},
+              {"unit": "GR03",  "city": "Curitiba/PR"},
+              {"unit": "GR04",  "city": "Belo Horizonte/MG"},
+              {"unit": "GR05",  "city": "Porto Alegre/RS"},
+              {"unit": "GR06",  "city": "Recife/PE"},
+              {"unit": "GR07",  "city": "Goiânia/GO"},
+              {"unit": "GR08",  "city": "Salvador/BA"},
+              {"unit": "GR09",  "city": "Fortaleza/CE"},
+              {"unit": "GR10",  "city": "Belém/PA"},
+              {"unit": "GR11",  "city": "Manaus/AM"},
               {"unit": "UO001", "city": "Brasília/DF"},
               {"unit": "UO021", "city": "Vitória/ES"},
               {"unit": "UO031", "city": "Florianópolis/SC"},
-              {"unit": "UO061", "city": "Maceió/AL"},
               {"unit": "UO062", "city": "João Pessoa/PB"},
+              {"unit": "UO061", "city": "Maceió/AL"},
               {"unit": "UO071", "city": "Cuiabá/MT"},
               {"unit": "UO072", "city": "Campo Grande/MS"},
               {"unit": "UO073", "city": "Palmas/TO"},
@@ -318,9 +341,68 @@
               {"unit": "UO092", "city": "Teresina/PI"},
               {"unit": "UO101", "city": "São Luís/MA"},
               {"unit": "UO102", "city": "Macapá/AP"},
-              {"unit": "UO111", "city": "Porto Velho/RO"},
               {"unit": "UO112", "city": "Rio Branco/AC"},
+              {"unit": "UO111", "city": "Porto Velho/RO"},
               {"unit": "UO113", "city": "Boa Vista/RR"}
+            ],
+            "unitNameMapping": [
+              {"unit": "AFFO",   "name": "Gerência de Finanças, Orçamento e Arrecadação"},
+              {"unit": "ANATEL", "name": "Agência Nacional de Telecomunicações"},
+              {"unit": "CBC2",   "name": "Comissão de Radiocomunicações"},
+              {"unit": "CODI",   "name": "Gerência de Controle de Obrigações de Direitos dos Consumidores"},
+              {"unit": "COGE",   "name": "Gerência de Controle de Obrigações Gerais"},
+              {"unit": "COQL",   "name": "Gerência de Controle de Obrigações de Qualidade"},
+              {"unit": "COUN",   "name": "Gerência de Controle de Obrigações de Universalização e de Ampliação do Acesso"},
+              {"unit": "CPAE",   "name": "Gerência de Acompanhamento Econômico da Prestação"},
+              {"unit": "CPRP",   "name": "Gerência de Monitoramento das Relações entre Prestadoras"},
+              {"unit": "FIGF",   "name": "Gerência de Fiscalização"},
+              {"unit": "FISF",   "name": "Gerência de Suporte à Fiscalização"},
+              {"unit": "GIDS",   "name": "Gerência de Planejamento, Desenvolvimento e Segurança de Sistemas"},
+              {"unit": "GIIB",   "name": "Gerência de Informações e Biblioteca"},
+              {"unit": "GIMR",   "name": "Gerência de Planejamento, Operação e Manutenção de Redes"},
+              {"unit": "GR01",   "name": "Gerência Regional no Estado de São Paulo"},
+              {"unit": "GR02",   "name": "Gerência Regional nos Estados do Rio de Janeiro e Espírito Santo"},
+              {"unit": "GR03",   "name": "Gerência Regional nos Estados do Paraná e Santa Catarina"},
+              {"unit": "GR04",   "name": "Gerência Regional no Estado de Minas Gerais"},
+              {"unit": "GR05",   "name": "Gerência Regional no Estado do Rio Grande do Sul"},
+              {"unit": "GR06",   "name": "Gerência Regional nos Estados de Pernambuco, Paraíba e Alagoas"},
+              {"unit": "GR07",   "name": "Gerência Regional nos Estados de Goiás, Mato Grosso, Mato Grosso do Sul e Tocantins"},
+              {"unit": "GR08",   "name": "Gerência Regional nos Estados da Bahia e Sergipe"},
+              {"unit": "GR09",   "name": "Gerência Regional nos Estados do Ceará, Rio Grande do Norte e Piauí"},
+              {"unit": "GR10",   "name": "Gerência Regional nos Estados do Pará, Maranhão e Amapá"},
+              {"unit": "GR11",   "name": "Gerência Regional nos Estados do Amazonas, Acre, Rondônia e Roraima"},
+              {"unit": "MCTIC",  "name": "Ministério da Ciência, Tecnologia e Inovação"},
+              {"unit": "ORCN",   "name": "Gerência de Certificação e Numeração"},
+              {"unit": "ORER",   "name": "Gerência de Espectro, Órbita e Radiodifusão"},
+              {"unit": "ORLE",   "name": "Gerência de Outorga e Licenciamento de Estações"},
+              {"unit": "PRRE",   "name": "Gerência de Regulamentação"},
+              {"unit": "PRUV",   "name": "Gerência de Universalização e Ampliação do Acesso"},
+              {"unit": "RCRC",   "name": "Gerência de Canais de Relacionamento com os Consumidores"},
+              {"unit": "RCTS",   "name": "Gerência de Tratamento de Solicitações de Consumidores"},
+              {"unit": "SCO",    "name": "Superintendência de Controle de Obrigações"},
+              {"unit": "SCP",    "name": "Superintendência de Competição"},
+              {"unit": "SECOE",  "name": "Secretaria de Comunicação Social e Eletrônica"},
+              {"unit": "SERAD",  "name": "Secretaria de Radiodifusão"},
+              {"unit": "SETEL",  "name": "Secretaria de Telecomunicações"},
+              {"unit": "SEXEC",  "name": "Secretaria Executiva"},
+              {"unit": "SFI",    "name": "Superintendência de Fiscalização"},
+              {"unit": "SOR",    "name": "Superintendência de Outorga e Recursos à Prestação"},
+              {"unit": "UO001",  "name": "Unidade Operacional do Distrito Federal"},
+              {"unit": "UO021",  "name": "Unidade Operacional no Estado do Espírito Santo"},
+              {"unit": "UO031",  "name": "Unidade Operacional no Estado de Santa Catarina"},
+              {"unit": "UO061",  "name": "Unidade Operacional no Estado de Alagoas"},
+              {"unit": "UO062",  "name": "Unidade Operacional no Estado da Paraíba"},
+              {"unit": "UO071",  "name": "Unidade Operacional no Estado de Mato Grosso"},
+              {"unit": "UO072",  "name": "Unidade Operacional no Estado de Mato Grosso do Sul"},
+              {"unit": "UO073",  "name": "Unidade Operacional no Estado do Tocantins"},
+              {"unit": "UO081",  "name": "Unidade Operacional no Estado de Sergipe"},
+              {"unit": "UO091",  "name": "Unidade Operacional no Estado do Rio Grande do Norte"},
+              {"unit": "UO092",  "name": "Unidade Operacional no Estado do Piauí"},
+              {"unit": "UO101",  "name": "Unidade Operacional no Estado do Maranhão"},
+              {"unit": "UO102",  "name": "Unidade Operacional no Estado do Amapá"},
+              {"unit": "UO111",  "name": "Unidade Operacional no Estado de Rondônia"},
+              {"unit": "UO112",  "name": "Unidade Operacional no Estado do Acre"},
+              {"unit": "UO113",  "name": "Unidade Operacional no Estado de Roraima"}
             ],
             "servicos_da_inspecao": {
                 "value": [

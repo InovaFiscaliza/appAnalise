@@ -28,7 +28,7 @@ function fLogical = TableFiltering(hTable, filterTable)
     
             % Cria vetor lógico.
             fLogical   = ones(height(hTable), 1, 'logical');
-            fTolerance = class.Constants.floatDiffTolerance;
+            fTolerance = class.Constants.floatDiffTol;
     
             for ii = idx1
                 tempLogical = zeros(height(hTable), 1, 'logical');
@@ -40,8 +40,8 @@ function fLogical = TableFiltering(hTable, filterTable)
                     end
     
                     switch filterTable.Type{jj}
-                        case 'ROI'
-                            tempLogical = or(tempLogical, inROI(filterTable.Value{jj}.handle, hTable.Latitude, hTable.Longitude));
+                        case {'images.roi.Circle', 'images.roi.Rectangle', 'images.roi.Polygon'}
+                            tempLogical = or(tempLogical, inROI(filterTable.Handle{jj}, hTable.Latitude, hTable.Longitude));
                             
                         otherwise
                             Fcn = filterFcn(filterTable.Operation{jj}, filterTable.Value{jj}, fTolerance);
@@ -74,7 +74,8 @@ function Fcn = filterFcn(filterOperation, filterValue, fTolerance)
         end
 
     elseif ischar(filterValue)
-        filterValue = strtrim(filterValue);
+        %filterValue = strtrim(filterValue);
+        filterValue = textAnalysis.normalizeWords(filterValue);
         
         switch filterOperation
             case '=';  Fcn = @(x)  strcmpi(string(x),  filterValue);

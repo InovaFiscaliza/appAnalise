@@ -18,8 +18,8 @@ classdef (Abstract) Constants
         occDataTypes  = [8, 62, 65, 69];
 
         xDecimals     = 5
-        
-        floatDiffTolerance    = 1e-5
+        floatDiffTol  = 1e-5
+
         nMaxWaterFallPoints   = 1474560
         nMaxPersistancePoints = 51200512                                    % nMaxPointsFSW * nMaxPersistanceOption (GUI) = 100001 * 512
         ElevationTolerance    = .85
