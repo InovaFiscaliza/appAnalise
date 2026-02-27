@@ -3,10 +3,10 @@ classdef (Abstract) draw2D
     methods (Static = true)
         %-----------------------------------------------------------------%
         function hLine = OrdinaryLine(hAxes, bandObj, idx, plotTag)
-            defaultProp  = bandObj.callingApp.General_I;
+            defaultProp  = bandObj.mainApp.General_I;
             switch bandObj.Context
                 case 'appAnalise:PLAYBACK'
-                    customProp = bandObj.callingApp.specData(idx).UserData.customPlayback.Parameters;
+                    customProp = bandObj.mainApp.specData(idx).UserData.customPlayback.Parameters;
                 otherwise
                     customProp = [];
             end
@@ -29,28 +29,28 @@ classdef (Abstract) draw2D
 
         %-----------------------------------------------------------------%
         function OrdinaryLineUpdate(hLine, bandObj, idx, plotTag)
-            idxTime = bandObj.callingApp.idxTime;
+            idxTime = bandObj.callingApp.sweepTimeIndex;
 
             switch plotTag
-                case {'ClearWrite', 'MinHold', 'Average', 'MaxHold'}
-                    yArray = bandObj.callingApp.specData(idx).Data{2}(:,idxTime)';
+                case {'clearWrite', 'minHold', 'average', 'maxHold'}
+                    yArray = bandObj.mainApp.specData(idx).Data{2}(:,idxTime)';
 
                     switch plotTag                
-                        case 'ClearWrite'
+                        case 'clearWrite'
                             hLine.YData = yArray;
-                        case 'MinHold'
+                        case 'minHold'
                             hLine.YData = min(hLine.YData, yArray);
-                        case 'Average'
-                            integrationFactor = bandObj.callingApp.General.Integration.Trace;
+                        case 'average'
+                            integrationFactor = bandObj.mainApp.General.context.PLAYBACK.integration.traceMode;
                             hLine.YData = ((integrationFactor-1)*hLine.YData + yArray) / integrationFactor;
-                        case 'MaxHold'
+                        case 'maxHold'
                             hLine.YData = max(hLine.YData, yArray);
                     end
 
-                case 'WaterfallTime'
+                case 'waterfallTime'
                     switch class(hLine.YData)
                         case 'datetime'
-                            tInstant = bandObj.callingApp.specData(idx).Data{1}(idxTime);
+                            tInstant = bandObj.mainApp.specData(idx).Data{1}(idxTime);
                             hLine.YData = [tInstant, tInstant];
                         otherwise
                             hLine.YData = [idxTime, idxTime];
@@ -60,16 +60,16 @@ classdef (Abstract) draw2D
 
         %-----------------------------------------------------------------%
         function horizontalSetOfLines(hAxes, bandObj, idx, plotTag, varargin)
-            specData = bandObj.callingApp.specData(idx);
+            specData = bandObj.mainApp.specData(idx);
             switch plotTag
-                case 'BandLimits'
+                case 'bandLimits'
                     srcInfo  = specData.UserData.bandLimitsTable;
                     plotFlag = specData.UserData.bandLimitsStatus;                    
                     
-                case 'Channel'
+                case 'channel'
                     srcInfo  = varargin{1};
 
-                case 'Emission'
+                case 'emission'
                     srcInfo  = specData.UserData.Emissions;
                     srcInfo.FreqStart = srcInfo.Frequency - srcInfo.BW_kHz/2000;
                     srcInfo.FreqStop  = srcInfo.Frequency + srcInfo.BW_kHz/2000;
@@ -86,7 +86,7 @@ classdef (Abstract) draw2D
             delete(findobj(hAxes, 'Tag', plotTag))
             
             if plotFlag && ~isempty(srcInfo)
-                defaultProp  = bandObj.callingApp.General_I;
+                defaultProp  = bandObj.mainApp.General_I;
 
                 [plotConfig,     ...
                  YLimOffsetMode, ...
@@ -138,7 +138,7 @@ classdef (Abstract) draw2D
             end
 
             if ~isempty(srcROITable)             
-                defaultProp  = bandObj.callingApp.General_I;
+                defaultProp  = bandObj.mainApp.General_I;
                 customProp   = [];
 
                 [plotConfigROI,   ...
@@ -185,8 +185,7 @@ classdef (Abstract) draw2D
             switch plotType
                     case 'TreeSelectionChanged'
                         idx2 = app.play_FindPeaks_Tree.SelectedNodes.NodeData;
-                        app.hSelectedEmission.Position(:, [1, 3]) = [app.specData(idx).UserData.Emissions.Frequency(idx2) - app.specData(idx).UserData.Emissions.BW_kHz(idx2)/(2*1000), ...
-                                                                     app.specData(idx).UserData.Emissions.BW_kHz(idx2)/1000];
+                        app.plotHandles.selectedEmission.Position(:, [1, 3]) = [app.mainApp.specData(idx).UserData.Emissions.Frequency(idx2) - app.mainApp.specData(idx).UserData.Emissions.BW_kHz(idx2)/(2*1000), app.mainApp.specData(idx).UserData.Emissions.BW_kHz(idx2)/1000];
                         return
                     
                     case 'PeakValueChanged'
@@ -195,29 +194,29 @@ classdef (Abstract) draw2D
                     case 'DeleteButtonPushed'
                         delete(findobj('Tag', 'mkrTemp', '-or', 'Tag', 'mkrLine', '-or', 'Tag', 'mkrLabels', '-or', 'Tag', 'mkrROI'))
                         
-                        app.hSelectedEmission = [];
-                        app.hEmissionMarkers  = [];
+                        app.plotHandles.selectedEmission = [];
+                        app.plotHandles.emissionMarkers  = [];
             end
         
             % Processing...
             play_EmissionList(app, idx, selectedEmission)
         
-            if isempty(app.specData(idx).UserData.Emissions)
-                app.hClearWrite.MarkerIndices = [];
+            if isempty(app.mainApp.specData(idx).UserData.Emissions)
+                app.plotHandles.clearWrite.MarkerIndices = [];
         
             else
-                app.hClearWrite.MarkerIndices = app.specData(idx).UserData.Emissions.idxFrequency;
+                app.plotHandles.clearWrite.MarkerIndices = app.mainApp.specData(idx).UserData.Emissions.idxFrequency;
         
                 yLevel1   = app.restoreView(1).yLim(1) + 1;
                 yLevel2   = diff(app.restoreView(1).yLim) - 2;
         
                 mkrLabels = {};
-                for ii = 1:height(app.specData(idx).UserData.Emissions)
+                for ii = 1:height(app.mainApp.specData(idx).UserData.Emissions)
                     mkrLabels = [mkrLabels {['  ' num2str(ii)]}];
         
-                    FreqStart = app.specData(idx).UserData.Emissions.Frequency(ii) - app.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
-                    FreqStop  = app.specData(idx).UserData.Emissions.Frequency(ii) + app.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
-                    BW        = app.specData(idx).UserData.Emissions.BW_kHz(ii)/1000;            
+                    FreqStart = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) - app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
+                    FreqStop  = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) + app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
+                    BW        = app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/1000;            
                     
                     % Cria uma linha por emissão, posicionando-o na parte inferior
                     % do plot.
@@ -232,8 +231,8 @@ classdef (Abstract) draw2D
                         newPosition = [FreqStart, yLevel1, ...
                                        BW,        yLevel2];
                         
-                        if isempty(app.hSelectedEmission)
-                            app.hSelectedEmission = images.roi.Rectangle(app.UIAxes1, Position=newPosition,   ...
+                        if isempty(app.plotHandles.selectedEmission)
+                            app.plotHandles.selectedEmission = images.roi.Rectangle(app.UIAxes1, Position=newPosition,   ...
                                                                                       Color=[0.40,0.73,0.88], ...
                                                                                       MarkerSize=5,           ...
                                                                                       Deletable=0,            ...
@@ -241,17 +240,17 @@ classdef (Abstract) draw2D
                                                                                       LineWidth=1,            ...
                                                                                       Tag='mkrROI');
                 
-                            addlistener(app.hSelectedEmission, 'MovingROI', @(~,evt)plot.draw2D.mkrLineROI_old(evt, app, idx));
-                            addlistener(app.hSelectedEmission, 'ROIMoved',  @(~,evt)plot.draw2D.mkrLineROI_old(evt, app, idx));
+                            addlistener(app.plotHandles.selectedEmission, 'MovingROI', @(~,evt)plot.draw2D.mkrLineROI_old(evt, app, idx));
+                            addlistener(app.plotHandles.selectedEmission, 'ROIMoved',  @(~,evt)plot.draw2D.mkrLineROI_old(evt, app, idx));
         
                         else
-                            app.hSelectedEmission.Position = newPosition;
+                            app.plotHandles.selectedEmission.Position = newPosition;
                         end
                     end
                 end
         
-                app.hEmissionMarkers = text(app.UIAxes1, app.specData(idx).UserData.Emissions.Frequency, double(app.specData(idx).Data{2}(app.specData(idx).UserData.Emissions.idxFrequency, app.idxTime)), mkrLabels, ...
-                                                         Color=[0.40,0.73,0.88], FontSize=11, FontWeight='bold', FontName='Helvetica', FontSmoothing='on', Tag='mkrLabels', Visible=app.play_LineVisibility.Value);
+                app.plotHandles.emissionMarkers = text(app.UIAxes1, app.mainApp.specData(idx).UserData.Emissions.Frequency, double(app.mainApp.specData(idx).Data{2}(app.mainApp.specData(idx).UserData.Emissions.idxFrequency, app.idxTime)), mkrLabels, ...
+                                                         Color=[0.40,0.73,0.88], FontSize=11, FontWeight='bold', FontName='Helvetica', FontSmoothing='on', Tag='mkrLabels', Visible=app.mainApp.General.context.PLAYBACK.clearWriteVisibility);
             end
         end        
         
@@ -264,15 +263,15 @@ classdef (Abstract) draw2D
                 case 'MovingROI'
                     plot.axes.Interactivity.DefaultDisable([app.UIAxes1, app.UIAxes2, app.UIAxes3])
         
-                    FreqCenter = app.hSelectedEmission.Position(1) + app.hSelectedEmission.Position(3)/2;
-                    if (FreqCenter*1e+6 < app.specData(idxThread).MetaData.FreqStart) || ...
-                       (FreqCenter*1e+6 > app.specData(idxThread).MetaData.FreqStop)
+                    FreqCenter = app.plotHandles.selectedEmission.Position(1) + app.plotHandles.selectedEmission.Position(3)/2;
+                    if (FreqCenter*1e+6 < app.mainApp.specData(idxThread).MetaData.FreqStart) || ...
+                       (FreqCenter*1e+6 > app.mainApp.specData(idxThread).MetaData.FreqStop)
                     
                        return
                     end
         
                     app.play_FindPeaks_PeakCF.Value = round(FreqCenter, 3);
-                    app.play_FindPeaks_PeakBW.Value = round(app.hSelectedEmission.Position(3) * 1000, 3);        
+                    app.play_FindPeaks_PeakBW.Value = round(app.plotHandles.selectedEmission.Position(3) * 1000, 3);        
                     
                     app.hClearWrite.MarkerIndices(idxEmission) = freq2idx(app.bandObj, app.play_FindPeaks_PeakCF.Value*1e+6);
                     
@@ -294,7 +293,7 @@ classdef (Abstract) draw2D
                     idxFrequency = freq2idx(app.bandObj, app.play_FindPeaks_PeakCF.Value*1e+6);
                     FreqCenter   = app.play_FindPeaks_PeakCF.Value;
                     BW_kHz       = app.play_FindPeaks_PeakBW.Value;
-                    update(app.specData(idxThread), 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', idxEmission, idxFrequency, FreqCenter, BW_kHz, app.channelObj)
+                    update(app.mainApp.specData(idxThread), 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', idxEmission, idxFrequency, FreqCenter, BW_kHz, app.channelObj)
 
                     plot_updateSelectedEmission(app, idxThread, idxFrequency)
             end

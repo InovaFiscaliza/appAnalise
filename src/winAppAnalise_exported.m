@@ -77,9 +77,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         projectData
         metaData = model.MetaData.empty
-        specData = model.SpecData.empty
-        
-        bandObj
+        specData = model.SpecData.empty        
         channelObj
 
         elevationObj = RF.Elevation
@@ -257,7 +255,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                     case 'onYAxesScaleChange'
                                         if ~isempty(app.UIAxes2) && isvalid(app.UIAxes2)
-                                            set(app.UIAxes2, 'YScale', app.General.Plot.Axes.yOccupancyScale)
+                                            set(app.UIAxes2, 'YScale', app.General.plot.cartesianAxes.yOccupancyScale)
                                         end
 
                                     case 'onRFDataHubUpdate'
@@ -564,16 +562,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.General_I.fileFolder.tempPath  = tempDir;
             app.General_I.fileFolder.MFilePath = MFilePath;
             
-            if ~strcmp(app.General_I.Plot.Waterfall.Decimation, 'auto')
+            if ~strcmp(app.General_I.plot.waterfall.Decimation, 'auto')
                 app.General_I.Plot.Waterfall.Decimation = 'auto';
             end
         
-            if isempty(app.General_I.Merge.Distance)
-                app.General_I.Merge.Distance = Inf;
+            if isempty(app.General_I.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters)
+                app.General_I.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters = Inf;
             end
         
-            if isempty(app.General_I.Integration.Trace)
-                app.General_I.Integration.Trace = Inf;
+            if isempty(app.General_I.context.PLAYBACK.integration.traceMode)
+                app.General_I.context.PLAYBACK.integration.traceMode = Inf;
             end
 
             switch app.executionMode
@@ -630,7 +628,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             initializeRFDataHub(app)
 
             app.projectData = model.projectLib(app, app.rootFolder);
-            app.bandObj     = class.Band('appAnalise:PLAYBACK', app);
             app.channelObj  = class.ChannelLib(class.Constants.appName, app.rootFolder);
         end
 
@@ -976,11 +973,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 delete(app.specData)
                 app.specData = model.SpecData.empty;
             end
-
-            set(findobj(app.NavBar, 'Type', 'uistatebutton'), 'Enable', 0)
-            set(app.Tab1Button, 'Enable', 1, 'Value', 1)
-            app.Tab6Button.Enable = 1;
-            app.Tab7Button.Enable = 1;
 
             onTabNavigatorButtonPushed(app, struct('Source', app.Tab1Button, 'PreviousValue', false)) 
         end
@@ -1369,7 +1361,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 expand(app.FileTree.Children(idxFile), 'all')
                 scroll(app.FileTree, app.FileTree.SelectedNodes(end))
 
-                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.Thread(app.metaData, idxFile, idxThread));
+                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.File(app.metaData, idxFile, idxThread));
 
             else
                 app.FileTree.UserData = struct('previousSelectedFileIndex', [], 'previousSelectedFileThread', []);
@@ -1834,7 +1826,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppName.Layout.Row = [1 5];
             app.AppName.Layout.Column = [2 3];
             app.AppName.Interpreter = 'html';
-            app.AppName.Text = {'appAnalise v. 1.88.0'; '<font style="font-size: 9px;">R2024a</font>'};
+            app.AppName.Text = {'appAnalise v. 1.90.0'; '<font style="font-size: 9px;">R2024a</font>'};
 
             % Create Tab1Button
             app.Tab1Button = uibutton(app.NavBar, 'state');

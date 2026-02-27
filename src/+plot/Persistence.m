@@ -1,20 +1,20 @@
-function [hPersistanceObj, windowSize] = Persistance(operationType, hPersistanceObj, varargin)
+function [hPersistanceObj, windowSize] = Persistence(operationType, hPersistanceObj, varargin)
     switch operationType
         case {'Creation', 'Update'}
             hAxes       = varargin{1};
             bandObj     = varargin{2};
             idx         = varargin{3}; 
 
-            specData    = bandObj.callingApp.specData(idx);
+            specData    = bandObj.mainApp.specData(idx);
 
-            defaultProp = bandObj.callingApp.General_I;
-            customProp  = bandObj.callingApp.specData(idx).UserData.customPlayback.Parameters;
+            defaultProp = bandObj.mainApp.General_I;
+            customProp  = bandObj.mainApp.specData(idx).UserData.customPlayback.Parameters;
 
             [plotConfig,   ...
              windowSize,   ...
              colormapName, ...
              Transparency, ...
-             cLimits]   = plot.Config('Persistance', defaultProp, customProp);
+             cLimits]   = plot.Config('persistence', defaultProp, customProp);
             windowSize  = checkWindowSize(bandObj, windowSize);
 
             switch operationType
@@ -69,7 +69,7 @@ function [hPersistanceObj, windowSize] = Persistance(operationType, hPersistance
 
                             switch bandObj.Context
                                 case {'appAnalise:PLAYBACK', 'appAnalise:DRIVETEST'}
-                                    idxTime = bandObj.callingApp.idxTime;
+                                    idxTime = bandObj.callingApp.sweepTimeIndex;
                                     idxTimeArray = max(1,idxTime-winSize+1):idxTime;
 
                                 case {'appAnalise:REPORT', 'appAnalise:REPORT:BAND', 'appAnalise:REPORT:EMISSION'}

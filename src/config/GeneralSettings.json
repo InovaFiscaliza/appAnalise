@@ -1,8 +1,8 @@
 {
-    "version": 1.09,
+    "version": 1.15,
     "operationMode": {
         "Debug": false,
-        "Dock": false,
+        "Dock": true,
         "Simulation": false,
         "DevTools": {
             "login": "admin",
@@ -23,8 +23,36 @@
         "lastVisited": ""
     },
     "context": {
-        "FILE": [],
-        "PLAYBACK": [],
+        "FILE": {
+            "spectrumConsolidationPolicy": {
+                "maxCoLocationDistanceMeters": 100,
+                "dataTypePolicy": "remove",
+                "antennaPolicy": "keep",                
+                "antennaAttributes": [
+                    "Name",
+                    "Azimuth",
+                    "Elevation",
+                    "Polarization",
+                    "Height",
+                    "SwitchPort",
+                    "LNBChannel"
+                ]
+            }
+        },
+        "PLAYBACK": {
+            "clearWriteVisibility": true,
+            "integration": {
+                "traceMode": Infinity,
+                "sampleTimeSeconds": 10
+            },
+            "channel": {
+                "manualMode": false
+            },
+            "detection": {
+                "manualMode": false,
+                "initialBandwidth_kHz": 0
+            }
+        },
         "DRIVETEST": [],
         "SIGNALANALYSIS": [],
         "RFDATAHUB": {
@@ -53,13 +81,21 @@
             }
         }
     },
-    "Plot": {
-        "GeographicAxes": {
+    "plot": {
+        "cartesianAxes": {
+            "xLabel": true,
+            "yLabel": true,
+            "xTickLabel": true,
+            "yTickLabel": true,
+            "yOccupancyScale": "log",
+            "xGuardBandFactor": 1
+        },
+        "geographicAxes": {
             "Basemap": "satellite",
             "Colormap": "turbo",
             "Colorbar": "on"
         },
-        "MinHold": {
+        "minHold": {
             "Fcn": "area",
             "LineStyle": "-",
             "LineWidth": 0.5,
@@ -67,7 +103,7 @@
             "EdgeColor": "#4A90E2",
             "FaceColor": "#4A90E2"
         },
-        "ClearWrite": {
+        "clearWrite": {
             "Fcn": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
@@ -81,7 +117,7 @@
             "MarkerSize": 14,
             "Visible": "on"
         },
-        "Average": {
+        "average": {
             "Fcn": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
@@ -89,7 +125,7 @@
             "EdgeColor": "#00cc66",
             "FaceColor": "#00cc66"
         },
-        "MaxHold": {
+        "maxHold": {
             "Fcn": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
@@ -97,14 +133,14 @@
             "EdgeColor": "#FF5CAD",
             "FaceColor": "#FF5CAD"
         },
-        "Persistance": {
+        "persistence": {
             "Interpolation": "nearest",
             "WindowSize": "full",
             "Transparency": 1,
             "Colormap": "winter",
             "LevelLimits": [0, 1]
         },
-        "Waterfall": {
+        "waterfall": {
             "Fcn": "image",
             "Decimation": "auto",
             "MeshStyle": "both",
@@ -112,11 +148,11 @@
             "Colorbar": "off",
             "LevelLimits": [0, 1]
         },
-        "WaterfallTime": {
+        "waterfallTime": {
             "Visible": "on",
             "ZData": [1000, 1000]
         },
-        "BandLimits": {
+        "bandLimits": {
             "Color": "#808080",
             "LineWidth": 5,
             "PickableParts": "none",
@@ -124,7 +160,7 @@
             "YLimOffset": 1.5,
             "StepEffect": false
         },
-        "Channel": {
+        "channel": {
             "Color": "#b746ff",
             "LineWidth": 5,
             "PickableParts": "none",
@@ -132,7 +168,7 @@
             "YLimOffset": 1,
             "StepEffect": true
         },
-        "ChannelROI": {
+        "channelROI": {
             "Color": "#b746ff",
             "MarkerSize": 5,
             "LineWidth": 1,
@@ -143,13 +179,13 @@
             "LabelColor": "#000000",
             "LabelFontSize": 8
         },
-        "ChannelPower": {
+        "channelPower": {
             "EdgeColor": "#FF5CAD",
             "FaceColor": "#FF5CAD",
             "EdgeAlpha": 0,
             "FaceAlpha": 0.4
         },
-        "Emission": {
+        "emission": {
             "Color": "#FF5CAD",
             "LineWidth": 2,
             "Marker": "|",
@@ -159,7 +195,7 @@
             "YLimOffset": 0,
             "StepEffect": false
         },
-        "EmissionROI": {
+        "emissionROI": {
             "Color": "#66bae0",
             "MarkerSize": 5,
             "LineWidth": 1,
@@ -170,15 +206,7 @@
             "LabelColor": "#000000",
             "LabelFontSize": 8
         },
-        "Axes": {
-            "xLabel": true,
-            "yLabel": true,
-            "xTickLabel": true,
-            "yTickLabel": true,
-            "yOccupancyScale": "log",
-            "xGuardBandFactor": 1
-        },
-        "OccupancyThreshold": {
+        "occupancyThreshold": {
             "Color": "#ff0000",
             "LineStyle": "-",
             "LineWidth": 1,
@@ -188,7 +216,7 @@
             "MarkerEdgeColor": "#000000",
             "PickableParts": "none"
         },
-        "OccupancyPerBin": {
+        "occupancyPerBin": {
             "Color": "#ff0000",
             "LineStyle": "-",
             "LineWidth": 1
@@ -214,31 +242,6 @@
             "EdgeColor": "#ff12a6",
             "FaceColor": "#ff12a6"
         }
-    },
-    "Merge": {
-        "DataType": "remove",
-        "Antenna": "keep",
-        "AntennaAttributes": [
-            "Name",
-            "Azimuth",
-            "Elevation",
-            "Polarization",
-            "Height",
-            "SwitchPort",
-            "LNBChannel"
-        ],
-        "Distance": 100
-    },
-    "Integration": {
-        "Trace": Infinity,
-        "SampleTime": 10
-    },
-    "Channel": {
-        "ManualMode": false
-    },
-    "Detection": {
-        "ManualMode": false,
-        "InitialBW_kHz": 0
     },
     "elevation": {
         "pointCount": 256,

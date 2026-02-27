@@ -7,10 +7,10 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
     end
 
     selectedProperties  = customPropertiesParser(plotTag, defaultProperties, customProperties, Context);
-    tempPlotConfig      = selectedProperties.Plot.(plotTag);
+    tempPlotConfig      = selectedProperties.plot.(plotTag);
 
     switch plotTag
-        case 'Persistance'
+        case 'persistence'
             plotConfig  = {'CDataMapping', 'scaled', 'PickableParts', 'none', 'Interpolation', tempPlotConfig.Interpolation};
 
             % Aspectos relacionados ao cLim da curva de persistência:
@@ -23,7 +23,7 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
 
             varargout   = {plotConfig, tempPlotConfig.WindowSize, tempPlotConfig.Colormap, tempPlotConfig.Transparency, tempPlotConfig.LevelLimits};
 
-        case 'Waterfall'
+        case 'waterfall'
             switch tempPlotConfig.Fcn
                 case 'mesh'
                     plotConfig = {'MeshStyle', tempPlotConfig.MeshStyle, 'SelectionHighlight', 'off'};
@@ -37,7 +37,7 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
 
             varargout   = {plotConfig, tempPlotConfig.Fcn, tempPlotConfig.Decimation, tempPlotConfig.Colormap, tempPlotConfig.LevelLimits};
 
-        case 'WaterfallTime'
+        case 'waterfallTime'
             plotType    = 'line';
             plotConfig  = {'Color', 'red', 'LineWidth', 1, 'PickableParts', 'none', 'Visible', tempPlotConfig.Visible, 'ZData', tempPlotConfig.ZData};
             varargout   = {plotConfig, plotType};
@@ -55,7 +55,7 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
             plotConfigText = {'Color', tempPlotConfig.LabelColor, 'BackgroundColor', tempPlotConfig.Color, 'FontSize', tempPlotConfig.LabelFontSize, 'FontWeight', 'bold', 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom', 'PickableParts', 'none', 'Tag', plotTag};
             varargout      = {plotConfig, plotConfigText, tempPlotConfig.LabelOffsetMode, tempPlotConfig.LabelOffset};
 
-        case {'ClearWrite', 'Average', 'MinHold', 'MaxHold'}
+        case {'clearWrite', 'average', 'minHold', 'maxHold'}
             switch tempPlotConfig.Fcn
                 case 'line'
                     tempPlotConfig = rmfield(tempPlotConfig, {'EdgeColor', 'FaceColor'});
@@ -86,8 +86,8 @@ function selectedProperties = customPropertiesParser(plotTag, defaultProperties,
     selectedProperties = defaultProperties;
 
     if ~isempty(customProperties)
-        if ismember(plotTag, {'Persistance', 'Waterfall', 'WaterfallTime'}) && ~strcmp(Context, 'appAnalise:DRIVETEST')
-            selectedProperties.Plot.(plotTag) = customProperties.(plotTag);
+        if ismember(plotTag, {'persistence', 'waterfall', 'waterfallTime'}) && ~strcmp(Context, 'appAnalise:DRIVETEST')
+            selectedProperties.plot.(plotTag) = customProperties.(plotTag);
         end
     end
 end

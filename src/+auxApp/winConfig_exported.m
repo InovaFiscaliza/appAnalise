@@ -170,10 +170,10 @@ classdef winConfig_exported < matlab.apps.AppBase
             projectGeneral  = jsondecode(fileread(projectFilePath));
 
             app.defaultValues = struct('elevation', projectGeneral.elevation, ...
-                                       'Merge',     projectGeneral.Merge, ...
-                                       'Channel',   projectGeneral.Channel, ...
-                                       'Detection', projectGeneral.Detection, ...
-                                       'Plot',      projectGeneral.Plot, ...
+                                       'Merge',     projectGeneral.context.FILE.spectrumConsolidationPolicy, ...
+                                       'Channel',   projectGeneral.context.PLAYBACK.channel, ...
+                                       'Detection', projectGeneral.context.PLAYBACK.detection, ...
+                                       'Plot',      projectGeneral.plot, ...
                                        'reportLib', projectGeneral.reportLib);
         end
 
@@ -214,25 +214,25 @@ classdef winConfig_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updatePanel_Analysis(app)
             % Mesclagem de fluxos espectrais
-            switch app.mainApp.General.Merge.DataType
+            switch app.mainApp.General.context.FILE.spectrumConsolidationPolicy.dataTypePolicy
                 case 'keep';   app.mergeDataType.Value = 0;
                 case 'remove'; app.mergeDataType.Value = 1;
             end
 
-            switch app.mainApp.General.Merge.Antenna
+            switch app.mainApp.General.context.FILE.spectrumConsolidationPolicy.antennaPolicy
                 case 'keep';   app.mergeAntenna.Value = 0;
                 case 'remove'; app.mergeAntenna.Value = 1;
             end
 
-            app.mergeDistance.Value        = app.mainApp.General.Merge.Distance;
+            app.mergeDistance.Value        = app.mainApp.General.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters;
 
             % PLAYBACK AXES
-            app.yOccupancyScale.Value      = app.mainApp.General.Plot.Axes.yOccupancyScale;
+            app.yOccupancyScale.Value      = app.mainApp.General.plot.cartesianAxes.yOccupancyScale;
             
             % DETECTION
-            app.channelManualMode.Value    = app.mainApp.General.Channel.ManualMode;
-            app.detectionManualMode.Value  = app.mainApp.General.Detection.ManualMode;
-            app.InitialBW_kHz.Value        = app.mainApp.General.Detection.InitialBW_kHz;
+            app.channelManualMode.Value    = app.mainApp.General.context.PLAYBACK.channel.manualMode;
+            app.detectionManualMode.Value  = app.mainApp.General.context.PLAYBACK.detection.manualMode;
+            app.InitialBW_kHz.Value        = app.mainApp.General.context.PLAYBACK.detection.initialBandwidth_kHz;
 
             % ELEVATION
             app.elevationNPoints.Value     = num2str(app.mainApp.General.elevation.pointCount);
@@ -274,10 +274,10 @@ classdef winConfig_exported < matlab.apps.AppBase
         function editionFlag = checkEdition(app, tabName)
             editionFlag   = false;
             currentValues = struct('elevation', app.mainApp.General.elevation, ...
-                                   'Merge',     app.mainApp.General.Merge, ...
-                                   'Channel',   app.mainApp.General.Channel, ...
-                                   'Detection', app.mainApp.General.Detection, ...
-                                   'Plot',      app.mainApp.General.Plot, ...
+                                   'Merge',     app.mainApp.General.context.FILE.spectrumConsolidationPolicy, ...
+                                   'Channel',   app.mainApp.General.context.PLAYBACK.channel, ...
+                                   'Detection', app.mainApp.General.context.PLAYBACK.detection, ...
+                                   'Plot',      app.mainApp.General.plot, ...
                                    'reportLib', app.mainApp.General.reportLib);
 
             switch tabName
@@ -448,11 +448,11 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
 
             else
-                app.mainApp.General.Merge     = app.defaultValues.Merge;                    
-                app.mainApp.General.Channel   = app.defaultValues.Channel;
-                app.mainApp.General.Detection = app.defaultValues.Detection;
+                app.mainApp.General.context.FILE.spectrumConsolidationPolicy = app.defaultValues.Merge;                    
+                app.mainApp.General.context.PLAYBACK.channel = app.defaultValues.Channel;
+                app.mainApp.General.context.PLAYBACK.detection = app.defaultValues.Detection;
                 app.mainApp.General.elevation = app.defaultValues.elevation;
-                app.mainApp.General.Plot      = app.defaultValues.Plot;
+                app.mainApp.General.plot = app.defaultValues.Plot;
 
                 updatePanel_Analysis(app)
                 saveGeneralSettings(app)
@@ -476,20 +476,20 @@ classdef winConfig_exported < matlab.apps.AppBase
                         case 1; AntennaStatus  = 'remove';
                     end
                                 
-                    app.mainApp.General.Merge.DataType = DataTypeStatus;
-                    app.mainApp.General.Merge.Antenna  = AntennaStatus;
-                    app.mainApp.General.Merge.Distance = app.mergeDistance.Value;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.dataTypePolicy = DataTypeStatus;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.antennaPolicy = AntennaStatus;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters = app.mergeDistance.Value;
 
                 case {app.channelManualMode, app.detectionManualMode}
-                    app.mainApp.General.Channel.ManualMode   = app.channelManualMode.Value;
-                    app.mainApp.General.Detection.ManualMode = app.detectionManualMode.Value;
+                    app.mainApp.General.context.PLAYBACK.channel.manualMode   = app.channelManualMode.Value;
+                    app.mainApp.General.context.PLAYBACK.detection.manualMode = app.detectionManualMode.Value;
 
                 case app.yOccupancyScale
-                    app.mainApp.General.Plot.Axes.yOccupancyScale = app.yOccupancyScale.Value;
+                    app.mainApp.General.plot.cartesianAxes.yOccupancyScale = app.yOccupancyScale.Value;
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onYAxesScaleChange')
 
                 case app.InitialBW_kHz
-                    app.mainApp.General.Detection.InitialBW_kHz  = app.InitialBW_kHz.Value;
+                    app.mainApp.General.context.PLAYBACK.detection.initialBandwidth_kHz  = app.InitialBW_kHz.Value;
 
                 case app.elevationNPoints
                     app.mainApp.General.elevation.pointCount = str2double(app.elevationNPoints.Value);
@@ -501,11 +501,11 @@ classdef winConfig_exported < matlab.apps.AppBase
                     app.mainApp.General.elevation.provider = app.elevationAPIServer.Value;
             end
 
-            app.mainApp.General_I.Merge     = app.mainApp.General.Merge;
-            app.mainApp.General_I.Channel   = app.mainApp.General.Channel;
-            app.mainApp.General_I.Detection = app.mainApp.General.Detection;
+            app.mainApp.General_I.context.FILE.spectrumConsolidationPolicy = app.mainApp.General.context.FILE.spectrumConsolidationPolicy;
+            app.mainApp.General_I.context.PLAYBACK.channel = app.mainApp.General.context.PLAYBACK.channel;
+            app.mainApp.General_I.context.PLAYBACK.detection = app.mainApp.General.context.PLAYBACK.detection;
             app.mainApp.General_I.elevation = app.mainApp.General.elevation;
-            app.mainApp.General_I.Plot      = app.mainApp.General.Plot;
+            app.mainApp.General_I.plot = app.mainApp.General.plot;
 
             saveGeneralSettings(app)
             updatePanel_Analysis(app)  

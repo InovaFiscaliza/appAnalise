@@ -23,6 +23,9 @@ function layoutDropDownTreeStyle(dropDownHandle, specData)
             freqStartAlignSpaces = computeAlignSpaces(maxFreqStart, freqStart);
             freqStopAlignSpaces  = computeAlignSpaces(maxFreqStop,  freqStop);
 
+            freqStartAlignSpaces = '';
+            freqStopAlignSpaces  = '';
+
             reportStatus = '';
             if specData(jj).UserData.reportFlag
                 reportStatus = '&emsp;&#x1F7E2;';

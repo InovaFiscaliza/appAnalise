@@ -9,6 +9,7 @@ classdef Band < handle
                                                  'appAnalise:REPORT:BAND',    ...
                                                  'appAnalise:REPORT:CHANNEL', ...
                                                  'appAnalise:REPORT:EMISSION'})} = 'appAnalise:PLAYBACK'
+        mainApp
         callingApp
         
         Receiver
@@ -35,12 +36,13 @@ classdef Band < handle
         %-----------------------------------------------------------------%
         function obj = Band(Context, callingApp)
             obj.Context    = Context;
-            obj.callingApp = callingApp;            
+            obj.callingApp = callingApp;
+            obj.mainApp    = callingApp.mainApp;
         end
 
         %-----------------------------------------------------------------%
         function axesLimits = update(obj, idx, varargin)
-            specData       = obj.callingApp.specData(idx);
+            specData       = obj.mainApp.specData(idx);
 
             obj.Receiver   = util.layoutTreeNodeText(specData.Receiver, 'class.Band.update');
             obj.nSweeps    = numel(specData.Data{1});
@@ -81,7 +83,7 @@ classdef Band < handle
 
             switch obj.Context
                 case {'appAnalise:PLAYBACK', 'appAnalise:REPORT:BAND'}
-                    specData = obj.callingApp.specData(idx);        
+                    specData = obj.mainApp.specData(idx);        
                     switch specData.UserData.customPlayback.Type
                         case 'manual'
                             xLimits      = specData.UserData.customPlayback.Parameters.Controls.FrequencyLimits;
@@ -137,31 +139,31 @@ classdef Band < handle
             arguments
                 obj
                 idx
-                plotTag {mustBeMember(plotTag, {'ClearWrite', 'MinHold', 'Average', 'MaxHold', 'WaterfallTime'})}
+                plotTag {mustBeMember(plotTag, {'clearWrite', 'minHold', 'average', 'maxHold', 'waterfallTime'})}
             end
 
-            specData = obj.callingApp.specData(idx);
-            if isprop(obj.callingApp, 'idxTime')
-                idxTime = obj.callingApp.idxTime;
+            specData = obj.mainApp.specData(idx);
+            if isprop(obj.callingApp, 'sweepTimeIndex')
+                idxTime = obj.callingApp.sweepTimeIndex;
             end
 
             switch plotTag
-                case 'ClearWrite'
+                case 'clearWrite'
                     XArray = obj.xArray;
                     YArray = specData.Data{2}(:,idxTime)';                    
 
-                case {'MinHold', 'Average', 'MaxHold'}
+                case {'minHold', 'average', 'maxHold'}
                     XArray = obj.xArray;
 
                     switch plotTag
-                        case 'MinHold'; idxFcn = 1;
-                        case 'Average'; idxFcn = 2;
-                        case 'MaxHold'; idxFcn = 3;
+                        case 'minHold'; idxFcn = 1;
+                        case 'average'; idxFcn = 2;
+                        case 'maxHold'; idxFcn = 3;
                     end
         
                     switch obj.Context
                         case 'appAnalise:PLAYBACK'
-                            if ismember(plotTag, {'MinHold', 'Average', 'MaxHold'}) && isinf(str2double(obj.callingApp.play_TraceIntegration.Value))
+                            if ismember(plotTag, {'minHold', 'average', 'maxHold'}) && isinf(str2double(obj.callingApp.play_TraceIntegration.Value))
                                 YArray  = specData.Data{3}(:,idxFcn)';        
                             else
                                 YArray  = specData.Data{2}(:,idxTime)';
@@ -171,7 +173,7 @@ classdef Band < handle
                             YArray = specData.Data{3}(:,idxFcn)';
                     end
 
-                case 'WaterfallTime'
+                case 'waterfallTime'
                      XArray = [obj.xArray(1), obj.xArray(end)];
 
                     switch obj.Context
@@ -221,12 +223,12 @@ classdef Band < handle
 
         %-----------------------------------------------------------------%
         function idxTime = Timestamp2idxTime(obj, idx, Timestamp)
-            [~, idxTime] = min(abs(obj.callingApp.specData(idx).Data{1}-Timestamp));
+            [~, idxTime] = min(abs(obj.mainApp.specData(idx).Data{1}-Timestamp));
         end
 
         %-----------------------------------------------------------------%
         function Timestamp = idxTime2Timestamp(obj, idx, idxTime)
-            Timestamp = obj.callingApp.specData(idx).Data{1}(idxTime);
+            Timestamp = obj.mainApp.specData(idx).Data{1}(idxTime);
         end
     end
 
@@ -243,7 +245,7 @@ classdef Band < handle
                 varargin                
             end
             
-            specData = obj.callingApp.specData(idx);
+            specData = obj.mainApp.specData(idx);
 
             % xLimits
             switch obj.Context

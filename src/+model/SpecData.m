@@ -866,9 +866,9 @@ classdef SpecData < model.SpecDataBase
         
                     idx1 = [];
                     for kk = 1:numel(obj)
-                        Distance_GPS = deg2km(distance(SpecInfo(mm).GPS.Latitude, SpecInfo(mm).GPS.Longitude, obj(kk).GPS.Latitude, obj(kk).GPS.Longitude)) * 1000;
+                        distanceMeters = deg2km(distance(SpecInfo(mm).GPS.Latitude, SpecInfo(mm).GPS.Longitude, obj(kk).GPS.Latitude, obj(kk).GPS.Longitude)) * 1000;
         
-                        if isequal(specData_MetaData(kk), SpecInfo_MetaData(mm)) && (Distance_GPS <= generalSettings.Merge.Distance)
+                        if isequal(specData_MetaData(kk), SpecInfo_MetaData(mm)) && (distanceMeters <= generalSettings.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters)
                             idx1 = kk;
         
                             if width(fileIndexMap) < ii
@@ -940,10 +940,10 @@ classdef SpecData < model.SpecDataBase
 
             % Lista de metadados a excluir:
             metaData2Delete = {'Others'};
-            if generalSettings.Merge.Antenna == "remove"
+            if generalSettings.context.FILE.spectrumConsolidationPolicy.antennaPolicy == "remove"
                 metaData2Delete{end+1} = 'Antenna';
             end
-            if generalSettings.Merge.DataType == "remove"
+            if generalSettings.context.FILE.spectrumConsolidationPolicy.dataTypePolicy == "remove"
                 metaData2Delete{end+1} = 'DataType';
             end
 
@@ -954,7 +954,7 @@ classdef SpecData < model.SpecDataBase
 
                 if isfield(tempStruct, 'Antenna') && ~isempty(tempStruct.Antenna)
                     antennaFields = fields(tempStruct.Antenna);
-                    antennaFields = antennaFields(~ismember(antennaFields, generalSettings.Merge.AntennaAttributes));
+                    antennaFields = antennaFields(~ismember(antennaFields, generalSettings.context.FILE.spectrumConsolidationPolicy.antennaAttributes));
                     
                     tempStruct.Antenna = rmfield(tempStruct.Antenna, antennaFields);
                 end
@@ -991,12 +991,12 @@ classdef SpecData < model.SpecDataBase
                 % O índice do "UserData" inicializa a estrutura...
                 obj(ii).UserData(1).AntennaHeight = AntennaHeight(obj, ii, -1, 'initialValue');
 
-                if ~app.General.Channel.ManualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes) && isempty(prjInfo)                    
+                if ~app.General.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes) && isempty(prjInfo)                    
                     obj(ii).UserData(1).channelLibIndex = FindRelatedBands(app.channelObj, obj(ii));
                 end
 
                 FindPeaks(obj, ii, app.channelObj)
-                obj(ii).UserData(1).reportAlgorithms.Detection.ManualMode = app.General.Detection.ManualMode;
+                obj(ii).UserData(1).reportAlgorithms.Detection.ManualMode = app.General.context.PLAYBACK.detection.manualMode;
             end
         
             idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, obj));
