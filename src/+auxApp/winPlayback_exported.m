@@ -2,108 +2,106 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                        matlab.ui.Figure
-        GridLayout                      matlab.ui.container.GridLayout
-        DockModule                      matlab.ui.container.GridLayout
-        dockModule_Undock               matlab.ui.control.Image
-        dockModule_Close                matlab.ui.control.Image
-        Document                        matlab.ui.container.GridLayout
-        SubGrid1                        matlab.ui.container.GridLayout
-        Image3                          matlab.ui.control.Image
-        Image2                          matlab.ui.control.Image
-        Image                           matlab.ui.control.Image
-        play_ControlPanelLabel_2        matlab.ui.control.Label
-        play_Persistance_Panel          matlab.ui.container.Panel
-        play_PersistanceGrid            matlab.ui.container.GridLayout
-        play_Persistance_cLim1          matlab.ui.control.Spinner
-        play_Persistance_cLim2          matlab.ui.control.Spinner
-        play_Persistance_cLim_Mode      matlab.ui.control.Image
-        play_Persistance_cLim_Label     matlab.ui.control.Label
-        play_Persistance_Transparency   matlab.ui.control.Spinner
-        play_Persistance_TransparencyLabel  matlab.ui.control.Label
-        play_Persistance_Colormap       matlab.ui.control.DropDown
-        play_Persistance_ColormapLabel  matlab.ui.control.Label
-        play_Persistance_WindowSize     matlab.ui.control.DropDown
-        play_Persistance_WindowSizeValue  matlab.ui.control.Label
-        play_Persistance_WindowSizeLabel  matlab.ui.control.Label
-        play_Persistance_Interpolation  matlab.ui.control.DropDown
-        play_Persistance_InterpolationLabel  matlab.ui.control.Label
-        play_Waterfall_Panel            matlab.ui.container.Panel
-        play_WaterFallGrid              matlab.ui.container.GridLayout
-        play_Waterfall_cLim2            matlab.ui.control.Spinner
-        play_Waterfall_cLim1            matlab.ui.control.Spinner
-        play_Waterfall_cLim_Mode        matlab.ui.control.Image
-        play_Waterfall_cLim_Label       matlab.ui.control.Label
-        play_Waterfall_MeshStyle        matlab.ui.control.DropDown
-        play_Waterfall_MeshStyleLabel   matlab.ui.control.Label
-        play_Waterfall_Colormap         matlab.ui.control.DropDown
-        play_Waterfall_ColormapLabel    matlab.ui.control.Label
-        play_Waterfall_Decimation       matlab.ui.control.DropDown
-        play_Waterfall_DecimationValue  matlab.ui.control.Label
-        play_Waterfall_DecimationLabel  matlab.ui.control.Label
-        play_Waterfall_Fcn              matlab.ui.control.DropDown
-        play_Waterfall_FcnLabel         matlab.ui.control.Label
-        play_ControlPanelLabel          matlab.ui.control.Label
-        play_GeneralPanel               matlab.ui.container.Panel
-        play_OthersGrid                 matlab.ui.container.GridLayout
-        play_LimitsRefresh              matlab.ui.control.Image
-        play_Limits_yLim2               matlab.ui.control.Spinner
-        play_Limits_yLim1               matlab.ui.control.Spinner
-        play_Limits_yLimLabel           matlab.ui.control.Label
-        play_Limits_xLim2               matlab.ui.control.Spinner
-        play_Limits_xLim1               matlab.ui.control.Spinner
-        play_Limits_xLimLabel           matlab.ui.control.Label
-        play_LimitsPanelLabel           matlab.ui.control.Label
-        play_LayoutRatio                matlab.ui.control.DropDown
-        play_LayoutRatioLabel           matlab.ui.control.Label
-        play_GeneralPanelLabel          matlab.ui.control.Label
-        LeftPanel                       matlab.ui.container.GridLayout
-        FlowPanel                       matlab.ui.container.Panel
-        FlowPanelGrid                   matlab.ui.container.GridLayout
-        FlowAnalysis                    matlab.ui.control.Label
-        FlowEmissions                   matlab.ui.container.Tree
-        FlowEmissionsBtn2               matlab.ui.control.Image
-        FlowEmissionsBtn1               matlab.ui.control.Image
-        FlowEmissionsLabel              matlab.ui.control.Label
-        FlowChannel                     matlab.ui.control.ListBox
-        FlowChannelBtn                  matlab.ui.control.Image
-        FlowChannelLabel                matlab.ui.control.Label
-        FlowDetection                   matlab.ui.control.Label
-        FlowDetectionBtn                matlab.ui.control.Image
-        FlowDetectionLabel              matlab.ui.control.Label
-        FlowOccupancy                   matlab.ui.control.Label
-        FlowOccupancyBtn                matlab.ui.control.Image
-        FlowOccupancyLabel              matlab.ui.control.Label
-        FlowMetadata                    matlab.ui.control.Label
-        FlowAttributesPanelRightBtn     matlab.ui.control.Image
-        FlowAttributesPanelLeftBtn      matlab.ui.control.Image
-        FlowAttributesPanelVisibleIdx   matlab.ui.control.Label
-        FlowPanelLabel                  matlab.ui.control.Label
-        SpectrumFlowList                matlab.ui.control.DropDown
-        AxesToolbar                     matlab.ui.container.GridLayout
-        axesTool_waterfall              matlab.ui.control.Image
-        axesTool_occupancy              matlab.ui.control.Image
-        axesTool_persistence            matlab.ui.control.Image
-        axesTool_maxHold                matlab.ui.control.Image
-        axesTool_average                matlab.ui.control.Image
-        axesTool_minHold                matlab.ui.control.Image
-        axesTool_DataTip                matlab.ui.control.Image
-        axesTool_Pan                    matlab.ui.control.Image
-        axesTool_RestoreView            matlab.ui.control.Image
-        PlotPanel                       matlab.ui.container.Panel
-        Toolbar                         matlab.ui.container.GridLayout
-        tool_ReportGenerator_2          matlab.ui.control.Image
-        tool_LayoutRight                matlab.ui.control.Image
-        tool_FiscalizaUpdate            matlab.ui.control.Image
-        tool_ReportGenerator            matlab.ui.control.Image
-        tool_TimestampLabel             matlab.ui.control.Label
-        tool_TimestampSlider            matlab.ui.control.Slider
-        tool_LoopControl                matlab.ui.control.Image
-        tool_Play                       matlab.ui.control.Image
-        tool_LayoutLeft                 matlab.ui.control.Image
-        ContextMenu                     matlab.ui.container.ContextMenu
-        contextmenu_del                 matlab.ui.container.Menu
-        contextmenu_delAll              matlab.ui.container.Menu
+        UIFigure                       matlab.ui.Figure
+        GridLayout                     matlab.ui.container.GridLayout
+        DockModule                     matlab.ui.container.GridLayout
+        dockModule_Close               matlab.ui.control.Image
+        dockModule_Undock              matlab.ui.control.Image
+        Document                       matlab.ui.container.GridLayout
+        RightPanel                     matlab.ui.container.GridLayout
+        WaterfallPanel                 matlab.ui.container.Panel
+        WaterfallPanelGrid             matlab.ui.container.GridLayout
+        WaterfallCLim2                 matlab.ui.control.Spinner
+        WaterfallCLim1                 matlab.ui.control.Spinner
+        WaterfallCLimRefresh           matlab.ui.control.Image
+        WaterfallCLimLabel             matlab.ui.control.Label
+        WaterfallMeshStyle             matlab.ui.control.DropDown
+        WaterfallMeshStyleLabel        matlab.ui.control.Label
+        WaterfallColormap              matlab.ui.control.DropDown
+        WaterfallColormapLabel         matlab.ui.control.Label
+        WaterfallDecimation            matlab.ui.control.DropDown
+        WaterfallDecimationValue       matlab.ui.control.Label
+        WaterfallDecimationLabel       matlab.ui.control.Label
+        WaterfallFcn                   matlab.ui.control.DropDown
+        WaterfallFcnLabel              matlab.ui.control.Label
+        WaterfallPanelLabel            matlab.ui.control.Label
+        WaterfallPanelIcon             matlab.ui.control.Image
+        PersistencePanel               matlab.ui.container.Panel
+        PersistencePanelGrid           matlab.ui.container.GridLayout
+        PersistenceCLim2               matlab.ui.control.Spinner
+        PersistenceCLim1               matlab.ui.control.Spinner
+        PersistenceCLimRefresh         matlab.ui.control.Image
+        PersistenceCLim_Label          matlab.ui.control.Label
+        PersistenceTransparency        matlab.ui.control.Spinner
+        PersistenceTransparencyLabel   matlab.ui.control.Label
+        PersistenceColormap            matlab.ui.control.DropDown
+        PersistenceColormapLabel       matlab.ui.control.Label
+        PersistenceWindowSize          matlab.ui.control.DropDown
+        PersistenceWindowSizeValue     matlab.ui.control.Label
+        PersistenceWindowSizeLabel     matlab.ui.control.Label
+        PersistenceInterpolation       matlab.ui.control.DropDown
+        PersistenceInterpolationLabel  matlab.ui.control.Label
+        PersistencePanelLabel          matlab.ui.control.Label
+        PersistencePanelIcon           matlab.ui.control.Image
+        GeneralPanel                   matlab.ui.container.Panel
+        GeneralPanelGrid               matlab.ui.container.GridLayout
+        LimitsYLim2                    matlab.ui.control.Spinner
+        LimitsYLim1                    matlab.ui.control.Spinner
+        LimitsYLimLabel                matlab.ui.control.Label
+        LimitsXLim2                    matlab.ui.control.Spinner
+        LimitsXLim1                    matlab.ui.control.Spinner
+        LimitsXLimLabel                matlab.ui.control.Label
+        LimitsRefresh                  matlab.ui.control.Image
+        LimitsPanelLabel               matlab.ui.control.Label
+        LayoutRatio                    matlab.ui.control.DropDown
+        LayoutRatioLabel               matlab.ui.control.Label
+        GeneralPanelLabel              matlab.ui.control.Label
+        GeneralPanelIcon               matlab.ui.control.Image
+        LeftPanel                      matlab.ui.container.GridLayout
+        FlowPanel                      matlab.ui.container.Panel
+        FlowPanelGrid                  matlab.ui.container.GridLayout
+        FlowAnalysis                   matlab.ui.control.Label
+        FlowEmissions                  matlab.ui.container.Tree
+        FlowEmissionsBtn2              matlab.ui.control.Image
+        FlowEmissionsBtn1              matlab.ui.control.Image
+        FlowEmissionsLabel             matlab.ui.control.Label
+        FlowChannel                    matlab.ui.control.ListBox
+        FlowChannelBtn                 matlab.ui.control.Image
+        FlowChannelLabel               matlab.ui.control.Label
+        FlowDetection                  matlab.ui.control.Label
+        FlowDetectionBtn               matlab.ui.control.Image
+        FlowDetectionLabel             matlab.ui.control.Label
+        FlowOccupancy                  matlab.ui.control.Label
+        FlowOccupancyBtn               matlab.ui.control.Image
+        FlowOccupancyLabel             matlab.ui.control.Label
+        FlowMetadata                   matlab.ui.control.Label
+        FlowAttributesPanelRightBtn    matlab.ui.control.Image
+        FlowAttributesPanelLeftBtn     matlab.ui.control.Image
+        FlowAttributesPanelVisibleIdx  matlab.ui.control.Label
+        FlowPanelLabel                 matlab.ui.control.Label
+        SpectrumFlowList               matlab.ui.control.DropDown
+        AxesAnnotation                 matlab.ui.control.Label
+        AxesToolbar                    matlab.ui.container.GridLayout
+        axesTool_waterfall             matlab.ui.control.Image
+        axesTool_occupancy             matlab.ui.control.Image
+        axesTool_persistence           matlab.ui.control.Image
+        axesTool_maxHold               matlab.ui.control.Image
+        axesTool_average               matlab.ui.control.Image
+        axesTool_minHold               matlab.ui.control.Image
+        axesTool_DataTip               matlab.ui.control.Image
+        axesTool_Pan                   matlab.ui.control.Image
+        axesTool_RestoreView           matlab.ui.control.Image
+        AxesContainer                  matlab.ui.container.Panel
+        Toolbar                        matlab.ui.container.GridLayout
+        tool_OpenPopupProject          matlab.ui.control.Image
+        tool_LayoutRight               matlab.ui.control.Image
+        tool_UploadFinalFile           matlab.ui.control.Image
+        tool_GenerateReport            matlab.ui.control.Image
+        tool_TimestampLabel            matlab.ui.control.Label
+        tool_TimestampSlider           matlab.ui.control.Slider
+        tool_LoopControl               matlab.ui.control.Image
+        tool_Play                      matlab.ui.control.Image
+        tool_LayoutLeft                matlab.ui.control.Image
     end
 
     
@@ -199,7 +197,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowMetadata;
                         app.FlowOccupancy;
                         app.FlowDetection;
-                        app.FlowAnalysis
+                        app.FlowAnalysis;
+                        app.tool_LayoutLeft;
+                        app.tool_Play;
+                        app.tool_LoopControl;
+                        app.tool_OpenPopupProject;
+                        app.tool_GenerateReport;
+                        app.tool_UploadFinalFile;
+                        app.tool_LayoutRight;
                         app.dockModule_Undock;
                         app.dockModule_Close
                     };
@@ -210,8 +215,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                             struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id, 'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', 'rgba(183, 49, 44, 0.75)'), ...
                             struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id, 'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,             'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
+                            struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,     'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,      'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
                     catch
                     end
@@ -293,7 +305,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ## PLOT ##
         %-----------------------------------------------------------------%
         function startup_Axes(app)
-            hParent = tiledlayout(app.PlotPanel, 4, 1, "Padding", "compact", "TileSpacing", "compact");
+            hParent = tiledlayout(app.AxesContainer, 4, 1, "Padding", "compact", "TileSpacing", "compact");
 
             app.UIAxes1 = plot.axes.Creation(hParent, 'Cartesian', {'TitleHorizontalAlignment', 'right', 'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
             app.UIAxes1.Layout.Tile = 1;
@@ -306,8 +318,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.UIAxes3.Layout.Tile = 4;            
 
             % Axes colormap:
-            plot.axes.Colormap(app.UIAxes1, app.play_Persistance_Colormap.Value)
-            plot.axes.Colormap(app.UIAxes3, app.play_Waterfall_Colormap.Value)
+            plot.axes.Colormap(app.UIAxes1, app.PersistenceColormap.Value)
+            plot.axes.Colormap(app.UIAxes3, app.WaterfallColormap.Value)
 
             % Axes colorbar:
             plot.axes.Colorbar(app.UIAxes3, app.mainApp.General.plot.waterfall.Colorbar)
@@ -315,13 +327,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Axes fixed labels:
             ylabel(app.UIAxes1, 'Nível (dB)')
             set(app.UIAxes1.Title, Visible='on', FontSize=10, FontWeight='normal', HorizontalAlignment='right', Color=[.8,.8,.8])
-            title(app.UIAxes1, {'';'';''})
 
             ylabel(app.UIAxes2, 'Ocupação (%)')
             xlabel(app.UIAxes3, 'Frequência (MHz)')
             ylabel(app.UIAxes3, 'Instante')
             plot.axes.Layout.XLabel([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status)
-            plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.play_LayoutRatio)
+            plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.LayoutRatio)
 
             % Axes listeners:
             linkaxes([app.UIAxes1, app.UIAxes2, app.UIAxes3], 'x')
@@ -329,7 +340,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             addlistener(app.UIAxes1, 'YLim', 'PostSet', @app.plot_AxesLimitsChanged);
 
             % Axes interactions:
-            plot.axes.Interactivity.DefaultCreation([app.UIAxes1, app.UIAxes2, app.UIAxes3], [dataTipInteraction, regionZoomInteraction])
+            plot.axes.Interactivity.DefaultCreation([app.UIAxes1, app.UIAxes2], [dataTipInteraction, regionZoomInteraction, rulerPanInteraction])
+            plot.axes.Interactivity.DefaultCreation(app.UIAxes3,                [dataTipInteraction, regionZoomInteraction])
+            
         end
 
         %-----------------------------------------------------------------%
@@ -418,7 +431,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function prePlot_HTMLPanels(app, idx)
             app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.nSweeps, app.mainApp.specData(idx).Data{1}(1));
-            title(app.UIAxes1, sprintf('%s\n%.3f - %.3f MHz\n', app.mainApp.specData(idx).Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop))
+            app.AxesAnnotation.Text = sprintf('%s \n%.3f - %.3f MHz ', app.mainApp.specData(idx).Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
         end
 
         %-----------------------------------------------------------------%
@@ -430,7 +443,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             %     o que demandou ajuste no leitor .MAT, mantendo a compatibilidade com os .MAT
             %     gerado em versões anteriores do app.
             
-            % (b) A atualização do componente app.play_LayoutRatio deve ser posterior
+            % (b) A atualização do componente app.LayoutRatio deve ser posterior
             %     à atualização dos componentes app.play_Occupancy e app.play_Waterfall.
             
             % (c) A atualização dos limites dos eixos x e y é realizada automaticamente,
@@ -463,30 +476,30 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.axesTool_occupancy.UserData.status    = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Controls.Occupancy;
                     app.axesTool_waterfall.UserData.status    = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Controls.Waterfall;
         
-                    app.play_LayoutRatio.Items                = {app.mainApp.specData(idx).UserData.customPlayback.Parameters.Controls.LayoutRatio};
-                    plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.play_LayoutRatio)
+                    app.LayoutRatio.Items                = {app.mainApp.specData(idx).UserData.customPlayback.Parameters.Controls.LayoutRatio};
+                    plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.LayoutRatio)
                     
-                    app.play_Persistance_Interpolation.Value  = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Interpolation;
-                    app.play_Persistance_WindowSize.Value     = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.WindowSize;
-                    app.play_Persistance_WindowSizeValue.Text = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.WindowSize;
-                    app.play_Persistance_Transparency.Value   = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Transparency;
-                    app.play_Persistance_Colormap.Value       = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Colormap;
+                    app.PersistenceInterpolation.Value  = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Interpolation;
+                    app.PersistenceWindowSize.Value     = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.WindowSize;
+                    app.PersistenceWindowSizeValue.Text = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.WindowSize;
+                    app.PersistenceTransparency.Value   = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Transparency;
+                    app.PersistenceColormap.Value       = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.Colormap;
         
-                    if app.play_Persistance_WindowSize.Value == "full"
-                        app.play_Persistance_cLim1.Value      = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.LevelLimits(1);
-                        app.play_Persistance_cLim2.Value      = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.LevelLimits(2);
+                    if app.PersistenceWindowSize.Value == "full"
+                        app.PersistenceCLim1.Value      = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.LevelLimits(1);
+                        app.PersistenceCLim2.Value      = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Persistance.LevelLimits(2);
                     end
 
                     % A visibilidade e posição da Colobar não é tratada como 
                     % customização do playback... e por isso o componente
                     % específico não é atualizado com a informação presente
                     % em app.mainApp.specData.
-                    app.play_Waterfall_Fcn.Value              = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Fcn;
-                    app.play_Waterfall_Decimation.Value       = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Decimation;
-                    app.play_Waterfall_MeshStyle.Value        = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.MeshStyle;            
-                    app.play_Waterfall_Colormap.Value         = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Colormap;
-                    app.play_Waterfall_cLim1.Value            = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.LevelLimits(1);
-                    app.play_Waterfall_cLim2.Value            = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.LevelLimits(2);
+                    app.WaterfallFcn.Value              = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Fcn;
+                    app.WaterfallDecimation.Value       = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Decimation;
+                    app.WaterfallMeshStyle.Value        = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.MeshStyle;            
+                    app.WaterfallColormap.Value         = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.Colormap;
+                    app.WaterfallCLim1.Value            = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.LevelLimits(1);
+                    app.WaterfallCLim2.Value            = app.mainApp.specData(idx).UserData.customPlayback.Parameters.Waterfall.LevelLimits(2);
             end
         end
 
@@ -495,11 +508,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % app.General_I
             % (a) Persistance
             app.mainApp.General_I.plot.persistence = struct( ...
-                'Interpolation', app.play_Persistance_Interpolation.Value, ...
-                'WindowSize', app.play_Persistance_WindowSize.Value, ...
-                'Transparency', app.play_Persistance_Transparency.Value, ...
-                'Colormap', app.play_Persistance_Colormap.Value, ...
-                'LevelLimits', [app.play_Persistance_cLim1.Value, app.play_Persistance_cLim2.Value] ...
+                'Interpolation', app.PersistenceInterpolation.Value, ...
+                'WindowSize', app.PersistenceWindowSize.Value, ...
+                'Transparency', app.PersistenceTransparency.Value, ...
+                'Colormap', app.PersistenceColormap.Value, ...
+                'LevelLimits', [app.PersistenceCLim1.Value, app.PersistenceCLim2.Value] ...
             );
 
             if app.axesTool_persistence.UserData.status && strcmp(app.UIAxes1.UserData.CLimMode, 'auto')
@@ -507,11 +520,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             % (b) Waterfall
-            app.mainApp.General_I.plot.waterfall.Fcn = app.play_Waterfall_Fcn.Value;
-            app.mainApp.General_I.plot.waterfall.Decimation = app.play_Waterfall_Decimation.Value;
-            app.mainApp.General_I.plot.waterfall.MeshStyle = app.play_Waterfall_MeshStyle.Value;
-            app.mainApp.General_I.plot.waterfall.Colormap = app.play_Waterfall_Colormap.Value;
-            app.mainApp.General_I.plot.waterfall.LevelLimits = [app.play_Waterfall_cLim1.Value, app.play_Waterfall_cLim2.Value];
+            app.mainApp.General_I.plot.waterfall.Fcn = app.WaterfallFcn.Value;
+            app.mainApp.General_I.plot.waterfall.Decimation = app.WaterfallDecimation.Value;
+            app.mainApp.General_I.plot.waterfall.MeshStyle = app.WaterfallMeshStyle.Value;
+            app.mainApp.General_I.plot.waterfall.Colormap = app.WaterfallColormap.Value;
+            app.mainApp.General_I.plot.waterfall.LevelLimits = [app.WaterfallCLim1.Value, app.WaterfallCLim2.Value];
 
             if app.axesTool_waterfall.UserData.status && strcmp(app.UIAxes3.UserData.CLimMode, 'auto')
                 app.mainApp.General_I.plot.waterfall.LevelLimits = [0, 1];
@@ -651,11 +664,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function plot_Draw_Persistance(app, operationType, idx)
             switch operationType
                 case 'Creation'
-                    [app.plotHandles.persistence, app.play_Persistance_WindowSizeValue.Text] = plot.Persistance('Creation', app.plotHandles.persistence, app.UIAxes1, app.bandObj, idx);
+                    [app.plotHandles.persistence, app.PersistenceWindowSizeValue.Text] = plot.Persistance('Creation', app.plotHandles.persistence, app.UIAxes1, app.bandObj, idx);
                     play_Layout_PersistancePanel(app)
 
                 case 'Update'
-                    if app.axesTool_persistence.UserData.status && ~strcmp(app.play_Persistance_WindowSizeValue.Text, 'full')
+                    if app.axesTool_persistence.UserData.status && ~strcmp(app.PersistenceWindowSizeValue.Text, 'full')
                         app.plotHandles.persistence = plot.Persistance('Update', app.plotHandles.persistence, app.UIAxes1, app.bandObj, idx);
                         play_Layout_PersistancePanel(app)
                     end
@@ -670,7 +683,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             prePlot_updatingGeneralSettings(app)
             prePlot_updatingCustomProperties(app, idx)
 
-            [app.plotHandles.waterfall, app.play_Waterfall_DecimationValue.Text] = plot.Waterfall('Creation', app.UIAxes3, app.bandObj, idx);
+            [app.plotHandles.waterfall, app.WaterfallDecimationValue.Text] = plot.Waterfall('Creation', app.UIAxes3, app.bandObj, idx);
             plot.axes.Layout.YLabel(app.plotHandles.waterfall, app.axesTool_waterfall.UserData.status)
             play_Layout_WaterfallPanel(app)
 
@@ -680,7 +693,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % essa razão, restringir o DataCursorMode apenas ao eixo específico
             % em que está sendo plotado a imagem (que não suporta a interação 
             % padrão de DataTip).
-            switch app.play_Waterfall_Fcn.Value
+            switch app.WaterfallFcn.Value
                 case 'image'
                     app.axesTool_DataTip.Enable = 1;
                 case 'mesh'
@@ -729,12 +742,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function plot_AxesLimitsChanged(app, src, evt)
             switch src.Name
                 case 'XLim'
-                    app.play_Limits_xLim1.Value = round(evt.AffectedObject.XLim(1), 3);
-                    app.play_Limits_xLim2.Value = round(evt.AffectedObject.XLim(2), 3);
+                    app.LimitsXLim1.Value = round(evt.AffectedObject.XLim(1), 3);
+                    app.LimitsXLim2.Value = round(evt.AffectedObject.XLim(2), 3);
 
                 case 'YLim'
-                    app.play_Limits_yLim1.Value = round(double(evt.AffectedObject.YLim(1)), 1);
-                    app.play_Limits_yLim2.Value = round(double(evt.AffectedObject.YLim(2)), 1);
+                    app.LimitsYLim1.Value = round(double(evt.AffectedObject.YLim(1)), 1);
+                    app.LimitsYLim2.Value = round(double(evt.AffectedObject.YLim(2)), 1);
             end
         end
 
@@ -857,15 +870,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
             switch event.Source
                 case app.tool_LayoutLeft
                     if app.Document.ColumnWidth{1}
-                        app.Document.ColumnWidth(1:2) = {0,0};
+                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left-off.svg';
+                        app.Document.ColumnWidth(1:2)       = {0,0};
                     else
-                        app.Document.ColumnWidth(1:2) = {320,10};
+                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left.svg';
+                        app.Document.ColumnWidth(1:2)       = {320,10};
                     end
 
                 case app.tool_LayoutRight
                     if app.Document.ColumnWidth{end}
+                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right-off.svg';
                         app.Document.ColumnWidth(end-1:end) = {0,0};
                     else
+                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right.svg';
                         app.Document.ColumnWidth(end-1:end) = {10,232};
                     end
             end
@@ -918,6 +935,97 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function FlowEmissionsSelectionChanged(app, event)
             selectedNodes = app.FlowEmissions.SelectedNodes;
             
+        end
+
+        % Image clicked function: axesTool_DataTip, axesTool_Pan, 
+        % ...and 7 other components
+        function onAxesToolbarButtonClicked(app, event)
+            
+            idx = findSpecDataIndex(app);
+
+            switch event.Source
+                case app.axesTool_RestoreView
+                    plot.axes.Interactivity.CustomRestoreViewFcn(app.UIAxes1, [app.UIAxes2, app.UIAxes3], app)
+
+                case app.axesTool_Pan
+                    app.axesTool_Pan.UserData.status = ~app.axesTool_Pan.UserData.status;
+                    if app.axesTool_Pan.UserData.status
+                        app.axesTool_Pan.ImageSource = 'Pan_32Filled.png';
+                        if app.axesTool_DataTip.UserData
+                            play_AxesToolbarCallbacks(app, struct('Source', app.axesTool_DataTip))
+                        end
+                    else
+                        app.axesTool_Pan.ImageSource = 'Pan_32.png';
+                    end
+
+                    plot.axes.Interactivity.CustomPanFcn(struct('Value', app.axesTool_Pan.UserData.status), app.UIAxes1, [app.UIAxes2, app.UIAxes3]);
+
+                case app.axesTool_DataTip
+                    app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
+                    if app.axesTool_DataTip.UserData.status
+                        app.axesTool_DataTip.ImageSource = 'DataTip_22Filled.png';
+                    else
+                        app.axesTool_DataTip.ImageSource = 'DataTip_22.png';
+                    end
+
+                    plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
+
+                case {app.axesTool_minHold, app.axesTool_average, app.axesTool_maxHold}
+                    event.Source.UserData.status = ~event.Source.UserData.status;
+                    if event.Source.UserData.status
+                        event.Source.ImageSource = event.Source.UserData.ImageSource{1};
+
+                        hObject = plot.draw2D.OrdinaryLine(app.UIAxes1, app.bandObj, idx, event.Source.Tag);
+                        plot.datatip.Template(hObject, 'Frequency+Level', app.bandObj.LevelUnit)
+                        plot.axes.StackingOrder.execute(app.UIAxes1, app.bandObj.Context)
+            
+                        eval(sprintf('app.h%s = hObject;', event.Source.Tag));
+
+                    else
+                        event.Source.ImageSource = event.Source.UserData.ImageSource{2};
+                        plot_deleteLines(app, event.Source.Tag)
+                    end
+
+                case app.axesTool_persistence
+                    app.axesTool_persistence.UserData.status = ~app.axesTool_persistence.UserData.status;
+                    if app.axesTool_persistence.UserData.status
+                        prePlot_updatingGeneralSettings(app)
+                        prePlot_updatingCustomProperties(app, idx)
+                        plot_Draw_Persistance(app, 'Creation', idx)
+                    else
+                        plot_Draw_Persistance(app, 'Delete', -1)
+                    end
+
+                case app.axesTool_occupancy
+                    app.axesTool_occupancy.UserData.status = ~app.axesTool_occupancy.UserData.status;
+                    if app.axesTool_occupancy.UserData.status
+                        occIndex = play_OCCIndex(app, idx, 'PLAYBACK/REPORT');
+                        plot.old_OCC(app, idx, 'Creation', occIndex)
+                    else
+                        plot.old_OCC(app, idx, 'Delete', -1)
+                    end
+                    play_OCCLayoutVisibility(app, app.bandObj.LevelUnit)
+
+                    plot.axes.Layout.XLabel([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status)
+                    plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.play_LayoutRatio)
+
+                case app.axesTool_waterfall
+                    app.axesTool_waterfall.UserData.status = ~app.axesTool_waterfall.UserData.status;
+                    if app.axesTool_waterfall.UserData.status
+                        if isempty(app.plotHandles.waterfall)
+                            plot_Draw_Waterfall(app, idx)
+                        else
+                            play_Layout_WaterfallPanel(app)
+                        end
+                    else
+                        play_Layout_WaterfallPanel(app)
+                    end                    
+
+                    plot.axes.Layout.XLabel([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status)
+                    plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.play_LayoutRatio)
+            end
+            drawnow
+
         end
     end
 
@@ -984,15 +1092,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create tool_Play
             app.tool_Play = uiimage(app.Toolbar);
-            app.tool_Play.Tooltip = {'Playback'};
             app.tool_Play.Layout.Row = [1 3];
             app.tool_Play.Layout.Column = 2;
             app.tool_Play.ImageSource = 'play_32.png';
 
             % Create tool_LoopControl
             app.tool_LoopControl = uiimage(app.Toolbar);
-            app.tool_LoopControl.Tag = 'loop';
-            app.tool_LoopControl.Tooltip = {'Loop do playback'};
             app.tool_LoopControl.Layout.Row = [1 3];
             app.tool_LoopControl.Layout.Column = 3;
             app.tool_LoopControl.ImageSource = 'playbackLoop_32Blue.png';
@@ -1013,22 +1118,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.Layout.Column = 5;
             app.tool_TimestampLabel.Text = {'22 de 328 '; '22/02/2022 08:00:00 '};
 
-            % Create tool_ReportGenerator
-            app.tool_ReportGenerator = uiimage(app.Toolbar);
-            app.tool_ReportGenerator.ScaleMethod = 'none';
-            app.tool_ReportGenerator.Enable = 'off';
-            app.tool_ReportGenerator.Tooltip = {'Gera relatório'};
-            app.tool_ReportGenerator.Layout.Row = [1 3];
-            app.tool_ReportGenerator.Layout.Column = 16;
-            app.tool_ReportGenerator.ImageSource = 'Publish_HTML_16.png';
+            % Create tool_GenerateReport
+            app.tool_GenerateReport = uiimage(app.Toolbar);
+            app.tool_GenerateReport.ScaleMethod = 'none';
+            app.tool_GenerateReport.Layout.Row = [1 3];
+            app.tool_GenerateReport.Layout.Column = 16;
+            app.tool_GenerateReport.ImageSource = 'Publish_HTML_16.png';
 
-            % Create tool_FiscalizaUpdate
-            app.tool_FiscalizaUpdate = uiimage(app.Toolbar);
-            app.tool_FiscalizaUpdate.ScaleMethod = 'none';
-            app.tool_FiscalizaUpdate.Tooltip = {'Upload relatório'};
-            app.tool_FiscalizaUpdate.Layout.Row = [1 3];
-            app.tool_FiscalizaUpdate.Layout.Column = 17;
-            app.tool_FiscalizaUpdate.ImageSource = 'up-20px.png';
+            % Create tool_UploadFinalFile
+            app.tool_UploadFinalFile = uiimage(app.Toolbar);
+            app.tool_UploadFinalFile.ScaleMethod = 'none';
+            app.tool_UploadFinalFile.Layout.Row = [1 3];
+            app.tool_UploadFinalFile.Layout.Column = 17;
+            app.tool_UploadFinalFile.ImageSource = 'up-20px.png';
 
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
@@ -1038,19 +1140,17 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LayoutRight.Layout.Column = 18;
             app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
 
-            % Create tool_ReportGenerator_2
-            app.tool_ReportGenerator_2 = uiimage(app.Toolbar);
-            app.tool_ReportGenerator_2.ScaleMethod = 'none';
-            app.tool_ReportGenerator_2.Enable = 'off';
-            app.tool_ReportGenerator_2.Tooltip = {'Gera relatório'};
-            app.tool_ReportGenerator_2.Layout.Row = [1 3];
-            app.tool_ReportGenerator_2.Layout.Column = 15;
-            app.tool_ReportGenerator_2.ImageSource = 'organization-20px-black.svg';
+            % Create tool_OpenPopupProject
+            app.tool_OpenPopupProject = uiimage(app.Toolbar);
+            app.tool_OpenPopupProject.ScaleMethod = 'none';
+            app.tool_OpenPopupProject.Layout.Row = [1 3];
+            app.tool_OpenPopupProject.Layout.Column = 15;
+            app.tool_OpenPopupProject.ImageSource = 'organization-20px-black.svg';
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 198, '1x', 10, 232};
-            app.Document.RowHeight = {24, '1x'};
+            app.Document.ColumnWidth = {320, 10, 5, 198, '1x', 5, 10, 232};
+            app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
             app.Document.Padding = [0 0 0 0];
@@ -1058,13 +1158,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.Document.Layout.Column = [2 3];
             app.Document.BackgroundColor = [1 1 1];
 
-            % Create PlotPanel
-            app.PlotPanel = uipanel(app.Document);
-            app.PlotPanel.AutoResizeChildren = 'off';
-            app.PlotPanel.BorderType = 'none';
-            app.PlotPanel.BackgroundColor = [0 0 0];
-            app.PlotPanel.Layout.Row = [1 2];
-            app.PlotPanel.Layout.Column = [3 5];
+            % Create AxesContainer
+            app.AxesContainer = uipanel(app.Document);
+            app.AxesContainer.AutoResizeChildren = 'off';
+            app.AxesContainer.BorderType = 'none';
+            app.AxesContainer.BackgroundColor = [0 0 0];
+            app.AxesContainer.Layout.Row = [1 3];
+            app.AxesContainer.Layout.Column = [3 6];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
@@ -1080,62 +1180,60 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create axesTool_RestoreView
             app.axesTool_RestoreView = uiimage(app.AxesToolbar);
             app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_RestoreView.Layout.Row = 1;
             app.axesTool_RestoreView.Layout.Column = 2;
             app.axesTool_RestoreView.ImageSource = 'Home_18.png';
 
             % Create axesTool_Pan
             app.axesTool_Pan = uiimage(app.AxesToolbar);
-            app.axesTool_Pan.Tooltip = {'Pan'};
+            app.axesTool_Pan.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_Pan.Layout.Row = 1;
             app.axesTool_Pan.Layout.Column = 3;
             app.axesTool_Pan.ImageSource = 'Pan_32.png';
 
             % Create axesTool_DataTip
             app.axesTool_DataTip = uiimage(app.AxesToolbar);
+            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_DataTip.Enable = 'off';
-            app.axesTool_DataTip.Tooltip = {'DataCursorMode'; '(restrito à Waterfall:Image)'};
             app.axesTool_DataTip.Layout.Row = 1;
             app.axesTool_DataTip.Layout.Column = 4;
             app.axesTool_DataTip.ImageSource = 'DataTip_22.png';
 
             % Create axesTool_minHold
             app.axesTool_minHold = uiimage(app.AxesToolbar);
-            app.axesTool_minHold.Tag = 'MinHold';
-            app.axesTool_minHold.Tooltip = {'MinHold'};
+            app.axesTool_minHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_minHold.Tag = 'minHold';
             app.axesTool_minHold.Layout.Row = 1;
             app.axesTool_minHold.Layout.Column = 5;
             app.axesTool_minHold.ImageSource = 'MinHold_32.png';
 
             % Create axesTool_average
             app.axesTool_average = uiimage(app.AxesToolbar);
-            app.axesTool_average.Tag = 'Average';
-            app.axesTool_average.Tooltip = {'Média'};
+            app.axesTool_average.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_average.Tag = 'average';
             app.axesTool_average.Layout.Row = 1;
             app.axesTool_average.Layout.Column = 6;
             app.axesTool_average.ImageSource = 'Average_32.png';
 
             % Create axesTool_maxHold
             app.axesTool_maxHold = uiimage(app.AxesToolbar);
-            app.axesTool_maxHold.Tag = 'MaxHold';
-            app.axesTool_maxHold.Tooltip = {'MaxHold'};
+            app.axesTool_maxHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_maxHold.Tag = 'maxHold';
             app.axesTool_maxHold.Layout.Row = 1;
             app.axesTool_maxHold.Layout.Column = 7;
             app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
 
             % Create axesTool_persistence
             app.axesTool_persistence = uiimage(app.AxesToolbar);
-            app.axesTool_persistence.Tag = 'Persistance';
-            app.axesTool_persistence.Tooltip = {'Persistência'};
+            app.axesTool_persistence.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_persistence.Layout.Row = 1;
             app.axesTool_persistence.Layout.Column = 8;
             app.axesTool_persistence.ImageSource = 'Persistance_36.png';
 
             % Create axesTool_occupancy
             app.axesTool_occupancy = uiimage(app.AxesToolbar);
-            app.axesTool_occupancy.Tag = 'Ocuppancy';
-            app.axesTool_occupancy.Tooltip = {'Ocupação'};
+            app.axesTool_occupancy.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_occupancy.Layout.Row = 1;
             app.axesTool_occupancy.Layout.Column = 9;
             app.axesTool_occupancy.ImageSource = 'Occupancy_32Gray.png';
@@ -1143,13 +1241,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create axesTool_waterfall
             app.axesTool_waterfall = uiimage(app.AxesToolbar);
             app.axesTool_waterfall.ScaleMethod = 'none';
-            app.axesTool_waterfall.Tag = 'Waterfall';
-            app.axesTool_waterfall.Tooltip = {'Waterfall'};
+            app.axesTool_waterfall.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_waterfall.Layout.Row = 1;
             app.axesTool_waterfall.Layout.Column = 10;
-            app.axesTool_waterfall.HorizontalAlignment = 'left';
-            app.axesTool_waterfall.VerticalAlignment = 'bottom';
             app.axesTool_waterfall.ImageSource = 'Waterfall_24.png';
+
+            % Create AxesAnnotation
+            app.AxesAnnotation = uilabel(app.Document);
+            app.AxesAnnotation.HorizontalAlignment = 'right';
+            app.AxesAnnotation.FontSize = 10;
+            app.AxesAnnotation.FontColor = [0.8 0.8 0.8];
+            app.AxesAnnotation.Layout.Row = [1 2];
+            app.AxesAnnotation.Layout.Column = 5;
+            app.AxesAnnotation.Text = '';
 
             % Create LeftPanel
             app.LeftPanel = uigridlayout(app.Document);
@@ -1158,20 +1262,20 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.LeftPanel.ColumnSpacing = 5;
             app.LeftPanel.RowSpacing = 5;
             app.LeftPanel.Padding = [0 0 0 0];
-            app.LeftPanel.Layout.Row = [1 2];
+            app.LeftPanel.Layout.Row = [1 3];
             app.LeftPanel.Layout.Column = 1;
             app.LeftPanel.BackgroundColor = [1 1 1];
 
             % Create SpectrumFlowList
             app.SpectrumFlowList = uidropdown(app.LeftPanel);
-            app.SpectrumFlowList.Items = {''};
+            app.SpectrumFlowList.Items = {};
             app.SpectrumFlowList.ValueChangedFcn = createCallbackFcn(app, @onSpectrumFlowListValueChanged, true);
             app.SpectrumFlowList.FontSize = 11;
             app.SpectrumFlowList.FontColor = [1 1 1];
             app.SpectrumFlowList.BackgroundColor = [0.7176 0.1922 0.1725];
             app.SpectrumFlowList.Layout.Row = 1;
             app.SpectrumFlowList.Layout.Column = [1 4];
-            app.SpectrumFlowList.Value = '';
+            app.SpectrumFlowList.Value = {};
 
             % Create FlowPanelLabel
             app.FlowPanelLabel = uilabel(app.LeftPanel);
@@ -1343,431 +1447,410 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowAnalysis.Interpreter = 'html';
             app.FlowAnalysis.Text = '';
 
-            % Create SubGrid1
-            app.SubGrid1 = uigridlayout(app.Document);
-            app.SubGrid1.ColumnWidth = {18, '1x'};
-            app.SubGrid1.RowHeight = {5, 17, 5, 124, 5, 5, 17, 5, 168, 5, 5, 17, 5, '1x'};
-            app.SubGrid1.ColumnSpacing = 5;
-            app.SubGrid1.RowSpacing = 0;
-            app.SubGrid1.Padding = [0 0 0 0];
-            app.SubGrid1.Layout.Row = [1 2];
-            app.SubGrid1.Layout.Column = 7;
-            app.SubGrid1.BackgroundColor = [1 1 1];
+            % Create RightPanel
+            app.RightPanel = uigridlayout(app.Document);
+            app.RightPanel.ColumnWidth = {18, '1x'};
+            app.RightPanel.RowHeight = {5, 17, 5, 124, 5, 5, 17, 5, 168, 5, 5, 17, 5, '1x'};
+            app.RightPanel.ColumnSpacing = 5;
+            app.RightPanel.RowSpacing = 0;
+            app.RightPanel.Padding = [0 0 0 0];
+            app.RightPanel.Layout.Row = [1 3];
+            app.RightPanel.Layout.Column = 8;
+            app.RightPanel.BackgroundColor = [1 1 1];
 
-            % Create play_GeneralPanelLabel
-            app.play_GeneralPanelLabel = uilabel(app.SubGrid1);
-            app.play_GeneralPanelLabel.FontSize = 10;
-            app.play_GeneralPanelLabel.Layout.Row = 2;
-            app.play_GeneralPanelLabel.Layout.Column = 2;
-            app.play_GeneralPanelLabel.Text = 'EIXOS GRÁFICOS';
+            % Create GeneralPanelIcon
+            app.GeneralPanelIcon = uiimage(app.RightPanel);
+            app.GeneralPanelIcon.Layout.Row = [1 2];
+            app.GeneralPanelIcon.Layout.Column = 1;
+            app.GeneralPanelIcon.ImageSource = 'DriveTestDensity_32.png';
 
-            % Create play_GeneralPanel
-            app.play_GeneralPanel = uipanel(app.SubGrid1);
-            app.play_GeneralPanel.AutoResizeChildren = 'off';
-            app.play_GeneralPanel.BackgroundColor = [1 1 1];
-            app.play_GeneralPanel.Layout.Row = 4;
-            app.play_GeneralPanel.Layout.Column = [1 2];
+            % Create GeneralPanelLabel
+            app.GeneralPanelLabel = uilabel(app.RightPanel);
+            app.GeneralPanelLabel.FontSize = 10;
+            app.GeneralPanelLabel.Layout.Row = 2;
+            app.GeneralPanelLabel.Layout.Column = 2;
+            app.GeneralPanelLabel.Text = 'EIXOS GRÁFICOS';
 
-            % Create play_OthersGrid
-            app.play_OthersGrid = uigridlayout(app.play_GeneralPanel);
-            app.play_OthersGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.play_OthersGrid.RowHeight = {22, 20, 22, 22};
-            app.play_OthersGrid.RowSpacing = 5;
-            app.play_OthersGrid.BackgroundColor = [1 1 1];
+            % Create GeneralPanel
+            app.GeneralPanel = uipanel(app.RightPanel);
+            app.GeneralPanel.AutoResizeChildren = 'off';
+            app.GeneralPanel.BackgroundColor = [1 1 1];
+            app.GeneralPanel.Layout.Row = 4;
+            app.GeneralPanel.Layout.Column = [1 2];
 
-            % Create play_LayoutRatioLabel
-            app.play_LayoutRatioLabel = uilabel(app.play_OthersGrid);
-            app.play_LayoutRatioLabel.FontSize = 11;
-            app.play_LayoutRatioLabel.Layout.Row = 1;
-            app.play_LayoutRatioLabel.Layout.Column = [1 3];
-            app.play_LayoutRatioLabel.Text = 'Razão de aspecto:';
+            % Create GeneralPanelGrid
+            app.GeneralPanelGrid = uigridlayout(app.GeneralPanel);
+            app.GeneralPanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
+            app.GeneralPanelGrid.RowHeight = {22, 20, 22, 22};
+            app.GeneralPanelGrid.RowSpacing = 5;
+            app.GeneralPanelGrid.BackgroundColor = [1 1 1];
 
-            % Create play_LayoutRatio
-            app.play_LayoutRatio = uidropdown(app.play_OthersGrid);
-            app.play_LayoutRatio.Items = {'1:0:0'};
-            app.play_LayoutRatio.FontSize = 11;
-            app.play_LayoutRatio.BackgroundColor = [1 1 1];
-            app.play_LayoutRatio.Layout.Row = 1;
-            app.play_LayoutRatio.Layout.Column = [4 5];
-            app.play_LayoutRatio.Value = '1:0:0';
+            % Create LayoutRatioLabel
+            app.LayoutRatioLabel = uilabel(app.GeneralPanelGrid);
+            app.LayoutRatioLabel.FontSize = 11;
+            app.LayoutRatioLabel.Layout.Row = 1;
+            app.LayoutRatioLabel.Layout.Column = [1 3];
+            app.LayoutRatioLabel.Text = 'Razão de aspecto:';
 
-            % Create play_LimitsPanelLabel
-            app.play_LimitsPanelLabel = uilabel(app.play_OthersGrid);
-            app.play_LimitsPanelLabel.VerticalAlignment = 'bottom';
-            app.play_LimitsPanelLabel.FontSize = 11;
-            app.play_LimitsPanelLabel.Layout.Row = 2;
-            app.play_LimitsPanelLabel.Layout.Column = [1 4];
-            app.play_LimitsPanelLabel.Text = 'Limites de frequência e nível:';
+            % Create LayoutRatio
+            app.LayoutRatio = uidropdown(app.GeneralPanelGrid);
+            app.LayoutRatio.Items = {'1:0:0'};
+            app.LayoutRatio.FontSize = 11;
+            app.LayoutRatio.BackgroundColor = [1 1 1];
+            app.LayoutRatio.Layout.Row = 1;
+            app.LayoutRatio.Layout.Column = [4 5];
+            app.LayoutRatio.Value = '1:0:0';
 
-            % Create play_Limits_xLimLabel
-            app.play_Limits_xLimLabel = uilabel(app.play_OthersGrid);
-            app.play_Limits_xLimLabel.HorizontalAlignment = 'center';
-            app.play_Limits_xLimLabel.FontSize = 10;
-            app.play_Limits_xLimLabel.Layout.Row = 3;
-            app.play_Limits_xLimLabel.Layout.Column = [1 5];
-            app.play_Limits_xLimLabel.Text = 'MHz  ';
+            % Create LimitsPanelLabel
+            app.LimitsPanelLabel = uilabel(app.GeneralPanelGrid);
+            app.LimitsPanelLabel.VerticalAlignment = 'bottom';
+            app.LimitsPanelLabel.FontSize = 11;
+            app.LimitsPanelLabel.Layout.Row = 2;
+            app.LimitsPanelLabel.Layout.Column = [1 4];
+            app.LimitsPanelLabel.Text = 'Limites de frequência e nível:';
 
-            % Create play_Limits_xLim1
-            app.play_Limits_xLim1 = uispinner(app.play_OthersGrid);
-            app.play_Limits_xLim1.ValueDisplayFormat = '%.3f';
-            app.play_Limits_xLim1.Tag = 'FreqStart';
-            app.play_Limits_xLim1.FontSize = 11;
-            app.play_Limits_xLim1.Tooltip = {''};
-            app.play_Limits_xLim1.Layout.Row = 3;
-            app.play_Limits_xLim1.Layout.Column = 1;
+            % Create LimitsRefresh
+            app.LimitsRefresh = uiimage(app.GeneralPanelGrid);
+            app.LimitsRefresh.ScaleMethod = 'none';
+            app.LimitsRefresh.Enable = 'off';
+            app.LimitsRefresh.Layout.Row = 2;
+            app.LimitsRefresh.Layout.Column = 5;
+            app.LimitsRefresh.ImageSource = 'Refresh_18.png';
 
-            % Create play_Limits_xLim2
-            app.play_Limits_xLim2 = uispinner(app.play_OthersGrid);
-            app.play_Limits_xLim2.ValueDisplayFormat = '%.3f';
-            app.play_Limits_xLim2.Tag = 'FreqStop';
-            app.play_Limits_xLim2.FontSize = 11;
-            app.play_Limits_xLim2.Tooltip = {''};
-            app.play_Limits_xLim2.Layout.Row = 3;
-            app.play_Limits_xLim2.Layout.Column = [4 5];
+            % Create LimitsXLimLabel
+            app.LimitsXLimLabel = uilabel(app.GeneralPanelGrid);
+            app.LimitsXLimLabel.HorizontalAlignment = 'center';
+            app.LimitsXLimLabel.FontSize = 10;
+            app.LimitsXLimLabel.Layout.Row = 3;
+            app.LimitsXLimLabel.Layout.Column = [1 5];
+            app.LimitsXLimLabel.Text = 'MHz  ';
 
-            % Create play_Limits_yLimLabel
-            app.play_Limits_yLimLabel = uilabel(app.play_OthersGrid);
-            app.play_Limits_yLimLabel.HorizontalAlignment = 'center';
-            app.play_Limits_yLimLabel.FontSize = 10;
-            app.play_Limits_yLimLabel.Layout.Row = 4;
-            app.play_Limits_yLimLabel.Layout.Column = [1 5];
-            app.play_Limits_yLimLabel.Text = 'dB  ';
+            % Create LimitsXLim1
+            app.LimitsXLim1 = uispinner(app.GeneralPanelGrid);
+            app.LimitsXLim1.ValueDisplayFormat = '%.3f';
+            app.LimitsXLim1.FontSize = 11;
+            app.LimitsXLim1.Layout.Row = 3;
+            app.LimitsXLim1.Layout.Column = 1;
 
-            % Create play_Limits_yLim1
-            app.play_Limits_yLim1 = uispinner(app.play_OthersGrid);
-            app.play_Limits_yLim1.Step = 5;
-            app.play_Limits_yLim1.ValueDisplayFormat = '%.1f';
-            app.play_Limits_yLim1.Tag = 'MinLevel';
-            app.play_Limits_yLim1.FontSize = 11;
-            app.play_Limits_yLim1.Tooltip = {''};
-            app.play_Limits_yLim1.Layout.Row = 4;
-            app.play_Limits_yLim1.Layout.Column = 1;
+            % Create LimitsXLim2
+            app.LimitsXLim2 = uispinner(app.GeneralPanelGrid);
+            app.LimitsXLim2.ValueDisplayFormat = '%.3f';
+            app.LimitsXLim2.FontSize = 11;
+            app.LimitsXLim2.Layout.Row = 3;
+            app.LimitsXLim2.Layout.Column = [4 5];
 
-            % Create play_Limits_yLim2
-            app.play_Limits_yLim2 = uispinner(app.play_OthersGrid);
-            app.play_Limits_yLim2.Step = 5;
-            app.play_Limits_yLim2.ValueDisplayFormat = '%.1f';
-            app.play_Limits_yLim2.Tag = 'MaxLevel';
-            app.play_Limits_yLim2.FontSize = 11;
-            app.play_Limits_yLim2.Tooltip = {''};
-            app.play_Limits_yLim2.Layout.Row = 4;
-            app.play_Limits_yLim2.Layout.Column = [4 5];
+            % Create LimitsYLimLabel
+            app.LimitsYLimLabel = uilabel(app.GeneralPanelGrid);
+            app.LimitsYLimLabel.HorizontalAlignment = 'center';
+            app.LimitsYLimLabel.FontSize = 10;
+            app.LimitsYLimLabel.Layout.Row = 4;
+            app.LimitsYLimLabel.Layout.Column = [1 5];
+            app.LimitsYLimLabel.Text = 'dB  ';
 
-            % Create play_LimitsRefresh
-            app.play_LimitsRefresh = uiimage(app.play_OthersGrid);
-            app.play_LimitsRefresh.ScaleMethod = 'none';
-            app.play_LimitsRefresh.Tooltip = {'Retorna à configuração padrão'};
-            app.play_LimitsRefresh.Layout.Row = 2;
-            app.play_LimitsRefresh.Layout.Column = 5;
-            app.play_LimitsRefresh.HorizontalAlignment = 'right';
-            app.play_LimitsRefresh.VerticalAlignment = 'bottom';
-            app.play_LimitsRefresh.ImageSource = 'Refresh_18.png';
+            % Create LimitsYLim1
+            app.LimitsYLim1 = uispinner(app.GeneralPanelGrid);
+            app.LimitsYLim1.Step = 5;
+            app.LimitsYLim1.ValueDisplayFormat = '%.1f';
+            app.LimitsYLim1.FontSize = 11;
+            app.LimitsYLim1.Layout.Row = 4;
+            app.LimitsYLim1.Layout.Column = 1;
 
-            % Create play_ControlPanelLabel
-            app.play_ControlPanelLabel = uilabel(app.SubGrid1);
-            app.play_ControlPanelLabel.FontSize = 10;
-            app.play_ControlPanelLabel.Layout.Row = 7;
-            app.play_ControlPanelLabel.Layout.Column = 2;
-            app.play_ControlPanelLabel.Text = 'PERSISTÊNCIA';
+            % Create LimitsYLim2
+            app.LimitsYLim2 = uispinner(app.GeneralPanelGrid);
+            app.LimitsYLim2.Step = 5;
+            app.LimitsYLim2.ValueDisplayFormat = '%.1f';
+            app.LimitsYLim2.FontSize = 11;
+            app.LimitsYLim2.Layout.Row = 4;
+            app.LimitsYLim2.Layout.Column = [4 5];
 
-            % Create play_Waterfall_Panel
-            app.play_Waterfall_Panel = uipanel(app.SubGrid1);
-            app.play_Waterfall_Panel.AutoResizeChildren = 'off';
-            app.play_Waterfall_Panel.Layout.Row = 14;
-            app.play_Waterfall_Panel.Layout.Column = [1 2];
+            % Create PersistencePanelIcon
+            app.PersistencePanelIcon = uiimage(app.RightPanel);
+            app.PersistencePanelIcon.Layout.Row = [6 7];
+            app.PersistencePanelIcon.Layout.Column = 1;
+            app.PersistencePanelIcon.VerticalAlignment = 'bottom';
+            app.PersistencePanelIcon.ImageSource = 'Persistance_36.png';
 
-            % Create play_WaterFallGrid
-            app.play_WaterFallGrid = uigridlayout(app.play_Waterfall_Panel);
-            app.play_WaterFallGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.play_WaterFallGrid.RowHeight = {18, 22, 20, 22, 20, 22};
-            app.play_WaterFallGrid.RowSpacing = 5;
-            app.play_WaterFallGrid.Padding = [10 10 10 5];
-            app.play_WaterFallGrid.BackgroundColor = [1 1 1];
+            % Create PersistencePanelLabel
+            app.PersistencePanelLabel = uilabel(app.RightPanel);
+            app.PersistencePanelLabel.FontSize = 10;
+            app.PersistencePanelLabel.Layout.Row = 7;
+            app.PersistencePanelLabel.Layout.Column = 2;
+            app.PersistencePanelLabel.Text = 'PERSISTÊNCIA';
 
-            % Create play_Waterfall_FcnLabel
-            app.play_Waterfall_FcnLabel = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_FcnLabel.VerticalAlignment = 'bottom';
-            app.play_Waterfall_FcnLabel.WordWrap = 'on';
-            app.play_Waterfall_FcnLabel.FontSize = 11;
-            app.play_Waterfall_FcnLabel.Layout.Row = 1;
-            app.play_Waterfall_FcnLabel.Layout.Column = [1 3];
-            app.play_Waterfall_FcnLabel.Text = 'Renderização:';
+            % Create PersistencePanel
+            app.PersistencePanel = uipanel(app.RightPanel);
+            app.PersistencePanel.AutoResizeChildren = 'off';
+            app.PersistencePanel.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.PersistencePanel.Layout.Row = 9;
+            app.PersistencePanel.Layout.Column = [1 2];
 
-            % Create play_Waterfall_Fcn
-            app.play_Waterfall_Fcn = uidropdown(app.play_WaterFallGrid);
-            app.play_Waterfall_Fcn.Items = {'image', 'mesh'};
-            app.play_Waterfall_Fcn.FontSize = 11;
-            app.play_Waterfall_Fcn.BackgroundColor = [1 1 1];
-            app.play_Waterfall_Fcn.Layout.Row = 2;
-            app.play_Waterfall_Fcn.Layout.Column = [1 2];
-            app.play_Waterfall_Fcn.Value = 'image';
+            % Create PersistencePanelGrid
+            app.PersistencePanelGrid = uigridlayout(app.PersistencePanel);
+            app.PersistencePanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
+            app.PersistencePanelGrid.RowHeight = {18, 22, 20, 22, 20, 22};
+            app.PersistencePanelGrid.RowSpacing = 5;
+            app.PersistencePanelGrid.Padding = [10 10 10 5];
+            app.PersistencePanelGrid.BackgroundColor = [1 1 1];
 
-            % Create play_Waterfall_DecimationLabel
-            app.play_Waterfall_DecimationLabel = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_DecimationLabel.VerticalAlignment = 'bottom';
-            app.play_Waterfall_DecimationLabel.FontSize = 11;
-            app.play_Waterfall_DecimationLabel.Layout.Row = 1;
-            app.play_Waterfall_DecimationLabel.Layout.Column = [3 4];
-            app.play_Waterfall_DecimationLabel.Text = 'Decimação:';
+            % Create PersistenceInterpolationLabel
+            app.PersistenceInterpolationLabel = uilabel(app.PersistencePanelGrid);
+            app.PersistenceInterpolationLabel.VerticalAlignment = 'bottom';
+            app.PersistenceInterpolationLabel.FontSize = 11;
+            app.PersistenceInterpolationLabel.Layout.Row = 1;
+            app.PersistenceInterpolationLabel.Layout.Column = [1 3];
+            app.PersistenceInterpolationLabel.Text = 'Interpolação:';
 
-            % Create play_Waterfall_DecimationValue
-            app.play_Waterfall_DecimationValue = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_DecimationValue.HorizontalAlignment = 'right';
-            app.play_Waterfall_DecimationValue.VerticalAlignment = 'bottom';
-            app.play_Waterfall_DecimationValue.FontSize = 11;
-            app.play_Waterfall_DecimationValue.FontColor = [0.8 0.8 0.8];
-            app.play_Waterfall_DecimationValue.Layout.Row = 1;
-            app.play_Waterfall_DecimationValue.Layout.Column = [3 5];
-            app.play_Waterfall_DecimationValue.Text = 'auto';
+            % Create PersistenceInterpolation
+            app.PersistenceInterpolation = uidropdown(app.PersistencePanelGrid);
+            app.PersistenceInterpolation.Items = {'nearest', 'bilinear'};
+            app.PersistenceInterpolation.FontSize = 11;
+            app.PersistenceInterpolation.BackgroundColor = [1 1 1];
+            app.PersistenceInterpolation.Layout.Row = 2;
+            app.PersistenceInterpolation.Layout.Column = [1 2];
+            app.PersistenceInterpolation.Value = 'nearest';
 
-            % Create play_Waterfall_Decimation
-            app.play_Waterfall_Decimation = uidropdown(app.play_WaterFallGrid);
-            app.play_Waterfall_Decimation.Items = {'auto', '1', '2', '4', '8', '16', '32', '64', '128', '256'};
-            app.play_Waterfall_Decimation.Enable = 'off';
-            app.play_Waterfall_Decimation.FontSize = 11;
-            app.play_Waterfall_Decimation.BackgroundColor = [1 1 1];
-            app.play_Waterfall_Decimation.Layout.Row = 2;
-            app.play_Waterfall_Decimation.Layout.Column = [3 5];
-            app.play_Waterfall_Decimation.Value = 'auto';
+            % Create PersistenceWindowSizeLabel
+            app.PersistenceWindowSizeLabel = uilabel(app.PersistencePanelGrid);
+            app.PersistenceWindowSizeLabel.VerticalAlignment = 'bottom';
+            app.PersistenceWindowSizeLabel.FontSize = 11;
+            app.PersistenceWindowSizeLabel.Layout.Row = 1;
+            app.PersistenceWindowSizeLabel.Layout.Column = [3 5];
+            app.PersistenceWindowSizeLabel.Text = 'Tamanho janela:';
 
-            % Create play_Waterfall_ColormapLabel
-            app.play_Waterfall_ColormapLabel = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_ColormapLabel.VerticalAlignment = 'bottom';
-            app.play_Waterfall_ColormapLabel.FontSize = 11;
-            app.play_Waterfall_ColormapLabel.Layout.Row = 3;
-            app.play_Waterfall_ColormapLabel.Layout.Column = [1 3];
-            app.play_Waterfall_ColormapLabel.Text = 'Mapa de cores:';
+            % Create PersistenceWindowSizeValue
+            app.PersistenceWindowSizeValue = uilabel(app.PersistencePanelGrid);
+            app.PersistenceWindowSizeValue.HorizontalAlignment = 'right';
+            app.PersistenceWindowSizeValue.VerticalAlignment = 'bottom';
+            app.PersistenceWindowSizeValue.FontSize = 11;
+            app.PersistenceWindowSizeValue.FontColor = [0.8 0.8 0.8];
+            app.PersistenceWindowSizeValue.Layout.Row = 1;
+            app.PersistenceWindowSizeValue.Layout.Column = [3 5];
+            app.PersistenceWindowSizeValue.Text = 'full';
 
-            % Create play_Waterfall_Colormap
-            app.play_Waterfall_Colormap = uidropdown(app.play_WaterFallGrid);
-            app.play_Waterfall_Colormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
-            app.play_Waterfall_Colormap.FontSize = 11;
-            app.play_Waterfall_Colormap.BackgroundColor = [1 1 1];
-            app.play_Waterfall_Colormap.Layout.Row = 4;
-            app.play_Waterfall_Colormap.Layout.Column = [1 2];
-            app.play_Waterfall_Colormap.Value = 'winter';
+            % Create PersistenceWindowSize
+            app.PersistenceWindowSize = uidropdown(app.PersistencePanelGrid);
+            app.PersistenceWindowSize.Items = {'128', '256', '512', 'full'};
+            app.PersistenceWindowSize.FontSize = 11;
+            app.PersistenceWindowSize.BackgroundColor = [1 1 1];
+            app.PersistenceWindowSize.Layout.Row = 2;
+            app.PersistenceWindowSize.Layout.Column = [3 5];
+            app.PersistenceWindowSize.Value = '128';
 
-            % Create play_Waterfall_MeshStyleLabel
-            app.play_Waterfall_MeshStyleLabel = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_MeshStyleLabel.VerticalAlignment = 'bottom';
-            app.play_Waterfall_MeshStyleLabel.FontSize = 11;
-            app.play_Waterfall_MeshStyleLabel.Layout.Row = 3;
-            app.play_Waterfall_MeshStyleLabel.Layout.Column = [3 5];
-            app.play_Waterfall_MeshStyleLabel.Text = 'Linhas da superfície:';
+            % Create PersistenceColormapLabel
+            app.PersistenceColormapLabel = uilabel(app.PersistencePanelGrid);
+            app.PersistenceColormapLabel.VerticalAlignment = 'bottom';
+            app.PersistenceColormapLabel.FontSize = 11;
+            app.PersistenceColormapLabel.Layout.Row = 3;
+            app.PersistenceColormapLabel.Layout.Column = [1 2];
+            app.PersistenceColormapLabel.Text = 'Mapa de cores:';
 
-            % Create play_Waterfall_MeshStyle
-            app.play_Waterfall_MeshStyle = uidropdown(app.play_WaterFallGrid);
-            app.play_Waterfall_MeshStyle.Items = {'row', 'both'};
-            app.play_Waterfall_MeshStyle.Enable = 'off';
-            app.play_Waterfall_MeshStyle.FontSize = 11;
-            app.play_Waterfall_MeshStyle.BackgroundColor = [1 1 1];
-            app.play_Waterfall_MeshStyle.Layout.Row = 4;
-            app.play_Waterfall_MeshStyle.Layout.Column = [3 5];
-            app.play_Waterfall_MeshStyle.Value = 'row';
+            % Create PersistenceColormap
+            app.PersistenceColormap = uidropdown(app.PersistencePanelGrid);
+            app.PersistenceColormap.Items = {'winter', 'parula', 'turbo'};
+            app.PersistenceColormap.FontSize = 11;
+            app.PersistenceColormap.BackgroundColor = [1 1 1];
+            app.PersistenceColormap.Layout.Row = 4;
+            app.PersistenceColormap.Layout.Column = [1 2];
+            app.PersistenceColormap.Value = 'winter';
 
-            % Create play_Waterfall_cLim_Label
-            app.play_Waterfall_cLim_Label = uilabel(app.play_WaterFallGrid);
-            app.play_Waterfall_cLim_Label.VerticalAlignment = 'bottom';
-            app.play_Waterfall_cLim_Label.FontSize = 11;
-            app.play_Waterfall_cLim_Label.Layout.Row = 5;
-            app.play_Waterfall_cLim_Label.Layout.Column = [1 4];
-            app.play_Waterfall_cLim_Label.Text = 'Limites de nível (dB):';
+            % Create PersistenceTransparencyLabel
+            app.PersistenceTransparencyLabel = uilabel(app.PersistencePanelGrid);
+            app.PersistenceTransparencyLabel.VerticalAlignment = 'bottom';
+            app.PersistenceTransparencyLabel.WordWrap = 'on';
+            app.PersistenceTransparencyLabel.FontSize = 11;
+            app.PersistenceTransparencyLabel.Layout.Row = 3;
+            app.PersistenceTransparencyLabel.Layout.Column = [3 5];
+            app.PersistenceTransparencyLabel.Text = 'Transparência:';
 
-            % Create play_Waterfall_cLim_Mode
-            app.play_Waterfall_cLim_Mode = uiimage(app.play_WaterFallGrid);
-            app.play_Waterfall_cLim_Mode.ScaleMethod = 'none';
-            app.play_Waterfall_cLim_Mode.Enable = 'off';
-            app.play_Waterfall_cLim_Mode.Layout.Row = 5;
-            app.play_Waterfall_cLim_Mode.Layout.Column = 5;
-            app.play_Waterfall_cLim_Mode.HorizontalAlignment = 'right';
-            app.play_Waterfall_cLim_Mode.VerticalAlignment = 'bottom';
-            app.play_Waterfall_cLim_Mode.ImageSource = 'Refresh_18.png';
+            % Create PersistenceTransparency
+            app.PersistenceTransparency = uispinner(app.PersistencePanelGrid);
+            app.PersistenceTransparency.Step = 0.05;
+            app.PersistenceTransparency.Limits = [0.2 1];
+            app.PersistenceTransparency.ValueDisplayFormat = '%.2f';
+            app.PersistenceTransparency.FontSize = 11;
+            app.PersistenceTransparency.Layout.Row = 4;
+            app.PersistenceTransparency.Layout.Column = [3 5];
+            app.PersistenceTransparency.Value = 1;
 
-            % Create play_Waterfall_cLim1
-            app.play_Waterfall_cLim1 = uispinner(app.play_WaterFallGrid);
-            app.play_Waterfall_cLim1.Step = 5;
-            app.play_Waterfall_cLim1.RoundFractionalValues = 'on';
-            app.play_Waterfall_cLim1.ValueDisplayFormat = '%.0f';
-            app.play_Waterfall_cLim1.FontSize = 11;
-            app.play_Waterfall_cLim1.Enable = 'off';
-            app.play_Waterfall_cLim1.Tooltip = {''};
-            app.play_Waterfall_cLim1.Layout.Row = 6;
-            app.play_Waterfall_cLim1.Layout.Column = [1 2];
+            % Create PersistenceCLim_Label
+            app.PersistenceCLim_Label = uilabel(app.PersistencePanelGrid);
+            app.PersistenceCLim_Label.VerticalAlignment = 'bottom';
+            app.PersistenceCLim_Label.FontSize = 11;
+            app.PersistenceCLim_Label.Layout.Row = 5;
+            app.PersistenceCLim_Label.Layout.Column = [1 4];
+            app.PersistenceCLim_Label.Text = 'Limites de intensidade (%):';
 
-            % Create play_Waterfall_cLim2
-            app.play_Waterfall_cLim2 = uispinner(app.play_WaterFallGrid);
-            app.play_Waterfall_cLim2.Step = 5;
-            app.play_Waterfall_cLim2.RoundFractionalValues = 'on';
-            app.play_Waterfall_cLim2.ValueDisplayFormat = '%.0f';
-            app.play_Waterfall_cLim2.FontSize = 11;
-            app.play_Waterfall_cLim2.Enable = 'off';
-            app.play_Waterfall_cLim2.Tooltip = {''};
-            app.play_Waterfall_cLim2.Layout.Row = 6;
-            app.play_Waterfall_cLim2.Layout.Column = [3 5];
-            app.play_Waterfall_cLim2.Value = 1;
+            % Create PersistenceCLimRefresh
+            app.PersistenceCLimRefresh = uiimage(app.PersistencePanelGrid);
+            app.PersistenceCLimRefresh.ScaleMethod = 'none';
+            app.PersistenceCLimRefresh.Enable = 'off';
+            app.PersistenceCLimRefresh.Layout.Row = 5;
+            app.PersistenceCLimRefresh.Layout.Column = 5;
+            app.PersistenceCLimRefresh.ImageSource = 'Refresh_18.png';
 
-            % Create play_Persistance_Panel
-            app.play_Persistance_Panel = uipanel(app.SubGrid1);
-            app.play_Persistance_Panel.AutoResizeChildren = 'off';
-            app.play_Persistance_Panel.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.play_Persistance_Panel.Layout.Row = 9;
-            app.play_Persistance_Panel.Layout.Column = [1 2];
+            % Create PersistenceCLim1
+            app.PersistenceCLim1 = uispinner(app.PersistencePanelGrid);
+            app.PersistenceCLim1.Step = 0.1;
+            app.PersistenceCLim1.Limits = [0 Inf];
+            app.PersistenceCLim1.ValueDisplayFormat = '%.3f';
+            app.PersistenceCLim1.FontSize = 11;
+            app.PersistenceCLim1.Enable = 'off';
+            app.PersistenceCLim1.Layout.Row = 6;
+            app.PersistenceCLim1.Layout.Column = [1 2];
 
-            % Create play_PersistanceGrid
-            app.play_PersistanceGrid = uigridlayout(app.play_Persistance_Panel);
-            app.play_PersistanceGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.play_PersistanceGrid.RowHeight = {18, 22, 20, 22, 20, 22};
-            app.play_PersistanceGrid.RowSpacing = 5;
-            app.play_PersistanceGrid.Padding = [10 10 10 5];
-            app.play_PersistanceGrid.BackgroundColor = [1 1 1];
+            % Create PersistenceCLim2
+            app.PersistenceCLim2 = uispinner(app.PersistencePanelGrid);
+            app.PersistenceCLim2.Limits = [0 Inf];
+            app.PersistenceCLim2.ValueDisplayFormat = '%.3f';
+            app.PersistenceCLim2.FontSize = 11;
+            app.PersistenceCLim2.Enable = 'off';
+            app.PersistenceCLim2.Layout.Row = 6;
+            app.PersistenceCLim2.Layout.Column = [3 5];
+            app.PersistenceCLim2.Value = 1;
 
-            % Create play_Persistance_InterpolationLabel
-            app.play_Persistance_InterpolationLabel = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_InterpolationLabel.VerticalAlignment = 'bottom';
-            app.play_Persistance_InterpolationLabel.FontSize = 11;
-            app.play_Persistance_InterpolationLabel.Layout.Row = 1;
-            app.play_Persistance_InterpolationLabel.Layout.Column = [1 3];
-            app.play_Persistance_InterpolationLabel.Text = 'Interpolação:';
+            % Create WaterfallPanelIcon
+            app.WaterfallPanelIcon = uiimage(app.RightPanel);
+            app.WaterfallPanelIcon.ScaleMethod = 'none';
+            app.WaterfallPanelIcon.Layout.Row = [11 12];
+            app.WaterfallPanelIcon.Layout.Column = 1;
+            app.WaterfallPanelIcon.ImageSource = 'Waterfall_24.png';
 
-            % Create play_Persistance_Interpolation
-            app.play_Persistance_Interpolation = uidropdown(app.play_PersistanceGrid);
-            app.play_Persistance_Interpolation.Items = {'nearest', 'bilinear'};
-            app.play_Persistance_Interpolation.FontSize = 11;
-            app.play_Persistance_Interpolation.BackgroundColor = [1 1 1];
-            app.play_Persistance_Interpolation.Layout.Row = 2;
-            app.play_Persistance_Interpolation.Layout.Column = [1 2];
-            app.play_Persistance_Interpolation.Value = 'nearest';
+            % Create WaterfallPanelLabel
+            app.WaterfallPanelLabel = uilabel(app.RightPanel);
+            app.WaterfallPanelLabel.FontSize = 10;
+            app.WaterfallPanelLabel.Layout.Row = 12;
+            app.WaterfallPanelLabel.Layout.Column = 2;
+            app.WaterfallPanelLabel.Text = 'WATERFALL';
 
-            % Create play_Persistance_WindowSizeLabel
-            app.play_Persistance_WindowSizeLabel = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_WindowSizeLabel.VerticalAlignment = 'bottom';
-            app.play_Persistance_WindowSizeLabel.FontSize = 11;
-            app.play_Persistance_WindowSizeLabel.Layout.Row = 1;
-            app.play_Persistance_WindowSizeLabel.Layout.Column = [3 5];
-            app.play_Persistance_WindowSizeLabel.Text = 'Tamanho janela:';
+            % Create WaterfallPanel
+            app.WaterfallPanel = uipanel(app.RightPanel);
+            app.WaterfallPanel.AutoResizeChildren = 'off';
+            app.WaterfallPanel.Layout.Row = 14;
+            app.WaterfallPanel.Layout.Column = [1 2];
 
-            % Create play_Persistance_WindowSizeValue
-            app.play_Persistance_WindowSizeValue = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_WindowSizeValue.HorizontalAlignment = 'right';
-            app.play_Persistance_WindowSizeValue.VerticalAlignment = 'bottom';
-            app.play_Persistance_WindowSizeValue.FontSize = 11;
-            app.play_Persistance_WindowSizeValue.FontColor = [0.8 0.8 0.8];
-            app.play_Persistance_WindowSizeValue.Layout.Row = 1;
-            app.play_Persistance_WindowSizeValue.Layout.Column = [3 5];
-            app.play_Persistance_WindowSizeValue.Text = 'full';
+            % Create WaterfallPanelGrid
+            app.WaterfallPanelGrid = uigridlayout(app.WaterfallPanel);
+            app.WaterfallPanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
+            app.WaterfallPanelGrid.RowHeight = {18, 22, 20, 22, 20, 22};
+            app.WaterfallPanelGrid.RowSpacing = 5;
+            app.WaterfallPanelGrid.Padding = [10 10 10 5];
+            app.WaterfallPanelGrid.BackgroundColor = [1 1 1];
 
-            % Create play_Persistance_WindowSize
-            app.play_Persistance_WindowSize = uidropdown(app.play_PersistanceGrid);
-            app.play_Persistance_WindowSize.Items = {'128', '256', '512', 'full'};
-            app.play_Persistance_WindowSize.FontSize = 11;
-            app.play_Persistance_WindowSize.BackgroundColor = [1 1 1];
-            app.play_Persistance_WindowSize.Layout.Row = 2;
-            app.play_Persistance_WindowSize.Layout.Column = [3 5];
-            app.play_Persistance_WindowSize.Value = '128';
+            % Create WaterfallFcnLabel
+            app.WaterfallFcnLabel = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallFcnLabel.VerticalAlignment = 'bottom';
+            app.WaterfallFcnLabel.WordWrap = 'on';
+            app.WaterfallFcnLabel.FontSize = 11;
+            app.WaterfallFcnLabel.Layout.Row = 1;
+            app.WaterfallFcnLabel.Layout.Column = [1 3];
+            app.WaterfallFcnLabel.Text = 'Renderização:';
 
-            % Create play_Persistance_ColormapLabel
-            app.play_Persistance_ColormapLabel = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_ColormapLabel.VerticalAlignment = 'bottom';
-            app.play_Persistance_ColormapLabel.FontSize = 11;
-            app.play_Persistance_ColormapLabel.Layout.Row = 3;
-            app.play_Persistance_ColormapLabel.Layout.Column = [1 2];
-            app.play_Persistance_ColormapLabel.Text = 'Mapa de cores:';
+            % Create WaterfallFcn
+            app.WaterfallFcn = uidropdown(app.WaterfallPanelGrid);
+            app.WaterfallFcn.Items = {'image', 'mesh'};
+            app.WaterfallFcn.FontSize = 11;
+            app.WaterfallFcn.BackgroundColor = [1 1 1];
+            app.WaterfallFcn.Layout.Row = 2;
+            app.WaterfallFcn.Layout.Column = [1 2];
+            app.WaterfallFcn.Value = 'image';
 
-            % Create play_Persistance_Colormap
-            app.play_Persistance_Colormap = uidropdown(app.play_PersistanceGrid);
-            app.play_Persistance_Colormap.Items = {'winter', 'parula', 'turbo'};
-            app.play_Persistance_Colormap.FontSize = 11;
-            app.play_Persistance_Colormap.BackgroundColor = [1 1 1];
-            app.play_Persistance_Colormap.Layout.Row = 4;
-            app.play_Persistance_Colormap.Layout.Column = [1 2];
-            app.play_Persistance_Colormap.Value = 'winter';
+            % Create WaterfallDecimationLabel
+            app.WaterfallDecimationLabel = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallDecimationLabel.VerticalAlignment = 'bottom';
+            app.WaterfallDecimationLabel.FontSize = 11;
+            app.WaterfallDecimationLabel.Layout.Row = 1;
+            app.WaterfallDecimationLabel.Layout.Column = [3 4];
+            app.WaterfallDecimationLabel.Text = 'Decimação:';
 
-            % Create play_Persistance_TransparencyLabel
-            app.play_Persistance_TransparencyLabel = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_TransparencyLabel.VerticalAlignment = 'bottom';
-            app.play_Persistance_TransparencyLabel.WordWrap = 'on';
-            app.play_Persistance_TransparencyLabel.FontSize = 11;
-            app.play_Persistance_TransparencyLabel.Layout.Row = 3;
-            app.play_Persistance_TransparencyLabel.Layout.Column = [3 5];
-            app.play_Persistance_TransparencyLabel.Text = 'Transparência:';
+            % Create WaterfallDecimationValue
+            app.WaterfallDecimationValue = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallDecimationValue.HorizontalAlignment = 'right';
+            app.WaterfallDecimationValue.VerticalAlignment = 'bottom';
+            app.WaterfallDecimationValue.FontSize = 11;
+            app.WaterfallDecimationValue.FontColor = [0.8 0.8 0.8];
+            app.WaterfallDecimationValue.Layout.Row = 1;
+            app.WaterfallDecimationValue.Layout.Column = [3 5];
+            app.WaterfallDecimationValue.Text = 'auto';
 
-            % Create play_Persistance_Transparency
-            app.play_Persistance_Transparency = uispinner(app.play_PersistanceGrid);
-            app.play_Persistance_Transparency.Step = 0.05;
-            app.play_Persistance_Transparency.Limits = [0.2 1];
-            app.play_Persistance_Transparency.ValueDisplayFormat = '%.2f';
-            app.play_Persistance_Transparency.FontSize = 11;
-            app.play_Persistance_Transparency.Layout.Row = 4;
-            app.play_Persistance_Transparency.Layout.Column = [3 5];
-            app.play_Persistance_Transparency.Value = 1;
+            % Create WaterfallDecimation
+            app.WaterfallDecimation = uidropdown(app.WaterfallPanelGrid);
+            app.WaterfallDecimation.Items = {'auto', '1', '2', '4', '8', '16', '32', '64', '128', '256'};
+            app.WaterfallDecimation.Enable = 'off';
+            app.WaterfallDecimation.FontSize = 11;
+            app.WaterfallDecimation.BackgroundColor = [1 1 1];
+            app.WaterfallDecimation.Layout.Row = 2;
+            app.WaterfallDecimation.Layout.Column = [3 5];
+            app.WaterfallDecimation.Value = 'auto';
 
-            % Create play_Persistance_cLim_Label
-            app.play_Persistance_cLim_Label = uilabel(app.play_PersistanceGrid);
-            app.play_Persistance_cLim_Label.VerticalAlignment = 'bottom';
-            app.play_Persistance_cLim_Label.FontSize = 11;
-            app.play_Persistance_cLim_Label.Layout.Row = 5;
-            app.play_Persistance_cLim_Label.Layout.Column = [1 4];
-            app.play_Persistance_cLim_Label.Text = 'Limites de intensidade (%):';
+            % Create WaterfallColormapLabel
+            app.WaterfallColormapLabel = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallColormapLabel.VerticalAlignment = 'bottom';
+            app.WaterfallColormapLabel.FontSize = 11;
+            app.WaterfallColormapLabel.Layout.Row = 3;
+            app.WaterfallColormapLabel.Layout.Column = [1 3];
+            app.WaterfallColormapLabel.Text = 'Mapa de cores:';
 
-            % Create play_Persistance_cLim_Mode
-            app.play_Persistance_cLim_Mode = uiimage(app.play_PersistanceGrid);
-            app.play_Persistance_cLim_Mode.ScaleMethod = 'none';
-            app.play_Persistance_cLim_Mode.Enable = 'off';
-            app.play_Persistance_cLim_Mode.Tooltip = {'Retorna à configuração padrão'};
-            app.play_Persistance_cLim_Mode.Layout.Row = 5;
-            app.play_Persistance_cLim_Mode.Layout.Column = 5;
-            app.play_Persistance_cLim_Mode.HorizontalAlignment = 'right';
-            app.play_Persistance_cLim_Mode.VerticalAlignment = 'bottom';
-            app.play_Persistance_cLim_Mode.ImageSource = 'Refresh_18.png';
+            % Create WaterfallColormap
+            app.WaterfallColormap = uidropdown(app.WaterfallPanelGrid);
+            app.WaterfallColormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
+            app.WaterfallColormap.FontSize = 11;
+            app.WaterfallColormap.BackgroundColor = [1 1 1];
+            app.WaterfallColormap.Layout.Row = 4;
+            app.WaterfallColormap.Layout.Column = [1 2];
+            app.WaterfallColormap.Value = 'winter';
 
-            % Create play_Persistance_cLim2
-            app.play_Persistance_cLim2 = uispinner(app.play_PersistanceGrid);
-            app.play_Persistance_cLim2.Limits = [0 Inf];
-            app.play_Persistance_cLim2.ValueDisplayFormat = '%.3f';
-            app.play_Persistance_cLim2.FontSize = 11;
-            app.play_Persistance_cLim2.Enable = 'off';
-            app.play_Persistance_cLim2.Tooltip = {''};
-            app.play_Persistance_cLim2.Layout.Row = 6;
-            app.play_Persistance_cLim2.Layout.Column = [3 5];
-            app.play_Persistance_cLim2.Value = 1;
+            % Create WaterfallMeshStyleLabel
+            app.WaterfallMeshStyleLabel = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallMeshStyleLabel.VerticalAlignment = 'bottom';
+            app.WaterfallMeshStyleLabel.FontSize = 11;
+            app.WaterfallMeshStyleLabel.Layout.Row = 3;
+            app.WaterfallMeshStyleLabel.Layout.Column = [3 5];
+            app.WaterfallMeshStyleLabel.Text = 'Linhas da superfície:';
 
-            % Create play_Persistance_cLim1
-            app.play_Persistance_cLim1 = uispinner(app.play_PersistanceGrid);
-            app.play_Persistance_cLim1.Step = 0.1;
-            app.play_Persistance_cLim1.Limits = [0 Inf];
-            app.play_Persistance_cLim1.ValueDisplayFormat = '%.3f';
-            app.play_Persistance_cLim1.FontSize = 11;
-            app.play_Persistance_cLim1.Enable = 'off';
-            app.play_Persistance_cLim1.Tooltip = {''};
-            app.play_Persistance_cLim1.Layout.Row = 6;
-            app.play_Persistance_cLim1.Layout.Column = [1 2];
+            % Create WaterfallMeshStyle
+            app.WaterfallMeshStyle = uidropdown(app.WaterfallPanelGrid);
+            app.WaterfallMeshStyle.Items = {'row', 'both'};
+            app.WaterfallMeshStyle.Enable = 'off';
+            app.WaterfallMeshStyle.FontSize = 11;
+            app.WaterfallMeshStyle.BackgroundColor = [1 1 1];
+            app.WaterfallMeshStyle.Layout.Row = 4;
+            app.WaterfallMeshStyle.Layout.Column = [3 5];
+            app.WaterfallMeshStyle.Value = 'row';
 
-            % Create play_ControlPanelLabel_2
-            app.play_ControlPanelLabel_2 = uilabel(app.SubGrid1);
-            app.play_ControlPanelLabel_2.FontSize = 10;
-            app.play_ControlPanelLabel_2.Layout.Row = 12;
-            app.play_ControlPanelLabel_2.Layout.Column = 2;
-            app.play_ControlPanelLabel_2.Text = 'WATERFALL';
+            % Create WaterfallCLimLabel
+            app.WaterfallCLimLabel = uilabel(app.WaterfallPanelGrid);
+            app.WaterfallCLimLabel.VerticalAlignment = 'bottom';
+            app.WaterfallCLimLabel.FontSize = 11;
+            app.WaterfallCLimLabel.Layout.Row = 5;
+            app.WaterfallCLimLabel.Layout.Column = [1 4];
+            app.WaterfallCLimLabel.Text = 'Limites de nível (dB):';
 
-            % Create Image
-            app.Image = uiimage(app.SubGrid1);
-            app.Image.Layout.Row = [1 2];
-            app.Image.Layout.Column = 1;
-            app.Image.ImageSource = 'DriveTestDensity_32.png';
+            % Create WaterfallCLimRefresh
+            app.WaterfallCLimRefresh = uiimage(app.WaterfallPanelGrid);
+            app.WaterfallCLimRefresh.ScaleMethod = 'none';
+            app.WaterfallCLimRefresh.Enable = 'off';
+            app.WaterfallCLimRefresh.Layout.Row = 5;
+            app.WaterfallCLimRefresh.Layout.Column = 5;
+            app.WaterfallCLimRefresh.ImageSource = 'Refresh_18.png';
 
-            % Create Image2
-            app.Image2 = uiimage(app.SubGrid1);
-            app.Image2.Layout.Row = [6 7];
-            app.Image2.Layout.Column = 1;
-            app.Image2.VerticalAlignment = 'bottom';
-            app.Image2.ImageSource = 'Persistance_36.png';
+            % Create WaterfallCLim1
+            app.WaterfallCLim1 = uispinner(app.WaterfallPanelGrid);
+            app.WaterfallCLim1.RoundFractionalValues = 'on';
+            app.WaterfallCLim1.ValueDisplayFormat = '%.0f';
+            app.WaterfallCLim1.FontSize = 11;
+            app.WaterfallCLim1.Enable = 'off';
+            app.WaterfallCLim1.Layout.Row = 6;
+            app.WaterfallCLim1.Layout.Column = [1 2];
 
-            % Create Image3
-            app.Image3 = uiimage(app.SubGrid1);
-            app.Image3.ScaleMethod = 'none';
-            app.Image3.Layout.Row = [11 12];
-            app.Image3.Layout.Column = 1;
-            app.Image3.ImageSource = 'Waterfall_24.png';
+            % Create WaterfallCLim2
+            app.WaterfallCLim2 = uispinner(app.WaterfallPanelGrid);
+            app.WaterfallCLim2.RoundFractionalValues = 'on';
+            app.WaterfallCLim2.ValueDisplayFormat = '%.0f';
+            app.WaterfallCLim2.FontSize = 11;
+            app.WaterfallCLim2.Enable = 'off';
+            app.WaterfallCLim2.Layout.Row = 6;
+            app.WaterfallCLim2.Layout.Column = [3 5];
+            app.WaterfallCLim2.Value = 1;
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
@@ -1779,40 +1862,22 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.DockModule.Layout.Column = [3 4];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModule);
-            app.dockModule_Close.ScaleMethod = 'none';
-            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
-            app.dockModule_Close.Tag = 'DRIVETEST';
-            app.dockModule_Close.Tooltip = {''};
-            app.dockModule_Close.Layout.Row = 1;
-            app.dockModule_Close.Layout.Column = 2;
-            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
-
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
-            app.dockModule_Undock.Tag = 'DRIVETEST';
             app.dockModule_Undock.Enable = 'off';
-            app.dockModule_Undock.Tooltip = {''};
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
             app.dockModule_Undock.ImageSource = 'Undock_18White.png';
 
-            % Create ContextMenu
-            app.ContextMenu = uicontextmenu(app.UIFigure);
-            app.ContextMenu.Tag = 'auxApp.winRFDataHub';
-
-            % Create contextmenu_del
-            app.contextmenu_del = uimenu(app.ContextMenu);
-            app.contextmenu_del.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_del.Text = '❌ Excluir';
-
-            % Create contextmenu_delAll
-            app.contextmenu_delAll = uimenu(app.ContextMenu);
-            app.contextmenu_delAll.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_delAll.Text = '⛔ Excluir todos';
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModule);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

@@ -1,5 +1,5 @@
 {
-    "version": 1.15,
+    "version": 1.16,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -145,7 +145,7 @@
             "Decimation": "auto",
             "MeshStyle": "both",
             "Colormap": "winter",
-            "Colorbar": "off",
+            "Colorbar": "on",
             "LevelLimits": [0, 1]
         },
         "waterfallTime": {

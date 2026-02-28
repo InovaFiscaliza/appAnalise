@@ -11,6 +11,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         jsBackDoor                     matlab.ui.control.HTML
         Tab7Button                     matlab.ui.control.StateButton
         Tab6Button                     matlab.ui.control.StateButton
+        ButtonsSeparator2              matlab.ui.control.Image
         Tab5Button                     matlab.ui.control.StateButton
         Tab4Button                     matlab.ui.control.StateButton
         Tab3Button                     matlab.ui.control.StateButton
@@ -501,7 +502,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.FileModuleInfo.UserData.id, 'selector', '[class="mwTextNode"]', 'style', struct('textAlign', 'justify')), ...
                             struct('appName', appName, 'dataTag', app.tool_ReadFiles.UserData.id,  'tooltip', struct('defaultPosition', 'top', 'textContent', 'Seleciona arquivos')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ReadSpectrumData.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Inicia análise, lendo dados de varreduras')), ...                            
+                            struct('appName', appName, 'dataTag', app.tool_ReadSpectrumData.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Inicia análise, lendo dados de varreduras')), ...
                             struct('appName', appName, 'dataTag', app.Tab1Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab2Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab3Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
@@ -525,14 +526,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 case 2
                     elToModify = {
-                        app.FileFilterAdd;
                         app.FileFilterTree
                     };
                     ui.CustomizationBase.getElementsDataTag(elToModify);
                     
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.FileFilterAdd.UserData.id,  'tooltip', struct('defaultPosition', 'top', 'textContent', 'Aplica filtro ao conjunto de dados')), ...
                             struct('appName', appName, 'dataTag', app.FileFilterTree.UserData.id, 'listener', struct('componentName', 'mainApp.file_FilteringTree',   'keyEvents', {{'Delete', 'Backspace'}}))  ...
                         });
                     catch
@@ -1597,8 +1596,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.Tooltip = {''};
-            app.GridLayout.BackgroundColor = [0.9412 0.9412 0.9412];
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
@@ -1651,8 +1648,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.tool_ReadFiles = uiimage(app.Toolbar);
             app.tool_ReadFiles.ScaleMethod = 'none';
             app.tool_ReadFiles.ImageClickedFcn = createCallbackFcn(app, @Toolbar_SelectFileToReadButtonClicked, true);
-            app.tool_ReadFiles.Tooltip = {'Seleciona arquivos'};
-            app.tool_ReadFiles.Layout.Row = 2;
+            app.tool_ReadFiles.Layout.Row = [1 3];
             app.tool_ReadFiles.Layout.Column = 1;
             app.tool_ReadFiles.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Import_16.png');
 
@@ -1669,8 +1665,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.tool_ReadSpectrumData.ScaleMethod = 'none';
             app.tool_ReadSpectrumData.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ReadSpecDataButtonClicked, true);
             app.tool_ReadSpectrumData.Enable = 'off';
-            app.tool_ReadSpectrumData.Tooltip = {'Inicia análise'};
-            app.tool_ReadSpectrumData.Layout.Row = 2;
+            app.tool_ReadSpectrumData.Layout.Row = [1 3];
             app.tool_ReadSpectrumData.Layout.Column = 3;
             app.tool_ReadSpectrumData.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Run_16.png');
 
@@ -1712,6 +1707,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create SubGrid2
             app.SubGrid2 = uigridlayout(app.SubTab2);
             app.SubGrid2.ColumnWidth = {320, 22, 320};
+            app.SubGrid2.RowHeight = {22, 22};
             app.SubGrid2.RowSpacing = 5;
             app.SubGrid2.BackgroundColor = [0.9804 0.9804 0.9804];
 
@@ -1758,7 +1754,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileFilterAdd = uiimage(app.SubGrid2);
             app.FileFilterAdd.ScaleMethod = 'none';
             app.FileFilterAdd.ImageClickedFcn = createCallbackFcn(app, @FileFilterAddClicked, true);
-            app.FileFilterAdd.Tooltip = {''};
             app.FileFilterAdd.Layout.Row = [1 2];
             app.FileFilterAdd.Layout.Column = 2;
             app.FileFilterAdd.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Continue_16.png');
@@ -1802,7 +1797,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create NavBar
             app.NavBar = uigridlayout(app.GridLayout);
-            app.NavBar.ColumnWidth = {22, 74, '1x', 34, 5, 34, 34, 34, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
+            app.NavBar.ColumnWidth = {22, 74, '1x', 34, 5, 34, 34, 34, 34, 5, 34, 34, '1x', 20, 20, 1, 20, 20};
             app.NavBar.RowHeight = {5, 7, 20, 7, 5};
             app.NavBar.ColumnSpacing = 5;
             app.NavBar.RowSpacing = 0;
@@ -1855,7 +1850,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab2Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.Tab2Button.Tag = 'PLAYBACK';
             app.Tab2Button.Tooltip = {'Playback'};
-            app.Tab2Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'graph-line-24px-white.svg');
+            app.Tab2Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'pulse-24px-white.svg');
             app.Tab2Button.IconAlignment = 'top';
             app.Tab2Button.Text = '';
             app.Tab2Button.BackgroundColor = [0.2 0.2 0.2];
@@ -1868,7 +1863,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab3Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.Tab3Button.Tag = 'DRIVETEST';
             app.Tab3Button.Tooltip = {'Drive-test'};
-            app.Tab3Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'graph-line-24px-white.svg');
+            app.Tab3Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'map-filled-24px-white.svg');
             app.Tab3Button.IconAlignment = 'top';
             app.Tab3Button.Text = '';
             app.Tab3Button.BackgroundColor = [0.2 0.2 0.2];
@@ -1881,7 +1876,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab4Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.Tab4Button.Tag = 'SIGNALANALYSIS';
             app.Tab4Button.Tooltip = {'Análise de sinais'};
-            app.Tab4Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'graph-line-24px-white.svg');
+            app.Tab4Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'tasklist-24px-white.svg');
             app.Tab4Button.IconAlignment = 'top';
             app.Tab4Button.Text = '';
             app.Tab4Button.BackgroundColor = [0.2 0.2 0.2];
@@ -1893,13 +1888,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab5Button = uibutton(app.NavBar, 'state');
             app.Tab5Button.Tag = 'MISC';
             app.Tab5Button.Tooltip = {'Miscelâneas'};
-            app.Tab5Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'edit.svg');
+            app.Tab5Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'symbol-misc-24px-white.svg');
             app.Tab5Button.IconAlignment = 'top';
             app.Tab5Button.Text = '';
             app.Tab5Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab5Button.FontSize = 11;
             app.Tab5Button.Layout.Row = [2 4];
             app.Tab5Button.Layout.Column = 9;
+
+            % Create ButtonsSeparator2
+            app.ButtonsSeparator2 = uiimage(app.NavBar);
+            app.ButtonsSeparator2.ScaleMethod = 'none';
+            app.ButtonsSeparator2.Enable = 'off';
+            app.ButtonsSeparator2.Layout.Row = [2 4];
+            app.ButtonsSeparator2.Layout.Column = 10;
+            app.ButtonsSeparator2.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'LineV_White.svg');
 
             % Create Tab6Button
             app.Tab6Button = uibutton(app.NavBar, 'state');
@@ -1912,7 +1915,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab6Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab6Button.FontSize = 11;
             app.Tab6Button.Layout.Row = [2 4];
-            app.Tab6Button.Layout.Column = 10;
+            app.Tab6Button.Layout.Column = 11;
 
             % Create Tab7Button
             app.Tab7Button = uibutton(app.NavBar, 'state');
@@ -1925,20 +1928,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab7Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab7Button.FontSize = 11;
             app.Tab7Button.Layout.Row = [2 4];
-            app.Tab7Button.Layout.Column = 11;
+            app.Tab7Button.Layout.Column = 12;
 
             % Create jsBackDoor
             app.jsBackDoor = uihtml(app.NavBar);
             app.jsBackDoor.Layout.Row = [2 5];
-            app.jsBackDoor.Layout.Column = 13;
+            app.jsBackDoor.Layout.Column = 14;
 
             % Create DataHubLamp
             app.DataHubLamp = uiimage(app.NavBar);
             app.DataHubLamp.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.DataHubLamp.Visible = 'off';
-            app.DataHubLamp.Tooltip = {'Pendente mapear o Sharepoint'};
             app.DataHubLamp.Layout.Row = 3;
-            app.DataHubLamp.Layout.Column = 14;
+            app.DataHubLamp.Layout.Column = 15;
             app.DataHubLamp.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'red-circle-blink.gif');
 
             % Create FigurePosition
@@ -1946,18 +1948,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FigurePosition.ScaleMethod = 'none';
             app.FigurePosition.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.FigurePosition.Visible = 'off';
-            app.FigurePosition.Tooltip = {'Reposiciona janela'};
             app.FigurePosition.Layout.Row = 3;
-            app.FigurePosition.Layout.Column = 16;
+            app.FigurePosition.Layout.Column = 17;
             app.FigurePosition.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'screen-normal-24px-white.svg');
 
             % Create AppInfo
             app.AppInfo = uiimage(app.NavBar);
             app.AppInfo.ScaleMethod = 'none';
             app.AppInfo.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
-            app.AppInfo.Tooltip = {'Informações gerais'};
             app.AppInfo.Layout.Row = 3;
-            app.AppInfo.Layout.Column = 17;
+            app.AppInfo.Layout.Column = 18;
             app.AppInfo.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'kebab-vertical-24px-white.svg');
 
             % Create file_ContextMenu_Tree1
