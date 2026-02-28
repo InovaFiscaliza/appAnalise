@@ -1092,15 +1092,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create tool_Play
             app.tool_Play = uiimage(app.Toolbar);
+            app.tool_Play.ScaleMethod = 'none';
             app.tool_Play.Layout.Row = [1 3];
             app.tool_Play.Layout.Column = 2;
-            app.tool_Play.ImageSource = 'play_32.png';
+            app.tool_Play.ImageSource = 'Run_16.png';
 
             % Create tool_LoopControl
             app.tool_LoopControl = uiimage(app.Toolbar);
             app.tool_LoopControl.Layout.Row = [1 3];
             app.tool_LoopControl.Layout.Column = 3;
-            app.tool_LoopControl.ImageSource = 'playbackLoop_32Blue.png';
+            app.tool_LoopControl.ImageSource = 'playback-loop-36px.png';
 
             % Create tool_TimestampSlider
             app.tool_TimestampSlider = uislider(app.Toolbar);
@@ -1329,7 +1330,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.VerticalAlignment = 'top';
             app.FlowMetadata.WordWrap = 'on';
             app.FlowMetadata.FontSize = 11;
-            app.FlowMetadata.Layout.Row = [2 8];
+            app.FlowMetadata.Layout.Row = [1 9];
             app.FlowMetadata.Layout.Column = 1;
             app.FlowMetadata.Interpreter = 'html';
             app.FlowMetadata.Text = '';
