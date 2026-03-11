@@ -78,63 +78,101 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         % WINAPPANALISE - MODOS "FILE" E "PLAYBACK"
         %-----------------------------------------------------------------%
-        function htmlContent = File(metaData, idxFile, idxThreads)
-            specData = metaData(idxFile).Data(idxThreads);
+        function htmlContent = WarningMessage(msg)
+            htmlContent = sprintf('<p style="text-align: center; font-size: 36px;">&#x26A0;&#xFE0F;<p style="text-align: center; font-size: 11px;"><b>%s</b></p></p>', upper(msg));
+        end
 
-            dataStruct = struct('group', 'GERAL',                                         ...
-                                'value', struct('File',    metaData(idxFile).File,        ...
-                                                'Type',    metaData(idxFile).Type,        ...
-                                                'nData',   numel(metaData(idxFile).Data), ...
-                                                'Memory',  sprintf('%.3f MB', metaData(idxFile).Memory)));
-            
-            if isscalar(specData)
-                [~, dataTempStruct, freeInitialText] = util.HtmlTextGenerator.ThreadMetaData(specData);
-                dataStruct = [dataStruct, dataTempStruct];
+
+        %-----------------------------------------------------------------%
+        function htmlContent = SelectedFile(metaData, fileIdx, varargin)
+            if isscalar(fileIdx)
+                flowIdxs = varargin{1};
+                specData = metaData(fileIdx).Data(flowIdxs);
+                
+                dataStruct = struct('group', 'GERAL', ...
+                                    'value', struct('File',   metaData(fileIdx).File, ...
+                                                    'Type',   metaData(fileIdx).Type, ...
+                                                    'nData',  numel(flowIdxs), ...
+                                                    'Memory', textFormatGUI.bytes2human(computeEstimatedMemory(specData))));
+                
+                if isscalar(specData)
+                    [~, dataTempStruct, initialText] = util.HtmlTextGenerator.ThreadMetaData(specData);
+                    dataStruct = [dataStruct, dataTempStruct];
+    
+                else
+                    receiverList = unique(arrayfun(@(x) x.Receiver, metaData(fileIdx).Data(flowIdxs), "UniformOutput", false));
+                    receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
+
+                    flowTag = strjoin(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
+    
+                    initialText = [ ...
+                        strjoin(strcat({'<font style="font-size: 10px; color: white; background-color: red; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">'}, receiverList, {'</font><br>'}), '') ...
+                        sprintf('<br><font style="font-size: 16px;"><b>%s</b></font><br><br>', flowTag) ...
+                    ];
+                end
 
             else
-                receiverList = arrayfun(@(x) x.Receiver, metaData(idxFile).Data(idxThreads), "UniformOutput", false);
-                receiverList = strjoin(unique(receiverList), '<br>');
-                dataStruct(end+1) = struct('group', 'RECEPTOR', 'value', receiverList);
-                
-                threadTag = strjoin(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
-                freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', threadTag);
+                nodeData = varargin{1};
+                specData = model.SpecData.empty;
+                for ii = fileIdx
+                    fileIdxs = ii == [nodeData.fileIdx];
+                    flowIdxs = unique([nodeData(fileIdxs).flowIdx]);
+
+                    for jj = flowIdxs
+                        specData(end+1) = metaData(ii).Data(jj);
+                    end
+                end
+
+                receiverList = unique({specData.Receiver});
+                receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
+                flowTag = strjoin(unique(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
+
+                dataStruct = struct('group', 'GERAL', ...
+                                    'value', struct('File',   textFormatGUI.cellstr2ListWithQuotes({metaData(fileIdx).File}), ...
+                                                    'nData',  numel(specData), ...
+                                                    'Memory', textFormatGUI.bytes2human(computeEstimatedMemory(specData))));
+
+                initialText = [ ...
+                    strjoin(strcat({'<font style="font-size: 10px; color: white; background-color: red; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">'}, receiverList, {'</font><br>'}), '') ...
+                    sprintf('<br><font style="font-size: 16px;"><b>%s</b></font><br><br>', flowTag) ...
+                ];
             end
         
-            htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
+            htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', initialText);
         end
 
         %-----------------------------------------------------------------%
         function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData)
             threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
             observationPeriod = sprintf('%s - %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
+            description = sprintf('"%s"', specData.RelatedFiles.Description{1});
             
-            dataStruct    = struct('group', 'RECEPTOR', 'value', specData.Receiver);
-            dataStruct(2) = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}));
+            dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}));
             
-            dataStruct(2).value.FreqStart = sprintf('%d Hz', dataStruct(2).value.FreqStart);
-            dataStruct(2).value.FreqStop  = sprintf('%d Hz', dataStruct(2).value.FreqStop);
+            dataStruct.value.FreqStart = sprintf('%d Hz', dataStruct.value.FreqStart);
+            dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);
 
             if specData.MetaData.Resolution ~= -1
-                dataStruct(2).value.Resolution = sprintf('%.1f kHz', dataStruct(2).value.Resolution/1000);
+                dataStruct.value.Resolution = sprintf('%.1f kHz', dataStruct.value.Resolution/1000);
             end
     
             if specData.MetaData.VBW ~= -1
-                dataStruct(2).value.VBW = sprintf('%.3f kHz', dataStruct(2).value.VBW/1000);
+                dataStruct.value.VBW = sprintf('%.3f kHz', dataStruct.value.VBW/1000);
             end
     
-            dataStruct(3) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', rmfield(specData.GPS, 'stdRange'));
-            dataStruct(4) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('File', textFormatGUI.cellstr2ListWithQuotes(specData.RelatedFiles.File), 'nSweeps', sum(specData.RelatedFiles.nSweeps)));
+            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', rmfield(specData.GPS, {'stdRange', 'Edited'}));
+            dataStruct(3) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('NumFiles', height(specData.RelatedFiles), 'NumSweeps', sum(specData.RelatedFiles.NumSweeps)));
     
             for ii = 1:height(specData.RelatedFiles)
                 beginTime = datestr(specData.RelatedFiles.BeginTime(ii), 'dd/mm/yyyy HH:MM:SS');
                 endTime   = datestr(specData.RelatedFiles.EndTime(ii),   'dd/mm/yyyy HH:MM:SS');
     
-                dataStruct(end+1) = struct('group', upper(specData.RelatedFiles.File{ii}),                            ...
-                                           'value', struct('ID',              specData.RelatedFiles.ID(ii),           ...
+                dataStruct(end+1) = struct('group', sprintf('#%d. %s', ii, specData.RelatedFiles.File{ii}), ...
+                                           'value', struct('Id',              specData.RelatedFiles.Id(ii), ...
                                                            'Task',            sprintf('"%s"', specData.RelatedFiles.Task{ii}), ...
                                                            'Description',     sprintf('"%s"', specData.RelatedFiles.Description{ii}), ...
                                                            'ObservationTime', sprintf('%s - %s', beginTime, endTime), ...
-                                                           'nSweeps',         specData.RelatedFiles.nSweeps(ii),      ...
+                                                           'NumSweeps',       specData.RelatedFiles.NumSweeps(ii), ...
                                                            'RevisitTime',     sprintf('%.3f segundos', specData.RelatedFiles.RevisitTime(ii))));
             end
     
@@ -142,7 +180,10 @@ classdef (Abstract) HtmlTextGenerator
                 dataStruct(end+1) = struct('group', 'LOG', 'value', textFormatGUI.cellstr2Bullets(specData.UserData.LOG));
             end
             
-            initialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>⌛ %s<br>📍 %s<br><br>', threadTag, observationPeriod, specData.GPS.Location);
+            initialText = [ ...
+                sprintf('<font style="font-size: 10px; color: white; background-color: red; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">%s</font><br><br>', util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s<br>📍 %s<br><br>', threadTag, description, observationPeriod, specData.GPS.Location) ...
+            ];
             htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', initialText);
         end
 
@@ -155,7 +196,7 @@ classdef (Abstract) HtmlTextGenerator
             detector    = specData.MetaData.Detector;
             levelUnit   = specData.MetaData.LevelUnit;
             numPoints   = specData.MetaData.DataPoints;
-            numSweeps   = sum(specData.RelatedFiles.nSweeps);
+            numSweeps   = sum(specData.RelatedFiles.NumSweeps);
             observationPeriod = sprintf('%s - %s', ...
                 datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), ...
                 datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS') ...
@@ -274,6 +315,19 @@ classdef (Abstract) HtmlTextGenerator
             ], freqStart/1e+6, freqStop/1e+6, resolutionText, observationPeriod, numSweeps, traceMode, traceModeText, detectorText, levelUnit, levelUnitText, monitoringTypeText);
         end
 
+        %-----------------------------------------------------------------%
+        function htmlContent = Algorithms(specData, operationType)
+            switch operationType
+                case 'Occupancy'
+                    htmlContent = sprintf('<p style="padding: 10px;">%s</p>', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Occupancy));
+
+                case 'Detection+Classification'
+                    dataStruct = struct('group', 'DETECÇÃO', 'value', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Detection));
+                    dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Classification));
+                    
+                    htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct);
+            end
+        end
 
         %-----------------------------------------------------------------%
         % WINAPPANALISE - MODO "REPORT"
@@ -451,11 +505,11 @@ classdef (Abstract) HtmlTextGenerator
             freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', emissionTag);
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
         
-            emissionID      = struct('Thread',   struct('Index',     idxThread,                                ...
-                                                        'UUID',      {specData(idxThread).RelatedFiles.uuid}), ...
-                                     'Emission', struct('Index',     idxEmission,                              ...
-                                                        'Frequency', FreqCenter,                               ...
-                                                        'BW_kHz',    BW_kHz,                                   ...
+            emissionID      = struct('Thread',   struct('Index',     idxThread, ...
+                                                        'Hash',      specData(idxThread).Hash), ...
+                                     'Emission', struct('Index',     idxEmission, ...
+                                                        'Frequency', FreqCenter, ...
+                                                        'BW_kHz',    BW_kHz, ...
                                                         'Tag',       emissionTag));
         end
 

@@ -12,8 +12,9 @@ classdef Band < handle
         mainApp
         callingApp
         
+        SpecData
         Receiver
-        nSweeps
+        NumSweeps
         DataPoints
         FreqStart   % in MHz
         FreqStop    % in MHz
@@ -42,26 +43,17 @@ classdef Band < handle
 
         %-----------------------------------------------------------------%
         function axesLimits = update(obj, idx, varargin)
-            specData       = obj.mainApp.specData(idx);
-
-            obj.Receiver   = util.layoutTreeNodeText(specData.Receiver, 'class.Band.update');
-            obj.nSweeps    = numel(specData.Data{1});
-            obj.DataPoints = specData.MetaData.DataPoints;
-            obj.FreqStart  = specData.MetaData.FreqStart / 1e+6;
-            obj.FreqStop   = specData.MetaData.FreqStop  / 1e+6;
-
-            DataType       = specData.MetaData.DataType;
-            if ismember(DataType, class.Constants.specDataTypes)
-                obj.LevelUnit = specData.MetaData.LevelUnit;
-            elseif ismember(DataType, class.Constants.occDataTypes)
-                obj.LevelUnit = '%';
-            else
-                error('Band:update:UnexpectedDataType', 'UnexpectedDataType')
-            end
+            obj.SpecData   = obj.mainApp.specData(idx);
+            obj.Receiver   = util.layoutTreeNodeText(obj.SpecData.Receiver, 'class.Band.update');
+            obj.NumSweeps  = numel(obj.SpecData.Data{1});
+            obj.DataPoints = obj.SpecData.MetaData.DataPoints;
+            obj.FreqStart  = obj.SpecData.MetaData.FreqStart / 1e+6;
+            obj.FreqStop   = obj.SpecData.MetaData.FreqStop  / 1e+6;
+            obj.LevelUnit  = obj.SpecData.MetaData.LevelUnit;
 
             obj.xArray     = round(linspace(obj.FreqStart, obj.FreqStop, obj.DataPoints), class.Constants.xDecimals);
             obj.aCoef      = (obj.FreqStop - obj.FreqStart)*1e+6 ./ (obj.DataPoints - 1);
-            obj.bCoef      = obj.FreqStart*1e+6 - obj.aCoef;       
+            obj.bCoef      = obj.FreqStart*1e+6 - obj.aCoef;
 
             axesLimits     = Limits(obj, idx, varargin{:});
         end
@@ -83,12 +75,13 @@ classdef Band < handle
 
             switch obj.Context
                 case {'appAnalise:PLAYBACK', 'appAnalise:REPORT:BAND'}
-                    specData = obj.mainApp.specData(idx);        
-                    switch specData.UserData.customPlayback.Type
+                    specData = obj.mainApp.specData(idx);
+
+                    switch specData.UserData.PlotDisplayConfig.Type
                         case 'manual'
-                            xLimits      = specData.UserData.customPlayback.Parameters.Controls.FrequencyLimits;
-                            yLevelLimits = specData.UserData.customPlayback.Parameters.Controls.LevelLimits;
-                            cLimits      = specData.UserData.customPlayback.Parameters.Waterfall.LevelLimits;
+                            xLimits      = specData.UserData.PlotDisplayConfig.Parameters.Controls.FrequencyLimits;
+                            yLevelLimits = specData.UserData.PlotDisplayConfig.Parameters.Controls.LevelLimits;
+                            cLimits      = specData.UserData.PlotDisplayConfig.Parameters.Waterfall.LevelLimits;
 
                             if isequal(cLimits, [0,0])
                                 cLimits  = [0,1];
@@ -143,8 +136,8 @@ classdef Band < handle
             end
 
             specData = obj.mainApp.specData(idx);
-            if isprop(obj.callingApp, 'sweepTimeIndex')
-                idxTime = obj.callingApp.sweepTimeIndex;
+            if isprop(obj.callingApp, 'sweepTimeIdx')
+                idxTime = obj.callingApp.sweepTimeIdx;
             end
 
             switch plotTag
@@ -257,8 +250,8 @@ classdef Band < handle
                 case 'appAnalise:REPORT:CHANNEL'
                     idxChannel = varargin{1};
 
-                    chFreqCenter = specData.UserData.reportChannelTable.FirstChannel(idxChannel); % MHz
-                    chBW         = specData.UserData.reportChannelTable.ChannelBW(idxChannel);    % MHz
+                    chFreqCenter = specData.UserData.ReportChannels.FirstChannel(idxChannel); % MHz
+                    chBW         = specData.UserData.ReportChannels.ChannelBW(idxChannel);    % MHz
 
                     if chBW <= 0
                         GuardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));

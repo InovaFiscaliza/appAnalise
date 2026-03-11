@@ -1,5 +1,5 @@
 {
-    "version": 1.16,
+    "version": 1.18,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -45,6 +45,7 @@
                 "traceMode": Infinity,
                 "sampleTimeSeconds": 10
             },
+            "minSweepTimeSeconds": 0.05,
             "channel": {
                 "manualMode": false
             },

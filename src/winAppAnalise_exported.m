@@ -2,55 +2,54 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                       matlab.ui.Figure
-        GridLayout                     matlab.ui.container.GridLayout
-        NavBar                         matlab.ui.container.GridLayout
-        AppInfo                        matlab.ui.control.Image
-        FigurePosition                 matlab.ui.control.Image
-        DataHubLamp                    matlab.ui.control.Image
-        jsBackDoor                     matlab.ui.control.HTML
-        Tab7Button                     matlab.ui.control.StateButton
-        Tab6Button                     matlab.ui.control.StateButton
-        ButtonsSeparator2              matlab.ui.control.Image
-        Tab5Button                     matlab.ui.control.StateButton
-        Tab4Button                     matlab.ui.control.StateButton
-        Tab3Button                     matlab.ui.control.StateButton
-        Tab2Button                     matlab.ui.control.StateButton
-        ButtonsSeparator1              matlab.ui.control.Image
-        Tab1Button                     matlab.ui.control.StateButton
-        AppName                        matlab.ui.control.Label
-        AppIcon                        matlab.ui.control.Image
-        TabGroup                       matlab.ui.container.TabGroup
-        Tab1                           matlab.ui.container.Tab
-        Tab1Grid                       matlab.ui.container.GridLayout
-        SubTabGroup                    matlab.ui.container.TabGroup
-        SubTab1                        matlab.ui.container.Tab
-        SubGrid1                       matlab.ui.container.GridLayout
-        FileModuleInfo                 matlab.ui.control.Label
-        SubTab2                        matlab.ui.container.Tab
-        SubGrid2                       matlab.ui.container.GridLayout
-        FileFilterTree                 matlab.ui.container.Tree
-        FileFilterAdd                  matlab.ui.control.Image
-        FileFilterValue_Frequency      matlab.ui.control.DropDown
-        FileFilterValue_ID             matlab.ui.control.DropDown
-        FileFilterValue_Description    matlab.ui.control.EditField
-        FileFilterType                 matlab.ui.control.DropDown
-        Toolbar                        matlab.ui.container.GridLayout
-        tool_ReadSpectrumData          matlab.ui.control.Image
-        tool_Separator                 matlab.ui.control.Image
-        tool_ReadFiles                 matlab.ui.control.Image
-        FileMetadata                   matlab.ui.control.Label
-        FileTree                       matlab.ui.container.Tree
-        Tab2_Playback                  matlab.ui.container.Tab
-        Tab3_DriveTest                 matlab.ui.container.Tab
-        Tab4_SignalAnalysis            matlab.ui.container.Tab
-        Tab5_Misc                      matlab.ui.container.Tab
-        Tab5_RFDataHub                 matlab.ui.container.Tab
-        Tab6_Config                    matlab.ui.container.Tab
-        file_ContextMenu_Tree1         matlab.ui.container.ContextMenu
-        file_ContextMenu_delTree1Node  matlab.ui.container.Menu
-        file_ContextMenu_Tree2         matlab.ui.container.ContextMenu
-        file_ContextMenu_delTree2Node  matlab.ui.container.Menu
+        UIFigure                     matlab.ui.Figure
+        GridLayout                   matlab.ui.container.GridLayout
+        NavBar                       matlab.ui.container.GridLayout
+        AppInfo                      matlab.ui.control.Image
+        FigurePosition               matlab.ui.control.Image
+        DataHubLamp                  matlab.ui.control.Image
+        jsBackDoor                   matlab.ui.control.HTML
+        Tab7Button                   matlab.ui.control.StateButton
+        Tab6Button                   matlab.ui.control.StateButton
+        ButtonsSeparator2            matlab.ui.control.Image
+        Tab5Button                   matlab.ui.control.StateButton
+        Tab4Button                   matlab.ui.control.StateButton
+        Tab3Button                   matlab.ui.control.StateButton
+        Tab2Button                   matlab.ui.control.StateButton
+        ButtonsSeparator1            matlab.ui.control.Image
+        Tab1Button                   matlab.ui.control.StateButton
+        AppName                      matlab.ui.control.Label
+        AppIcon                      matlab.ui.control.Image
+        TabGroup                     matlab.ui.container.TabGroup
+        Tab1                         matlab.ui.container.Tab
+        Tab1Grid                     matlab.ui.container.GridLayout
+        SubTabGroup                  matlab.ui.container.TabGroup
+        SubTab1                      matlab.ui.container.Tab
+        SubGrid1                     matlab.ui.container.GridLayout
+        FileModuleInfo               matlab.ui.control.Label
+        SubTab2                      matlab.ui.container.Tab
+        SubGrid2                     matlab.ui.container.GridLayout
+        FileFilterTree               matlab.ui.container.Tree
+        FileFilterAdd                matlab.ui.control.Image
+        FileFilterValue_Frequency    matlab.ui.control.DropDown
+        FileFilterValue_ID           matlab.ui.control.DropDown
+        FileFilterValue_Description  matlab.ui.control.EditField
+        FileFilterType               matlab.ui.control.DropDown
+        Toolbar                      matlab.ui.container.GridLayout
+        tool_ReadFiles               matlab.ui.control.Image
+        FileMetadata                 matlab.ui.control.Label
+        FileTree                     matlab.ui.container.Tree
+        Tab2_Playback                matlab.ui.container.Tab
+        Tab3_DriveTest               matlab.ui.container.Tab
+        Tab4_SignalAnalysis          matlab.ui.container.Tab
+        Tab5_Misc                    matlab.ui.container.Tab
+        Tab5_RFDataHub               matlab.ui.container.Tab
+        Tab6_Config                  matlab.ui.container.Tab
+        FileTreeContextMenu          matlab.ui.container.ContextMenu
+        FileTreeEditButton           matlab.ui.container.Menu
+        FileTreeDeleteButton         matlab.ui.container.Menu
+        FileFilterTreeContextMenu    matlab.ui.container.ContextMenu
+        FileFilterTreeDeleteButton   matlab.ui.container.Menu
     end
 
     
@@ -73,16 +72,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         executionMode
         progressDialog
         popupContainer
+        popupCurrentApp
 
         eFiscalizaObj
 
         projectData
         metaData = model.MetaData.empty
         specData = model.SpecData.empty        
+        
         channelObj
-
         elevationObj = RF.Elevation
-        ChannelReportObj
 
         rfDataHub
         rfDataHubLOG
@@ -129,7 +128,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             selectedNodes = app.FileTree.SelectedNodes;
                             if ~isempty(app.FileTree.SelectedNodes)
                                 app.FileTree.SelectedNodes = [];
-                                onTreeSelectionChanged(app)
+                                onFileTreeSelectionChanged(app)
                             end
 
                             appEngine.beforeReload(app, app.Role)
@@ -137,7 +136,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                             if ~isempty(selectedNodes)
                                 app.FileTree.SelectedNodes = selectedNodes;
-                                onTreeSelectionChanged(app)
+                                onFileTreeSelectionChanged(app)
                             end
                         end
                         
@@ -145,6 +144,24 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     case 'unload'
                         closeFcn(app)
+
+                    case 'closeFcnCallFromPopupApp'
+                        context = event.HTMLEventData.context;
+                        popupCurrentAppTag = event.HTMLEventData.auxDockAppName;
+
+                        switch context
+                            case {'mainApp', 'FILE'}
+                                hApp = app;
+                            otherwise
+                                hApp = getAppHandle(app.tabGroupController, context);
+                        end
+                        
+                        if ~isempty(hApp) && isvalid(hApp)
+                            deleteContextMenu(app.tabGroupController, hApp.UIFigure, popupCurrentAppTag)
+                        end
+
+                        delete(app.popupCurrentApp)
+                        app.popupCurrentApp = [];
                     
                     case 'customForm'
                         switch event.HTMLEventData.uuid
@@ -172,41 +189,36 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     case 'getNavigatorBasicInformation'
                         app.General.AppVersion.browser = event.HTMLEventData;
 
-                    % auxApp.winPlayback
-                    case 'mainApp.file_Tree'
-                        ContextMenu_delTree1NodeSelected(app)
+                    % winAppAnalise
+                    case 'mainApp.FileTree'
+                        onFileTreeDeleteRequested(app)
 
-                    case 'mainApp.file_FilteringTree'
-                        ContextMenu_delTree2NodeSelected(app)
+                    case 'mainApp.FileFilterTree'
+                        onFileFilterDeleteRequested(app)
 
-                    case 'auxApp.winPlayback.ChannelTree'
-                        play_Channel_ContextMenu_delChannelSelected(app)
-
-                    case 'auxApp.winPlayback.BandLimitsTree'
-                        play_BandLimits_ContextMenu_delSelected(app)
-
-                    case 'auxApp.winPlayback.FindPeaksTree'
-                        play_FindPeaks_delEmission(app)
-
-                    case 'auxApp.winPlayback.ReportTree'
-                        report_ContextMenu_delSelected(app)
-
-                    % auxApp.winDriveTest
-                    % auxApp.winRFDataHub
-                    case {'auxApp.winDriveTest.filter_Tree', 'auxApp.winDriveTest.points_Tree', 'auxApp.winRFDataHub.filter_Tree'}
-                        if contains(event.HTMLEventName, 'winDriveTest')
-                            auxAppName = 'DRIVETEST';
-                        elseif contains(event.HTMLEventName, 'winRFDataHub')
-                            auxAppName = 'RFDATAHUB';
-                        end
-
-                        hAuxApp = getAppHandle(app.tabGroupController, auxAppName);
-                        ipcSecundaryJSEventsHandler(hAuxApp, event)
-
-                    % DOCKADDKFACTOR / DOCKTIMEFILTERING
-                    case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
-                        hDockApp  = app.popupContainer.RunningAppInstance;
-                        ipcSecundaryJSEventsHandler(hDockApp, event)
+                    % % auxApp.winPlayback
+                    % case 'auxApp.winPlayback.ChannelTree'
+                    %     play_Channel_ContextMenu_delChannelSelected(app)
+                    % 
+                    % case 'auxApp.winPlayback.FindPeaksTree'
+                    %     play_FindPeaks_delEmission(app)
+                    % 
+                    % % auxApp.winDriveTest
+                    % % auxApp.winRFDataHub
+                    % case {'auxApp.winDriveTest.filter_Tree', 'auxApp.winDriveTest.points_Tree', 'auxApp.winRFDataHub.filter_Tree'}
+                    %     if contains(event.HTMLEventName, 'winDriveTest')
+                    %         auxAppName = 'DRIVETEST';
+                    %     elseif contains(event.HTMLEventName, 'winRFDataHub')
+                    %         auxAppName = 'RFDATAHUB';
+                    %     end
+                    % 
+                    %     hAuxApp = getAppHandle(app.tabGroupController, auxAppName);
+                    %     ipcSecundaryJSEventsHandler(hAuxApp, event)
+                    % 
+                    % % DOCKADDKFACTOR / DOCKTIMEFILTERING
+                    % case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
+                    %     hDockApp  = app.popupContainer.RunningAppInstance;
+                    %     ipcSecundaryJSEventsHandler(hDockApp, event)
 
                     otherwise
                         error('UnexpectedEvent')
@@ -234,7 +246,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     otherwise
                         switch class(callingApp)
-                            % CONFIG
+                            % auxApp.winConfig (CONFIG)
                             case {'auxApp.winConfig', 'auxApp.winConfig_exported'}
                                 switch eventName
                                     case 'checkDataHubLampStatus'
@@ -247,7 +259,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                     case 'onSimulationMode'
                                         if app.General.operationMode.Simulation
-                                            Toolbar_SelectFileToReadButtonClicked(app)
+                                            onFilteTreeAddRequested(app)
         
                                             % Muda programaticamente o modo p/ ARQUIVOS.
                                             set(app.Tab1Button, 'Enable', 1, 'Value', 1)                    
@@ -268,105 +280,92 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                 end
         
                             % DRIVETEST
-                            case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
-                                switch eventName
-                                    case {'ChannelParameterChanged', 'ChannelDefault'}
-                                        play_UpdateAuxiliarApps(app, 'SIGNALANALYSIS')
-
-                                    otherwise
-                                        error('UnexpectedCall')
-                                end
-        
-                            % SIGNALANALYSIS
-                            case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
-                                switch eventName
-                                    case 'DeleteButtonPushed'
-                                        % ...
-
-                                    case 'IsTruncatedValueChanged'
-                                        % ...
-
-                                    case 'PeakDescriptionChanged'
-                                        % ...
-
-                                    otherwise
-                                        error('UnexpectedCall')
-                                end
-        
-                            % DOCKS:OTHERS
-                            case {'auxApp.dockAddChannel',     'auxApp.dockAddChannel_exported',     ... % PLAYBACK:CHANNEL
-                                  'auxApp.dockDetection',      'auxApp.dockDetection_exported',      ... % REPORT:DETECTION
-                                  'auxApp.dockClassification', 'auxApp.dockClassification_exported', ... % REPORT:CLASSIFICATION
-                                  'auxApp.dockAddFiles',       'auxApp.dockAddFiles_exported',       ... % REPORT:EXTERNALFILES
-                                  'auxApp.dockTimeFiltering',  'auxApp.dockTimeFiltering_exported',  ... % MISCELLANEOUS:TIMEFILTERING
-                                  'auxApp.dockEditLocation',   'auxApp.dockEditLocation_exported',   ... % MISCELLANEOUS:EDITLOCATION
-                                  'auxApp.dockAddKFactor',     'auxApp.dockAddKFactor_exported',     ... % MISCELLANEOUS:ADDKFACTOR
-                                  'auxApp.dockLevelFiltering', 'auxApp.dockLevelFiltering_exported'}     % MISCELLANEOUS:LEVELFILTERING
-        
-                                switch eventName
-                                    case 'closeFcnCallFromPopupApp'
-                                        context   = varargin{1};
-                                        moduleTag = varargin{2};
-        
-                                        switch context
-                                            case 'mainApp'
-                                                hApp = app;
-                                            otherwise
-                                                hApp = getAppHandle(app.tabGroupController, context);
-                                        end
-        
-                                        if ~isempty(hApp)
-                                            deleteContextMenu(app.tabGroupController, hApp.UIFigure, moduleTag)
-                                        end
-        
-                                    otherwise
-                                        updateFlag = varargin{1};
-                                        returnFlag = varargin{2};
-                
-                                        if updateFlag
-                                            switch eventName
-                                                case 'PLAYBACK:CHANNEL'
-                                                    channel2Add   = varargin{3};
-                                                    typeOfChannel = varargin{4};
-                                                    idxThreads    = varargin{5};
-                                                    play_Channel_AddChannel(app, channel2Add, typeOfChannel, idxThreads)
-                
-                                                case {'REPORT:DETECTION', 'REPORT:CLASSIFICATION'}
-                                                    idxThread     = varargin{3};
-                
-                                                    % Esse estado força a atualização do painel
-                                                    app.report_ThreadAlgorithms.UserData.idxThread = [];
-                                                    report_Algorithms(app, idxThread)
-                                                    report_SaveWarn(app)
-                
-                                                case 'REPORT:EXTERNALFILES'
-                                                    report_TreeBuilding(app)
-                
-                                                case 'MISCELLANEOUS'
-                                                    SelectedNodesTextList = misc_SelectedNodesText(app);
-                                                    play_TreeRebuilding(app, SelectedNodesTextList)
-                                                
-                                                case 'MISCELLANEOUS:LEVELFILTERING'
-                                                    editedData = varargin{3};
-                                                    copyMode   = varargin{4};
-                
-                                                    if strcmp(copyMode, 'copy')              
-                                                        app.specData(end+1:end+numel(editedData)) = editedData;
-                                                    end
-                                                    
-                                                    SelectedNodesTextList = misc_SelectedNodesText(app);
-                                                    play_TreeRebuilding(app, SelectedNodesTextList)
-                                            end
-                                        end
-                
-                                        if returnFlag
-                                            return
-                                        end
-                                end
-                                
-                                if ~isempty(app.popupContainer) || isvalid(app.popupContainer)
-                                    app.popupContainer.Parent.Visible = 0;
-                                end
+                            % case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
+                            %     switch eventName
+                            %         case {'ChannelParameterChanged', 'ChannelDefault'}
+                            %             play_UpdateAuxiliarApps(app, 'SIGNALANALYSIS')
+                            % 
+                            %         otherwise
+                            %             error('UnexpectedCall')
+                            %     end
+                            % 
+                            % % SIGNALANALYSIS
+                            % case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
+                            %     switch eventName
+                            %         case 'DeleteButtonPushed'
+                            %             % ...
+                            % 
+                            %         case 'IsTruncatedValueChanged'
+                            %             % ...
+                            % 
+                            %         case 'PeakDescriptionChanged'
+                            %             % ...
+                            % 
+                            %         otherwise
+                            %             error('UnexpectedCall')
+                            %     end
+                            % 
+                            % % DOCKS:OTHERS
+                            % case {'auxApp.dockAddChannel',     'auxApp.dockAddChannel_exported',     ... % PLAYBACK:CHANNEL
+                            %       'auxApp.dockDetection',      'auxApp.dockDetection_exported',      ... % REPORT:DETECTION
+                            %       'auxApp.dockClassification', 'auxApp.dockClassification_exported', ... % REPORT:CLASSIFICATION
+                            %       'auxApp.dockAddFiles',       'auxApp.dockAddFiles_exported',       ... % REPORT:EXTERNALFILES
+                            %       'auxApp.dockTimeFiltering',  'auxApp.dockTimeFiltering_exported',  ... % MISCELLANEOUS:TIMEFILTERING
+                            %       'auxApp.dockEditLocation',   'auxApp.dockEditLocation_exported',   ... % MISCELLANEOUS:EDITLOCATION
+                            %       'auxApp.dockAddKFactor',     'auxApp.dockAddKFactor_exported',     ... % MISCELLANEOUS:ADDKFACTOR
+                            %       'auxApp.dockLevelFiltering', 'auxApp.dockLevelFiltering_exported'}     % MISCELLANEOUS:LEVELFILTERING
+                            % 
+                            %     switch eventName
+                            %         case '123'
+                            %             % ... organizar essas chamadas,
+                            %             % eliminando essa forma antiga de
+                            %             % chamar com updateFlag e
+                            %             % returnFlag.
+                            % 
+                            %         otherwise
+                            %             updateFlag = varargin{1};
+                            %             returnFlag = varargin{2};
+                            % 
+                            %             if updateFlag
+                            %                 switch eventName
+                            %                     case 'PLAYBACK:CHANNEL'
+                            %                         channel2Add   = varargin{3};
+                            %                         typeOfChannel = varargin{4};
+                            %                         idxThreads    = varargin{5};
+                            %                         play_Channel_AddChannel(app, channel2Add, typeOfChannel, idxThreads)
+                            % 
+                            %                     case {'REPORT:DETECTION', 'REPORT:CLASSIFICATION'}
+                            %                         idxThread     = varargin{3};
+                            % 
+                            %                         % Esse estado força a atualização do painel
+                            %                         app.report_ThreadAlgorithms.UserData.idxThread = [];
+                            %                         report_Algorithms(app, idxThread)
+                            %                         report_SaveWarn(app)
+                            % 
+                            %                     case 'REPORT:EXTERNALFILES'
+                            %                         report_TreeBuilding(app)
+                            % 
+                            %                     case 'MISCELLANEOUS'
+                            %                         SelectedNodesTextList = misc_SelectedNodesText(app);
+                            %                         play_TreeRebuilding(app, SelectedNodesTextList)
+                            % 
+                            %                     case 'MISCELLANEOUS:LEVELFILTERING'
+                            %                         editedData = varargin{3};
+                            %                         copyMode   = varargin{4};
+                            % 
+                            %                         if strcmp(copyMode, 'copy')              
+                            %                             app.specData(end+1:end+numel(editedData)) = editedData;
+                            %                         end
+                            % 
+                            %                         SelectedNodesTextList = misc_SelectedNodesText(app);
+                            %                         play_TreeRebuilding(app, SelectedNodesTextList)
+                            %                 end
+                            %             end
+                            % 
+                            %             if returnFlag
+                            %                 return
+                            %             end
+                            %     end
             
                             otherwise
                                 error('UnexpectedCall')
@@ -400,63 +399,74 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function ipcMainMatlabOpenPopupApp(app, auxiliarApp, varargin)
+        function ipcMainMatlabOpenPopupApp(app, callingApp, auxAppName, context, varargin)
             arguments
                 app
-                auxiliarApp char {mustBeMember(auxiliarApp, {'ReportLib', 'Detection', 'Classification', 'AddFiles', 'TimeFiltering', 'EditLocation', 'AddKFactor', 'AddChannel', 'LevelFiltering'})}
+                callingApp
+                auxAppName char {mustBeMember(auxAppName, {'ReportLib', 'Detection', 'Classification', 'AddFiles', 'TimeFiltering', 'EditLocation', 'AddKFactor', 'AddChannel', 'LevelFiltering'})}
+                context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'CONFIG'})}
             end
 
             arguments (Repeating)
                 varargin 
             end
 
-            switch auxiliarApp
+            switch auxAppName
                 case 'ReportLib'
                     screenWidth  = 460;
                     screenHeight = 602;
                 case 'Detection'
-                    screenWidth = 412;
+                    screenWidth  = 412;
                     screenHeight = 282;
                 case 'Classification'
-                    screenWidth = 534;
+                    screenWidth  = 534;
                     screenHeight = 248;
                 case 'AddFiles'
-                    screenWidth = 880; 
+                    screenWidth  = 880; 
                     screenHeight = 480;
                 case 'TimeFiltering'
-                    screenWidth = 640; 
+                    screenWidth  = 640; 
                     screenHeight = 480;
                 case 'LevelFiltering'
-                    screenWidth = 540; 
+                    screenWidth  = 540; 
                     screenHeight = 300;
                 case 'EditLocation'
-                    screenWidth = 394; 
+                    screenWidth  = 394; 
                     screenHeight = 194;
                 case 'AddKFactor'
-                    screenWidth = 480; 
+                    screenWidth  = 480; 
                     screenHeight = 360;
                 case 'AddChannel'
-                    screenWidth = 560; 
+                    screenWidth  = 560; 
                     screenHeight = 480;
             end
 
-            requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
-            ui.PopUpContainer(callingApp, class.Constants.appName, screenWidth, screenHeight)
-
-            % Executa o app auxiliar.
-            inputArguments = [{app, callingApp}, varargin];
-            auxDockAppName = sprintf('auxApp.dock%s', auxAppName);
+            requestVisibilityChange(auxAppName.progressDialog, 'visible', 'unlocked')
+            
+            inputArguments = [{app, auxAppName}, varargin];
             
             if app.General.operationMode.Debug
                 eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName))
             else
-                eval([auxDockAppName '_exported(callingApp.popupContainer, inputArguments{:})'])
-                
+                auxDockAppName = sprintf('auxApp.dock%s', auxAppName);
+
+                ui.PopUpContainer(callingApp, screenWidth, screenHeight)
+                app.popupCurrentApp = feval([auxDockAppName '_exported'], callingApp.popupContainer, inputArguments{:});
+
+                ui.CustomizationBase.getElementsDataTag({app.popupCurrentApp.GridLayout});
+                app.popupCurrentApp.GridLayout.UserData.auxDockAppName = auxDockAppName;
                 callingApp.popupContainer.UserData.auxDockAppName = auxDockAppName;
-                callingApp.popupContainer.Parent.Visible = 1;
+
+                sendEventToHTMLSource(app.jsBackDoor, 'dockContainer', struct( ...
+                    'dataTag', app.popupCurrentApp.GridLayout.UserData.id, ...
+                    'width', screenWidth, ...
+                    'height', screenHeight+31, ...
+                    'context', context, ...
+                    'auxDockAppName', auxDockAppName ...
+                ))
             end
 
-            requestVisibilityChange(callingApp.progressDialog, 'hidden', 'unlocked')
+            requestVisibilityChange(auxAppName.progressDialog, 'hidden', 'unlocked')
         end
     end
     
@@ -488,8 +498,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         app.FileModuleInfo;
                         app.FileTree;
                         app.FileMetadata;
-                        app.tool_ReadFiles;
-                        app.tool_ReadSpectrumData
+                        app.tool_ReadFiles
                     };                            
                     ui.CustomizationBase.getElementsDataTag(elToModify);
 
@@ -502,7 +511,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.FileModuleInfo.UserData.id, 'selector', '[class="mwTextNode"]', 'style', struct('textAlign', 'justify')), ...
                             struct('appName', appName, 'dataTag', app.tool_ReadFiles.UserData.id,  'tooltip', struct('defaultPosition', 'top', 'textContent', 'Seleciona arquivos')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ReadSpectrumData.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Inicia análise, lendo dados de varreduras')), ...
                             struct('appName', appName, 'dataTag', app.Tab1Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab2Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab3Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
@@ -510,19 +518,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.Tab5Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab6Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab7Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
-                            struct('appName', appName, 'dataTag', app.FileTree.UserData.id, 'listener', struct('componentName', 'mainApp.file_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
+                            struct('appName', appName, 'dataTag', app.FileTree.UserData.id, 'listener', struct('componentName', 'mainApp.FileTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
                         });
                     catch
                     end
 
-                    % Salva na propriedade "UserData" as opções de ícone e o índice 
-                    % da aba, simplificando os ajustes decorrentes de uma alteração...
-                    app.FileTree.UserData.previousSelectedFileIndex  = [];
-                    app.FileTree.UserData.previousSelectedFileThread = [];
-
                     app.FileFilterValue_ID.UserData.render        = false;
                     app.FileFilterValue_Frequency.UserData.render = false;
                     app.FileFilterTree.UserData.render            = false;
+                    
+                    initializeFileTreeSelectionIdx(app)
 
                 case 2
                     elToModify = {
@@ -532,7 +537,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.FileFilterTree.UserData.id, 'listener', struct('componentName', 'mainApp.file_FilteringTree',   'keyEvents', {{'Delete', 'Backspace'}}))  ...
+                            struct('appName', appName, 'dataTag', app.FileFilterTree.UserData.id, 'listener', struct('componentName', 'mainApp.FileFilterTree', 'keyEvents', {{'Delete', 'Backspace'}}))  ...
                         });
                     catch
                     end
@@ -541,8 +546,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     app.FileFilterValue_Frequency.UserData.render = true;
                     app.FileFilterTree.UserData.render            = true;
 
-                    file_FilterOptions(app)
-                    file_FilterCheck(app)
+                    updateFileFilterValueOptions(app)
+                    updateFileFilterTree(app)
             end
         end
 
@@ -562,7 +567,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.General_I.fileFolder.MFilePath = MFilePath;
             
             if ~strcmp(app.General_I.plot.waterfall.Decimation, 'auto')
-                app.General_I.Plot.Waterfall.Decimation = 'auto';
+                app.General_I.plot.Waterfall.Decimation = 'auto';
             end
         
             if isempty(app.General_I.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters)
@@ -593,8 +598,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % mais eficiente a comunicação com webapp porque as imagens
                     % Base64 são menores (uma imagem com Basemap "sattelite" pode 
                     % ter 500 kB, enquanto uma imagem sem Basemap pode ter 25 kB).
-                    app.General_I.Plot.GeographicAxes.Basemap = 'none';
-                    app.General_I.Report.Basemap              = 'none';
+                    app.General_I.plot.geographicAxes.Basemap = 'none';
+                    app.General_I.reportLib.basemap = 'none';
 
                 otherwise    
                     % Resgata a pasta de trabalho do usuário (configurável).
@@ -626,7 +631,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         function initializeAppProperties(app)
             initializeRFDataHub(app)
 
-            app.projectData = model.projectLib(app, app.rootFolder);
+            app.projectData = model.Project(app, app.rootFolder, app.General);
             app.channelObj  = class.ChannelLib(class.Constants.appName, app.rootFolder);
         end
 
@@ -669,136 +674,35 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function userSelection = auxAppStatus(app, operationType)
-            arguments
-                app
-                operationType char {mustBeMember(operationType, {'RELER INFORMAÇÃO ESPECTRAL', ...
-                                                                 'MESCLAR FLUXOS',             ...
-                                                                 'EXCLUIR FLUXO(S)',           ...
-                                                                 'IMPORTAR ANÁLISE',           ...
-                                                                 'APLICAR FILTRO TEMPORAL',    ...
-                                                                 'APLICAR FILTRO NÍVEL',       ...
-                                                                 'EDITAR LOCAL',               ...
-                                                                 'APLICAR CORREÇÃO'})}
-            end
-
-            userSelection = 'Sim';
-
-            if checkStatusModule(app.tabGroupController, 'DRIVETEST') || checkStatusModule(app.tabGroupController, 'SIGNALANALYSIS')
-                msgQuestion   = sprintf(['A operação "%s" demanda que os módulos auxiliares "DRIVETEST" e "SIGNALANALYSIS" sejam fechados, '        ...
-                                         'caso abertos, pois as informações espectrais consumidas por esses módulos poderão ficar desatualizadas. ' ...
-                                         'Deseja continuar?'], operationType);
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
-
-                if userSelection == "Sim"
-                    closeModule(app.tabGroupController, 'DRIVETEST',      app.General)
-                    closeModule(app.tabGroupController, 'SIGNALANALYSIS', app.General)
-                end
-            end
-        end     
-
-        %-----------------------------------------------------------------%
-        % ## Modo "ARQUIVO(S)" ##
-        %-----------------------------------------------------------------%
-        function file_OpenSelectedFiles(app, filePath, fileName)
-            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).');            
-            
-            repeteadFiles = {};
-            emptyFiles    = {};
-
-            for ii = 1:numel(fileName)
-                d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
-
-                fileFullPath = fullfile(filePath, fileName{ii});
-                [~,~,fileExt]= fileparts(fileName{ii});
-                relatedFiles = RelatedFiles(app.metaData);
-                
-                switch lower(fileExt)
-                    case {'.bin', '.dbm', '.sm1809', '.csv'}
-                        if ~any(contains(relatedFiles, fileName(ii), 'IgnoreCase', true))
-                            idx = numel(app.metaData)+1;
-                            
-                            app.metaData(idx).File = fileFullPath;
-                            app.metaData(idx).Type = 'Spectral data';
-                        else
-                            repeteadFiles{end+1} = fileName{ii};
-                            continue
-                        end
-                        
-                    case '.mat'
-                        lastwarn('')
-                        load(fileFullPath, '-mat', 'prj_Type', 'prj_RelatedFiles')
-                        [~, warnID] = lastwarn;
-                        
-                        % Um projeto .MAT pode conter informações geradas por mais
-                        % de um arquivo .BIN, por exemplo. Por essa razão, certifica-se
-                        % que nenhum dos arquivos relacionados ao projeto já foram 
-                        % lidos anteriormente.
-                        if strcmp(warnID, 'MATLAB:load:variableNotFound')
-                            msgWarning = sprintf('O arquivo indicado a seguir não foi gerado pelo appAnalise ou appColeta.\n•&thinsp;%s', fileName{ii});
-                            ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                            continue
-                            
-                        elseif any(strcmpi(fileFullPath, {app.metaData.File}))
-                            msgWarning = sprintf('O arquivo indicado a seguir já tinha sido lido.\n•&thinsp;%s', fileName{ii});
-                            ui.Dialog(app.UIFigure, 'warning', msgWarning);                            
-                            continue
-                            
-                        elseif any(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true))
-                            msgWarning = sprintf(['O arquivo indicado a seguir não será lido por já ter sido lido ao menos um arquivo relacionado ao ' ...
-                                           'projeto appAnalise.\n•&thinsp;%s\n\nArquivo(s) relacionado(s) ao projeto appAnalise já lido(s):\n%s'],   ...
-                                           fileName{ii}, strjoin(cellfun(@(x) sprintf('•&thinsp;%s', x), relatedFiles(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true)), 'UniformOutput', false), '\n'));
-                            ui.Dialog(app.UIFigure, 'warning', msgWarning);                            
-                            continue
-
-                        elseif ~isempty(app.metaData) && strcmp(prj_Type, 'Project data') && ismember('Project data', {app.metaData.Type})
-                            msgWarning = sprintf('O arquivo indicado a seguir não será lido porque já foram lidos os metadados de outro projeto appAnalise.\n•&thinsp;%s', fileName{ii});
-                            ui.Dialog(app.UIFigure, 'warning', msgWarning);                            
-                            continue
-                            
-                        else
-                            idx = numel(app.metaData)+1;
-                            
-                            app.metaData(idx).File = fileFullPath;
-                            app.metaData(idx).Type = prj_Type;
-                        end
-                end
-                
-                try
-                    app.metaData(idx).Data    = read(app.metaData(idx).Data, fileFullPath, 'MetaData');
-                    app.metaData(idx).Samples = sweepsPerThread(app.metaData(idx).Data);
-                    if isempty(app.metaData(idx).Samples)
-                        emptyFiles{end+1} = fileName{ii};
-                        error('Empty file')
-                    end
-                    app.metaData(idx).Memory  = estimateMemory(app.metaData(idx).Data);
-
-                catch ME
-                    delete(app.metaData(idx))
-                    app.metaData(idx) = [];
-                    fclose('all');
-
-                    if ~isvalid(app.metaData)
-                        app.metaData = model.MetaData.empty;
-                    end
-                end
-            end
-            
-            if ~isempty(repeteadFiles)
-                msgWarning = sprintf('Os metadados dos arquivos indicados a seguir já tinham sido lidos.\n%s', strjoin(strcat('•&thinsp;', repeteadFiles), '\n'));
-                ui.Dialog(app.UIFigure, 'warning', msgWarning);
-            end
-
-            if ~isempty(emptyFiles)
-                msgWarning = sprintf('Os arquivos indicados a seguir não possuem informação espectral.\n%s',   strjoin(strcat('•&thinsp;', emptyFiles),    '\n'));
-                ui.Dialog(app.UIFigure, 'error', msgWarning);
-            end
-
-            buildFileTree(app)
+        function initializeFileTreeSelectionIdx(app)
+            app.FileTree.UserData.previousSelection = struct('fileIdx', [], 'flowIdxs', []);
         end
 
         %-----------------------------------------------------------------%
-        function buildFileTree(app)
+        function refreshProjectFiles(app, previousSelectionIdxs, updateType)
+            arguments
+                app
+                previousSelectionIdxs
+                updateType char {mustBeMember(updateType, {'onFileListAdded', ...
+                                                           'onFileListRemoved', ...
+                                                           'onFileFilterChanged'})}
+            end
+
+            buildFileTree(app, previousSelectionIdxs)
+            app.specData = syncCollection(app.specData, app.metaData, app.General);
+            
+            ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK',       'MATLAB', updateType)
+            ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST',      'MATLAB', updateType)
+            ipcMainMatlabCallAuxiliarApp(app, 'SIGNALANALYSIS', 'MATLAB', updateType)
+        end
+
+        %-----------------------------------------------------------------%
+        function buildFileTree(app, previousSelectionIdxs)
+            arguments
+                app 
+                previousSelectionIdxs = []
+            end
+
             if ~isempty(app.FileTree.Children)
                 delete(app.FileTree.Children)
                 
@@ -807,60 +711,76 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     removeStyle(app.FileTree, oldStyleIndex)
                 end
 
-                app.FileTree.UserData = struct('previousSelectedFileIndex', [], 'previousSelectedFileThread', []);
+                initializeFileTreeSelectionIdx(app)
             end
 
             if ~isempty(app.metaData)
-                file_FilterOptions(app)
-                file_FilterCheck(app)
+                updateFileFilterValueOptions(app)
+                updateFileFilterTree(app)
 
+                selectedNodes = [];
                 filteredNodes = [];
 
                 for ii = 1:numel(app.metaData)
                     [~, fileName, fileExt] = fileparts(app.metaData(ii).File);
                     
-                    fileNode = uitreenode(app.FileTree, 'Text',        [fileName fileExt],                                                     ...
-                                                         'NodeData',    struct('level', 1, 'idx1', ii, 'idx2', 1:numel(app.metaData(ii).Data)), ...
-                                                         'ContextMenu', app.file_ContextMenu_Tree1);
+                    fileNode = uitreenode(app.FileTree, ...
+                        'Text', [fileName fileExt], ...
+                        'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', 1:numel(app.metaData(ii).Data)), ...
+                        'ContextMenu', app.FileTreeContextMenu ...
+                    );
 
                     receiverRawList = {app.metaData(ii).Data.Receiver};
                     [receiverList, ~, receiverIndex] = unique(receiverRawList);
 
                     if isscalar(receiverList) && isscalar(app.metaData(ii).Data)
-                        fileNode.NodeData.idx2 = 1;
+                        fileNode.NodeData.flowIdx = 1;
                     end
                     
                     for jj = 1:numel(receiverList)
                         idx = find(receiverIndex == jj)';
 
-                        receiverNode = uitreenode(fileNode, 'Text',        util.layoutTreeNodeText(receiverList{jj}, 'file_TreeBuilding'), ...
-                                                            'NodeData',    struct('level', 2, 'idx1', ii, 'idx2', idx),                    ...
-                                                            'Icon',        util.layoutTreeNodeIcon(receiverList{jj}),                      ...
-                                                            'ContextMenu', app.file_ContextMenu_Tree1);                        
+                        receiverNode = uitreenode(fileNode, ...
+                            'Text', util.layoutTreeNodeText(receiverList{jj}, 'file_TreeBuilding'), ...
+                            'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', idx), ...
+                            'Icon', util.layoutTreeNodeIcon(receiverList{jj}), ...
+                            'ContextMenu', app.FileTreeContextMenu ...
+                        );
+
                         for kk = idx
                             nodeTextNote = '';
                             if ismember(app.metaData(ii).Data(kk).MetaData.DataType, class.Constants.occDataTypes)
                                 nodeTextNote = ' (Ocupação)';
                             end
 
-                            dataNode = uitreenode(receiverNode, 'Text',        sprintf('ID %d: %.3f - %.3f MHz%s', app.metaData(ii).Data(kk).RelatedFiles.ID(1),                       ...
-                                                                                                                   app.metaData(ii).Data(kk).MetaData.FreqStart .* 1e-6,               ...
-                                                                                                                   app.metaData(ii).Data(kk).MetaData.FreqStop .* 1e-6, nodeTextNote), ...
-                                                                'NodeData',    struct('level', 3, 'idx1', ii, 'idx2', kk),                                                             ...
-                                                                'ContextMenu', app.file_ContextMenu_Tree1);
+                            dataNode = uitreenode(receiverNode, ...
+                                'Text', sprintf('ID %d: %.3f - %.3f MHz%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, nodeTextNote), ...
+                                'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
+                                'ContextMenu', app.FileTreeContextMenu ...
+                            );
+
                             if ~app.metaData(ii).Data(kk).Enable
                                 filteredNodes = [filteredNodes, dataNode];
+                            end
+
+                            if ~isempty(previousSelectionIdxs) && ismember(ii, previousSelectionIdxs.fileIdx) && ismember(kk, previousSelectionIdxs.flowIdxs)
+                                selectedNodes = [selectedNodes, dataNode];
                             end
                         end
                     end
                 end
+                expand(app.FileTree, 'all')
 
                 if ~isempty(filteredNodes)
                     addStyle(app.FileTree, uistyle('FontColor', [.65,.65,.65]), 'node', filteredNodes)
                 end
 
-                app.FileTree.SelectedNodes = app.FileTree.Children(1);
-                onTreeSelectionChanged(app)
+                if isempty(selectedNodes)
+                    selectedNodes = app.FileTree.Children(1);
+                end
+
+                app.FileTree.SelectedNodes = selectedNodes;
+                onFileTreeSelectionChanged(app)
 
             else
                 ui.TextView.update(app.FileMetadata, '');
@@ -868,54 +788,46 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 app.FileFilterValue_ID.Items          = {};
                 app.FileFilterValue_Description.Value = '';           
             end
-
-            file_specReadButtonVisibility(app)
         end
 
         %-----------------------------------------------------------------%
-        function file_FilterOptions(app)
-            % Se app.FileFilterValue_ID e file_FilteringValue_Frequency 
-            % ainda não foram renderizados, então não faz sentido passar por 
-            % aqui...
+        function updateFileFilterValueOptions(app)
             if ~app.FileFilterValue_ID.UserData.render && ~app.FileFilterValue_Frequency.UserData.render
                 return
             end
 
-            bandList = table('Size', [0,3], ...
-                             'VariableTypes', {'double', 'double', 'string'}, ...
-                             'VariableNames', {'FreqStart', 'FreqStop', 'Band'});
-            IDList   = [];
+            bandList = table( ...
+                'Size', [0,3], ...
+                'VariableTypes', {'double', 'double', 'cell'}, ...
+                'VariableNames', {'FreqStart', 'FreqStop', 'FlowTag'} ...
+            );
+            idList = [];
+
             for ii = 1:numel(app.metaData)
                 for jj = 1:numel(app.metaData(ii).Data)
+                    freqStart = app.metaData(ii).Data(jj).MetaData.FreqStart;
+                    freqStop  = app.metaData(ii).Data(jj).MetaData.FreqStop;
+                    flowTag   = sprintf('%.3f - %.3f MHz', freqStart / 1e+6, freqStop / 1e+6);
 
-                    FreqStart = app.metaData(ii).Data(jj).MetaData.FreqStart;
-                    FreqStop  = app.metaData(ii).Data(jj).MetaData.FreqStop;
-
-                    bandList(end+1,:) = {FreqStart, FreqStop, sprintf('%.3f - %.3f MHz', FreqStart/1e+6, FreqStop/1e+6)};
-                    IDList(end+1,1)   = app.metaData(ii).Data(jj).RelatedFiles.ID(1);
+                    bandList(end+1, :) = {freqStart, freqStop, flowTag};
+                    idList(end+1, 1) = app.metaData(ii).Data(jj).RelatedFiles.Id(1);
                 end
             end
             bandList = sortrows(bandList, {'FreqStart', 'FreqStop'});
 
-            app.FileFilterValue_ID.Items = unique(string(sort(IDList)), "rows", "stable");
-            app.FileFilterValue_Frequency.Items = unique(bandList.Band, "rows", "stable");
+            app.FileFilterValue_ID.Items = cellstr(string(unique(idList)));
+            app.FileFilterValue_Frequency.Items = unique(bandList.FlowTag, 'stable');
         end
 
         %-----------------------------------------------------------------%
-        function file_FilterCheck(app)
-            % Se app.FileFilterTree ainda não foi renderizado, então
-            % não faz sentido passar por aqui...
+        function updateFileFilterTree(app)
             if ~app.FileFilterTree.UserData.render
                 return
             end
 
             hFilter = allchild(app.FileFilterTree);
             if isempty(hFilter)
-                for ii = 1:numel(app.metaData)
-                    for jj = 1:numel(app.metaData(ii).Data)
-                        app.metaData(ii).Data(jj).Enable = true;
-                    end
-                end
+                updateEnabledState(app.metaData, 'all-flows', true)
 
             else
                 filterTextList = strjoin({hFilter.Text}, '\n');                
@@ -930,58 +842,37 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 for ii = 1:numel(app.metaData)
                     for jj = 1:numel(app.metaData(ii).Data)
-                        app.metaData(ii).Data(jj).Enable = false;
+                        updateEnabledState(app.metaData, 'specific-flow', ii, jj, false)
 
                         % FREQUÊNCIA
                         if ~isempty(filterSentence_Frequency)
-                            dataSentence = sprintf('%.3f - %.3f MHz', app.metaData(ii).Data(jj).MetaData.FreqStart .* 1e-6, ...
-                                                                      app.metaData(ii).Data(jj).MetaData.FreqStop  .* 1e-6);
-                            if ismember(dataSentence, filterSentence_Frequency)
-                                app.metaData(ii).Data(jj).Enable = true;
+                            flowTag = sprintf('%.3f - %.3f MHz', app.metaData(ii).Data(jj).MetaData.FreqStart / 1e+6, app.metaData(ii).Data(jj).MetaData.FreqStop  / 1e+6);
+                            if ismember(flowTag, filterSentence_Frequency)
+                                updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
                                 continue
                             end
                         end
 
                         % ID
                         if ~isempty(filterSentence_ID)
-                            dataSentence = app.metaData(ii).Data(jj).RelatedFiles.ID(1);
-
-                            if ismember(dataSentence, filterSentence_ID)
-                                app.metaData(ii).Data(jj).Enable = true;
+                            id = app.metaData(ii).Data(jj).RelatedFiles.Id(1);
+                            if ismember(id, filterSentence_ID)
+                                updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
                                 continue
                             end
                         end
 
                         % DESCRIÇÃO
                         if ~isempty(filterSentence_Description)
-                            dataSentence = app.metaData(ii).Data(jj).RelatedFiles.Description{1};
+                            description = app.metaData(ii).Data(jj).RelatedFiles.Description{1};
 
-                            if any(cellfun(@(x) contains(dataSentence, x, "IgnoreCase", true), replace(filterSentence_Description, '"', '')))
-                                app.metaData(ii).Data(jj).Enable = true;
+                            if any(cellfun(@(x) contains(description, x, "IgnoreCase", true), replace(filterSentence_Description, '"', '')))
+                                updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
                                 continue
                             end
                         end
                     end
                 end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function file_DataReaderError(app)
-            if ~isempty(app.specData)
-                delete(app.specData)
-                app.specData = model.SpecData.empty;
-            end
-
-            onTabNavigatorButtonPushed(app, struct('Source', app.Tab1Button, 'PreviousValue', false)) 
-        end
-
-        %-----------------------------------------------------------------%
-        function file_specReadButtonVisibility(app)
-            if ~isempty(app.metaData)
-                app.tool_ReadSpectrumData.Enable = 1;
-            else
-                app.tool_ReadSpectrumData.Enable = 0;
             end
         end
 
@@ -1292,7 +1183,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         function onTabNavigatorButtonPushed(app, event)
 
             switch event.Source
-                case {app.Tab1Button, app.Tab2Button, app.Tab3Button, app.Tab4Button, app.Tab6Button, app.Tab7Button}
+                case {app.Tab1Button, app.Tab2Button, app.Tab3Button, app.Tab4Button, app.Tab5Button, app.Tab6Button, app.Tab7Button}
                     openModule(app.tabGroupController, event.Source, event.PreviousValue, app.General, app)
 
                 case app.DataHubLamp
@@ -1320,55 +1211,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             
         end
 
-        % Selection changed function: FileTree
-        function onTreeSelectionChanged(app, event)
-            
-            currentSelectedFileIndex = [];
-
-            if ~isempty(app.FileTree.SelectedNodes)
-                % Caso sejam selecionados nós de apenas um único arquivo,
-                % apresentam-se os metadados relacionados à informação 
-                % espectral, além de habilitar os botões do toolbar.
-
-                idxFileList   = arrayfun(@(x) x.NodeData.idx1, app.FileTree.SelectedNodes, "UniformOutput", false);
-                idxFile       = unique(horzcat(idxFileList{:}));
-
-                if isscalar(idxFile)
-                    idxThreadList = arrayfun(@(x) x.NodeData.idx2, app.FileTree.SelectedNodes, "UniformOutput", false);
-                    idxThread     = idxThreadList{1};
-
-                    for ii = 2:numel(idxThreadList)
-                        idxThread = intersect(idxThread, idxThreadList{ii});
-                    end
-
-                    if ~isempty(idxThread)
-                        currentSelectedFileIndex = struct('previousSelectedFileIndex',  idxFile, ...
-                                                          'previousSelectedFileThread', idxThread);
-                    end
-                else
-                    
-                end
-            end
-
-            if isequal(app.FileTree.UserData, currentSelectedFileIndex)
-                % Não faz nada...
-
-            elseif ~isempty(currentSelectedFileIndex)
-                app.FileTree.UserData = currentSelectedFileIndex;
-
-                collapse(app.FileTree)                        
-                expand(app.FileTree.Children(idxFile), 'all')
-                scroll(app.FileTree, app.FileTree.SelectedNodes(end))
-
-                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.File(app.metaData, idxFile, idxThread));
-
-            else
-                app.FileTree.UserData = struct('previousSelectedFileIndex', [], 'previousSelectedFileThread', []);
-                ui.TextView.update(app.FileMetadata, '');
-            end
-            
-        end
-
         % Selection change function: SubTabGroup
         function onSubTabGroupSelectionChanged(app, event)
             
@@ -1378,108 +1220,213 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: tool_ReadFiles
-        function Toolbar_SelectFileToReadButtonClicked(app, event)
+        function onFilteTreeAddRequested(app, event)
+
+            hasReadNewFiles = false;
 
             if app.General.operationMode.Simulation
                 app.General.operationMode.Simulation = false;
                 
-                [projectFolder, ...
-                 programDataFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
-                simulationFolders   = {programDataFolder, projectFolder};
+                [projectFolder, cacheFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
+                simulationFolders = {cacheFolder, projectFolder};
 
                 for ii = 1:numel(simulationFolders)
-                    filePath    = fullfile(simulationFolders{ii}, 'Simulation');    
-                    listOfFiles = dir(filePath);
-                    fileName    = {listOfFiles.name};
-                    fileName    = fileName(endsWith(lower(fileName), '.mat'));
+                    filePath = fullfile(simulationFolders{ii}, 'Simulation');
+                    fileList = dir(filePath);
+                    
+                    fileName = {fileList.name};
+                    fileName = fileName(endsWith(lower(fileName), '.mat'));
 
                     if ~isempty(fileName)
                         break
                     end
                 end
-
             else
-                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', ...
-                    {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; ...
-                     '*.csv;*.sm1809',    'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
-    
+                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
+
                 if isempty(fileName)
                     return
                 elseif ~iscell(fileName)
                     fileName = {fileName};
                 end
+
                 updateLastVisitedFolder(app, filePath)
             end
 
-            file_OpenSelectedFiles(app, filePath, fileName)
+            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).');            
+            
+            repeteadFiles = {};
+            errorMessage  = {};
 
-        end
+            for ii = 1:numel(fileName)
+                d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
-        % Image clicked function: tool_ReadSpectrumData
-        function Toolbar_ReadSpecDataButtonClicked(app, event)
+                fileFullPath = fullfile(filePath, fileName{ii});
+                [~, ~, fileExt] = fileparts(fileName{ii});
+                relatedFiles = getRelatedFiles(app.metaData);
+
+                if any(strcmpi(fileFullPath, {app.metaData.File}))
+                    repeteadFiles{end+1} = fileName{ii};                      
+                    continue
+                end
+                
+                switch lower(fileExt)                        
+                    case '.mat'
+                        lastwarn('')
+                        load(fileFullPath, '-mat', 'prj_Type', 'prj_RelatedFiles')
+                        [~, warnID] = lastwarn;
                         
-            % <ReviewNote> EMD - 22/08/2024</ReviewNote>
-            % Verificar se há ao menos um fluxo a ser lido...
-            flag = false;
-            for ii = 1:numel(app.metaData)
-                if any([app.metaData(ii).Data.Enable])
-                    flag = true;
-                    break
+                        % Um projeto .MAT pode conter informações geradas por mais
+                        % de um arquivo .BIN, por exemplo. Por essa razão, certifica-se
+                        % que nenhum dos arquivos relacionados ao projeto já foram 
+                        % lidos anteriormente.
+                        warningMsg = '';
+                        if strcmp(warnID, 'MATLAB:load:variableNotFound')
+                            warningMsg = sprintf([ ...
+                                'O arquivo indicado a seguir não foi gerado ' ...
+                                'pelo appAnalise ou appColeta.\n•&thinsp;%s' ...
+                            ], fileName{ii});
+                            
+                        elseif any(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true))
+                            warningMsg = sprintf([ ...
+                                'O arquivo indicado a seguir não será lido ' ...
+                                'por já ter sido lido ao menos um arquivo ' ...
+                                'relacionado ao projeto appAnalise.\n•&thinsp;%s\n\n' ...
+                                'Arquivo(s) relacionado(s) ao projeto appAnalise ' ...
+                                'já lido(s):\n%s' ...
+                            ], fileName{ii}, strjoin(cellfun(@(x) sprintf('•&thinsp;%s', x), relatedFiles(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true)), 'UniformOutput', false), '\n'));
+
+                        elseif ~isempty(app.metaData) && strcmp(prj_Type, 'Project data') && ismember('Project data', {app.metaData.Type})
+                            warningMsg = sprintf([ ...
+                                'O arquivo indicado a seguir não será lido ' ...
+                                'porque já foram lidos os metadados de outro ' ...
+                                'projeto appAnalise.\n•&thinsp;%s' ...
+                            ], fileName{ii});
+                        end
+
+                        if ~isempty(warningMsg)
+                            ui.Dialog(app.UIFigure, 'warning', warningMsg);                            
+                            continue
+                        end
+
+                    otherwise % {'.bin', '.dbm', '.sm1809', '.csv'}
+                        prj_Type = 'Spectral data';
+                end
+
+                [app.metaData, msg] = importFile(app.metaData, fileFullPath, prj_Type);
+                if isempty(msg)
+                    hasReadNewFiles = true;
+                else
+                    errorMessage{end+1} = msg;
                 end
             end
 
-            if ~flag
-                ui.Dialog(app.UIFigure, 'warning', 'Não há fluxo de informação a ser lido...');
-                return
+            if hasReadNewFiles
+                previousSelectionIdxs = app.FileTree.UserData.previousSelection;
+                refreshProjectFiles(app, previousSelectionIdxs, 'onFileListAdded')
             end
 
-            % Verifica se os módulos auxiliares abaixo descritos estão abertos.
-            % - auxiliarWin1: winSignalAnalysis
-            % - auxiliarWin2: winDriveTest
-            if strcmp(auxAppStatus(app, 'RELER INFORMAÇÃO ESPECTRAL'), 'Não')
-                return
+            dialogBoxMessage = {};            
+            if ~isempty(repeteadFiles)
+                dialogBoxMessage{end+1} = sprintf('Os metadados do(s) arquivo(s) indicado(s) a seguir já tinham sido lidos.\n%s', textFormatGUI.cellstr2Bullets(repeteadFiles));
             end
 
-            % Reinicia a variável, caso não vazia...
-            if ~isempty(app.specData)
-                delete(app.specData)
-                app.specData = model.SpecData.empty;
-            end
-           
-            d = [];
-            try
-                d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento...');
-                app.specData = spectrumRead(app.specData, app.metaData, app, d);
-    
-                % Desabilita botão, inviabilizando leitura do mesmo conjunto de
-                % dados.
-                app.tool_ReadSpectrumData.Enable = 0;
-                ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onSpecDataRead')
-
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', getReport(ME));
-                file_DataReaderError(app)
+            if ~isempty(errorMessage)
+                dialogBoxMessage{end+1} = sprintf('Evidenciado <font style="color: red;"><b>ERRO</b></font> na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', textFormatGUI.cellstr2Bullets(errorMessage));
             end
 
-            delete(d)
+            if ~isempty(dialogBoxMessage)
+                ui.Dialog(app.UIFigure, 'error', strjoin(dialogBoxMessage, '<br><br>'));
+            end
 
         end
 
-        % Value changed function: FileFilterType
-        function FileFilterTypeChanged(app, event)
-
-            cellfun(@(x) set(x, 'Visible', 'off'), {app.FileFilterValue_Frequency, app.FileFilterValue_ID, app.FileFilterValue_Description});
-
-            switch app.FileFilterType.Value
-                case 'Faixa de Frequência'; app.FileFilterValue_Frequency.Visible   = 'on';
-                case 'ID';                  app.FileFilterValue_ID.Visible          = 'on';
-                case 'Descrição';           app.FileFilterValue_Description.Visible = 'on';
+        % Menu selected function: FileTreeDeleteButton
+        function onFileTreeDeleteRequested(app, event)
+            
+            if isempty(app.FileTree.SelectedNodes)
+                return
             end
 
+            referenceTable = table( ...
+                'Size', [0, 3], ...
+                'VariableTypes', {'double', 'double', 'cell'}, ...
+                'VariableNames', {'level', 'fileIdx', 'flowIdxs'} ...
+            );
+
+            for ii = 1:numel(app.FileTree.SelectedNodes)
+                idx = find(referenceTable.fileIdx == app.FileTree.SelectedNodes(ii).NodeData.fileIdx, 1);
+
+                if isempty(idx)
+                    referenceTable(end+1, :)   = {app.FileTree.SelectedNodes(ii).NodeData.level, app.FileTree.SelectedNodes(ii).NodeData.fileIdx, {app.FileTree.SelectedNodes(ii).NodeData.flowIdx}};
+                else
+                    referenceTable(idx, [1,3]) = {min([referenceTable{idx, 1}, app.FileTree.SelectedNodes(ii).NodeData.level]), {unique([cell2mat(referenceTable{idx, 3}), app.FileTree.SelectedNodes(ii).NodeData.flowIdx])}};
+                end
+            end
+
+            referenceTable = sortrows(referenceTable, 'fileIdx');
+
+            for kk = height(referenceTable):-1:1
+                fileIdx  = referenceTable.fileIdx(kk);
+                flowIdxs = referenceTable.flowIdxs{kk};
+
+                if referenceTable.level(kk) == 1 || isequal(referenceTable.flowIdxs{kk}, 1:numel(app.metaData(fileIdx).Data))
+                    delete(app.metaData(fileIdx))
+                    app.metaData(fileIdx) = [];
+
+                else
+                    delete(app.metaData(fileIdx).Data(flowIdxs))
+                    app.metaData(fileIdx).Data(flowIdxs)    = [];
+                    app.metaData(fileIdx).Samples(flowIdxs) = [];
+                    app.metaData(fileIdx).Memory            = computeEstimatedMemory(app.metaData, fileIdx);
+                end
+            end
+            
+            refreshProjectFiles(app, [], 'onFileListRemoved')
+
+        end
+
+        % Selection changed function: FileTree
+        function onFileTreeSelectionChanged(app, event)
+            
+            currentSelectedIdxs = [];
+            if ~isempty(app.FileTree.SelectedNodes)
+                fileIdxList = arrayfun(@(x) x.NodeData.fileIdx, app.FileTree.SelectedNodes, "UniformOutput", false);
+                fileIdxs = unique(horzcat(fileIdxList{:}));
+
+                if isscalar(fileIdxs)
+                    flowIdxList = arrayfun(@(x) x.NodeData.flowIdx, app.FileTree.SelectedNodes, "UniformOutput", false);
+                    flowIdxs = unique(horzcat(flowIdxList{:}));
+                    currentSelectedIdxs = struct('fileIdx', fileIdxs, 'flowIdxs', flowIdxs);
+                end
+            end
+
+            if isequal(app.FileTree.UserData.previousSelection, currentSelectedIdxs)
+                return
+            end
+
+            if ~isempty(currentSelectedIdxs)
+                app.FileTree.UserData.previousSelection = currentSelectedIdxs;
+
+                expand(app.FileTree.Children(fileIdxs), 'all')
+                scroll(app.FileTree, app.FileTree.SelectedNodes(end))
+
+                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.SelectedFile(app.metaData, fileIdxs, flowIdxs));
+            else
+                initializeFileTreeSelectionIdx(app)
+
+                if ~isempty(app.FileTree.SelectedNodes)
+                    nodeData = [app.FileTree.SelectedNodes.NodeData];
+                    ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.SelectedFile(app.metaData, fileIdxs, nodeData))
+                else
+                    ui.TextView.update(app.FileMetadata, '');
+                end
+            end
+            
         end
 
         % Image clicked function: FileFilterAdd
-        function FileFilterAddClicked(app, event)
+        function onFileFilterAddRequested(app, event)
             
             switch app.FileFilterType.Value
                 case 'Faixa de Frequência'
@@ -1509,62 +1456,36 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 return
             end
 
-            uitreenode(app.FileFilterTree, 'Text',        newFilterText, ...
-                                               'ContextMenu', app.file_ContextMenu_Tree2);
-            buildFileTree(app)
+            uitreenode(app.FileFilterTree, 'Text', newFilterText, 'ContextMenu', app.FileFilterTreeContextMenu);
+
+            previousSelectionIdxs = app.FileTree.UserData.previousSelection;
+            refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
 
         end
 
-        % Menu selected function: file_ContextMenu_delTree1Node
-        function ContextMenu_delTree1NodeSelected(app, event)
-            % <ReviewNote>EMD - 14/08/2024</ReviewNote>
-            idxTable = table('Size', [0, 3],                                ...
-                             'VariableTypes', {'double', 'double', 'cell'}, ...
-                             'VariableNames', {'level', 'idx1', 'idx2'});
-
-            for ii = 1:numel(app.FileTree.SelectedNodes)
-                idx = find(idxTable.idx1 == app.FileTree.SelectedNodes(ii).NodeData.idx1, 1);
-                if isempty(idx)
-                    idxTable(end+1,:)   = {app.FileTree.SelectedNodes(ii).NodeData.level, app.FileTree.SelectedNodes(ii).NodeData.idx1, {app.FileTree.SelectedNodes(ii).NodeData.idx2}};
-                else
-                    idxTable(idx,[1,3]) = {min([idxTable{idx,1}, app.FileTree.SelectedNodes(ii).NodeData.level]), {unique([cell2mat(idxTable{idx,3}), app.FileTree.SelectedNodes(ii).NodeData.idx2])}};
-                end
-            end
-
-            idxTable = sortrows(idxTable, 'idx1');
-
-            for kk = height(idxTable):-1:1
-                idx1 = idxTable.idx1(kk);
-                idx2 = idxTable.idx2{kk};
-
-                switch idxTable.level(kk)
-                    case 1
-                        delete(app.metaData(idx1))
-                        app.metaData(idx1) = [];
-
-                    otherwise
-                        if isequal(idxTable.idx2{kk}, 1:numel(app.metaData(idx1).Data))
-                            delete(app.metaData(idx1))
-                            app.metaData(idx1) = [];
-                        else
-                            delete(app.metaData(idx1).Data(idx2))
-                            app.metaData(idx1).Data(idx2)    = [];
-                            app.metaData(idx1).Samples(idx2) = [];
-                            app.metaData(idx1).Memory        = EstimatedMemory(app.metaData, idx1);
-                        end
-                end
-            end
+        % Menu selected function: FileFilterTreeDeleteButton
+        function onFileFilterDeleteRequested(app, event)
             
-            buildFileTree(app)
+            if isempty(app.FileFilterTree.SelectedNodes)
+                return
+            end
+
+            delete(app.FileFilterTree.SelectedNodes)
+
+            previousSelectionIdxs = app.FileTree.UserData.previousSelection;
+            refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
 
         end
 
-        % Menu selected function: file_ContextMenu_delTree2Node
-        function ContextMenu_delTree2NodeSelected(app, event)
-            
-            if ~isempty(app.FileFilterTree.SelectedNodes)
-                delete(app.FileFilterTree.SelectedNodes)
-                buildFileTree(app)
+        % Value changed function: FileFilterType
+        function onFileFilterTypeSelectionChanged(app, event)
+
+            cellfun(@(x) set(x, 'Visible', 'off'), {app.FileFilterValue_Frequency, app.FileFilterValue_ID, app.FileFilterValue_Description});
+
+            switch app.FileFilterType.Value
+                case 'Faixa de Frequência'; app.FileFilterValue_Frequency.Visible   = 'on';
+                case 'ID';                  app.FileFilterValue_ID.Visible          = 'on';
+                case 'Descrição';           app.FileFilterValue_Description.Visible = 'on';
             end
 
         end
@@ -1619,7 +1540,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create FileTree
             app.FileTree = uitree(app.Tab1Grid);
             app.FileTree.Multiselect = 'on';
-            app.FileTree.SelectionChangedFcn = createCallbackFcn(app, @onTreeSelectionChanged, true);
+            app.FileTree.SelectionChangedFcn = createCallbackFcn(app, @onFileTreeSelectionChanged, true);
             app.FileTree.FontSize = 11;
             app.FileTree.Layout.Row = 3;
             app.FileTree.Layout.Column = [2 3];
@@ -1636,7 +1557,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.Tab1Grid);
-            app.Toolbar.ColumnWidth = {22, 5, 22, '1x'};
+            app.Toolbar.ColumnWidth = {22, '1x'};
             app.Toolbar.RowHeight = {3, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -1647,27 +1568,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create tool_ReadFiles
             app.tool_ReadFiles = uiimage(app.Toolbar);
             app.tool_ReadFiles.ScaleMethod = 'none';
-            app.tool_ReadFiles.ImageClickedFcn = createCallbackFcn(app, @Toolbar_SelectFileToReadButtonClicked, true);
+            app.tool_ReadFiles.ImageClickedFcn = createCallbackFcn(app, @onFilteTreeAddRequested, true);
             app.tool_ReadFiles.Layout.Row = [1 3];
             app.tool_ReadFiles.Layout.Column = 1;
             app.tool_ReadFiles.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Import_16.png');
-
-            % Create tool_Separator
-            app.tool_Separator = uiimage(app.Toolbar);
-            app.tool_Separator.ScaleMethod = 'none';
-            app.tool_Separator.Enable = 'off';
-            app.tool_Separator.Layout.Row = [1 3];
-            app.tool_Separator.Layout.Column = 2;
-            app.tool_Separator.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'LineV.svg');
-
-            % Create tool_ReadSpectrumData
-            app.tool_ReadSpectrumData = uiimage(app.Toolbar);
-            app.tool_ReadSpectrumData.ScaleMethod = 'none';
-            app.tool_ReadSpectrumData.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ReadSpecDataButtonClicked, true);
-            app.tool_ReadSpectrumData.Enable = 'off';
-            app.tool_ReadSpectrumData.Layout.Row = [1 3];
-            app.tool_ReadSpectrumData.Layout.Column = 3;
-            app.tool_ReadSpectrumData.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Run_16.png');
 
             % Create SubTabGroup
             app.SubTabGroup = uitabgroup(app.Tab1Grid);
@@ -1714,7 +1618,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create FileFilterType
             app.FileFilterType = uidropdown(app.SubGrid2);
             app.FileFilterType.Items = {'Faixa de Frequência', 'ID', 'Descrição'};
-            app.FileFilterType.ValueChangedFcn = createCallbackFcn(app, @FileFilterTypeChanged, true);
+            app.FileFilterType.ValueChangedFcn = createCallbackFcn(app, @onFileFilterTypeSelectionChanged, true);
             app.FileFilterType.FontSize = 11;
             app.FileFilterType.BackgroundColor = [1 1 1];
             app.FileFilterType.Layout.Row = 1;
@@ -1753,7 +1657,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create FileFilterAdd
             app.FileFilterAdd = uiimage(app.SubGrid2);
             app.FileFilterAdd.ScaleMethod = 'none';
-            app.FileFilterAdd.ImageClickedFcn = createCallbackFcn(app, @FileFilterAddClicked, true);
+            app.FileFilterAdd.ImageClickedFcn = createCallbackFcn(app, @onFileFilterAddRequested, true);
             app.FileFilterAdd.Layout.Row = [1 2];
             app.FileFilterAdd.Layout.Column = 2;
             app.FileFilterAdd.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Continue_16.png');
@@ -1960,25 +1864,27 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppInfo.Layout.Column = 18;
             app.AppInfo.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'kebab-vertical-24px-white.svg');
 
-            % Create file_ContextMenu_Tree1
-            app.file_ContextMenu_Tree1 = uicontextmenu(app.UIFigure);
-            app.file_ContextMenu_Tree1.Tag = 'winAppAnalise';
+            % Create FileTreeContextMenu
+            app.FileTreeContextMenu = uicontextmenu(app.UIFigure);
+            app.FileTreeContextMenu.Tag = 'winAppAnalise';
 
-            % Create file_ContextMenu_delTree1Node
-            app.file_ContextMenu_delTree1Node = uimenu(app.file_ContextMenu_Tree1);
-            app.file_ContextMenu_delTree1Node.MenuSelectedFcn = createCallbackFcn(app, @ContextMenu_delTree1NodeSelected, true);
-            app.file_ContextMenu_delTree1Node.ForegroundColor = [1 0 0];
-            app.file_ContextMenu_delTree1Node.Text = 'Excluir';
+            % Create FileTreeEditButton
+            app.FileTreeEditButton = uimenu(app.FileTreeContextMenu);
+            app.FileTreeEditButton.Text = '✏️ Editar';
 
-            % Create file_ContextMenu_Tree2
-            app.file_ContextMenu_Tree2 = uicontextmenu(app.UIFigure);
-            app.file_ContextMenu_Tree2.Tag = 'winAppAnalise';
+            % Create FileTreeDeleteButton
+            app.FileTreeDeleteButton = uimenu(app.FileTreeContextMenu);
+            app.FileTreeDeleteButton.MenuSelectedFcn = createCallbackFcn(app, @onFileTreeDeleteRequested, true);
+            app.FileTreeDeleteButton.Text = '❌ Excluir';
 
-            % Create file_ContextMenu_delTree2Node
-            app.file_ContextMenu_delTree2Node = uimenu(app.file_ContextMenu_Tree2);
-            app.file_ContextMenu_delTree2Node.MenuSelectedFcn = createCallbackFcn(app, @ContextMenu_delTree2NodeSelected, true);
-            app.file_ContextMenu_delTree2Node.ForegroundColor = [1 0 0];
-            app.file_ContextMenu_delTree2Node.Text = 'Excluir';
+            % Create FileFilterTreeContextMenu
+            app.FileFilterTreeContextMenu = uicontextmenu(app.UIFigure);
+            app.FileFilterTreeContextMenu.Tag = 'winAppAnalise';
+
+            % Create FileFilterTreeDeleteButton
+            app.FileFilterTreeDeleteButton = uimenu(app.FileFilterTreeContextMenu);
+            app.FileFilterTreeDeleteButton.MenuSelectedFcn = createCallbackFcn(app, @onFileFilterDeleteRequested, true);
+            app.FileFilterTreeDeleteButton.Text = '❌ Excluir';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

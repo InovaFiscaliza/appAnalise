@@ -47,13 +47,13 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function bandsIndex = FindRelatedBands(obj, specData)        
-            FreqStart  = specData.MetaData.FreqStart/1e+6;
-            FreqStop   = specData.MetaData.FreqStop /1e+6;
+        function bandsIdxs = getRelatedChannelIndexes(obj, specData)        
+            freqStart  = specData.MetaData.FreqStart/1e+6;
+            freqStop   = specData.MetaData.FreqStop /1e+6;
 
-            BandLimits = [obj.Channel.Band]';        
-            bandsIndex = find(((FreqStart >= BandLimits(:,1)) & (FreqStart < BandLimits(:,2))) | ...
-                              ((FreqStart <= BandLimits(:,1)) & (FreqStop  > BandLimits(:,1))));
+            bandLimits = [obj.Channel.Band]';        
+            bandsIdxs  = find(((freqStart >= bandLimits(:,1)) & (freqStart < bandLimits(:,2))) | ...
+                              ((freqStart <= bandLimits(:,1)) & (freqStop  > bandLimits(:,1))));
         end
 
         %-----------------------------------------------------------------%
@@ -63,8 +63,10 @@ classdef ChannelLib < handle
             % Concatena as canalizações - a automática, incluída automaticamente
             % pelo app a partir dos canais especificados em "ChannelLib.json", 
             % e a manual, inserida pelo fiscal no app.
-            allRelatedChannels = [obj.Channel(specData.UserData.channelLibIndex); ...
-                                  specData.UserData.channelManual];
+            allRelatedChannels = [
+                obj.Channel(specData.UserData.ChannelLibraryRelatedIndexes); ...
+                specData.UserData.ChannelUserDefined
+            ];
 
             % Identifica a canalização que apresenta maior sobreposição com
             % o fluxo espectral sob análise.
@@ -87,14 +89,14 @@ classdef ChannelLib < handle
         function Truncated = TruncatedFrequency(obj, specData, idxEmission)
 
             Channels = [];
-            if ~isempty(specData.UserData.channelLibIndex) && ~isempty(specData.UserData.channelManual)
+            if ~isempty(specData.UserData.ChannelLibraryRelatedIndexes) && ~isempty(specData.UserData.ChannelUserDefined)
                 Channels = ChannelList(obj, specData, 'Lib',    Channels, idxEmission);
                 Channels = ChannelList(obj, specData, 'Custom', Channels, idxEmission);
 
-            elseif ~isempty(specData.UserData.channelLibIndex)
+            elseif ~isempty(specData.UserData.ChannelLibraryRelatedIndexes)
                 Channels = ChannelList(obj, specData, 'Lib',    Channels, idxEmission);
 
-            elseif ~isempty(specData.UserData.channelManual)
+            elseif ~isempty(specData.UserData.ChannelUserDefined)
                 Channels = ChannelList(obj, specData, 'Custom', Channels, idxEmission);
             end
 
@@ -164,28 +166,28 @@ classdef ChannelLib < handle
                         switch typeOfChannel
                             case 'channelLib'
                                 idxChannel = find(strcmp({obj.Channel.Name}, channels2Add(jj).Name), 1);
-                                if ismember(idxChannel, specData(ii).UserData.channelLibIndex)
+                                if ismember(idxChannel, specData(ii).UserData.ChannelLibraryRelatedIndexes)
                                     error('ChannelLib:addChannel', 'Canalização já relacionada ao fluxo espectral selecionado.')
                                 end
-                                specData(ii).UserData.channelLibIndex = unique([specData(ii).UserData.channelLibIndex; idxChannel]);
+                                specData(ii).UserData.ChannelLibraryRelatedIndexes = unique([specData(ii).UserData.ChannelLibraryRelatedIndexes; idxChannel]);
         
                             case 'manual'
                                 % As canalizações incluídas manualmente podem ser editadas - 
                                 % tanto por edição direta no registro, em GUI, quanto pela
                                 % inclusão de arquivo externo.
-                                idxChannel = find(strcmp({specData(ii).UserData.channelManual.Name}, channels2Add(jj).Name), 1);
+                                idxChannel = find(strcmp({specData(ii).UserData.ChannelUserDefined.Name}, channels2Add(jj).Name), 1);
                                 if isempty(idxChannel)
-                                    specData(ii).UserData.channelManual(end+1)      = channels2Add(jj);
+                                    specData(ii).UserData.ChannelUserDefined(end+1)      = channels2Add(jj);
                                 else
-                                    specData(ii).UserData.channelManual(idxChannel) = channels2Add(jj);
+                                    specData(ii).UserData.ChannelUserDefined(idxChannel) = channels2Add(jj);
                                 end
                         end
                     end
                 end
 
-                if ~isempty(specData(ii).UserData.channelManual)
-                    [~, idxSort] = sort([specData(ii).UserData.channelManual.FirstChannel]);
-                    specData(ii).UserData.channelManual = specData(ii).UserData.channelManual(idxSort);
+                if ~isempty(specData(ii).UserData.ChannelUserDefined)
+                    [~, idxSort] = sort([specData(ii).UserData.ChannelUserDefined.FirstChannel]);
+                    specData(ii).UserData.ChannelUserDefined = specData(ii).UserData.ChannelUserDefined(idxSort);
                 end
             end
         end
@@ -211,13 +213,13 @@ classdef ChannelLib < handle
                                 'VariableNames', {'Name', 'FirstChannel', 'ChannelBW', 'Reference', 'FreqStart', 'FreqStop'}, ...
                                 'VariableTypes', {'cell', 'double', 'double', 'cell', 'double', 'double'});
 
-            for ii = specData.UserData.channelLibIndex'
+            for ii = specData.UserData.ChannelLibraryRelatedIndexes'
                 chRawInfo   = obj.Channel(ii);
                 chPlotTable = PreparingData2Plot(obj, chPlotTable, chRawInfo);
             end
 
-            for jj = 1:numel(specData.UserData.channelManual)
-                chRawInfo   = specData.UserData.channelManual(jj);
+            for jj = 1:numel(specData.UserData.ChannelUserDefined)
+                chRawInfo   = specData.UserData.ChannelUserDefined(jj);
                 chPlotTable = PreparingData2Plot(obj, chPlotTable, chRawInfo);
             end
 
@@ -258,7 +260,7 @@ classdef ChannelLib < handle
 
             switch truncatedType
                 case 'Lib'
-                    for ii = specData.UserData.channelLibIndex'
+                    for ii = specData.UserData.ChannelLibraryRelatedIndexes'
                         if emission_downLim > obj.Channel(ii).Band(2) || emission_upLim < obj.Channel(ii).Band(1)
                             continue
                         end
@@ -276,14 +278,14 @@ classdef ChannelLib < handle
                     end
 
                 case 'Custom'
-                    for ii = 1:height(specData.UserData.channelManual)
-                        if emission_downLim > specData.UserData.channelManual(ii).Band(2) || emission_upLim < specData.UserData.channelManual(ii).Band(1)
+                    for ii = 1:height(specData.UserData.ChannelUserDefined)
+                        if emission_downLim > specData.UserData.ChannelUserDefined(ii).Band(2) || emission_upLim < specData.UserData.ChannelUserDefined(ii).Band(1)
                             continue
                         end
 
-                        FreqStart   = specData.UserData.channelManual(ii).FirstChannel;
-                        FreqStop    = specData.UserData.channelManual(ii).LastChannel;
-                        StepWidth   = specData.UserData.channelManual(ii).StepWidth;
+                        FreqStart   = specData.UserData.ChannelUserDefined(ii).FirstChannel;
+                        FreqStop    = specData.UserData.ChannelUserDefined(ii).LastChannel;
+                        StepWidth   = specData.UserData.ChannelUserDefined(ii).StepWidth;
     
                         Channels = [Channels, FreqStart:StepWidth:FreqStop];
                     end

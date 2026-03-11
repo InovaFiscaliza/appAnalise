@@ -27,7 +27,7 @@ function layoutDropDownTreeStyle(dropDownHandle, specData)
             freqStopAlignSpaces  = '';
 
             reportStatus = '';
-            if specData(jj).UserData.reportFlag
+            if ~isempty(specData(jj).UserData) && specData(jj).UserData.ReportInclude
                 reportStatus = '&emsp;&#x1F7E2;';
             end
 
@@ -46,7 +46,7 @@ function layoutDropDownTreeStyle(dropDownHandle, specData)
 
     currentValue = {};    
     if ~isempty(previousValue)
-        [~, previousValueIndex] = ismember(extractBefore(previousValue, ']'), extractBefore(itemsData, ']'));
+        [~, previousValueIndex] = ismember(previousValue, items);
 
         if previousValueIndex
             currentValue = {'Value', previousValueIndex};

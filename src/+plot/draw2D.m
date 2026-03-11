@@ -6,7 +6,7 @@ classdef (Abstract) draw2D
             defaultProp  = bandObj.mainApp.General_I;
             switch bandObj.Context
                 case 'appAnalise:PLAYBACK'
-                    customProp = bandObj.mainApp.specData(idx).UserData.customPlayback.Parameters;
+                    customProp = bandObj.mainApp.specData(idx).UserData.PlotDisplayConfig.Parameters;
                 otherwise
                     customProp = [];
             end
@@ -63,8 +63,8 @@ classdef (Abstract) draw2D
             specData = bandObj.mainApp.specData(idx);
             switch plotTag
                 case 'bandLimits'
-                    srcInfo  = specData.UserData.bandLimitsTable;
-                    plotFlag = specData.UserData.bandLimitsStatus;                    
+                    srcInfo  = specData.UserData.DetectionSubBands;
+                    plotFlag = specData.UserData.DetectionSubBandsEnabled;                    
                     
                 case 'channel'
                     srcInfo  = varargin{1};
