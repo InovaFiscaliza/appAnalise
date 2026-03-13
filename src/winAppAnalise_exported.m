@@ -9,6 +9,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         FigurePosition               matlab.ui.control.Image
         DataHubLamp                  matlab.ui.control.Image
         jsBackDoor                   matlab.ui.control.HTML
+        Tab8Button                   matlab.ui.control.StateButton
         Tab7Button                   matlab.ui.control.StateButton
         Tab6Button                   matlab.ui.control.StateButton
         ButtonsSeparator2            matlab.ui.control.Image
@@ -21,7 +22,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         AppName                      matlab.ui.control.Label
         AppIcon                      matlab.ui.control.Image
         TabGroup                     matlab.ui.container.TabGroup
-        Tab1                         matlab.ui.container.Tab
+        Tab1_File                    matlab.ui.container.Tab
         Tab1Grid                     matlab.ui.container.GridLayout
         SubTabGroup                  matlab.ui.container.TabGroup
         SubTab1                      matlab.ui.container.Tab
@@ -43,8 +44,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         Tab3_DriveTest               matlab.ui.container.Tab
         Tab4_SignalAnalysis          matlab.ui.container.Tab
         Tab5_Misc                    matlab.ui.container.Tab
-        Tab5_RFDataHub               matlab.ui.container.Tab
-        Tab6_Config                  matlab.ui.container.Tab
+        Tab6_RFDataHub               matlab.ui.container.Tab
+        Tab7_RepoSFI                 matlab.ui.container.Tab
+        Tab8_Config                  matlab.ui.container.Tab
         FileTreeContextMenu          matlab.ui.container.ContextMenu
         FileTreeEditButton           matlab.ui.container.Menu
         FileTreeDeleteButton         matlab.ui.container.Menu
@@ -278,6 +280,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     otherwise
                                         error('UnexpectedCall')
                                 end
+
+                            % auxApp.winPlayback (PLAYBACK)
+                            case {'auxApp.winPlayback', 'auxApp.winPlayback_exported'}
+                                switch eventName
+                                    case 'onPlaybackStarted'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName)
+
+                                    otherwise
+                                        error('UnexpectedCall')
+                                end
         
                             % DRIVETEST
                             % case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
@@ -495,6 +507,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         app.Tab5Button;
                         app.Tab6Button;
                         app.Tab7Button;
+                        app.Tab8Button;
                         app.FileModuleInfo;
                         app.FileTree;
                         app.FileMetadata;
@@ -518,6 +531,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.Tab5Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab6Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab7Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
+                            struct('appName', appName, 'dataTag', app.Tab8Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.FileTree.UserData.id, 'listener', struct('componentName', 'mainApp.FileTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
                         });
                     catch
@@ -566,10 +580,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.General_I.fileFolder.tempPath  = tempDir;
             app.General_I.fileFolder.MFilePath = MFilePath;
             
-            if ~strcmp(app.General_I.plot.waterfall.Decimation, 'auto')
-                app.General_I.plot.Waterfall.Decimation = 'auto';
-            end
-        
             if isempty(app.General_I.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters)
                 app.General_I.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters = Inf;
             end
@@ -622,7 +632,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 model.RFDataHub.read(appName, app.rootFolder, tempDir)
             end
 
-            app.General            = app.General_I;
+            app.General = app.General_I;
             app.General.AppVersion = util.getAppVersion(app.rootFolder, MFilePath, tempDir);
             sendEventToHTMLSource(app.jsBackDoor, 'getNavigatorBasicInformation')
         end
@@ -644,7 +654,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             addComponent(app.tabGroupController, "External", "auxApp.winSignalAnalysis", app.Tab4Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      4)
             addComponent(app.tabGroupController, "External", "auxApp.winMisc",           app.Tab5Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      5)
             addComponent(app.tabGroupController, "External", "auxApp.winRFDataHub",      app.Tab6Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      6)
-            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab7Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      7)
+            addComponent(app.tabGroupController, "External", "auxApp.winRepoSFI",        app.Tab7Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      7)
+            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab8Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      8)
             app.tabGroupController.inlineSVG = true;
 
             addStyle(app.FileTree, uistyle('Interpreter', 'html'))
@@ -1179,12 +1190,22 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         % Callback function: AppInfo, DataHubLamp, FigurePosition, 
-        % ...and 6 other components
+        % ...and 7 other components
         function onTabNavigatorButtonPushed(app, event)
 
             switch event.Source
-                case {app.Tab1Button, app.Tab2Button, app.Tab3Button, app.Tab4Button, app.Tab5Button, app.Tab6Button, app.Tab7Button}
+                case {app.Tab1Button, app.Tab2Button, app.Tab3Button, app.Tab4Button, app.Tab5Button, app.Tab6Button, app.Tab7Button, app.Tab8Button}
                     openModule(app.tabGroupController, event.Source, event.PreviousValue, app.General, app)
+
+                    % Ideia aqui é basicamente parar o PLAYBACK dos módulos
+                    % auxApp.winPlayback e auxApp.winDriveTest, caso abertos.
+                    if event.Source ~= app.Tab2Button
+                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onTabNavigatorButtonPushed')
+                    end
+
+                    if event.Source ~= app.Tab3Button
+                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', 'onTabNavigatorButtonPushed')
+                    end
 
                 case app.DataHubLamp
                     msg = [ ...
@@ -1523,13 +1544,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.TabGroup.Layout.Row = [1 2];
             app.TabGroup.Layout.Column = 1;
 
-            % Create Tab1
-            app.Tab1 = uitab(app.TabGroup);
-            app.Tab1.AutoResizeChildren = 'off';
-            app.Tab1.Title = 'FILE';
+            % Create Tab1_File
+            app.Tab1_File = uitab(app.TabGroup);
+            app.Tab1_File.AutoResizeChildren = 'off';
+            app.Tab1_File.Title = 'FILE';
 
             % Create Tab1Grid
-            app.Tab1Grid = uigridlayout(app.Tab1);
+            app.Tab1Grid = uigridlayout(app.Tab1_File);
             app.Tab1Grid.ColumnWidth = {10, '1x', '1x', 10, '0.25x', 360, 10};
             app.Tab1Grid.RowHeight = {94, 10, '1x', 10, 34};
             app.Tab1Grid.ColumnSpacing = 0;
@@ -1689,19 +1710,23 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab5_Misc = uitab(app.TabGroup);
             app.Tab5_Misc.Title = 'MISC';
 
-            % Create Tab5_RFDataHub
-            app.Tab5_RFDataHub = uitab(app.TabGroup);
-            app.Tab5_RFDataHub.AutoResizeChildren = 'off';
-            app.Tab5_RFDataHub.Title = 'RFDATAHUB';
+            % Create Tab6_RFDataHub
+            app.Tab6_RFDataHub = uitab(app.TabGroup);
+            app.Tab6_RFDataHub.AutoResizeChildren = 'off';
+            app.Tab6_RFDataHub.Title = 'RFDATAHUB';
 
-            % Create Tab6_Config
-            app.Tab6_Config = uitab(app.TabGroup);
-            app.Tab6_Config.AutoResizeChildren = 'off';
-            app.Tab6_Config.Title = 'CONFIG';
+            % Create Tab7_RepoSFI
+            app.Tab7_RepoSFI = uitab(app.TabGroup);
+            app.Tab7_RepoSFI.Title = 'REPOSFI';
+
+            % Create Tab8_Config
+            app.Tab8_Config = uitab(app.TabGroup);
+            app.Tab8_Config.AutoResizeChildren = 'off';
+            app.Tab8_Config.Title = 'CONFIG';
 
             % Create NavBar
             app.NavBar = uigridlayout(app.GridLayout);
-            app.NavBar.ColumnWidth = {22, 74, '1x', 34, 5, 34, 34, 34, 34, 5, 34, 34, '1x', 20, 20, 1, 20, 20};
+            app.NavBar.ColumnWidth = {22, 74, '1x', 34, 5, 34, 34, 34, 34, 5, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
             app.NavBar.RowHeight = {5, 7, 20, 7, 5};
             app.NavBar.ColumnSpacing = 5;
             app.NavBar.RowSpacing = 0;
@@ -1725,7 +1750,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppName.Layout.Row = [1 5];
             app.AppName.Layout.Column = [2 3];
             app.AppName.Interpreter = 'html';
-            app.AppName.Text = {'appAnalise v. 1.90.0'; '<font style="font-size: 9px;">R2024a</font>'};
+            app.AppName.Text = {'appAnalise v. 2.00.0'; '<font style="font-size: 9px;">R2024a</font>'};
 
             % Create Tab1Button
             app.Tab1Button = uibutton(app.NavBar, 'state');
@@ -1824,9 +1849,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create Tab7Button
             app.Tab7Button = uibutton(app.NavBar, 'state');
             app.Tab7Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
-            app.Tab7Button.Tag = 'CONFIG';
-            app.Tab7Button.Tooltip = {'Configurações gerais'};
-            app.Tab7Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'gear-24px-white.svg');
+            app.Tab7Button.Tag = 'REPOSFI';
+            app.Tab7Button.Tooltip = {'Consulta ao repoSFI'};
+            app.Tab7Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'library-24px-white.svg');
             app.Tab7Button.IconAlignment = 'top';
             app.Tab7Button.Text = '';
             app.Tab7Button.BackgroundColor = [0.2 0.2 0.2];
@@ -1834,17 +1859,30 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab7Button.Layout.Row = [2 4];
             app.Tab7Button.Layout.Column = 12;
 
+            % Create Tab8Button
+            app.Tab8Button = uibutton(app.NavBar, 'state');
+            app.Tab8Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
+            app.Tab8Button.Tag = 'CONFIG';
+            app.Tab8Button.Tooltip = {'Configurações gerais'};
+            app.Tab8Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'gear-24px-white.svg');
+            app.Tab8Button.IconAlignment = 'top';
+            app.Tab8Button.Text = '';
+            app.Tab8Button.BackgroundColor = [0.2 0.2 0.2];
+            app.Tab8Button.FontSize = 11;
+            app.Tab8Button.Layout.Row = [2 4];
+            app.Tab8Button.Layout.Column = 13;
+
             % Create jsBackDoor
             app.jsBackDoor = uihtml(app.NavBar);
             app.jsBackDoor.Layout.Row = [2 5];
-            app.jsBackDoor.Layout.Column = 14;
+            app.jsBackDoor.Layout.Column = 15;
 
             % Create DataHubLamp
             app.DataHubLamp = uiimage(app.NavBar);
             app.DataHubLamp.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.DataHubLamp.Visible = 'off';
             app.DataHubLamp.Layout.Row = 3;
-            app.DataHubLamp.Layout.Column = 15;
+            app.DataHubLamp.Layout.Column = 16;
             app.DataHubLamp.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'red-circle-blink.gif');
 
             % Create FigurePosition
@@ -1853,7 +1891,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FigurePosition.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.FigurePosition.Visible = 'off';
             app.FigurePosition.Layout.Row = 3;
-            app.FigurePosition.Layout.Column = 17;
+            app.FigurePosition.Layout.Column = 18;
             app.FigurePosition.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'screen-normal-24px-white.svg');
 
             % Create AppInfo
@@ -1861,7 +1899,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppInfo.ScaleMethod = 'none';
             app.AppInfo.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.AppInfo.Layout.Row = 3;
-            app.AppInfo.Layout.Column = 18;
+            app.AppInfo.Layout.Column = 19;
             app.AppInfo.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'kebab-vertical-24px-white.svg');
 
             % Create FileTreeContextMenu

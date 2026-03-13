@@ -1,30 +1,14 @@
-function varargout = Config(plotTag, defaultProperties, customProperties, Context)
+function varargout = Config(plotTag, defaultProperties)
     arguments
         plotTag
-        defaultProperties     % "GeneralSettings.json"        
-        customProperties = [] % Customização disponibilizada no modo PLAYBACK do app
-        Context          = ''
+        defaultProperties % "GeneralSettings.json"
     end
 
-    selectedProperties  = customPropertiesParser(plotTag, defaultProperties, customProperties, Context);
-    tempPlotConfig      = selectedProperties.plot.(plotTag);
+    tempPlotConfig = defaultProperties.plot.(plotTag);
 
     switch plotTag
-        case 'persistence'
-            plotConfig  = {'CDataMapping', 'scaled', 'PickableParts', 'none', 'Interpolation', tempPlotConfig.Interpolation};
-
-            % Aspectos relacionados ao cLim da curva de persistência:
-            % (a) O arquivo "GeneralSettings.json" tem como padrão o vetor [-1,-1]. 
-            % (b) A customização desse parâmetro é possível apenas quando o tamanho 
-            %     da janela da persistência é "full". 
-            if ~issorted(tempPlotConfig.LevelLimits, 'strictascend') || (tempPlotConfig.LevelLimits(1) == 0 && tempPlotConfig.LevelLimits(2) == 1) || ~strcmp(tempPlotConfig.WindowSize, 'full')
-                tempPlotConfig.LevelLimits = [];
-            end
-
-            varargout   = {plotConfig, tempPlotConfig.WindowSize, tempPlotConfig.Colormap, tempPlotConfig.Transparency, tempPlotConfig.LevelLimits};
-
         case 'waterfall'
-            switch tempPlotConfig.Fcn
+            switch tempPlotConfig.Function
                 case 'mesh'
                     plotConfig = {'MeshStyle', tempPlotConfig.MeshStyle, 'SelectionHighlight', 'off'};
                 case 'image'
@@ -35,7 +19,7 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
                 tempPlotConfig.LevelLimits = [];
             end
 
-            varargout   = {plotConfig, tempPlotConfig.Fcn, tempPlotConfig.Decimation, tempPlotConfig.Colormap, tempPlotConfig.LevelLimits};
+            varargout   = {plotConfig, tempPlotConfig.Function, tempPlotConfig.Decimation, tempPlotConfig.Colormap, tempPlotConfig.LevelLimits};
 
         case 'waterfallTime'
             plotType    = 'line';
@@ -56,38 +40,19 @@ function varargout = Config(plotTag, defaultProperties, customProperties, Contex
             varargout      = {plotConfig, plotConfigText, tempPlotConfig.LabelOffsetMode, tempPlotConfig.LabelOffset};
 
         case {'clearWrite', 'average', 'minHold', 'maxHold'}
-            switch tempPlotConfig.Fcn
+            switch tempPlotConfig.Function
                 case 'line'
                     tempPlotConfig = rmfield(tempPlotConfig, {'EdgeColor', 'FaceColor'});
                 case 'area'
                     tempPlotConfig = rmfield(tempPlotConfig, {'Color'});
                 otherwise
-                    error('UnexpectedPlotType')
+                    error('plot:Config:UnexpectedFunction', 'Unexpected plot function "%s"', tempPlotConfig.Function)
             end
 
-            plotType   = tempPlotConfig.Fcn;
-            plotConfig = structUtil.struct2cellWithFields(rmfield(tempPlotConfig, 'Fcn'));
+            plotType   = tempPlotConfig.Function;
+            plotConfig = structUtil.struct2cellWithFields(rmfield(tempPlotConfig, 'Function'));
             varargout  = {plotConfig, plotType};
     end
 
     varargout{1} = [varargout{1}, {'Tag', plotTag}];
-end
-
-
-%-------------------------------------------------------------------------%
-function selectedProperties = customPropertiesParser(plotTag, defaultProperties, customProperties, Context)
-    arguments
-        plotTag 
-        defaultProperties 
-        customProperties 
-        Context = ''
-    end
-
-    selectedProperties = defaultProperties;
-
-    if ~isempty(customProperties)
-        if ismember(plotTag, {'persistence', 'waterfall', 'waterfallTime'}) && ~strcmp(Context, 'appAnalise:DRIVETEST')
-            selectedProperties.plot.(plotTag) = customProperties.(plotTag);
-        end
-    end
 end

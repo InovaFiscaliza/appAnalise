@@ -172,7 +172,22 @@ classdef (Abstract) Interactivity
             
             for ii = 1:numel(hMultiAxes)
                 try
-                    set(hMultiAxes(ii), 'XLim', callingApp.restoreView(ii).xLim, 'YLim', callingApp.restoreView(ii).yLim)
+                    xLim = callingApp.restoreView(ii).xLim;
+                    if isempty(xLim)
+                        xLim = [0, 1];
+                    end
+
+                    yLim = callingApp.restoreView(ii).yLim;
+                    if isempty(yLim)
+                        switch class(hMultiAxes(ii).YAxis)
+                            case 'matlab.graphics.axis.decorator.DatetimeRuler'
+                                yLim = [datetime('now'), datetime('now')+seconds(1)];
+                            otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
+                                yLim = [0, 1];
+                        end
+                    end
+
+                    set(hMultiAxes(ii), 'XLim', xLim, 'YLim', yLim)
                 catch
                 end
             end

@@ -2,7 +2,8 @@ classdef (Abstract) StackingOrder
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        winAppAnalise     = {'mkrLabels', 'occTHR', 'mkrROI', 'ROI', 'Average', 'ClearWrite', 'MaxHold', 'mkrLine', 'Channel', 'BandLimits', 'Persistance', 'MinHold', 'WaterfallTime', 'Waterfall'}        
+        winAppAnalise     = {'mkrLabels', 'occTHR', 'mkrROI', 'ROI', 'average', 'clearWrite', 'maxHold', ...
+                             'mkrLine', 'channel', 'bandLimits', 'persistence', 'minHold', 'waterfallTime', 'waterfall'}        
         winDriveTest      = {'FilterROI', 'Car', 'Points', 'Distortion', 'Density', 'InRoute', 'OutRoute', ...    % app.UIAxes1   (GeographicAxes)
                              'ChannelROI', 'ClearWrite', 'Persistance', 'Timeline', 'Waterfall', 'ChannelPower'}  % app.UIAxes2-4 (CartesianAxes)
         winSignalAnalysis = {'EmissionROI', 'Average', 'MaxHold', 'MinHold'}                                      % app.UIAxes2   (CartesianAxes)

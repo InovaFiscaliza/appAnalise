@@ -1,106 +1,109 @@
-function [hPersistanceObj, windowSize] = Persistence(operationType, hPersistanceObj, varargin)
+function [persistenceObj, windowSize] = Persistence(operationType, persistenceObj, axesHandle, bandObj, sweepTimeIdx)
+    arguments
+        operationType
+        persistenceObj
+        axesHandle = []
+        bandObj = []
+        sweepTimeIdx = []
+    end
+
     switch operationType
         case {'Creation', 'Update'}
-            hAxes       = varargin{1};
-            bandObj     = varargin{2};
-            idx         = varargin{3}; 
+            specData = bandObj.SpecData;
+            plotDisplayConfig = specData.UserData.PlotDisplayConfig;
 
-            specData    = bandObj.mainApp.specData(idx);
+            plotConfig = {
+                'CDataMapping', 'scaled', ...
+                'PickableParts', 'none', ...
+                'Interpolation', plotDisplayConfig.persistence.interpolation, ...
+                'Tag', 'persistence' ...
+            };
 
-            defaultProp = bandObj.mainApp.General_I;
-            customProp  = bandObj.mainApp.specData(idx).UserData.customPlayback.Parameters;
-
-            [plotConfig,   ...
-             windowSize,   ...
-             colormapName, ...
-             Transparency, ...
-             cLimits]   = plot.Config('persistence', defaultProp, customProp);
-            windowSize  = checkWindowSize(bandObj, windowSize);
+            windowSize = checkWindowSize(bandObj, plotDisplayConfig.persistence.windowSize);
+            colormapName = plotDisplayConfig.persistence.colormap;
+            transparency = plotDisplayConfig.persistence.transparency;
+            cLimits = plotDisplayConfig.limits.persistence.cLim;
 
             switch operationType
                 case 'Creation'    
                     xResolution = min(801, bandObj.DataPoints);
                     yResolution = 201;
             
-                    yAmplitude    = class.Constants.yMaxLimRange;
-                    [yMin, yMax]  = bounds(specData.Data{2}, 'all');
-                    yMax          = max(yMin+yAmplitude, yMax);
-                    yMin          = yMax-yAmplitude;
+                    yAmplitude = class.Constants.yMaxLimRange;
+                    [yMin, yMax] = bounds(specData.Data{2}, 'all');
+                    yMax = max(yMin + yAmplitude, yMax);
+                    yMin = yMax - yAmplitude;
                     
-                    xEdges        = linspace(bandObj.FreqStart, bandObj.FreqStop, xResolution+1);
-                    yEdges        = linspace(yMin, yMax, yResolution+1);
-                    specHist      = zeros(yResolution, xResolution);
+                    xEdges = linspace(bandObj.FreqStart, bandObj.FreqStop, xResolution + 1);
+                    yEdges = linspace(yMin, yMax, yResolution + 1);
+                    specHist = zeros(yResolution, xResolution);
     
-                    hPersistance  = image(hAxes, specHist, 'AlphaData', specHist,'XData', [bandObj.FreqStart, bandObj.FreqStop], 'YData', [yMin, yMax], plotConfig{:});
-                    
                     % Cria uma imagem vazia, o que possibilita criar o
                     % objeto hPersistanceObj. E logo em seguida chama essa
                     % mesma função, mas no modo "Update".
-                    hPersistanceObj = struct('handle',   hPersistance, ...
-                                             'xEdges',   xEdges,       ...
-                                             'yEdges',   yEdges);
+                    persistenceHandle = image(axesHandle, specHist, 'AlphaData', specHist,'XData', [bandObj.FreqStart, bandObj.FreqStop], 'YData', [yMin, yMax], plotConfig{:});
+                    persistenceObj = struct('handle', persistenceHandle, 'xEdges', xEdges, 'yEdges', yEdges);
     
-                    set(hAxes, 'CLimMode', 'auto')
-                    hPersistanceObj = plot.Persistance('Update', hPersistanceObj, hAxes, bandObj, idx);
+                    set(axesHandle, 'CLimMode', 'auto')
+                    persistenceObj = plot.Persistence('Update', persistenceObj, axesHandle, bandObj, sweepTimeIdx);
                     
-                    if isempty(cLimits)
-                        hAxes.UserData.CLimMode = 'auto';
+                    if isempty(cLimits) || ~issorted(cLimits, 'strictascend')
+                        axesHandle.UserData.CLimMode = 'auto';
                     else
-                        hAxes.CLim  = cLimits;
-                        hAxes.UserData.CLimMode = 'manual';
+                        axesHandle.CLim  = cLimits;
+                        axesHandle.UserData.CLimMode = 'manual';
                     end
 
-                    plot.axes.Colormap(hAxes, colormapName)
-                    plot.axes.StackingOrder.execute(hAxes, bandObj.Context)
+                    plot.axes.Colormap(axesHandle, colormapName)
+                    plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
     
                 case 'Update'
-                    if isempty(hPersistanceObj)
-                        hPersistanceObj = plot.Persistance('Creation', hPersistanceObj, hAxes, bandObj, idx);
+                    if isempty(persistenceObj)
+                        persistenceObj = plot.Persistance('Creation', persistenceObj, axesHandle, bandObj);
                         return
                     end
 
-                    nSweeps = numel(specData.Data{1});
+                    nSweeps = bandObj.NumSweeps;
                     switch windowSize
                         case 'full'
-                            idxTimeArray = 1:nSweeps;
+                            timeIdxs = 1:nSweeps;
 
                         otherwise
                             winSize = str2double(windowSize);
 
                             switch bandObj.Context
                                 case {'appAnalise:PLAYBACK', 'appAnalise:DRIVETEST'}
-                                    idxTime = bandObj.callingApp.sweepTimeIndex;
-                                    idxTimeArray = max(1,idxTime-winSize+1):idxTime;
+                                    timeIdxs = max(1, sweepTimeIdx - winSize + 1):sweepTimeIdx;
 
                                 case {'appAnalise:REPORT', 'appAnalise:REPORT:BAND', 'appAnalise:REPORT:EMISSION'}
-                                    idxTimeArray = round(linspace(1, nSweeps, winSize));
+                                    timeIdxs = round(linspace(1, nSweeps, winSize));
                             end                          
                     end
 
-                    nTimeArray = numel(idxTimeArray);
+                    nTimeArray = numel(timeIdxs);
 
-                    specHist = histcounts2(specData.Data{2}(:, idxTimeArray), repmat(bandObj.xArray', 1, nTimeArray), hPersistanceObj.yEdges, hPersistanceObj.xEdges);
-                    set(hPersistanceObj.handle, 'CData', (100 * specHist ./ sum(specHist)), 'AlphaData', double(logical(specHist))*Transparency)
+                    specHist = histcounts2(specData.Data{2}(:, timeIdxs), repmat(bandObj.XArray', 1, nTimeArray), persistenceObj.yEdges, persistenceObj.xEdges);
+                    set(persistenceObj.handle, 'CData', (100 * specHist ./ sum(specHist)), 'AlphaData', double(logical(specHist))*transparency)
             end
 
         case 'Delete'
             windowSize = '';
 
-            if ~isempty(hPersistanceObj)
-                delete(hPersistanceObj.handle)
-                hPersistanceObj = [];
+            if ~isempty(persistenceObj)
+                delete(persistenceObj.handle)
+                persistenceObj = [];
             end
     end       
 end
 
 %-----------------------------------------------------------------%
 function windowSize = checkWindowSize(bandObj, windowSize)
-    if windowSize == "full"
-        nPersistancePoints    = bandObj.DataPoints * bandObj.nSweeps;
+    if strcmp(windowSize, 'full')
+        nPersistancePoints    = bandObj.DataPoints * bandObj.NumSweeps;
         nMaxPersistancePoints = class.Constants.nMaxPersistancePoints;
 
         if nPersistancePoints > nMaxPersistancePoints
-            windowSize = num2str(min(bandObj.nSweeps, 512));
+            windowSize = num2str(min(bandObj.NumSweeps, 512));
         end
     end
 end

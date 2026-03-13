@@ -2,65 +2,67 @@ classdef (Abstract) draw2D
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function hLine = OrdinaryLine(hAxes, bandObj, idx, plotTag)
-            defaultProp  = bandObj.mainApp.General_I;
-            switch bandObj.Context
-                case 'appAnalise:PLAYBACK'
-                    customProp = bandObj.mainApp.specData(idx).UserData.PlotDisplayConfig.Parameters;
-                otherwise
-                    customProp = [];
+        function plotHandle = OrdinaryLine(axesHandle, plotTag, bandObj, sweepTimeIdx)
+            plotHandle = [];
+            specData = bandObj.SpecData;
+            if isempty(specData)
+                return
             end
 
-            [plotConfig, ...
-             plotType]   = plot.Config(plotTag, defaultProp, customProp);
+            [plotConfig, plotType] = plot.Config(plotTag, bandObj.GeneralSettings);
+            [xArray, yArray] = getXYArrays(bandObj, plotTag, sweepTimeIdx);
             
-            [XArray, ...
-             YArray]     = XYArray(bandObj, idx, plotTag);
-
             switch plotType
                 case 'line'
-                    hLine = line(hAxes, XArray, YArray, plotConfig{:});
+                    plotHandle = line(axesHandle, xArray, yArray, plotConfig{:});
                 case 'area'
-                    hLine = area(hAxes, XArray, YArray, 'BaseValue', hAxes.YLim(1), 'FaceAlpha', 0.25, plotConfig{:});
+                    plotHandle = area(axesHandle, xArray, yArray, 'BaseValue', axesHandle.YLim(1), 'FaceAlpha', 0.25, plotConfig{:});
             end
 
-            plot.axes.StackingOrder.execute(hAxes, bandObj.Context)
+            plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
         end
 
         %-----------------------------------------------------------------%
-        function OrdinaryLineUpdate(hLine, bandObj, idx, plotTag)
-            idxTime = bandObj.callingApp.sweepTimeIndex;
+        function OrdinaryLineUpdate(plotTag, plotHandle, bandObj, sweepTimeIdx)
+            specData = bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
 
             switch plotTag
                 case {'clearWrite', 'minHold', 'average', 'maxHold'}
-                    yArray = bandObj.mainApp.specData(idx).Data{2}(:,idxTime)';
+                    yArray = bandObj.SpecData.Data{2}(:, sweepTimeIdx)';
 
                     switch plotTag                
                         case 'clearWrite'
-                            hLine.YData = yArray;
+                            plotHandle.YData = yArray;
                         case 'minHold'
-                            hLine.YData = min(hLine.YData, yArray);
+                            plotHandle.YData = min(plotHandle.YData, yArray);
                         case 'average'
-                            integrationFactor = bandObj.mainApp.General.context.PLAYBACK.integration.traceMode;
-                            hLine.YData = ((integrationFactor-1)*hLine.YData + yArray) / integrationFactor;
+                            integrationFactor = bandObj.General.context.PLAYBACK.integration.traceMode;
+                            plotHandle.YData = ((integrationFactor-1)*plotHandle.YData + yArray) / integrationFactor;
                         case 'maxHold'
-                            hLine.YData = max(hLine.YData, yArray);
+                            plotHandle.YData = max(plotHandle.YData, yArray);
                     end
 
                 case 'waterfallTime'
-                    switch class(hLine.YData)
+                    switch class(plotHandle.YData)
                         case 'datetime'
-                            tInstant = bandObj.mainApp.specData(idx).Data{1}(idxTime);
-                            hLine.YData = [tInstant, tInstant];
+                            tInstant = bandObj.SpecData.Data{1}(sweepTimeIdx);
+                            plotHandle.YData = [tInstant, tInstant];
                         otherwise
-                            hLine.YData = [idxTime, idxTime];
+                            plotHandle.YData = [sweepTimeIdx, sweepTimeIdx];
                     end
             end
         end
 
         %-----------------------------------------------------------------%
         function horizontalSetOfLines(hAxes, bandObj, idx, plotTag, varargin)
-            specData = bandObj.mainApp.specData(idx);
+            specData = bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
+
             switch plotTag
                 case 'bandLimits'
                     srcInfo  = specData.UserData.DetectionSubBands;

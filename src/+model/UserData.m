@@ -71,10 +71,7 @@ classdef UserData
 
         % Configurações de exibição do espectro (waterfall, persistência,
         % curvas visíveis como minhold, maxhold, clearwrite etc.)
-        PlotDisplayConfig = struct( ...
-            'Type', 'auto', ...
-            'Parameters', [] ...
-        )
+        PlotDisplayConfig
 
         % Indica se o fluxo atual deve ser incluído no relatório
         ReportInclude = false
@@ -117,7 +114,8 @@ classdef UserData
                                                   'DefaultAlgorithm: Detection',      ...
                                                   'DefaultAlgorithm: Classification', ...
                                                   'DefaultAlgorithm: Occupancy',      ...
-                                                  'DefaultAlgorithm: BandWidth'})}
+                                                  'DefaultAlgorithm: BandWidth',      ...
+                                                  'DefaultPlotDisplayConfig'})}
             end
 
             arguments (Repeating)
@@ -189,6 +187,10 @@ classdef UserData
 
                 case 'DefaultAlgorithm: BandWidth'
                     fieldTemplate = [];
+
+                case 'DefaultPlotDisplayConfig'
+                    generalSettings = varargin{1};
+                    fieldTemplate = generalSettings.context.PLAYBACK.defaultPlotDisplayConfig;
             end
         end
     end

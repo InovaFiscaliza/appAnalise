@@ -193,18 +193,20 @@ classdef SpecData < model.SpecDataBase
                     obj(ii).RelatedFiles = sortrows(obj(ii).RelatedFiles, 'BeginTime');
                 end
 
-                % É preciso inicializar cinco propriedades de "UserData". As
+                % É preciso inicializar seis propriedades de "UserData". As
                 % outras são inicializadas pela classe model.UserData.
                 % - "AntennaHeightMeters"
                 % - "ChannelLibraryRelatedIndexes"
                 % - "OccupancyComputationMode",
                 % - "OccupancyFiniteIntegrationCache"
-                % - "OccupancyCumulativeIntegration"                
+                % - "OccupancyCumulativeIntegration"
                 obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
-
+                
                 if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
                     obj(ii).UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj(ii));
                 end
+
+                obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
             end
 
             basicStats(obj)
@@ -426,7 +428,7 @@ classdef SpecData < model.SpecDataBase
                                                                'UserData:AntennaHeight',   ...
                                                                'UserData:BandLimits',      ...
                                                                'UserData:Channel',         ...
-                                                               'UserData:CustomPlayback',  ...
+                                                               'UserData:PlotDisplayConfig', ...
                                                                'UserData:Emissions',       ...
                                                                'UserData:OccupancyFields', ...
                                                                'UserData:ReportFields',    ...
@@ -525,26 +527,83 @@ classdef SpecData < model.SpecDataBase
                             error('Unexpected update type')
                     end
 
-                case 'UserData:CustomPlayback'
+                case 'UserData:PlotDisplayConfig'
                     if ~isscalar(obj)
                         error('Unexpected non scalar object')
                     end
 
                     switch updateType
-                        case 'Edit'
-                            customPlayback = varargin{1};
+                        % CONTROLES GERAIS
+                        case 'layoutRatio'
+                            obj.UserData.PlotDisplayConfig.layoutRatio = varargin{1};                            
+                        case { 'minHold', 'average', 'maxHold', 'persistence', 'occupancy', 'waterfall' }
+                            obj.UserData.PlotDisplayConfig.controls.(updateType) = varargin{1};
+                        
+                        % PERSISTÊNCIA
+                        case 'persistenceInterpolation'
+                            obj.UserData.PlotDisplayConfig.persistence.interpolation = varargin{1};
+                        case 'persistenceWindowSize'
+                            obj.UserData.PlotDisplayConfig.persistence.windowSize = varargin{1};
+                        case 'persistenceColormap'
+                            obj.UserData.PlotDisplayConfig.persistence.colormap = varargin{1};
+                        case 'persistenceTransparency'
+                            obj.UserData.PlotDisplayConfig.persistence.transparency = varargin{1};
+                        
+                        % WATERFALL
+                        case 'waterfallFunction'
+                            obj.UserData.PlotDisplayConfig.waterfall.function = varargin{1};
+                        case 'waterfallDecimation'
+                            obj.UserData.PlotDisplayConfig.waterfall.decimation = varargin{1};
+                        case 'waterfallColormap'
+                            obj.UserData.PlotDisplayConfig.waterfall.colormap = varargin{1};
+                        case 'wterfallMeshStyle'
+                            obj.UserData.PlotDisplayConfig.waterfall.meshStyle = varargin{1};
+                        
+                        % LIMITES
+                        case 'limitsXYCStartup'
+                            bandObj = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.frequency.initial   = bandObj.XLimits;
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = bandObj.XLimits;            
+                            obj.UserData.PlotDisplayConfig.limits.level.initial       = bandObj.YLimitsLevel;
+                            obj.UserData.PlotDisplayConfig.limits.level.current       = bandObj.YLimitsLevel;            
+                            obj.UserData.PlotDisplayConfig.limits.color.initial       = bandObj.CLimits;
+                            obj.UserData.PlotDisplayConfig.limits.color.current       = bandObj.CLimits;
 
-                            obj.UserData.PlotDisplayConfig.Type                     = 'manual';
-                            obj.UserData.PlotDisplayConfig.Parameters.Controls      = customPlayback.Controls;
-                            obj.UserData.PlotDisplayConfig.Parameters.Persistance   = customPlayback.Persistance;
-                            obj.UserData.PlotDisplayConfig.Parameters.Waterfall     = customPlayback.Waterfall;
-                            obj.UserData.PlotDisplayConfig.Parameters.WaterfallTime = customPlayback.WaterfallTime;
+                        case 'limitsXYRefresh'
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = obj.UserData.PlotDisplayConfig.limits.frequency.initial;
+                            obj.UserData.PlotDisplayConfig.limits.level.current       = obj.UserData.PlotDisplayConfig.limits.level.initial;     
 
-                        case 'DataTip'
-                            obj.UserData.PlotDisplayConfig.Parameters.Datatip       = struct('ParentTag', varargin{1}, 'DataIndex', varargin{2});
+                        case 'limitsX'
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = varargin{1};     
 
-                        case 'Refresh'
-                            obj.UserData.PlotDisplayConfig = struct('Type', 'auto', 'Parameters', []);
+                        case 'limitsY'
+                            obj.UserData.PlotDisplayConfig.limits.level.current       = varargin{1};
+
+                        case 'limitsPersistence'
+                            obj.UserData.PlotDisplayConfig.limits.persistence.mode    = 'manual';
+                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim    = varargin{1};
+
+                        case 'limitsPersistenceRefresh'
+                            obj.UserData.PlotDisplayConfig.limits.persistence.mode    = 'auto';
+                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim    = [];
+
+                        case 'limitsWaterfallStartup'
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.initial   = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = varargin{1};
+
+                        case 'limitsWaterfall'
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = varargin{1};
+                            
+                        case 'limitsWaterfallRefresh'
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = obj.UserData.PlotDisplayConfig.limits.waterfall.initial;
+
+                        % DATA TIPS
+                        % case 'dataTip'
+                        %     obj.UserData.PlotDisplayConfig.Parameters.dataTips(end+1) = struct('ParentTag', varargin{1}, 'DataIndex', varargin{2});
+                        % 
+                        % case 'globalRefresh'
+                        %     generalSettings = varargin{1};
+                        %     obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
 
                         otherwise 
                             error('Unexpected update type')

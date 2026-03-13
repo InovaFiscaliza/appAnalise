@@ -1,5 +1,5 @@
 {
-    "version": 1.18,
+    "version": 1.28,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -41,6 +41,7 @@
         },
         "PLAYBACK": {
             "clearWriteVisibility": true,
+            "waterfallTimeVisibility": false,
             "integration": {
                 "traceMode": Infinity,
                 "sampleTimeSeconds": 10
@@ -52,6 +53,52 @@
             "detection": {
                 "manualMode": false,
                 "initialBandwidth_kHz": 0
+            },
+            "defaultPlotDisplayConfig": {
+                "layoutRatio": "1:0:0",
+                "controls": {
+                    "minHold": false,
+                    "average": false,
+                    "maxHold": false,
+                    "persistence": false,
+                    "occupancy": false,
+                    "waterfall": false
+                },
+                "persistence": {
+                    "interpolation": "nearest",
+                    "windowSize": "full",
+                    "colormap": "winter",
+                    "transparency": 1
+                },
+                "waterfall": {
+                    "function": "image",
+                    "decimation": "auto",
+                    "colormap": "winter",
+                    "meshStyle": "row"
+                },
+                "limits": {
+                    "frequency": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "level": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "color": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "persistence": {
+                        "mode": "auto",
+                        "cLim": []
+                    },
+                    "waterfall": {
+                        "initial": [0, 1],
+                        "current": [0, 1]
+                    }
+                },
+                "dataTips": []
             }
         },
         "DRIVETEST": [],
@@ -97,7 +144,7 @@
             "Colorbar": "on"
         },
         "minHold": {
-            "Fcn": "area",
+            "Function": "area",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#4A90E2",
@@ -105,7 +152,7 @@
             "FaceColor": "#4A90E2"
         },
         "clearWrite": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#ffff12",
@@ -119,7 +166,7 @@
             "Visible": "on"
         },
         "average": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#00cc66",
@@ -127,27 +174,16 @@
             "FaceColor": "#00cc66"
         },
         "maxHold": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#FF5CAD",
             "EdgeColor": "#FF5CAD",
             "FaceColor": "#FF5CAD"
         },
-        "persistence": {
-            "Interpolation": "nearest",
-            "WindowSize": "full",
-            "Transparency": 1,
-            "Colormap": "winter",
-            "LevelLimits": [0, 1]
-        },
+        "persistence": [],
         "waterfall": {
-            "Fcn": "image",
-            "Decimation": "auto",
-            "MeshStyle": "both",
-            "Colormap": "winter",
-            "Colorbar": "on",
-            "LevelLimits": [0, 1]
+            "Colorbar": "on"
         },
         "waterfallTime": {
             "Visible": "on",
@@ -223,21 +259,21 @@
             "LineWidth": 1
         },
         "occMinHold": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#005cd1",
             "FaceColor": "#005cd1"
         },
         "occAverage": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#ffff12",
             "FaceColor": "#ffff12"
         },
         "occMaxHold": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#ff12a6",
