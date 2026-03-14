@@ -9,8 +9,8 @@ classdef Band < handle
     %   ├── getXYArrays️
     %   ├── idx2freq
     %   ├── freq2idx️
-    %   ├── timestamp2idx️
-    %   └── idx2timestamp️
+    %   ├── timestamp2idx
+    %   └── idx2timestamp
 
     % PRIVATE
     %   ├── computeAxesLimits
@@ -105,8 +105,10 @@ classdef Band < handle
                 computeAxesLimits(obj, varargin{:})
 
             else
-                propList = setdiff(properties(obj), {'Context', 'GeneralSettings'});
-                    cellfun(@(x) set(obj.(x), []), propList)
+                propList = setdiff(properties(obj), {'Context', 'GeneralSettings', 'SpecData'});
+                for ii = 1:numel(propList)
+                    obj.(propList{ii}) = [];
+                end
             end
         end
 
@@ -203,8 +205,8 @@ classdef Band < handle
         end
 
         %-----------------------------------------------------------------%
-        function timestamp = idx2timestamp(obj, idx)
-            timestamp = obj.SpecData.Data{1}(idx);
+        function timestamp = idx2timestamp(obj, sweepTimeIdx)
+            timestamp = obj.SpecData.Data{1}(sweepTimeIdx);
         end
     end
 

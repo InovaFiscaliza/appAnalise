@@ -458,7 +458,7 @@ classdef SpecData < model.SpecDataBase
                             end
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:BandLimits'
@@ -477,7 +477,7 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.DetectionSubBands(varargin{1}, :) = [];
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                     hasEmissionsInSearchBand(obj)
@@ -499,7 +499,7 @@ classdef SpecData < model.SpecDataBase
                             end
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:Channel'
@@ -524,7 +524,7 @@ classdef SpecData < model.SpecDataBase
                             % Pendente
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:PlotDisplayConfig'
@@ -556,7 +556,7 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.PlotDisplayConfig.waterfall.decimation = varargin{1};
                         case 'waterfallColormap'
                             obj.UserData.PlotDisplayConfig.waterfall.colormap = varargin{1};
-                        case 'wterfallMeshStyle'
+                        case 'waterfallMeshStyle'
                             obj.UserData.PlotDisplayConfig.waterfall.meshStyle = varargin{1};
                         
                         % LIMITES
@@ -606,7 +606,7 @@ classdef SpecData < model.SpecDataBase
                         %     obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:Emissions' % Origem: winAppAnalise
@@ -715,7 +715,7 @@ classdef SpecData < model.SpecDataBase
                             return
 
                         otherwise 
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                     hasEmissionsInSearchBand(obj)
@@ -756,7 +756,7 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.OccupancyComputationMode.CacheIndex = occIndex;
 
                         otherwise
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:ReportFields'
@@ -798,7 +798,7 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.ReportAlgorithms.Detection.ManualMode = varargin{1};
 
                         otherwise
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:OccupancyFields+ReportFields'
@@ -817,7 +817,7 @@ classdef SpecData < model.SpecDataBase
                             end
 
                         otherwise
-                            error('Unexpected update type')
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
             end
         end

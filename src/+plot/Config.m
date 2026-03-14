@@ -7,20 +7,6 @@ function varargout = Config(plotTag, defaultProperties)
     tempPlotConfig = defaultProperties.plot.(plotTag);
 
     switch plotTag
-        case 'waterfall'
-            switch tempPlotConfig.Function
-                case 'mesh'
-                    plotConfig = {'MeshStyle', tempPlotConfig.MeshStyle, 'SelectionHighlight', 'off'};
-                case 'image'
-                    plotConfig = {'CDataMapping', 'scaled'};
-            end
-
-            if ~issorted(tempPlotConfig.LevelLimits, 'strictascend') || (tempPlotConfig.LevelLimits(1) == 0 && tempPlotConfig.LevelLimits(2) == 1)
-                tempPlotConfig.LevelLimits = [];
-            end
-
-            varargout   = {plotConfig, tempPlotConfig.Function, tempPlotConfig.Decimation, tempPlotConfig.Colormap, tempPlotConfig.LevelLimits};
-
         case 'waterfallTime'
             plotType    = 'line';
             plotConfig  = {'Color', 'red', 'LineWidth', 1, 'PickableParts', 'none', 'Visible', tempPlotConfig.Visible, 'ZData', tempPlotConfig.ZData};

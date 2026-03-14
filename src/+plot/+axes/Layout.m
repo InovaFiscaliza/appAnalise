@@ -2,12 +2,12 @@ classdef (Abstract) Layout
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function XLabel(hAxes, occVisibility, waterfallVisibility, Context)
+        function XLabel(hAxes, occVisibility, waterfallVisibility, context)
             arguments
                 hAxes               (1,3) matlab.ui.control.UIAxes
                 occVisibility       (1,1) logical
                 waterfallVisibility (1,1) logical
-                Context             (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context             (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             UIAxes1 = hAxes(1);
@@ -37,11 +37,11 @@ classdef (Abstract) Layout
         end
 
         %-----------------------------------------------------------------%
-        function YLabel(hWaterfall, waterfallVisibility, Context)
+        function YLabel(hWaterfall, waterfallVisibility, context)
             arguments
                 hWaterfall            (1,1)
                 waterfallVisibility (1,1) logical
-                Context             (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context             (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             if waterfallVisibility

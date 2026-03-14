@@ -1,5 +1,5 @@
 {
-    "version": 1.28,
+    "version": 1.30,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -183,10 +183,10 @@
         },
         "persistence": [],
         "waterfall": {
-            "Colorbar": "on"
+            "Colorbar": "eastoutside"
         },
         "waterfallTime": {
-            "Visible": "on",
+            "Color": "#FF0000",
             "ZData": [1000, 1000]
         },
         "bandLimits": {
