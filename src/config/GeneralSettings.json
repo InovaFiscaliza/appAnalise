@@ -1,5 +1,5 @@
 {
-    "version": 1.30,
+    "version": 1.31,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -41,7 +41,7 @@
         },
         "PLAYBACK": {
             "clearWriteVisibility": true,
-            "waterfallTimeVisibility": false,
+            "waterfallTimeVisibility": true,
             "integration": {
                 "traceMode": Infinity,
                 "sampleTimeSeconds": 10

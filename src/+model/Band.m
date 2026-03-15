@@ -158,14 +158,14 @@ classdef Band < handle
 
                 case 'waterfallTime'
                     xArray = [obj.XArray(1), obj.XArray(end)];
-
                     yAxisClass = varargin{2};
+                    
                     switch yAxisClass
                         case 'matlab.graphics.axis.decorator.DatetimeRuler'
-                            yArray = [specData.Data{1}(idxTime), specData.Data{1}(idxTime)];
+                            yArray = [specData.Data{1}(sweepTimeIdx), specData.Data{1}(sweepTimeIdx)];
 
                         otherwise
-                            yArray = [idxTime, idxTime];
+                            yArray = [sweepTimeIdx, sweepTimeIdx];
                     end
             end
         end

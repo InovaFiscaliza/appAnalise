@@ -10,7 +10,7 @@ classdef (Abstract) draw2D
             end
 
             [plotConfig, plotType] = plot.Config(plotTag, bandObj.GeneralSettings);
-            [xArray, yArray] = getXYArrays(bandObj, plotTag, sweepTimeIdx);
+            [xArray, yArray] = getXYArrays(bandObj, plotTag, sweepTimeIdx, class(axesHandle.YAxis));
             
             switch plotType
                 case 'line'

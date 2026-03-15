@@ -9,7 +9,7 @@ function varargout = Config(plotTag, defaultProperties)
     switch plotTag
         case 'waterfallTime'
             plotType    = 'line';
-            plotConfig  = {'Color', 'red', 'LineWidth', 1, 'PickableParts', 'none', 'Visible', tempPlotConfig.Visible, 'ZData', tempPlotConfig.ZData};
+            plotConfig  = {'Color', tempPlotConfig.Color, 'LineWidth', 1, 'PickableParts', 'none', 'ZData', tempPlotConfig.ZData};
             varargout   = {plotConfig, plotType};
 
         case {'BandLimits', 'Channel', 'Emission'}

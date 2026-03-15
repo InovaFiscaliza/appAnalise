@@ -782,7 +782,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 updatePersistencePlot(app, 'Update')
 
                 % WaterfallTime
-                if app.axesTool_waterfall.UserData.status && app.mainApp.General.context.PLAYBACK.waterfallTimeVisibility && ~isempty(app.plotHandles.waterfallTime)
+                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
                     plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
                 end
             end
@@ -860,8 +860,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.restoreView(3).yLim = app.UIAxes3.YLim;
                 app.restoreView(3).cLim = app.UIAxes3.CLim;
 
-                app.WaterfallCLim1.Value = round(double(app.UIAxes3.CLim(1)), 0);
-                app.WaterfallCLim2.Value = round(double(app.UIAxes3.CLim(2)), 0);
+                app.WaterfallCLim1.Value = round(double(app.UIAxes3.CLim(1)));
+                app.WaterfallCLim2.Value = round(double(app.UIAxes3.CLim(2)));
 
             else
                 set(elementHandles, 'Enable', false)
@@ -1105,8 +1105,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.axesTool_Pan.UserData.status = ~app.axesTool_Pan.UserData.status;
                     if app.axesTool_Pan.UserData.status
                         app.axesTool_Pan.ImageSource = 'pan-filled-32px.png';
-                        if app.axesTool_DataTip.UserData
-                            play_AxesToolbarCallbacks(app, struct('Source', app.axesTool_DataTip))
+                        
+                        if app.axesTool_DataTip.UserData.status
+                            onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_DataTip))
                         end
                     else
                         app.axesTool_Pan.ImageSource = 'pan-32px.png';
@@ -1314,7 +1315,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
 
                 case app.WaterfallCLimRefresh
-                    app.UIAxes3.CLimMode = 'auto';
+                    app.UIAxes3.CLim = specData.UserData.PlotDisplayConfig.limits.waterfall.initial;
                     app.UIAxes3.UserData.CLimMode = 'auto';
 
                     app.WaterfallCLim1.Value = round(app.UIAxes3.CLim(1));
@@ -1375,9 +1376,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 
                 updatePersistencePlot(app, 'Update')
 
-                % if app.axesTool_Waterfall.UserData.Value && ~isempty(app.plotHandles.waterfallTime) && app.mainApp.General.context.PLAYBACK.waterfallTimeVisibility
-                    % plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                % end
+                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
+                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                end
 
                 app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
             end
