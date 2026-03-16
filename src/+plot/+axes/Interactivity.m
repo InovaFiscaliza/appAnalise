@@ -84,6 +84,11 @@ classdef (Abstract) Interactivity
 
             if ~isempty(interactionList)
                 for ii = 1:numel(hMultiAxes)
+                    hMultiAxes(ii).InteractionOptions.LimitsDimensions  = 'xy';
+                    hMultiAxes(ii).InteractionOptions.RotateSupported   = 'off';
+                    hMultiAxes(ii).InteractionOptions.BrushSupported    = 'off';
+                    hMultiAxes(ii).InteractionOptions.ZoomLimitsBounded = 'on';
+
                     hMultiAxes(ii).Interactions = interactionList;
                     enableDefaultInteractivity(hMultiAxes(ii))
                 end
@@ -95,15 +100,15 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % TOOLBAR: INTERAÇÕES HABILITÁVEIS EM TOOLBAR (POP-UP)
         %-----------------------------------------------------------------%
-        function ToolbarCreation(hMultiAxes, interaction2Add, interaction2Remove)
+        function ToolbarCreation(hMultiAxes, interactionToAdd, interaction2Remove)
             arguments
                 hMultiAxes
-                interaction2Add         = {'pan', 'restoreview'}
+                interactionToAdd         = {'pan', 'restoreview'}
                 interaction2Remove cell = {}
             end
 
             for ii = 1:numel(hMultiAxes)
-                hToolbar = axtoolbar(hMultiAxes(ii), interaction2Add);
+                hToolbar = axtoolbar(hMultiAxes(ii), interactionToAdd);
 
                 if isa(hMultiAxes, 'matlab.graphics.axis.GeographicAxes')
                     addToolbarMapButton(hToolbar, "basemap")
@@ -131,22 +136,22 @@ classdef (Abstract) Interactivity
         end
 
         %-----------------------------------------------------------------%
-        function CustomCallbacks(hAxes, hRelatedAxes, interaction2Customize, varargin)
+        function CustomCallbacks(hAxes, hRelatedAxes, interactionToCustomize, varargin)
             arguments
-                hAxes                 (1,1) matlab.ui.control.UIAxes
-                hRelatedAxes                                         = []
-                interaction2Customize (1,:) cell                     = {'pan', 'restoreview'}
+                hAxes (1,1) matlab.ui.control.UIAxes
+                hRelatedAxes = []
+                interactionToCustomize (1,:) cell = {'pan', 'restoreview'}
             end
 
             arguments (Repeating)
                 varargin
             end
 
-            for jj = 1:numel(interaction2Customize)
-                [~, hInteraction] = plot.axes.Interactivity.FindInteractionObject(hAxes, 'Toolbar', interaction2Customize{jj});
+            for ii = 1:numel(interactionToCustomize)
+                [~, hInteraction] = plot.axes.Interactivity.FindInteractionObject(hAxes, 'Toolbar', interactionToCustomize{ii});
 
                 if ~isempty(hInteraction)
-                    switch interaction2Customize{jj}
+                    switch interactionToCustomize{ii}
                         case 'pan'
                             if isprop(hInteraction, 'ValueChangedFcn')
                                 hInteraction.ValueChangedFcn = @(~, evt)plot.axes.Interactivity.CustomPanFcn(evt, hAxes, hRelatedAxes);
@@ -169,14 +174,15 @@ classdef (Abstract) Interactivity
             % com ao menos os campos "xLim" e "yLim".
 
             hMultiAxes = [hAxes, hRelatedAxes];
-            
-            for ii = 1:numel(hMultiAxes)
-                try
-                    xLim = callingApp.restoreView(ii).xLim;
-                    if isempty(xLim)
-                        xLim = [0, 1];
-                    end
 
+            try
+                xLim = callingApp.restoreView(1).xLim;
+                if isempty(xLim)
+                    xLim = [0, 1];
+                end
+                hAxes.XLim = xLim;
+
+                for ii = 1:numel(hMultiAxes)
                     yLim = callingApp.restoreView(ii).yLim;
                     if isempty(yLim)
                         switch class(hMultiAxes(ii).YAxis)
@@ -187,14 +193,20 @@ classdef (Abstract) Interactivity
                         end
                     end
 
-                    set(hMultiAxes(ii), 'XLim', xLim, 'YLim', yLim)
-                catch
+                    hMultiAxes(ii).YLim = yLim;
                 end
+            catch
             end
         end
         
         %-----------------------------------------------------------------%
         function CustomPanFcn(evt, hAxes, hRelatedAxes)
+            arguments
+                evt
+                hAxes
+                hRelatedAxes = []
+            end
+            
             % Para que essa função customizada funcione, os eixos precisam ter
             % sido criados com a diretiva Interactions=0. Se um eixo não for 
             % criado dessa forma, o MATLAB criará automaticamente um objeto 
@@ -232,7 +244,6 @@ classdef (Abstract) Interactivity
                             end
                         end
                     end
-
                 catch
                 end
             end

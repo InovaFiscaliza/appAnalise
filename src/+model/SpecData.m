@@ -507,9 +507,7 @@ classdef SpecData < model.SpecDataBase
                     end
 
                 case 'UserData:Channel'
-                    if ~isscalar(obj)
-                        error('Unexpected non scalar object')
-                    end
+                    checkIfScalar(obj)
 
                     switch updateType
                         case 'ChannelLibIndex:Add'
@@ -532,9 +530,7 @@ classdef SpecData < model.SpecDataBase
                     end
 
                 case 'UserData:PlotDisplayConfig'
-                    if ~isscalar(obj)
-                        error('Unexpected non scalar object')
-                    end
+                    checkIfScalar(obj)
 
                     switch updateType
                         % CONTROLES GERAIS
@@ -614,9 +610,7 @@ classdef SpecData < model.SpecDataBase
                     end
 
                 case 'UserData:Emissions' % Origem: winAppAnalise
-                    if ~isscalar(obj)
-                        error('Unexpected non scalar object')
-                    end
+                    checkIfScalar(obj)
 
                     switch updateType
                         case 'Add'
@@ -725,39 +719,29 @@ classdef SpecData < model.SpecDataBase
                     hasEmissionsInSearchBand(obj)
 
                 case 'UserData:OccupancyFields'
+                    checkIfScalar(obj)
+
                     switch updateType
-                        case {'SelectedIndex:Edit', 'SelectedIndex:Refresh'}
-                            if numel(obj) > 1
-                                error('Unexpected non scalar object')
+                        case 'SelectedHashChanged'
+                            obj.UserData.OccupancyComputationMode.SelectedHash = varargin{1};
+                        
+                        case 'SelectedHashRefresh'
+                            relatedHashes = obj.UserData.OccupancyComputationMode.RelatedHashes;
+                            if ~isempty(relatedHashes)
+                                obj.UserData.OccupancyComputationMode.SelectedHash = relatedHashes{1};
                             end
 
-                            switch updateType
-                                case 'SelectedIndex:Edit'
-                                    selectedIndex = varargin{1};
-                                case 'SelectedIndex:Refresh'
-                                    selectedIndex = [];
-                            end
-
-                            obj.UserData.OccupancyComputationMode.SelectedIndex = selectedIndex;
-
-                        case 'Cache:Add'
-                            if numel(obj) > 1
-                                error('Unexpected non scalar object')
-                            end
-                            
-                            occIndex = varargin{1};
-                            occInfo  = varargin{2};
-                            occTHR   = varargin{3};
-                            occData  = varargin{4};
-                            obj.UserData.OccupancyFiniteIntegrationCache(occIndex)   = struct('Info', occInfo, 'THR', occTHR, 'Data', {occData});
-
-                        case 'CacheIndex:Edit'
-                            if numel(obj) > 1
-                                error('Unexpected non scalar object')
-                            end
-
-                            occIndex = varargin{1};
+                        case 'AddToCacheRequest'
+                            occParameters = varargin{1};
+                            occThreshold  = RF.Occupancy.getThreshold(occParameters.Method, occParameters, obj, 'bin');
+                            occData       = RF.Occupancy.run(obj.Data{1}, obj.Data{2}, occParameters.Method, occThreshold, occParameters.IntegrationTime);
+                            occIndex      = numel(obj.UserData.OccupancyFiniteIntegrationCache) + 1;
+            
                             obj.UserData.OccupancyComputationMode.CacheIndex = occIndex;
+                            obj.UserData.OccupancyFiniteIntegrationCache(occIndex) = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Data', {occData});
+
+                        case 'SelectedCacheChanged'
+                            obj.UserData.OccupancyComputationMode.CacheIndex = varargin{1};
 
                         otherwise
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
@@ -814,7 +798,7 @@ classdef SpecData < model.SpecDataBase
                             for ii = idxThreads
                                 if ~isempty(obj(ii).UserData.OccupancyComputationMode.CacheIndex)
                                     obj(ii).UserData.OccupancyComputationMode.CacheIndex = [];
-                                    obj(ii).UserData.OccupancyFiniteIntegrationCache             = struct('Info', {}, 'THR', {}, 'Data', {});
+                                    obj(ii).UserData.OccupancyFiniteIntegrationCache     = struct('Parameters', {}, 'Threshold', {}, 'Data', {});
 
                                     update(obj, 'UserData:ReportFields', 'Creation', ii, channelObj)
                                 end
@@ -833,13 +817,15 @@ classdef SpecData < model.SpecDataBase
                     continue
                 end
 
-                occParameters = RF.Occupancy.ParametersDefault();
-                occThreshold  = RF.Occupancy.Threshold(occParameters.Method, occParameters, obj(ii), 'bin');
+                occParameters = RF.Occupancy.getDefaultParameters();
+                occThreshold  = RF.Occupancy.getThreshold(occParameters.Method, occParameters, obj(ii), 'bin');
                 occData       = RF.Occupancy.run(obj(ii).Data{1}, obj(ii).Data{2}, occParameters.Method, occThreshold, occParameters.IntegrationTime);
-    
+
                 obj(ii).UserData.OccupancyComputationMode.CacheIndex = 1;
-                obj(ii).UserData.OccupancyFiniteIntegrationCache     = struct('Info', occParameters, 'THR', occThreshold, 'Data', {occData});
-                obj(ii).UserData.OccupancyCumulativeIntegration      = obj(ii).Data{2} > occThreshold;
+                obj(ii).UserData.OccupancyFiniteIntegrationCache     = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Data', {occData});
+
+                occParameters.IntegrationTime = inf;
+                obj(ii).UserData.OccupancyCumulativeIntegration      = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Matrix', obj(ii).Data{2} > occThreshold);
             end
         end
 
@@ -968,8 +954,8 @@ classdef SpecData < model.SpecDataBase
                     selectedHash = relatedHashes{1};
                 end
 
-                obj(ii).UserData.OccupancyComputationMode.RelatedIndexes = relatedHashes;
-                obj(ii).UserData.OccupancyComputationMode.SelectedHash   = selectedHash;
+                obj(ii).UserData.OccupancyComputationMode.RelatedHashes = relatedHashes;
+                obj(ii).UserData.OccupancyComputationMode.SelectedHash  = selectedHash;
             end
         end
 

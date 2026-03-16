@@ -82,13 +82,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
         SpectrumFlowList               matlab.ui.control.DropDown
         AxesAnnotation                 matlab.ui.control.Label
         AxesToolbar                    matlab.ui.container.GridLayout
+        axesTool_DataTip               matlab.ui.control.Image
         axesTool_waterfall             matlab.ui.control.Image
+        axesTool_Separator3            matlab.ui.control.Image
         axesTool_occupancy             matlab.ui.control.Image
+        axesTool_Separator2            matlab.ui.control.Image
         axesTool_persistence           matlab.ui.control.Image
         axesTool_maxHold               matlab.ui.control.Image
         axesTool_average               matlab.ui.control.Image
         axesTool_minHold               matlab.ui.control.Image
-        axesTool_DataTip               matlab.ui.control.Image
+        axesTool_Separator1            matlab.ui.control.Image
         axesTool_Pan                   matlab.ui.control.Image
         axesTool_RestoreView           matlab.ui.control.Image
         AxesContainer                  matlab.ui.container.Panel
@@ -266,8 +269,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     try
                         ui.TextView.startup(app.jsBackDoor, app.FlowMetadata,  appName, struct('class', {{'textview--borderless'}}));
-                        ui.TextView.startup(app.jsBackDoor, app.FlowOccupancy, appName);
-                        ui.TextView.startup(app.jsBackDoor, app.FlowDetection, appName);
+                        ui.TextView.startup(app.jsBackDoor, app.FlowOccupancy, appName, struct('class', {{'textview--wordbreak'}}));
+                        ui.TextView.startup(app.jsBackDoor, app.FlowDetection, appName, struct('class', {{'textview--wordbreak'}}));
                         ui.TextView.startup(app.jsBackDoor, app.FlowAnalysis,  appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
                     catch
                     end
@@ -355,18 +358,36 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'XLim'
                                 evtName  = app.LimitsXLim1.Tag;
                                 evtValue = round(evt.AffectedObject.XLim, 3);
+
+                                if app.LimitsXLim1.Value == evtValue(1) && app.LimitsXLim2.Value == evtValue(2)
+                                    return
+                                end
+
                                 app.LimitsXLim1.Value = evtValue(1);
-                                app.LimitsXLim2.Value = evtValue(2);        
+                                app.LimitsXLim2.Value = evtValue(2);
+
                             case 'YLim'
                                 evtName  = app.LimitsYLim1.Tag;
                                 evtValue = round(evt.AffectedObject.YLim, 1);
+
+                                if app.LimitsYLim1.Value == evtValue(1) && app.LimitsYLim2.Value == evtValue(2)
+                                    return
+                                end
+
                                 app.LimitsYLim1.Value = evtValue(1);
-                                app.LimitsYLim2.Value = evtValue(2);        
+                                app.LimitsYLim2.Value = evtValue(2);
+
                             case 'CLim'
                                 evtName  = app.PersistenceCLim1.Tag;
                                 evtValue = round(evt.AffectedObject.CLim, 3);
+
+                                if app.PersistenceCLim1.Value == evtValue(1) && app.PersistenceCLim2.Value == evtValue(2)
+                                    return
+                                end
+
                                 app.PersistenceCLim1.Value = evtValue(1);
                                 app.PersistenceCLim2.Value = evtValue(2);
+
                             otherwise
                                 return
                         end
@@ -376,8 +397,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'CLim'
                                 evtName  = app.WaterfallCLim1.Tag;
                                 evtValue = round(evt.AffectedObject.CLim);
+
+                                if app.WaterfallCLim1.Value == evtValue(1) && app.WaterfallCLim2.Value == evtValue(2)
+                                    return
+                                end
+
                                 app.WaterfallCLim1.Value = evtValue(1);
                                 app.WaterfallCLim2.Value = evtValue(2);
+
                             otherwise
                                 return
                         end
@@ -486,6 +513,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Atualiza PAINEL À ESQUERDA com metadados do fluxo, algoritmos de
             % ocupação, detecção e classificação, além da lista de emissões.
             updateUIControlsState(app, specData)
+            updateUIPanelContent(app, specData)
 
             % Reseta o PLOT e atualiza informações que suportam o plot, como 
             % as dispostas no painel à direita.            
@@ -505,9 +533,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function updateUIControlsState(app, specData)
             % Atualiza atributos "Enable" e "Visible" dos componentes
             % afetados pelo estado atual de specData.
-            nonEmptySpecData      = ~isempty(specData);            
+            nonEmptySpecData = ~isempty(specData);            
             hasMoreThanTwoSamples = nonEmptySpecData && sum(specData.RelatedFiles.NumSweeps) > 2;
-            isOccupancyFlow       = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
+            isWaterfallRenderedAsImage = hasMoreThanTwoSamples && strcmp(specData.UserData.PlotDisplayConfig.waterfall.function, 'image');
+            isOccupancyFlow = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
 
             set([
                 app.FlowOccupancyBtn;
@@ -515,13 +544,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowChannelBtn;
                 app.FlowEmissionsBtn1;
                 app.FlowEmissionsBtn2;
-                app.axesTool_DataTip;
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
                 app.axesTool_persistence;
                 app.axesTool_occupancy;
                 app.axesTool_waterfall;
+                app.axesTool_DataTip;
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
@@ -532,10 +561,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
             app.axesTool_occupancy.Enable   = hasMoreThanTwoSamples && ~isOccupancyFlow;            
             app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
-            
-            % Atualiza atributos "Text" e "Items" dos componentes afetados
-            % pelo estado atual de specData.
-            if nonEmptySpecData
+
+            % DataCursorMode
+            % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
+            % cartesianos por bloquear as outras (Pan, RegionZoom etc). Por
+            % essa razão, restringir o DataCursorMode apenas ao eixo específico
+            % em que está sendo plotado a imagem (que não suporta a interação 
+            % padrão de DataTip).
+            app.axesTool_DataTip.Enable = isWaterfallRenderedAsImage;
+
+            if ~isWaterfallRenderedAsImage && app.axesTool_DataTip.UserData.status
+                onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_DataTip))
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateUIPanelContent(app, specData)
+            if ~isempty(specData)
                 app.FlowMetadata.Text  = util.HtmlTextGenerator.ThreadMetaData(specData);
                 app.FlowOccupancy.Text = util.HtmlTextGenerator.Algorithms(specData, 'Occupancy');
                 app.FlowDetection.Text = util.HtmlTextGenerator.Algorithms(specData, 'Detection+Classification');
@@ -686,10 +728,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
     
             app.sweepTimeIdx = 1;
             app.tool_TimestampSlider.Value = 0;
-
-            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
-            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', [0, 100],                 'cLim', 'auto');
-            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsTime,  'cLim', app.bandObj.CLimits);
+            resetRestoreView(app)
 
             if ~isempty(specData)
                 app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1));
@@ -709,6 +748,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                 onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_RestoreView))
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function resetRestoreView(app)
+            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
+            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', [0, 100],                 'cLim', 'auto');
+            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsTime,  'cLim', app.bandObj.CLimits);
         end
 
         %-----------------------------------------------------------------%
@@ -746,8 +792,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         
                 % Occupancy
                 if app.axesTool_occupancy.UserData.status
-                    % occIndex = play_OCCIndex(app, idx, 'PLAYBACK');
-                    % plot.old_OCC(app, idx, 'Creation', occIndex)
+                    updateOccupancyPlot(app, 'Creation', specData)
                 end
         
                 % Waterfall
@@ -844,6 +889,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ## WATERFALL ##
         %-----------------------------------------------------------------%
         function updateWaterfallPanel(app)
+            specData = app.bandObj.SpecData;
             elementHandles = findobj(app.WaterfallPanelGrid.Children, '-not', 'Type', 'uilabel', '-or', 'Type', 'uiimage');
             
             if app.axesTool_waterfall.UserData.status
@@ -866,6 +912,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 set(elementHandles, 'Enable', false)
             end
+
+            updateUIControlsState(app, specData)
         end
 
         %-----------------------------------------------------------------%
@@ -874,25 +922,41 @@ classdef winPlayback_exported < matlab.apps.AppBase
             plot.axes.Layout.YLabel(app.plotHandles.waterfall, app.axesTool_waterfall.UserData.status)
             updateWaterfallPanel(app)
 
-            % DataCursorMode
-            % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
-            % cartesianos por bloquear as outras (Pan, regionZoom etc). Por
-            % essa razão, restringir o DataCursorMode apenas ao eixo específico
-            % em que está sendo plotado a imagem (que não suporta a interação 
-            % padrão de DataTip).
-            switch app.WaterfallFunction.Value
-                case 'image'
-                    app.axesTool_DataTip.Enable = 1;
-                case 'mesh'
-                    app.axesTool_DataTip.Enable = 0;
-                    if app.axesTool_DataTip.UserData.status
-                        play_AxesToolbarCallbacks(app, struct('Source', app.axesTool_DataTip))
-                    end
-            end
-
             % Timeline
             if app.mainApp.General.context.PLAYBACK.waterfallTimeVisibility
                 app.plotHandles.waterfallTime = plot.draw2D.OrdinaryLine(app.UIAxes3, 'waterfallTime', app.bandObj, app.sweepTimeIdx);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateOccupancyPlot(app, operationType, specData)
+            switch operationType
+                case 'Creation'
+                    selectedHash = specData.UserData.OccupancyComputationMode.SelectedHash;
+                    [~, selectedHashIdx] = ismember(selectedHash, {app.mainApp.specData.Hash});
+        
+                    if selectedHashIdx
+                        occParameters  = struct('Method', 'Linear fixo (COLETA)', 'Threshold', app.mainApp.specData(selectedHashIdx).MetaData.Threshold);
+                        occThreshold   = app.mainApp.specData(selectedHashIdx).MetaData.Threshold;
+                        occAverageData = app.mainApp.specData(selectedHashIdx).Data{3}(2, :);
+                    else
+                        cacheIdx = specData.UserData.OccupancyComputationMode.CacheIndex;
+                        if ~isempty(cacheIdx)
+                            occParameters  = specData.UserData.OccupancyFiniteIntegrationCache(cacheIdx).Parameters;
+                            occThreshold   = specData.UserData.OccupancyFiniteIntegrationCache(cacheIdx).Threshold;
+                            occAverageData = specData.UserData.OccupancyFiniteIntegrationCache(cacheIdx).Data{3}(:, 2);
+                        else
+                            occParameters  = specData.UserData.OccupancyCumulativeIntegration.Parameters;
+                            occThreshold   = specData.UserData.OccupancyCumulativeIntegration.Threshold;
+                            occMatrix      = specData.UserData.OccupancyCumulativeIntegration.Matrix;
+                            occAverageData = 100 * sum(occMatrix, 2) / width(occMatrix);
+                        end
+                    end
+        
+                    plot.Occupancy('Creation', app.UIAxes1, app.UIAxes2, occParameters, occThreshold, occAverageData, app.bandObj, app.mainApp.General)
+
+                case 'Delete'
+                    plot.Occupancy('Delete', app.UIAxes1, app.UIAxes2)
             end
         end
 
@@ -1113,17 +1177,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.axesTool_Pan.ImageSource = 'pan-32px.png';
                     end
 
-                    plot.axes.Interactivity.CustomPanFcn(struct('Value', app.axesTool_Pan.UserData.status), app.UIAxes1, [app.UIAxes2, app.UIAxes3]);
-
-                case app.axesTool_DataTip
-                    app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
-                    if app.axesTool_DataTip.UserData.status
-                        app.axesTool_DataTip.ImageSource = 'datatip-filled-22px.png';
-                    else
-                        app.axesTool_DataTip.ImageSource = 'datatip-22px.png';
-                    end
-
-                    plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
+                    plot.axes.Interactivity.CustomPanFcn(struct('Value', app.axesTool_Pan.UserData.status), [app.UIAxes1, app.UIAxes2, app.UIAxes3]);
 
                 case {app.axesTool_minHold, app.axesTool_average, app.axesTool_maxHold}
                     event.Source.UserData.status = ~event.Source.UserData.status;
@@ -1166,12 +1220,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     update(specData, 'UserData:PlotDisplayConfig', 'occupancy', event.Source.UserData.status)
 
                     if app.axesTool_occupancy.UserData.status
-                    %     occIndex = play_OCCIndex(app, idx, 'PLAYBACK/REPORT');
-                    %     plot.old_OCC(app, idx, 'Creation', occIndex)
+                        updateOccupancyPlot(app, 'Creation', specData)
                     else
-                    %     plot.old_OCC(app, idx, 'Delete', -1)
+                        updateOccupancyPlot(app, 'Delete', specData)
                     end
-                    % play_OCCLayoutVisibility(app, app.bandObj.LevelUnit)
 
                 case app.axesTool_waterfall
                     app.axesTool_waterfall.UserData.status = ~app.axesTool_waterfall.UserData.status;
@@ -1190,6 +1242,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     else
                         updateWaterfallPanel(app)
                     end
+
+                case app.axesTool_DataTip
+                    app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
+                    if app.axesTool_DataTip.UserData.status
+                        app.axesTool_DataTip.ImageSource = 'datatip-filled-20px.png';
+                    else
+                        app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
+                    end
+
+                    plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
             end
             drawnow
 
@@ -1324,6 +1386,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             if ~isempty(specData)
                 update(specData, 'UserData:PlotDisplayConfig', event.Source.Tag, evtValue)
+                updateSpectrumInfo(app.bandObj, specData);
+                resetRestoreView(app)
             end
             checkAxesLimitsCustomizations(app)
             
@@ -1543,7 +1607,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 198, '1x', 5, 10, 232};
+            app.Document.ColumnWidth = {320, 10, 5, 218, '1x', 5, 10, 232};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1562,11 +1626,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 22, 22, 22, 22, 22, 22, 22, '1x'};
+            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 5, 22, 5, 22, 22, '1x'};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
-            app.AxesToolbar.Padding = [0 2 0 2];
+            app.AxesToolbar.Padding = [0 2 0 1];
             app.AxesToolbar.Layout.Row = 1;
             app.AxesToolbar.Layout.Column = 4;
             app.AxesToolbar.BackgroundColor = [1 1 1];
@@ -1586,14 +1650,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Pan.Layout.Column = 3;
             app.axesTool_Pan.ImageSource = 'pan-32px.png';
 
-            % Create axesTool_DataTip
-            app.axesTool_DataTip = uiimage(app.AxesToolbar);
-            app.axesTool_DataTip.ScaleMethod = 'none';
-            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_DataTip.Enable = 'off';
-            app.axesTool_DataTip.Layout.Row = 1;
-            app.axesTool_DataTip.Layout.Column = 4;
-            app.axesTool_DataTip.ImageSource = 'datatip-22px.png';
+            % Create axesTool_Separator1
+            app.axesTool_Separator1 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator1.ScaleMethod = 'none';
+            app.axesTool_Separator1.Enable = 'off';
+            app.axesTool_Separator1.Layout.Row = 1;
+            app.axesTool_Separator1.Layout.Column = 4;
+            app.axesTool_Separator1.ImageSource = 'LineV.svg';
 
             % Create axesTool_minHold
             app.axesTool_minHold = uiimage(app.AxesToolbar);
@@ -1631,14 +1694,30 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.Layout.Column = 8;
             app.axesTool_persistence.ImageSource = 'persistence-36px.png';
 
+            % Create axesTool_Separator2
+            app.axesTool_Separator2 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator2.ScaleMethod = 'none';
+            app.axesTool_Separator2.Enable = 'off';
+            app.axesTool_Separator2.Layout.Row = 1;
+            app.axesTool_Separator2.Layout.Column = 9;
+            app.axesTool_Separator2.ImageSource = 'LineV.svg';
+
             % Create axesTool_occupancy
             app.axesTool_occupancy = uiimage(app.AxesToolbar);
             app.axesTool_occupancy.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_occupancy.Tag = 'occupancy';
             app.axesTool_occupancy.Enable = 'off';
             app.axesTool_occupancy.Layout.Row = 1;
-            app.axesTool_occupancy.Layout.Column = 9;
-            app.axesTool_occupancy.ImageSource = 'Occupancy_32Gray.png';
+            app.axesTool_occupancy.Layout.Column = 10;
+            app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
+
+            % Create axesTool_Separator3
+            app.axesTool_Separator3 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator3.ScaleMethod = 'none';
+            app.axesTool_Separator3.Enable = 'off';
+            app.axesTool_Separator3.Layout.Row = 1;
+            app.axesTool_Separator3.Layout.Column = 11;
+            app.axesTool_Separator3.ImageSource = 'LineV.svg';
 
             % Create axesTool_waterfall
             app.axesTool_waterfall = uiimage(app.AxesToolbar);
@@ -1647,8 +1726,17 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_waterfall.Tag = 'waterfall';
             app.axesTool_waterfall.Enable = 'off';
             app.axesTool_waterfall.Layout.Row = 1;
-            app.axesTool_waterfall.Layout.Column = 10;
-            app.axesTool_waterfall.ImageSource = 'Waterfall_24.png';
+            app.axesTool_waterfall.Layout.Column = 12;
+            app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
+
+            % Create axesTool_DataTip
+            app.axesTool_DataTip = uiimage(app.AxesToolbar);
+            app.axesTool_DataTip.ScaleMethod = 'none';
+            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_DataTip.Enable = 'off';
+            app.axesTool_DataTip.Layout.Row = 1;
+            app.axesTool_DataTip.Layout.Column = 13;
+            app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
             % Create AxesAnnotation
             app.AxesAnnotation = uilabel(app.Document);
@@ -2155,7 +2243,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.WaterfallPanelIcon.ScaleMethod = 'none';
             app.WaterfallPanelIcon.Layout.Row = [11 12];
             app.WaterfallPanelIcon.Layout.Column = 1;
-            app.WaterfallPanelIcon.ImageSource = 'Waterfall_24.png';
+            app.WaterfallPanelIcon.ImageSource = 'waterfall-22px.png';
 
             % Create WaterfallPanelLabel
             app.WaterfallPanelLabel = uilabel(app.RightPanel);
