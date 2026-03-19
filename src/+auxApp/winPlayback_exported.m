@@ -708,6 +708,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function resetPlotState(app, specData)
             cla([app.UIAxes1, app.UIAxes2, app.UIAxes3])
+            
+            ysecondarylabel(app.UIAxes2, '')
+            ysecondarylabel(app.UIAxes3, '')
 
             app.UIAxes1.UserData.CLimMode = 'auto';
             app.UIAxes3.UserData.CLimMode = 'auto';

@@ -2,56 +2,55 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                     matlab.ui.Figure
-        GridLayout                   matlab.ui.container.GridLayout
-        NavBar                       matlab.ui.container.GridLayout
-        AppInfo                      matlab.ui.control.Image
-        FigurePosition               matlab.ui.control.Image
-        DataHubLamp                  matlab.ui.control.Image
-        jsBackDoor                   matlab.ui.control.HTML
-        Tab8Button                   matlab.ui.control.StateButton
-        Tab7Button                   matlab.ui.control.StateButton
-        Tab6Button                   matlab.ui.control.StateButton
-        ButtonsSeparator2            matlab.ui.control.Image
-        Tab5Button                   matlab.ui.control.StateButton
-        Tab4Button                   matlab.ui.control.StateButton
-        Tab3Button                   matlab.ui.control.StateButton
-        Tab2Button                   matlab.ui.control.StateButton
-        ButtonsSeparator1            matlab.ui.control.Image
-        Tab1Button                   matlab.ui.control.StateButton
-        AppName                      matlab.ui.control.Label
-        AppIcon                      matlab.ui.control.Image
-        TabGroup                     matlab.ui.container.TabGroup
-        Tab1_File                    matlab.ui.container.Tab
-        Tab1Grid                     matlab.ui.container.GridLayout
-        SubTabGroup                  matlab.ui.container.TabGroup
-        SubTab1                      matlab.ui.container.Tab
-        SubGrid1                     matlab.ui.container.GridLayout
-        FileModuleInfo               matlab.ui.control.Label
-        SubTab2                      matlab.ui.container.Tab
-        SubGrid2                     matlab.ui.container.GridLayout
-        FileFilterTree               matlab.ui.container.Tree
-        FileFilterAdd                matlab.ui.control.Image
-        FileFilterValue_Frequency    matlab.ui.control.DropDown
-        FileFilterValue_ID           matlab.ui.control.DropDown
-        FileFilterValue_Description  matlab.ui.control.EditField
-        FileFilterType               matlab.ui.control.DropDown
-        Toolbar                      matlab.ui.container.GridLayout
-        tool_ReadFiles               matlab.ui.control.Image
-        FileMetadata                 matlab.ui.control.Label
-        FileTree                     matlab.ui.container.Tree
-        Tab2_Playback                matlab.ui.container.Tab
-        Tab3_DriveTest               matlab.ui.container.Tab
-        Tab4_SignalAnalysis          matlab.ui.container.Tab
-        Tab5_Misc                    matlab.ui.container.Tab
-        Tab6_RFDataHub               matlab.ui.container.Tab
-        Tab7_RepoSFI                 matlab.ui.container.Tab
-        Tab8_Config                  matlab.ui.container.Tab
-        FileTreeContextMenu          matlab.ui.container.ContextMenu
-        FileTreeEditButton           matlab.ui.container.Menu
-        FileTreeDeleteButton         matlab.ui.container.Menu
-        FileFilterTreeContextMenu    matlab.ui.container.ContextMenu
-        FileFilterTreeDeleteButton   matlab.ui.container.Menu
+        UIFigure                    matlab.ui.Figure
+        GridLayout                  matlab.ui.container.GridLayout
+        NavBar                      matlab.ui.container.GridLayout
+        AppInfo                     matlab.ui.control.Image
+        FigurePosition              matlab.ui.control.Image
+        DataHubLamp                 matlab.ui.control.Image
+        jsBackDoor                  matlab.ui.control.HTML
+        Tab8Button                  matlab.ui.control.StateButton
+        Tab7Button                  matlab.ui.control.StateButton
+        Tab6Button                  matlab.ui.control.StateButton
+        ButtonsSeparator2           matlab.ui.control.Image
+        Tab5Button                  matlab.ui.control.StateButton
+        Tab4Button                  matlab.ui.control.StateButton
+        Tab3Button                  matlab.ui.control.StateButton
+        Tab2Button                  matlab.ui.control.StateButton
+        ButtonsSeparator1           matlab.ui.control.Image
+        Tab1Button                  matlab.ui.control.StateButton
+        AppName                     matlab.ui.control.Label
+        AppIcon                     matlab.ui.control.Image
+        TabGroup                    matlab.ui.container.TabGroup
+        Tab1_File                   matlab.ui.container.Tab
+        Tab1Grid                    matlab.ui.container.GridLayout
+        SubTabGroup                 matlab.ui.container.TabGroup
+        SubTab1                     matlab.ui.container.Tab
+        SubGrid1                    matlab.ui.container.GridLayout
+        FileModuleInfo              matlab.ui.control.Label
+        SubTab2                     matlab.ui.container.Tab
+        SubGrid2                    matlab.ui.container.GridLayout
+        FileFilterTree              matlab.ui.container.Tree
+        FileFilterAdd               matlab.ui.control.Image
+        FileFilterValueList         matlab.ui.control.DropDown
+        FileFilterValueText         matlab.ui.control.EditField
+        FileFilterType              matlab.ui.control.DropDown
+        Toolbar                     matlab.ui.container.GridLayout
+        tool_ReadFiles              matlab.ui.control.Image
+        FileMetadata                matlab.ui.control.Label
+        FileTree                    matlab.ui.container.Tree
+        Tab2_Playback               matlab.ui.container.Tab
+        Tab3_DriveTest              matlab.ui.container.Tab
+        Tab4_SignalAnalysis         matlab.ui.container.Tab
+        Tab5_Misc                   matlab.ui.container.Tab
+        Tab6_RFDataHub              matlab.ui.container.Tab
+        Tab7_RepoSFI                matlab.ui.container.Tab
+        Tab8_Config                 matlab.ui.container.Tab
+        FileTreeContextMenu         matlab.ui.container.ContextMenu
+        FileTreeEditButton          matlab.ui.container.Menu
+        FileTreeDeleteButton        matlab.ui.container.Menu
+        FileFilterTreeContextMenu   matlab.ui.container.ContextMenu
+        FileFilterTreeDeleteButton  matlab.ui.container.Menu
     end
 
     
@@ -537,10 +536,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     catch
                     end
 
-                    app.FileFilterValue_ID.UserData.render        = false;
-                    app.FileFilterValue_Frequency.UserData.render = false;
-                    app.FileFilterTree.UserData.render            = false;
-                    
+                    app.FileFilterTree.UserData.render = false;
                     initializeFileTreeSelectionIdx(app)
 
                 case 2
@@ -556,11 +552,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     catch
                     end
 
-                    app.FileFilterValue_ID.UserData.render        = true;
-                    app.FileFilterValue_Frequency.UserData.render = true;
-                    app.FileFilterTree.UserData.render            = true;
-
-                    updateFileFilterValueOptions(app)
+                    app.FileFilterTree.UserData.render = true;
+                    onFileFilterTypeSelectionChanged(app)
                     updateFileFilterTree(app)
             end
         end
@@ -658,7 +651,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab8Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      8)
             app.tabGroupController.inlineSVG = true;
 
-            addStyle(app.FileTree, uistyle('Interpreter', 'html'))
+            % addStyle(app.FileTree, uistyle('Interpreter', 'html'))
         end
 
         %-----------------------------------------------------------------%
@@ -726,7 +719,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             if ~isempty(app.metaData)
-                updateFileFilterValueOptions(app)
+                onFileFilterTypeSelectionChanged(app)
                 updateFileFilterTree(app)
 
                 selectedNodes = [];
@@ -747,6 +740,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     if isscalar(receiverList) && isscalar(app.metaData(ii).Data)
                         fileNode.NodeData.flowIdx = 1;
                     end
+
+                    if all(~[app.metaData(ii).Data.Enable])
+                        filteredNodes = [filteredNodes, fileNode];
+                    end
                     
                     for jj = 1:numel(receiverList)
                         idx = find(receiverIndex == jj)';
@@ -757,6 +754,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             'Icon', util.layoutTreeNodeIcon(receiverList{jj}), ...
                             'ContextMenu', app.FileTreeContextMenu ...
                         );
+
+                        if all(~[app.metaData(ii).Data(idx).Enable])
+                            filteredNodes = [filteredNodes, receiverNode];
+                        end                        
 
                         for kk = idx
                             nodeTextNote = '';
@@ -795,39 +796,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             else
                 ui.TextView.update(app.FileMetadata, '');
-                app.FileFilterValue_Frequency.Items   = {};
-                app.FileFilterValue_ID.Items          = {};
-                app.FileFilterValue_Description.Value = '';           
+                app.FileFilterValueList.Items = {};
+                app.FileFilterValueText.Value = '';           
             end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateFileFilterValueOptions(app)
-            if ~app.FileFilterValue_ID.UserData.render && ~app.FileFilterValue_Frequency.UserData.render
-                return
-            end
-
-            bandList = table( ...
-                'Size', [0,3], ...
-                'VariableTypes', {'double', 'double', 'cell'}, ...
-                'VariableNames', {'FreqStart', 'FreqStop', 'FlowTag'} ...
-            );
-            idList = [];
-
-            for ii = 1:numel(app.metaData)
-                for jj = 1:numel(app.metaData(ii).Data)
-                    freqStart = app.metaData(ii).Data(jj).MetaData.FreqStart;
-                    freqStop  = app.metaData(ii).Data(jj).MetaData.FreqStop;
-                    flowTag   = sprintf('%.3f - %.3f MHz', freqStart / 1e+6, freqStop / 1e+6);
-
-                    bandList(end+1, :) = {freqStart, freqStop, flowTag};
-                    idList(end+1, 1) = app.metaData(ii).Data(jj).RelatedFiles.Id(1);
-                end
-            end
-            bandList = sortrows(bandList, {'FreqStart', 'FreqStop'});
-
-            app.FileFilterValue_ID.Items = cellstr(string(unique(idList)));
-            app.FileFilterValue_Frequency.Items = unique(bandList.FlowTag, 'stable');
         end
 
         %-----------------------------------------------------------------%
@@ -842,18 +813,28 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             else
                 filterTextList = strjoin({hFilter.Text}, '\n');                
-                filterParser   = struct2table(regexp(filterTextList, '(?<Type>(FREQUÊNCIA|ID|DESCRIÇÃO))[:] (?<Sentence>.*)', 'names', 'dotexceptnewline'));
+                filterParser   = struct2table(regexp(filterTextList, '(?<Type>(FREQUÊNCIA|ID|DESCRIÇÃO|RECEPTOR))[:] (?<Sentence>.*)', 'names', 'dotexceptnewline'));
                 if ~iscell(filterParser.Sentence)
                     filterParser.Sentence = {filterParser.Sentence};
                 end
 
+                filterSentence_Description = filterParser.Sentence(filterParser.Type == "DESCRIÇÃO");
                 filterSentence_Frequency   = filterParser.Sentence(filterParser.Type == "FREQUÊNCIA");
                 filterSentence_ID          = str2double(filterParser.Sentence(filterParser.Type == "ID"));
-                filterSentence_Description = filterParser.Sentence(filterParser.Type == "DESCRIÇÃO");
+                filterSentence_Receiver    = filterParser.Sentence(filterParser.Type == "RECEPTOR");
 
                 for ii = 1:numel(app.metaData)
                     for jj = 1:numel(app.metaData(ii).Data)
                         updateEnabledState(app.metaData, 'specific-flow', ii, jj, false)
+
+                        % DESCRIÇÃO
+                        if ~isempty(filterSentence_Description)
+                            description = app.metaData(ii).Data(jj).RelatedFiles.Description{1};
+                            if any(cellfun(@(x) contains(description, x, "IgnoreCase", true), replace(filterSentence_Description, '"', '')))
+                                updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
+                                continue
+                            end
+                        end
 
                         % FREQUÊNCIA
                         if ~isempty(filterSentence_Frequency)
@@ -873,11 +854,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             end
                         end
 
-                        % DESCRIÇÃO
-                        if ~isempty(filterSentence_Description)
-                            description = app.metaData(ii).Data(jj).RelatedFiles.Description{1};
-
-                            if any(cellfun(@(x) contains(description, x, "IgnoreCase", true), replace(filterSentence_Description, '"', '')))
+                        % RECEPTOR
+                        if ~isempty(filterSentence_Receiver)
+                            receiver = util.layoutTreeNodeText(app.metaData(ii).Data(jj).Receiver, 'play_TreeBuilding');
+                            if ismember(receiver, filterSentence_Receiver)
                                 updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
                                 continue
                             end
@@ -1274,12 +1254,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 updateLastVisitedFolder(app, filePath)
             end
 
-            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).');            
+            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).', 'Cancelable', 'on');
             
             repeteadFiles = {};
             errorMessage  = {};
 
             for ii = 1:numel(fileName)
+                if d.CancelRequested
+                    break
+                end
+
                 d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
                 fileFullPath = fullfile(filePath, fileName{ii});
@@ -1450,26 +1434,32 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         function onFileFilterAddRequested(app, event)
             
             switch app.FileFilterType.Value
-                case 'Faixa de Frequência'
-                    if isempty(app.FileFilterValue_Frequency.Value)
-                        return
-                    end
-                    newFilterText = sprintf('FREQUÊNCIA: %s', app.FileFilterValue_Frequency.Value);
-                    
-                case 'ID'
-                    if isempty(app.FileFilterValue_ID.Value)
-                        return
-                    end
-                    newFilterText = sprintf('ID: %s', app.FileFilterValue_ID.Value);
-                    
                 case 'Descrição'
-                    app.FileFilterValue_Description.Value = upper(strtrim(app.FileFilterValue_Description.Value));
+                    app.FileFilterValueText.Value = upper(strtrim(app.FileFilterValueText.Value));
                     
-                    if isempty(app.FileFilterValue_Description.Value)
+                    if isempty(app.FileFilterValueText.Value)
                         return
                     else
-                        newFilterText = sprintf('DESCRIÇÃO: "%s"', app.FileFilterValue_Description.Value);
+                        newFilterText = sprintf('DESCRIÇÃO: "%s"', app.FileFilterValueText.Value);
                     end
+
+                case 'Faixa de frequência'
+                    if isempty(app.FileFilterValueList.Value)
+                        return
+                    end
+                    newFilterText = sprintf('FREQUÊNCIA: %s', app.FileFilterValueList.Value);
+                    
+                case 'Id'
+                    if isempty(app.FileFilterValueList.Value)
+                        return
+                    end
+                    newFilterText = sprintf('ID: %s', app.FileFilterValueList.Value);
+
+                case 'Receptor'
+                    if isempty(app.FileFilterValueList.Value)
+                        return
+                    end
+                    newFilterText = sprintf('RECEPTOR: %s', app.FileFilterValueList.Value);
             end
 
             hComponents = allchild(app.FileFilterTree);
@@ -1501,12 +1491,38 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         % Value changed function: FileFilterType
         function onFileFilterTypeSelectionChanged(app, event)
 
-            cellfun(@(x) set(x, 'Visible', 'off'), {app.FileFilterValue_Frequency, app.FileFilterValue_ID, app.FileFilterValue_Description});
+            if ~app.FileFilterTree.UserData.render
+                return
+            end
 
             switch app.FileFilterType.Value
-                case 'Faixa de Frequência'; app.FileFilterValue_Frequency.Visible   = 'on';
-                case 'ID';                  app.FileFilterValue_ID.Visible          = 'on';
-                case 'Descrição';           app.FileFilterValue_Description.Visible = 'on';
+                case 'Descrição'
+                    app.FileFilterValueText.Visible = 'on';
+                    app.FileFilterValueList.Visible = 'off';
+                    
+                case {'Faixa de frequência', 'Id', 'Receptor'}
+                    app.FileFilterValueText.Visible = 'off';
+                    app.FileFilterValueList.Visible = 'on';
+
+                    if ~isempty(app.metaData)
+                        referenceTable = buildSpectrumReferenceTable(app.metaData, app.General, true);
+
+                        switch app.FileFilterType.Value
+                            case 'Faixa de frequência'
+                                referenceTable = sortrows(referenceTable, {'FreqStart', 'FreqStop'});
+                                valueList = referenceTable.Band;
+                            case 'Id'
+                                referenceTable = sortrows(referenceTable, {'Id', 'FreqStart', 'FreqStop'});
+                                valueList = arrayfun(@(x) num2str(x), referenceTable.Id, 'UniformOutput', false);
+                            otherwise
+                                valueList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), referenceTable.Receiver, 'UniformOutput', false);
+                        end
+
+                        app.FileFilterValueList.Items = unique(valueList, 'stable');
+                        
+                    else
+                        app.FileFilterValueList.Items = {};
+                    end
             end
 
         end
@@ -1638,42 +1654,31 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create FileFilterType
             app.FileFilterType = uidropdown(app.SubGrid2);
-            app.FileFilterType.Items = {'Faixa de Frequência', 'ID', 'Descrição'};
+            app.FileFilterType.Items = {'Descrição', 'Faixa de frequência', 'Id', 'Receptor'};
             app.FileFilterType.ValueChangedFcn = createCallbackFcn(app, @onFileFilterTypeSelectionChanged, true);
             app.FileFilterType.FontSize = 11;
             app.FileFilterType.BackgroundColor = [1 1 1];
             app.FileFilterType.Layout.Row = 1;
             app.FileFilterType.Layout.Column = 1;
-            app.FileFilterType.Value = 'Faixa de Frequência';
+            app.FileFilterType.Value = 'Descrição';
 
-            % Create FileFilterValue_Description
-            app.FileFilterValue_Description = uieditfield(app.SubGrid2, 'text');
-            app.FileFilterValue_Description.FontSize = 11;
-            app.FileFilterValue_Description.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FileFilterValue_Description.Visible = 'off';
-            app.FileFilterValue_Description.Layout.Row = 2;
-            app.FileFilterValue_Description.Layout.Column = 1;
+            % Create FileFilterValueText
+            app.FileFilterValueText = uieditfield(app.SubGrid2, 'text');
+            app.FileFilterValueText.FontSize = 11;
+            app.FileFilterValueText.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FileFilterValueText.Layout.Row = 2;
+            app.FileFilterValueText.Layout.Column = 1;
 
-            % Create FileFilterValue_ID
-            app.FileFilterValue_ID = uidropdown(app.SubGrid2);
-            app.FileFilterValue_ID.Items = {};
-            app.FileFilterValue_ID.Visible = 'off';
-            app.FileFilterValue_ID.FontSize = 11;
-            app.FileFilterValue_ID.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FileFilterValue_ID.BackgroundColor = [1 1 1];
-            app.FileFilterValue_ID.Layout.Row = 2;
-            app.FileFilterValue_ID.Layout.Column = 1;
-            app.FileFilterValue_ID.Value = {};
-
-            % Create FileFilterValue_Frequency
-            app.FileFilterValue_Frequency = uidropdown(app.SubGrid2);
-            app.FileFilterValue_Frequency.Items = {};
-            app.FileFilterValue_Frequency.FontSize = 11;
-            app.FileFilterValue_Frequency.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FileFilterValue_Frequency.BackgroundColor = [1 1 1];
-            app.FileFilterValue_Frequency.Layout.Row = 2;
-            app.FileFilterValue_Frequency.Layout.Column = 1;
-            app.FileFilterValue_Frequency.Value = {};
+            % Create FileFilterValueList
+            app.FileFilterValueList = uidropdown(app.SubGrid2);
+            app.FileFilterValueList.Items = {};
+            app.FileFilterValueList.Visible = 'off';
+            app.FileFilterValueList.FontSize = 11;
+            app.FileFilterValueList.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FileFilterValueList.BackgroundColor = [1 1 1];
+            app.FileFilterValueList.Layout.Row = 2;
+            app.FileFilterValueList.Layout.Column = 1;
+            app.FileFilterValueList.Value = {};
 
             % Create FileFilterAdd
             app.FileFilterAdd = uiimage(app.SubGrid2);
@@ -1686,7 +1691,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create FileFilterTree
             app.FileFilterTree = uitree(app.SubGrid2);
             app.FileFilterTree.Multiselect = 'on';
-            app.FileFilterTree.FontSize = 10;
+            app.FileFilterTree.FontSize = 11;
             app.FileFilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FileFilterTree.Layout.Row = [1 2];
             app.FileFilterTree.Layout.Column = 3;
