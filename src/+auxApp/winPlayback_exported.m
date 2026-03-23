@@ -60,10 +60,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
         LeftPanel                      matlab.ui.container.GridLayout
         FlowPanel                      matlab.ui.container.Panel
         FlowPanelGrid                  matlab.ui.container.GridLayout
-        FlowAnalysis                   matlab.ui.control.Label
-        FlowEmissions                  matlab.ui.container.Tree
         FlowEmissionsBtn2              matlab.ui.control.Image
         FlowEmissionsBtn1              matlab.ui.control.Image
+        FlowAnalysis                   matlab.ui.control.Label
+        FlowEmissions                  matlab.ui.container.Tree
         FlowEmissionsLabel             matlab.ui.control.Label
         FlowChannel                    matlab.ui.control.ListBox
         FlowChannelBtn                 matlab.ui.control.Image
@@ -91,6 +91,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         axesTool_maxHold               matlab.ui.control.Image
         axesTool_average               matlab.ui.control.Image
         axesTool_minHold               matlab.ui.control.Image
+        axesTool_crearWrite            matlab.ui.control.Image
         axesTool_Separator1            matlab.ui.control.Image
         axesTool_Pan                   matlab.ui.control.Image
         axesTool_RestoreView           matlab.ui.control.Image
@@ -544,6 +545,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowChannelBtn;
                 app.FlowEmissionsBtn1;
                 app.FlowEmissionsBtn2;
+                app.axesTool_crearWrite;
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
@@ -1123,7 +1125,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             numPanels = 4;
 
-            panelSubtitles = {'Metadados', 'Algoritmos', 'Canais e emissões', 'Sumário de análise'};
+            panelSubtitles = {'Metadados', 'Emissões', 'Canais', 'Sumário de análise'};
             panelBtnStatus = [false true; true true; true true; true false];
             columnWidths = {
                 {'1x',0,0,0,0,0,0,0,0,0,0};
@@ -1159,7 +1161,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: axesTool_DataTip, axesTool_Pan, 
-        % ...and 7 other components
+        % ...and 8 other components
         function onAxesToolbarButtonClicked(app, event)
             
             specData = app.bandObj.SpecData;
@@ -1181,6 +1183,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
 
                     plot.axes.Interactivity.CustomPanFcn(struct('Value', app.axesTool_Pan.UserData.status), [app.UIAxes1, app.UIAxes2, app.UIAxes3]);
+
+                case app.axesTool_crearWrite
+                    if ~isempty(app.plotHandles.clearWrite) && isvalid(app.plotHandles.clearWrite)
+                        app.plotHandles.clearWrite.Visible = ~app.plotHandles.clearWrite.Visible;
+                    end
 
                 case {app.axesTool_minHold, app.axesTool_average, app.axesTool_maxHold}
                     event.Source.UserData.status = ~event.Source.UserData.status;
@@ -1480,6 +1487,18 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Image clicked function: FlowEmissionsBtn1
+        function FlowEmissionsBtn1ImageClicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+            emissions = util.Detection.findPeaksPlusConnectedRegions(specData);
+            clc
+            emissions
+            
+            util.Detection.drawEmission('Creation', app.UIAxes1, app.restoreView, emissions)
+
+        end
     end
 
     % Component initialization
@@ -1610,7 +1629,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 218, '1x', 5, 10, 232};
+            app.Document.ColumnWidth = {320, 10, 5, 244, '1x', 5, 10, 232};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1629,7 +1648,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 5, 22, 5, 22, 22, '1x'};
+            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, '1x'};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -1661,13 +1680,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator1.Layout.Column = 4;
             app.axesTool_Separator1.ImageSource = 'LineV.svg';
 
+            % Create axesTool_crearWrite
+            app.axesTool_crearWrite = uiimage(app.AxesToolbar);
+            app.axesTool_crearWrite.ScaleMethod = 'none';
+            app.axesTool_crearWrite.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_crearWrite.Tag = 'minHold';
+            app.axesTool_crearWrite.Enable = 'off';
+            app.axesTool_crearWrite.Layout.Row = 1;
+            app.axesTool_crearWrite.Layout.Column = 5;
+            app.axesTool_crearWrite.ImageSource = 'eye-closed-16px.svg';
+
             % Create axesTool_minHold
             app.axesTool_minHold = uiimage(app.AxesToolbar);
             app.axesTool_minHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_minHold.Tag = 'minHold';
             app.axesTool_minHold.Enable = 'off';
             app.axesTool_minHold.Layout.Row = 1;
-            app.axesTool_minHold.Layout.Column = 5;
+            app.axesTool_minHold.Layout.Column = 6;
             app.axesTool_minHold.ImageSource = 'MinHold_32.png';
 
             % Create axesTool_average
@@ -1676,7 +1705,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_average.Tag = 'average';
             app.axesTool_average.Enable = 'off';
             app.axesTool_average.Layout.Row = 1;
-            app.axesTool_average.Layout.Column = 6;
+            app.axesTool_average.Layout.Column = 7;
             app.axesTool_average.ImageSource = 'Average_32.png';
 
             % Create axesTool_maxHold
@@ -1685,7 +1714,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_maxHold.Tag = 'maxHold';
             app.axesTool_maxHold.Enable = 'off';
             app.axesTool_maxHold.Layout.Row = 1;
-            app.axesTool_maxHold.Layout.Column = 7;
+            app.axesTool_maxHold.Layout.Column = 8;
             app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
 
             % Create axesTool_persistence
@@ -1694,7 +1723,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.Tag = 'persistence';
             app.axesTool_persistence.Enable = 'off';
             app.axesTool_persistence.Layout.Row = 1;
-            app.axesTool_persistence.Layout.Column = 8;
+            app.axesTool_persistence.Layout.Column = 9;
             app.axesTool_persistence.ImageSource = 'persistence-36px.png';
 
             % Create axesTool_Separator2
@@ -1702,7 +1731,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator2.ScaleMethod = 'none';
             app.axesTool_Separator2.Enable = 'off';
             app.axesTool_Separator2.Layout.Row = 1;
-            app.axesTool_Separator2.Layout.Column = 9;
+            app.axesTool_Separator2.Layout.Column = 10;
             app.axesTool_Separator2.ImageSource = 'LineV.svg';
 
             % Create axesTool_occupancy
@@ -1711,7 +1740,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_occupancy.Tag = 'occupancy';
             app.axesTool_occupancy.Enable = 'off';
             app.axesTool_occupancy.Layout.Row = 1;
-            app.axesTool_occupancy.Layout.Column = 10;
+            app.axesTool_occupancy.Layout.Column = 11;
             app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
 
             % Create axesTool_Separator3
@@ -1719,7 +1748,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator3.ScaleMethod = 'none';
             app.axesTool_Separator3.Enable = 'off';
             app.axesTool_Separator3.Layout.Row = 1;
-            app.axesTool_Separator3.Layout.Column = 11;
+            app.axesTool_Separator3.Layout.Column = 12;
             app.axesTool_Separator3.ImageSource = 'LineV.svg';
 
             % Create axesTool_waterfall
@@ -1729,7 +1758,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_waterfall.Tag = 'waterfall';
             app.axesTool_waterfall.Enable = 'off';
             app.axesTool_waterfall.Layout.Row = 1;
-            app.axesTool_waterfall.Layout.Column = 12;
+            app.axesTool_waterfall.Layout.Column = 13;
             app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
 
             % Create axesTool_DataTip
@@ -1738,7 +1767,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_DataTip.Enable = 'off';
             app.axesTool_DataTip.Layout.Row = 1;
-            app.axesTool_DataTip.Layout.Column = 13;
+            app.axesTool_DataTip.Layout.Column = 14;
             app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
             % Create AxesAnnotation
@@ -1812,8 +1841,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-            app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 22, 5, '1x', '1x', 10};
+            app.FlowPanelGrid.ColumnWidth = {0, 10, '1x', 18, 10, 0, 0, 0, 0, 0, 0};
+            app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 22, 5, '1x', 22, 5, '1x', '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
             app.FlowPanelGrid.Padding = [0 0 0 0];
@@ -1824,7 +1853,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.VerticalAlignment = 'top';
             app.FlowMetadata.WordWrap = 'on';
             app.FlowMetadata.FontSize = 11;
-            app.FlowMetadata.Layout.Row = [1 9];
+            app.FlowMetadata.Layout.Row = [1 12];
             app.FlowMetadata.Layout.Column = 1;
             app.FlowMetadata.Interpreter = 'html';
             app.FlowMetadata.Text = '';
@@ -1835,7 +1864,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancyLabel.FontSize = 10;
             app.FlowOccupancyLabel.Layout.Row = 2;
             app.FlowOccupancyLabel.Layout.Column = 3;
-            app.FlowOccupancyLabel.Text = 'OCUPAÇÃO:';
+            app.FlowOccupancyLabel.Text = 'ALGORITMOS';
 
             % Create FlowOccupancyBtn
             app.FlowOccupancyBtn = uiimage(app.FlowPanelGrid);
@@ -1861,7 +1890,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetectionLabel.FontSize = 10;
             app.FlowDetectionLabel.Layout.Row = 5;
             app.FlowDetectionLabel.Layout.Column = 3;
-            app.FlowDetectionLabel.Text = 'DETECÇÃO E CLASSIFICAÇÃO DE EMISSÕES:';
+            app.FlowDetectionLabel.Text = 'LIMITES DE DETECÇÃO';
 
             % Create FlowDetectionBtn
             app.FlowDetectionBtn = uiimage(app.FlowPanelGrid);
@@ -1876,7 +1905,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetection.VerticalAlignment = 'top';
             app.FlowDetection.WordWrap = 'on';
             app.FlowDetection.FontSize = 11;
-            app.FlowDetection.Layout.Row = [7 8];
+            app.FlowDetection.Layout.Row = 7;
             app.FlowDetection.Layout.Column = [3 4];
             app.FlowDetection.Interpreter = 'html';
             app.FlowDetection.Text = '';
@@ -1901,7 +1930,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannel = uilistbox(app.FlowPanelGrid);
             app.FlowChannel.Items = {};
             app.FlowChannel.FontSize = 11;
-            app.FlowChannel.Layout.Row = 4;
+            app.FlowChannel.Layout.Row = [4 11];
             app.FlowChannel.Layout.Column = [6 9];
             app.FlowChannel.Value = {};
 
@@ -1909,43 +1938,45 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsLabel = uilabel(app.FlowPanelGrid);
             app.FlowEmissionsLabel.VerticalAlignment = 'bottom';
             app.FlowEmissionsLabel.FontSize = 10;
-            app.FlowEmissionsLabel.Layout.Row = 5;
-            app.FlowEmissionsLabel.Layout.Column = 6;
-            app.FlowEmissionsLabel.Text = 'LISTA DE EMISSÕES:';
-
-            % Create FlowEmissionsBtn1
-            app.FlowEmissionsBtn1 = uiimage(app.FlowPanelGrid);
-            app.FlowEmissionsBtn1.ScaleMethod = 'none';
-            app.FlowEmissionsBtn1.Enable = 'off';
-            app.FlowEmissionsBtn1.Layout.Row = 5;
-            app.FlowEmissionsBtn1.Layout.Column = 7;
-            app.FlowEmissionsBtn1.VerticalAlignment = 'bottom';
-            app.FlowEmissionsBtn1.ImageSource = 'search-sparkle.svg';
-
-            % Create FlowEmissionsBtn2
-            app.FlowEmissionsBtn2 = uiimage(app.FlowPanelGrid);
-            app.FlowEmissionsBtn2.Enable = 'off';
-            app.FlowEmissionsBtn2.Layout.Row = 5;
-            app.FlowEmissionsBtn2.Layout.Column = 9;
-            app.FlowEmissionsBtn2.VerticalAlignment = 'bottom';
-            app.FlowEmissionsBtn2.ImageSource = 'Edit_32.png';
+            app.FlowEmissionsLabel.Layout.Row = 8;
+            app.FlowEmissionsLabel.Layout.Column = 3;
+            app.FlowEmissionsLabel.Text = 'EMISSÕES';
 
             % Create FlowEmissions
             app.FlowEmissions = uitree(app.FlowPanelGrid);
             app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsSelectionChanged, true);
             app.FlowEmissions.FontSize = 11;
-            app.FlowEmissions.Layout.Row = [7 8];
-            app.FlowEmissions.Layout.Column = [6 9];
+            app.FlowEmissions.Layout.Row = [10 11];
+            app.FlowEmissions.Layout.Column = [3 4];
 
             % Create FlowAnalysis
             app.FlowAnalysis = uilabel(app.FlowPanelGrid);
             app.FlowAnalysis.VerticalAlignment = 'top';
             app.FlowAnalysis.WordWrap = 'on';
             app.FlowAnalysis.FontSize = 11;
-            app.FlowAnalysis.Layout.Row = [1 8];
+            app.FlowAnalysis.Layout.Row = [1 11];
             app.FlowAnalysis.Layout.Column = 11;
             app.FlowAnalysis.Interpreter = 'html';
             app.FlowAnalysis.Text = '';
+
+            % Create FlowEmissionsBtn1
+            app.FlowEmissionsBtn1 = uiimage(app.FlowPanelGrid);
+            app.FlowEmissionsBtn1.ScaleMethod = 'none';
+            app.FlowEmissionsBtn1.ImageClickedFcn = createCallbackFcn(app, @FlowEmissionsBtn1ImageClicked, true);
+            app.FlowEmissionsBtn1.Enable = 'off';
+            app.FlowEmissionsBtn1.Layout.Row = 8;
+            app.FlowEmissionsBtn1.Layout.Column = 4;
+            app.FlowEmissionsBtn1.VerticalAlignment = 'bottom';
+            app.FlowEmissionsBtn1.ImageSource = 'search-sparkle.svg';
+
+            % Create FlowEmissionsBtn2
+            app.FlowEmissionsBtn2 = uiimage(app.FlowPanelGrid);
+            app.FlowEmissionsBtn2.Enable = 'off';
+            app.FlowEmissionsBtn2.Visible = 'off';
+            app.FlowEmissionsBtn2.Layout.Row = 5;
+            app.FlowEmissionsBtn2.Layout.Column = 9;
+            app.FlowEmissionsBtn2.VerticalAlignment = 'bottom';
+            app.FlowEmissionsBtn2.ImageSource = 'Edit_32.png';
 
             % Create RightPanel
             app.RightPanel = uigridlayout(app.Document);
@@ -2380,6 +2411,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create WaterfallCLim1
             app.WaterfallCLim1 = uispinner(app.WaterfallPanelGrid);
+            app.WaterfallCLim1.Step = 5;
             app.WaterfallCLim1.RoundFractionalValues = 'on';
             app.WaterfallCLim1.ValueDisplayFormat = '%.0f';
             app.WaterfallCLim1.ValueChangedFcn = createCallbackFcn(app, @onAxesLimitsConfigChanged, true);
@@ -2391,6 +2423,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create WaterfallCLim2
             app.WaterfallCLim2 = uispinner(app.WaterfallPanelGrid);
+            app.WaterfallCLim2.Step = 5;
             app.WaterfallCLim2.RoundFractionalValues = 'on';
             app.WaterfallCLim2.ValueDisplayFormat = '%.0f';
             app.WaterfallCLim2.ValueChangedFcn = createCallbackFcn(app, @onAxesLimitsConfigChanged, true);

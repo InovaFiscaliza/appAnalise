@@ -86,31 +86,39 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function Truncated = TruncatedFrequency(obj, specData, idxEmission)
+        function channelFrequency = estimateChannelFrequency(obj, specData, emissionFrequency, emissionWidth)
 
-            Channels = [];
-            if ~isempty(specData.UserData.ChannelLibraryRelatedIndexes) && ~isempty(specData.UserData.ChannelUserDefined)
-                Channels = ChannelList(obj, specData, 'Lib',    Channels, idxEmission);
-                Channels = ChannelList(obj, specData, 'Custom', Channels, idxEmission);
+            channels = [];
+            channels = ChannelList(obj, channels, 'Lib',    specData, emissionFrequency, emissionWidth);
+            channels = ChannelList(obj, channels, 'Custom', specData, emissionFrequency, emissionWidth);
 
-            elseif ~isempty(specData.UserData.ChannelLibraryRelatedIndexes)
-                Channels = ChannelList(obj, specData, 'Lib',    Channels, idxEmission);
-
-            elseif ~isempty(specData.UserData.ChannelUserDefined)
-                Channels = ChannelList(obj, specData, 'Custom', Channels, idxEmission);
+            if isempty(channels)
+                freqStart = round(specData.MetaData.FreqStart ./ 1e+6, 1);  % Hz >> MHz
+                freqStop  = specData.MetaData.FreqStop  ./ 1e+6;            % Hz >> MHz
+                stepWidth = obj.DefaultChannelStep;
+                channels  = freqStart:stepWidth:freqStop;
             end
+            
+            channels = unique(channels);
 
-            if isempty(Channels)
-                FreqStart   = round(specData.MetaData.FreqStart ./ 1e+6, 1);  % Hz >> MHz
-                FreqStop    = specData.MetaData.FreqStop  ./ 1e+6;            % Hz >> MHz
-                StepWidth   = obj.DefaultChannelStep;
+            [~, channelIdx] = min(abs(channels - emissionFrequency));
+            channelFrequency = channels(channelIdx);
+        end
 
-                Channels = FreqStart:StepWidth:FreqStop;
+        %-------------------------------------------------------------------------%
+        function channelWidth = estimateChannelWidth(obj, channelFreq, emissionWidth)
+            global RFDataHub
+        
+            idxs = abs(RFDataHub.Frequency - channelFreq) <= 1e-5;
+            widthList = RFDataHub.BW(idxs);
+            widthList(isnan(widthList) | widthList<=0) = [];
+            
+            if isempty(widthList)
+                channelWidth = emissionWidth;
+            else
+                [~, channelWidthIdx] = min(abs(widthList - emissionWidth));
+                channelWidth = widthList(channelWidthIdx);
             end
-            Channels  = unique(Channels);
-
-            [~, idxFind] = min(abs(Channels - specData.UserData.Emissions.Frequency(idxEmission)));
-            Truncated    = Channels(idxFind);
         end
 
         %-----------------------------------------------------------------%
@@ -254,40 +262,38 @@ classdef ChannelLib < handle
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function Channels = ChannelList(obj, specData, truncatedType, Channels, idxEmission)
-            emission_downLim = specData.UserData.Emissions.Frequency(idxEmission) - specData.UserData.Emissions.BW_kHz(idxEmission)/2000;
-            emission_upLim   = specData.UserData.Emissions.Frequency(idxEmission) + specData.UserData.Emissions.BW_kHz(idxEmission)/2000;
+        function channels = ChannelList(obj, channels, truncatedType, specData, emissionFrequency, emissionWidth)
+            emissionFreqStart = emissionFrequency - emissionWidth/2;
+            emissionFreqStop  = emissionFrequency + emissionWidth/2;
 
             switch truncatedType
                 case 'Lib'
                     for ii = specData.UserData.ChannelLibraryRelatedIndexes'
-                        if emission_downLim > obj.Channel(ii).Band(2) || emission_upLim < obj.Channel(ii).Band(1)
+                        if emissionFreqStart > obj.Channel(ii).Band(2) || emissionFreqStop < obj.Channel(ii).Band(1)
                             continue
                         end
 
                         if ~isempty(obj.Channel(ii).FreqList)
-                            Channels = [Channels, obj.Channel(ii).FreqList];
+                            channels  = [channels, obj.Channel(ii).FreqList];
     
                         else    
-                            FreqStart   = obj.Channel(ii).FirstChannel;
-                            FreqStop    = obj.Channel(ii).LastChannel;
-                            StepWidth   = obj.Channel(ii).StepWidth;
-        
-                            Channels = [Channels, FreqStart:StepWidth:FreqStop];
+                            freqStart = obj.Channel(ii).FirstChannel;
+                            freqStop  = obj.Channel(ii).LastChannel;
+                            stepWidth = obj.Channel(ii).StepWidth;
+                            channels  = [channels, freqStart:stepWidth:freqStop];
                         end
                     end
 
                 case 'Custom'
                     for ii = 1:height(specData.UserData.ChannelUserDefined)
-                        if emission_downLim > specData.UserData.ChannelUserDefined(ii).Band(2) || emission_upLim < specData.UserData.ChannelUserDefined(ii).Band(1)
+                        if emissionFreqStart > specData.UserData.ChannelUserDefined(ii).Band(2) || emissionFreqStop < specData.UserData.ChannelUserDefined(ii).Band(1)
                             continue
                         end
 
-                        FreqStart   = specData.UserData.ChannelUserDefined(ii).FirstChannel;
-                        FreqStop    = specData.UserData.ChannelUserDefined(ii).LastChannel;
-                        StepWidth   = specData.UserData.ChannelUserDefined(ii).StepWidth;
-    
-                        Channels = [Channels, FreqStart:StepWidth:FreqStop];
+                        freqStart = specData.UserData.ChannelUserDefined(ii).FirstChannel;
+                        freqStop  = specData.UserData.ChannelUserDefined(ii).LastChannel;
+                        stepWidth = specData.UserData.ChannelUserDefined(ii).StepWidth;    
+                        channels  = [channels, freqStart:stepWidth:freqStop];
                     end
             end
         end
