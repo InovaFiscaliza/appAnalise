@@ -1,12 +1,44 @@
 classdef (Abstract) Detection
 
+    properties (Constant)
+        %-----------------------------------------------------------------%
+        findPeaksDefaultValues = struct( ...
+            'Algorithm', 'FindPeaks', ...
+            'MinDistanceKHz', 25, ...
+            'MinWidthKHz', 10, ...
+            'TraceMode', 'Mean', ...
+            'MinProminence', 12, ...
+            'NumPeaks', 100, ...
+            'Threshold', -inf ...
+        )
+
+        findPeaksPlusOCCDefaultValues = struct( ...
+            'Algorithm', 'FindPeaks+OCC', ...
+            'MinDistanceKHz', 25, ...
+            'MinWidthKHz', 10, ...
+            'MinProminenceCenter', 12, ...
+            'MinProminenceMax', 30, ...
+            'MinOccupancyMeanOverTime', 10, ...
+            'MinOccupancyMaxOverTime', 67 ...
+        )
+
+        findConnectedRegionsDefaultValues = struct( ...
+            'Algorithm', 'FindConnectedRegions', ...
+            'Offset', 12, ...
+            'CumulativeAreaThreshold', 99, ...
+            'MaxOccupancyForRegions', 99, ...
+            'MinOccupancy', 3, ...
+            'MinAbsOrientation', 75 ...
+        )
+    end
+
+
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthKHzList, methodList] = Controller(specData, detectionConfig, channelObj)
+        function [idxList, freqList, widthKHzList, methodList] = run(specData, detectionConfig)
             arguments
-                specData model.SpecDataBase
+                specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct
-                channelObj = []
             end
 
             switch detectionConfig.Algorithm
@@ -16,40 +48,39 @@ classdef (Abstract) Detection
                     [idxList, freqList, widthList, methodList] = util.Detection.findPeaksPlusOCC(specData, detectionConfig);
                 case 'FindConnectedRegions'
                     [idxList, freqList, widthList, methodList] = util.Detection.findConnectedRegions(specData, detectionConfig);
-                case 'FindConnectedRegions+FindPeaks'
-                    [idxList, freqList, widthList, methodList] = util.Detection.findConnectedRegionsPlusFindPeaks(specData, detectionConfig, channelObj);
             end    
             widthKHzList = widthList * 1000;
 
             if ~iscellstr(methodList)
                 methodList = cellstr(methodList);
             end
-
-            if ~isempty(channelObj) && ~isempty(idxList)
-                update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], channelObj)
-            end
         end
 
         %-----------------------------------------------------------------%
         function [idxList, freqList, widthList, methodList] = findPeaks(specData, detectionConfig)
-            switch detectionConfig.Fcn
+            arguments
+                specData (1,1) model.SpecDataBase
+                detectionConfig (1,1) struct = util.Detection.findPeaksDefaultValues
+            end
+
+            switch detectionConfig.TraceMode
                 case 'MinHold'
-                    fcnColumnIdx = 1;
-                case 'Média'
-                    fcnColumnIdx = 2;
+                    traceModeIdx = 1;
+                case 'Mean'
+                    traceModeIdx = 2;
                 case 'MaxHold'
-                    fcnColumnIdx = 3;
+                    traceModeIdx = 3;
             end
 
             aCoef = util.Detection.idx2freqCoeffs(specData);
         
             idxRange = matlab.findpeaks( ...
-                specData.Data{3}(:, fcnColumnIdx), ...
-                'NPeaks', detectionConfig.NPeaks, ...
-                'MinPeakHeight', detectionConfig.THR, ...
-                'MinPeakProminence', detectionConfig.Prominence, ...
-                'MinPeakDistance', 1000 * detectionConfig.Distance_kHz / aCoef, ... % kHz >> Hertz
-                'MinPeakWidth', 1000 * detectionConfig.BW_kHz / aCoef, ...          % kHz >> Hertz
+                specData.Data{3}(:, traceModeIdx), ...
+                'NPeaks', detectionConfig.NumPeaks, ...
+                'MinPeakHeight', detectionConfig.Threshold, ...
+                'MinPeakProminence', detectionConfig.MinProminence, ...
+                'MinPeakDistance', 1000 * detectionConfig.MinDistanceKHz / aCoef, ... % kHz >> Hertz
+                'MinPeakWidth', 1000 * detectionConfig.MinWidthKHz / aCoef, ... % kHz >> Hertz
                 'SortStr', 'descend' ...
             );
 
@@ -60,10 +91,10 @@ classdef (Abstract) Detection
                 methodList = {};
             else
                 idxList    = mean(idxRange, 2);
-                freqList   = util.Detection.idx2freq(specData, idxList) / 1e+6;     % Hz >> MHz
+                freqList   = util.Detection.idx2freq(specData, idxList) / 1e+6; % Hz >> MHz
                 idxList    = round(idxList);
 
-                widthList  = (idxRange(:,2) - idxRange(:,1)) * aCoef / 1e+6;        % Hz >> MHz
+                widthList  = (idxRange(:,2) - idxRange(:,1)) * aCoef / 1e+6; % Hz >> MHz
                 methodList = repmat({jsonencode(struct( ...
                     'Algorithm', detectionConfig.Algorithm, ...
                     'Parameters', rmfield(detectionConfig, 'Algorithm') ...
@@ -73,34 +104,25 @@ classdef (Abstract) Detection
 
         %-----------------------------------------------------------------%
         function [idxList, freqList, widthList, methodList] = findPeaksPlusOCC(specData, detectionConfig)
-            % DETECTION ALGORITHM: FindPeaks+OCC (appAnálise v. 1.00)
-            %
-            % Possibilita identificação de emissões pelos seguintes critérios:
-            % - Critério 1: na curva de tendência central (média ou mediana), identificam-se os 
-            %               picos espaçados entre si ao menos de _minDistance_ (em kHz), cuja 
-            %               largura e proeminência de cada um deles seja ao menos igual a _minWidth_ 
-            %               (em kHz) e _minLevel_ (em dB), respectivamente.
-            %
-            % - Critério 2: na curva de máximo, identificam-se os picos espaçados entre si ao 
-            %               menos de _minDistance_ (em kHz), cuja largura e proeminência de cada um 
-            %               deles seja ao menos igual a _minWidth_ (em kHz) e _minLevel_ (em dB), 
-            %               respectivamente, e cuja ocupação seja superior a _minOCC_ (em %).
-            % % Versão: 22/10/2023        
+            arguments
+                specData (1,1) model.SpecDataBase 
+                detectionConfig (1,1) struct = util.Detection.findPeaksPlusOCCDefaultValues
+            end
         
             % Critério primário: Média
             primaryThreshold = -inf;
             if specData.MetaData.Threshold ~= -1
-                primaryThreshold = specData.MetaData.Threshold + detectionConfig.Prominence1;
+                primaryThreshold = specData.MetaData.Threshold + detectionConfig.MinProminenceCenter;
             end
             
             primaryCriteriaConfig = struct( ...
-                'Algorithm', 'FindPeaks+OCC', ...
-                'Fcn', 'Média', ...
-                'NPeaks', 100, ...
-                'THR', primaryThreshold, ...
-                'Prominence', detectionConfig.Prominence1,  ...
-                'Distance_kHz', detectionConfig.Distance_kHz, ...
-                'BW_kHz', detectionConfig.BW_kHz ...
+                'Algorithm', detectionConfig.Algorithm, ...
+                'MinDistanceKHz', detectionConfig.MinDistanceKHz, ...
+                'MinWidthKHz', detectionConfig.MinWidthKHz, ...
+                'TraceMode', 'Mean', ...
+                'MinProminence', detectionConfig.MinProminenceCenter, ...
+                'NumPeaks', 100, ...
+                'Threshold', primaryThreshold ...
             );
                 
             [primaryIdxs, primaryFreqs, primaryWidths, primaryMethods] = util.Detection.findPeaks(specData, primaryCriteriaConfig);
@@ -108,18 +130,18 @@ classdef (Abstract) Detection
             % Critério secundário: MaxHold
             secondaryThreshold = -inf;
             if specData.MetaData.Threshold ~= -1
-                secondaryThreshold = specData.MetaData.Threshold + detectionConfig.Prominence2;
+                secondaryThreshold = specData.MetaData.Threshold + detectionConfig.MinProminenceMax;
             end
             secondaryCriteriaConfig = struct( ...
-                'Algorithm', 'FindPeaks+OCC', ...
-                'Fcn', 'MaxHold', ...
-                'NPeaks', 100, ...
-                'THR', secondaryThreshold, ...
-                'Prominence', detectionConfig.Prominence2, ...
-                'Distance_kHz', detectionConfig.Distance_kHz, ...
-                'BW_kHz', detectionConfig.BW_kHz,...
-                'meanOCC', detectionConfig.meanOCC, ...
-                'maxOCC', detectionConfig.maxOCC ...
+                'Algorithm', detectionConfig.Algorithm, ...
+                'MinDistanceKHz', detectionConfig.MinDistanceKHz, ...
+                'MinWidthKHz', detectionConfig.MinWidthKHz, ...
+                'TraceMode', 'MaxHold', ...
+                'MinProminence', detectionConfig.MinProminenceMax, ...
+                'NumPeaks', 100, ...
+                'Threshold', secondaryThreshold, ...
+                'MinOccupancyMeanOverTime', detectionConfig.MinOccupancyMeanOverTime, ...
+                'MinOccupancyMaxOverTime', detectionConfig.MinOccupancyMaxOverTime ...
             );
         
             [secondaryIdxs, secondaryFreqs, secondaryWidths, secondaryMethods] = util.Detection.findPeaks(specData, secondaryCriteriaConfig);
@@ -128,8 +150,8 @@ classdef (Abstract) Detection
                 checkIfOccupancyPerBinExist(specData)
                 occIndex = specData.UserData.occMethod.CacheIndex;
         
-                occIndex_Mean = find(specData.UserData.occCache(occIndex).Data{3}(:,2) >= detectionConfig.meanOCC);
-                occIndex_Max  = find(specData.UserData.occCache(occIndex).Data{3}(:,3) >= detectionConfig.maxOCC);
+                occIndex_Mean = find(specData.UserData.occCache(occIndex).Data{3}(:,2) >= detectionConfig.MinOccupancyMeanOverTime);
+                occIndex_Max  = find(specData.UserData.occCache(occIndex).Data{3}(:,3) >= detectionConfig.MinOccupancyMaxOverTime);
                 
                 [secondaryIdxs, intersectIdxs] = intersect(secondaryIdxs, intersect(occIndex_Mean, occIndex_Max), 'stable');
                 
@@ -161,10 +183,10 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthList, methodList] = findConnectedRegions(specData, detectionConfig)
+        function [idxList, freqList, widthList, methodList, emissions] = findConnectedRegions(specData, detectionConfig)
             arguments
-                specData model.SpecData
-                detectionConfig = struct('Algorithm', 'FindConnectedRegions', 'Offset', 12, 'MinOccupancy', 3)
+                specData (1,1) model.SpecDataBase
+                detectionConfig (1,1) struct = util.Detection.findConnectedRegionsDefaultValues
             end
 
             idxList    = [];
@@ -173,17 +195,22 @@ classdef (Abstract) Detection
             methodList = {};
 
             emissions = table( ...
-                'Size', [0, 2], ...
-                'VariableTypes', {'double', 'double'}, ...
-                'VariableNames', {'FreqCenter', 'BandWidth'} ...
+                'Size', [0, 6], ...
+                'VariableTypes', {'double', 'double', 'double', 'double', 'double', 'double'}, ...
+                'VariableNames', {'FreqCenter', 'BandWidth', 'Count', 'Occorrences', 'Occupancy', 'Orientation'} ...
             );
 
-            % Inicialmente, suaviza-se a imagem espectral que é comparada 
-            % com um limiar de detecção para obtenção da imagem binária a 
-            % ser analisada, identificando as regiões conectadas.
+            % Inicialmente, suaviza-se a imagem espectral a ser comparada 
+            % com um limiar de detecção para obtenção da imagem binária, na 
+            % qual serão identificadas as regiões conectadas. Os pixels nas
+            % bordas são "desligados", aumentando possibilidade de excluir 
+            % regiões que tocam as bordas laterais por, provavelmente, se 
+            % tratar de emissões não relevantes na faixa sob análise.
             smoothed   = medfilt2(specData.Data{2}', [3 3], "symmetric");
             threshold  = util.Detection.computeThreshold(specData, detectionConfig.Offset);
+
             binaryMask = smoothed >= threshold;
+            binaryMask(:, [1, end]) = false;
 
             connectedRegions = regionprops(binaryMask, {'Area', 'BoundingBox', 'Orientation'});
             if isempty(connectedRegions)
@@ -192,60 +219,63 @@ classdef (Abstract) Detection
 
             connectedRegions = struct2table(connectedRegions, "AsArray", true);
 
-            % Agrupam-se regiões com mesma posição em frequência, o que é 
-            % essencial, quando se trata de emissões rápidas com baixa ocupação.
+            % Agrupam-se regiões com mesma posição em frequência (frequência
+            % central e largura), o que é essencial para identificar emissões 
+            % rápidas com baixa ocupação.
             connectedRegions.PositionKey = string(connectedRegions.BoundingBox(:,1)) + " - " + string(connectedRegions.BoundingBox(:,3));
             
             groupedRegionIds = findgroups(connectedRegions.PositionKey);
             groupedRegionCount = splitapply(@numel, connectedRegions.PositionKey, groupedRegionIds);
             groupedRegionArea = splitapply(@sum, connectedRegions.Area, groupedRegionIds);
+            groupedRegionOrientation = splitapply(@(area, theta) atan2d(sum(area .* sind(theta)), sum(area .* cosd(theta))), connectedRegions.Area, connectedRegions.Orientation, groupedRegionIds);
             groupedRegionIdxs = splitapply(@(idx) idx(1), (1:height(connectedRegions))', groupedRegionIds);
             groupedRegionTimeSum = splitapply(@sum, connectedRegions.BoundingBox(:, 4), groupedRegionIds);
             
-            % Cria-se uma nova tabela, eliminado registros que apresentam as
-            % seguintes características:
-            % - Área inferior à mediana e regiões com largura de apenas um 
-            %   pixel no eixo da frequência por, provavelmente, se tratar de 
-            %   ruído.
-            % - Regiões que tocam as bordas laterais por, provavelmente, se
-            %   tratar de emissões não relevantes na faixa sob análise.
-            nPoints = specData.MetaData.DataPoints;
-            nSweeps = numel(specData.Data{1});
+            % Cria-se uma nova tabela, ordenando-a pela coluna "Area". Calcula-se 
+            % a área acumulada, eliminando registros não relevantes. No caso,
+            % são mantidas as regiões que correspondem a 99% (configurável) da área 
+            % acumulada e as regiões que se manifestaram mais de uma vez (mesma 
+            % frequência central e largura).
+            numPoints = specData.MetaData.DataPoints;
+            numSweeps = numel(specData.Data{1});
 
             mergedRegions = table( ...
                 groupedRegionArea, ...
-                connectedRegions.Orientation(groupedRegionIdxs), ...
-                connectedRegions.BoundingBox(groupedRegionIdxs,:), ...
+                groupedRegionOrientation, ...
+                connectedRegions.BoundingBox(groupedRegionIdxs, :), ...
                 groupedRegionCount, ...
                 'VariableNames', {'Area', 'Orientation', 'BoundingBox', 'GroupCount'} ...
             );
             mergedRegions.BoundingBox(:, 4) = groupedRegionTimeSum;
 
-            mergedRegions(mergedRegions.Area <= median(mergedRegions.Area) | mergedRegions.BoundingBox(:,3) == 1 | mergedRegions.BoundingBox(:,1) == 0.5 | sum(mergedRegions.BoundingBox(:,[1,3]), 2) == nPoints+0.5, :) = [];
+            mergedRegions = sortrows(mergedRegions, 'Area', 'descend');
+            mergedRegions.CumulativeArea = 100 * cumsum(mergedRegions.Area) / sum(mergedRegions.Area);
+            mergedRegions = mergedRegions(union(1:find(mergedRegions.CumulativeArea >= detectionConfig.CumulativeAreaThreshold, 1, 'first'), find(mergedRegions.GroupCount > 1)), :);
             if isempty(mergedRegions)
                 return
             end
 
-            for ii = 1:height(mergedRegions)
-                freqStartIdx = max(fix(mergedRegions.BoundingBox(ii, 1)), 1);
-                freqStopIdx  = min(ceil(sum(mergedRegions.BoundingBox(ii, [1 3]))), nPoints);
-                
-                freqStart    = util.Detection.idx2freq(specData, freqStartIdx) / 1e+6; % Hz >> MHz
-                freqStop     = util.Detection.idx2freq(specData, freqStopIdx)  / 1e+6;
+            bBoxX = mergedRegions.BoundingBox(:,1);
+            bBoxW = mergedRegions.BoundingBox(:,3);
+            bBoxH = mergedRegions.BoundingBox(:,4);
+            
+            freqStartIdx = max(fix(bBoxX), 1);
+            freqStopIdx  = min(ceil(bBoxX + bBoxW), numPoints);
+            
+            freqStart = util.Detection.idx2freq(specData, freqStartIdx) / 1e6; % Hz >> MHz
+            freqStop  = util.Detection.idx2freq(specData, freqStopIdx)  / 1e6; % Hz >> MHz
 
-                mergedRegions.FreqCenter(ii) = (freqStart + freqStop) / 2;
-                mergedRegions.BandWidth(ii)  = (freqStop - freqStart);
-                mergedRegions.Occupancy(ii)  = 100 * mergedRegions.BoundingBox(ii, 4) / nSweeps;
-            end
+            mergedRegions.FreqCenter = (freqStart + freqStop) / 2;
+            mergedRegions.BandWidth  = (freqStop - freqStart);
+            mergedRegions.Occupancy  = 100 * bBoxH / numSweeps;
             
             mergedRegions = movevars(mergedRegions, {'FreqCenter', 'BandWidth'}, 'After', 'Area');
             mergedRegions = movevars(mergedRegions, 'Occupancy', 'After', 'BandWidth');
-            mergedRegions = sortrows(mergedRegions, 'Area', 'descend');
 
             % Percorre as regiões ordenadas por área, agrupando regiões sobrepostas.
-            % Uma emissão é registrada se a ocupação combinada excede o limiar 
-            % configurado ou se há múltiplas regiões com baixa ocupação, mas alto 
-            % agrupamento, sugerindo emissões rápidas/intermitentes.
+            % Uma emissão é registrada se a ocupação combinada excede 3% (configurável)
+            % ou se há múltiplas regiões com baixa ocupação, mas alto agrupamento, 
+            % sugerindo emissões rápidas/intermitentes.
             ii = 1;
             while true
                 groupIdxs = ii;
@@ -258,14 +288,48 @@ classdef (Abstract) Detection
                     end
                 end
 
-                groupOccupancy = sum(mergedRegions.Occupancy(groupIdxs));
+                groupCount = numel(groupIdxs);
                 groupOccorrences = sum(mergedRegions.GroupCount(groupIdxs));
+                groupOrientation = atan2d(sum(mergedRegions(groupIdxs, :).Area .* sind(mergedRegions(groupIdxs, :).Orientation)), sum(mergedRegions(groupIdxs, :).Area .* cosd(mergedRegions(groupIdxs, :).Orientation)));
+                groupOccupancy = sum(mergedRegions.Occupancy(groupIdxs));
                 
-                if any(mergedRegions.Occupancy(groupIdxs) > 1) && (groupOccupancy >= detectionConfig.MinOccupancy || (~isscalar(groupIdxs) && groupOccorrences > 2*numel(groupIdxs)))
-                    emissions(end+1, :) = { ...
-                        mergedRegions.FreqCenter(ii), ...
-                        mergedRegions.BandWidth(ii) ...
-                    };
+                if groupOccupancy >= detectionConfig.MaxOccupancyForRegions || (groupOccupancy >= detectionConfig.MinOccupancy && abs(groupOrientation) >= detectionConfig.MinAbsOrientation) || (~isscalar(groupIdxs) && groupOccorrences > 10*groupCount)
+                    % Emissões constantes no tempo, caso cercadas por outras
+                    % com a mesma características, tendem a criar rais laterais
+                    % que impedem a sua individualização via o processo de
+                    % busca de regiões conectadas. Neste caso, aplica-se o
+                    % FINDPEAKS tradicional na curva de média, validando a 
+                    % informação.
+
+                    if mergedRegions.Occupancy(ii) < detectionConfig.MaxOccupancyForRegions
+                        addEmission(mergedRegions.FreqCenter(ii), mergedRegions.BandWidth(ii), groupCount, groupOccorrences, groupOccupancy, groupOrientation);
+
+                    else
+                        groupIdxRange = [
+                            ceil(mergedRegions.BoundingBox(ii, 1)), ...
+                            fix(sum(mergedRegions.BoundingBox(ii, [1,3]))) ...
+                        ];
+
+                        emissionIdxRange = matlab.findpeaks( ...
+                            specData.Data{3}(groupIdxRange(1):groupIdxRange(2), 2), ...
+                            'MinPeakProminence', detectionConfig.Offset ...
+                        );
+            
+                        if isempty(emissionIdxRange)
+                            addEmission(mergedRegions.FreqCenter(ii), mergedRegions.BandWidth(ii), groupCount, groupOccorrences, groupOccupancy, groupOrientation);
+                        
+                        else
+                            emissionIdxRange = groupIdxRange(1) + emissionIdxRange;
+                            primaryIdxs      = mean(emissionIdxRange, 2);
+                            primaryFreqs     = util.Detection.idx2freq(specData, primaryIdxs) / 1e+6; % Hz >> MHz            
+                            [aCoef, bCoef]   = util.Detection.idx2freqCoeffs(specData);
+                            primaryWidths    = (emissionIdxRange(:,2) - emissionIdxRange(:,1)) * aCoef / 1e+6; % Hz >> MHz
+
+                            for kk = 1:numel(primaryFreqs)
+                                addEmission(primaryFreqs(kk), primaryWidths(kk), groupCount, groupOccorrences, groupOccupancy, groupOrientation);
+                            end
+                        end
+                    end
                 end
 
                 if ~isscalar(groupIdxs)
@@ -288,84 +352,10 @@ classdef (Abstract) Detection
                     'Parameters', rmfield(detectionConfig, 'Algorithm') ...
                 ))}, numel(idxList), 1);
             end
-        end
 
-        %-----------------------------------------------------------------%
-        function emissions = findPeaksPlusConnectedRegions(specData, offset, minOccupancy)
-            arguments
-                specData 
-                offset = 12
-                minOccupancy = 3
+            function addEmission(freqCenterMHz, widthMHz, count, occorrences, occupancy, orientation)
+                emissions(end+1, :) = {freqCenterMHz, widthMHz, count, occorrences, occupancy, orientation};
             end
-
-            % Critério primário: FindPeaks
-            primaryCriteriaConfig = struct( ...
-                'Algorithm', 'FindPeaks+ConnectedRegions', ...
-                'Fcn', 'Média', ...
-                'NPeaks', 100, ...
-                'Prominence', offset ...
-            );
-
-            idxRange = matlab.findpeaks( ...
-                specData.Data{3}(:, 2), ...
-                'NPeaks', primaryCriteriaConfig.NPeaks, ...
-                'MinPeakProminence', primaryCriteriaConfig.Prominence, ...
-                'SortStr', 'descend' ...
-            );
-
-            if isempty(idxRange)
-                primaryIdxs    = [];
-                primaryFreqs   = [];
-                primaryWidths  = [];
-                primaryMethods = {};
-            else
-                primaryIdxs    = mean(idxRange, 2);
-                primaryFreqs   = util.Detection.idx2freq(specData, primaryIdxs) / 1e+6;     % Hz >> MHz
-                primaryIdxs    = round(primaryIdxs);
-
-                [aCoef, bCoef] = util.Detection.idx2freqCoeffs(specData);
-                primaryWidths  = (idxRange(:,2) - idxRange(:,1)) * aCoef / 1e+6;        % Hz >> MHz
-                primaryMethods = repmat({jsonencode(struct( ...
-                    'Algorithm', primaryCriteriaConfig.Algorithm, ...
-                    'Parameters', rmfield(primaryCriteriaConfig, 'Algorithm') ...
-                ), 'ConvertInfAndNaN', false)}, numel(primaryIdxs), 1);
-            end
-        
-            % Critério secundário: ConnectedRegions
-            secondaryCriteriaConfig = struct( ...
-                'Algorithm', 'FindPeaks+ConnectedRegions', ...
-                'Offset', offset, ...
-                'MinOccupancy', minOccupancy ...
-            );
-
-            [secondaryIdxs, secondaryFreqs, secondaryWidths, secondaryMethods] = util.Detection.findConnectedRegions(specData, secondaryCriteriaConfig);
-        
-            % Elimina emissões identificadas no critério secundário cujas 
-            % frequências centrais estão contidas em alguma das emissões 
-            % identificadas no critério primário
-            for ii = numel(secondaryFreqs):-1:1
-                for jj = 1:numel(primaryFreqs)
-                    freqList  = [primaryFreqs(jj);  secondaryFreqs(ii)];
-                    widthList = [primaryWidths(jj); secondaryWidths(ii)];
-
-                    if util.Detection.hasOverlap('FromFrequencyAndWidths', freqList, widthList)
-                        secondaryIdxs(ii)    = [];
-                        secondaryFreqs(ii)   = [];
-                        secondaryWidths(ii)  = [];
-                        secondaryMethods(ii) = [];
-        
-                        break
-                    end
-                end
-            end        
-        
-            emissions = table( ...
-                [primaryIdxs;    secondaryIdxs   ], ...
-                [primaryFreqs;   secondaryFreqs  ], ...
-                [primaryWidths;  secondaryWidths ], ...
-                [primaryMethods; secondaryMethods], ...
-                'VariableNames', {'FreqCenterIdx', 'FreqCenter', 'BandWidth', 'Method'} ...
-            );
         end
     end
 
@@ -373,6 +363,10 @@ classdef (Abstract) Detection
     methods (Static = true)
         %-----------------------------------------------------------------%
         function [aCoef, bCoef] = idx2freqCoeffs(specData)
+            arguments
+                specData (1,1) model.SpecDataBase 
+            end
+
             % FrequencyInHertz = aCoef * FrequencyInHertzIdx + bCoef;
 
             nPoints = specData.MetaData.DataPoints;
@@ -385,6 +379,11 @@ classdef (Abstract) Detection
 
         %-----------------------------------------------------------------%
         function freq = idx2freq(specData, idx)
+            arguments
+                specData (1,1) model.SpecDataBase 
+                idx 
+            end
+
             [aCoef, bCoef] = util.Detection.idx2freqCoeffs(specData);
             freq = aCoef * idx + bCoef;
         end
@@ -392,7 +391,7 @@ classdef (Abstract) Detection
         %-----------------------------------------------------------------%
         function idx = freq2idx(specData, freq, roundMode)
             arguments
-                specData
+                specData (1,1) model.SpecDataBase
                 freq
                 roundMode {mustBeMember(roundMode, {'round', 'fix', 'ceil'})} = 'round'
             end
@@ -409,13 +408,18 @@ classdef (Abstract) Detection
 
         %-----------------------------------------------------------------%
         function timestamp = idx2timestamp(specData, idx)
+            arguments
+                specData (1,1) model.SpecDataBase 
+                idx 
+            end
+
             timestamp = specData.Data{1}(idx);
         end
 
         %-----------------------------------------------------------------%
         function threshold = computeThreshold(specData, offset)
             arguments
-                specData
+                specData (1,1) model.SpecDataBase
                 offset = 12
             end
 
@@ -435,14 +439,14 @@ classdef (Abstract) Detection
             % - O limiar é então calculado pela expressão:
             %   threshold = noiseMedian + 3*noiseStd + offset
 
-            nPoints = specData.MetaData.DataPoints;
+            numPoints = specData.MetaData.DataPoints;
             sortedValues = sort(specData.Data{3}(:, 2));
             noiseStd = 0;
 
             for sampleFraction = 0.05:0.01:1
-                nNoiseSamples = ceil(sampleFraction * nPoints);
-                noiseSubset  = sortedValues(1:nNoiseSamples);                
-                noiseMedian  = median(noiseSubset);
+                numNoiseSamples = ceil(sampleFraction * numPoints);
+                noiseSubset = sortedValues(1:numNoiseSamples);                
+                noiseMedian = median(noiseSubset);
 
                 if noiseSubset(end) - noiseMedian > offset
                     break
@@ -486,20 +490,16 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function isSame = isSameEmission(regions, idx1, idx2)
-            fc = regions.FreqCenter([idx1 idx2]);
-            bw = regions.BandWidth([idx1 idx2]);
-
-            fstart = fc - bw/2;
-            fstop  = fc + bw/2;
-
-            inter = max(0, min(fstop) - max(fstart));        
-            overlapRatio = inter / min(bw);
-            isSame = overlapRatio > 0.7;
-        end
-
-        %-----------------------------------------------------------------%
         function drawEmission(operationType, axesHandle, varargin)
+            arguments
+                operationType (1,:) char {mustBeMember(operationType, {'Creation', 'Delete'})}
+                axesHandle (1,1) matlab.ui.control.UIAxes
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
             switch operationType
                 case 'Creation'
                     util.Detection.drawEmission('Delete', axesHandle)
@@ -524,12 +524,12 @@ classdef (Abstract) Detection
                             'FaceSelectable', 0, ...
                             'LineWidth', 1, ...
                             'InteractionsAllowed', 'none', ...
-                            'Tag', 'EmissionROI' ...
+                            'Tag', 'TempEmissionROI' ...
                         );
                     end
 
                 case 'Delete'
-                    delete(findobj(axesHandle.Children, 'Tag', 'EmissionROI'))
+                    delete(findobj(axesHandle.Children, 'Tag', 'TempEmissionROI'))
             end
         end
     end

@@ -148,10 +148,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     case 'closeFcnCallFromPopupApp'
                         context = event.HTMLEventData.context;
-                        popupCurrentAppTag = event.HTMLEventData.auxDockAppName;
+                        popupCurrentAppTag = event.HTMLEventData.dockAppName;
 
                         switch context
-                            case {'mainApp', 'FILE'}
+                            case {'mainApp', app.Context}
                                 hApp = app;
                             otherwise
                                 hApp = getAppHandle(app.tabGroupController, context);
@@ -428,7 +428,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenHeight = 602;
                 case 'Detection'
                     screenWidth  = 412;
-                    screenHeight = 282;
+                    screenHeight = 484;
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
@@ -452,32 +452,39 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenHeight = 480;
             end
 
-            requestVisibilityChange(auxAppName.progressDialog, 'visible', 'unlocked')
-            
-            inputArguments = [{app, auxAppName}, varargin];
+            requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
+
+            inputArguments = [{app, callingApp, context}, varargin];
             
             if app.General.operationMode.Debug
                 eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName))
+
             else
-                auxDockAppName = sprintf('auxApp.dock%s', auxAppName);
-
                 ui.PopUpContainer(callingApp, screenWidth, screenHeight)
+
+                auxDockAppName = sprintf('auxApp.dock%s', auxAppName);
                 app.popupCurrentApp = feval([auxDockAppName '_exported'], callingApp.popupContainer, inputArguments{:});
+                
+                ui.CustomizationBase.getElementsDataTag({
+                    callingApp.popupContainer;
+                    app.popupCurrentApp.GridLayout
+                });
 
-                ui.CustomizationBase.getElementsDataTag({app.popupCurrentApp.GridLayout});
-                app.popupCurrentApp.GridLayout.UserData.auxDockAppName = auxDockAppName;
-                callingApp.popupContainer.UserData.auxDockAppName = auxDockAppName;
-
-                sendEventToHTMLSource(app.jsBackDoor, 'dockContainer', struct( ...
-                    'dataTag', app.popupCurrentApp.GridLayout.UserData.id, ...
+                sendEventToHTMLSource(callingApp.jsBackDoor, 'dockContainer', struct( ...
+                    'dockAppName', auxDockAppName, ...
+                    'dockAppDataTag', app.popupCurrentApp.GridLayout.UserData.id, ...
+                    'dockAppContainerDataTag', callingApp.popupContainer.UserData.id, ...
                     'width', screenWidth, ...
                     'height', screenHeight+31, ...
                     'context', context, ...
-                    'auxDockAppName', auxDockAppName ...
+                    'numCanvasElements', numel(findobj(app.popupCurrentApp.Container, 'Type', 'axes')) ...
                 ))
+
+                app.popupCurrentApp.GridLayout.UserData.auxDockAppName = auxDockAppName;
+                callingApp.popupContainer.UserData.auxDockAppName = auxDockAppName;
             end
 
-            requestVisibilityChange(auxAppName.progressDialog, 'hidden', 'unlocked')
+            requestVisibilityChange(callingApp.progressDialog, 'hidden', 'unlocked')
         end
     end
     

@@ -319,11 +319,11 @@ classdef (Abstract) HtmlTextGenerator
         function htmlContent = Algorithms(specData, operationType)
             switch operationType
                 case 'Occupancy'
-                    htmlContent = sprintf('<p style="padding: 10px;">%s</p>', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Occupancy));
+                    htmlContent = sprintf('<p style="padding: 10px;">%s</p>', matlab.jsonencode(specData.UserData.ReportAlgorithms.Occupancy));
 
                 case 'Detection+Classification'
-                    dataStruct = struct('group', 'DETECÇÃO', 'value', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Detection));
-                    dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', textFormatGUI.jsonEncodePretty(specData.UserData.ReportAlgorithms.Classification));
+                    dataStruct = struct('group', 'DETECÇÃO', 'value', matlab.jsonencode(specData.UserData.ReportAlgorithms.Detection));
+                    dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', matlab.jsonencode(specData.UserData.ReportAlgorithms.Classification));
                     
                     htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct);
             end

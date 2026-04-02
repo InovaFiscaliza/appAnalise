@@ -1492,11 +1492,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function FlowEmissionsBtn1ImageClicked(app, event)
             
             specData = app.bandObj.SpecData;
-            emissions = util.Detection.findPeaksPlusConnectedRegions(specData);
-            clc
-            emissions
-            
-            util.Detection.drawEmission('Creation', app.UIAxes1, app.restoreView, emissions)
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context, specData)
 
         end
     end
