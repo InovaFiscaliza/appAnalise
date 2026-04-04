@@ -444,7 +444,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
                 [receivers, ~, indexes] = unique({specData.Receiver});
                 items = {};
-                itemsData = {};
+                itemsData = [];
                 
                 for ii = 1:numel(receivers)
                     receiverIdxs = find(indexes == ii)';
@@ -460,13 +460,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         end
             
                         items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s', receiverName, freqStart, freqStop, reportStatus);
-                        itemsData{end+1} = specData(jj).Hash;
+                        itemsData(end+1) = jj;
                     end
                 end
             
                 currentValue = {};    
                 if ~isempty(previousValue)
-                    if ischar(previousValue) && ismember(previousValue, itemsData)
+                    if isnumeric(previousValue) && ismember(previousValue, itemsData)
                         currentValue = {'Value', previousValue};
                     end
                 end
@@ -526,8 +526,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function idx = findSpecDataIndex(app)
-            hash = app.SpectrumFlowList.Value;
-            idx = find(strcmp({app.mainApp.specData.Hash}, hash));
+            idx = app.SpectrumFlowList.Value;
         end
 
         %-----------------------------------------------------------------%
@@ -1491,8 +1490,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Image clicked function: FlowEmissionsBtn1
         function FlowEmissionsBtn1ImageClicked(app, event)
             
-            specData = app.bandObj.SpecData;
-            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context, specData)
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context)
 
         end
     end

@@ -72,10 +72,14 @@ classdef (Abstract) Detection
                     traceModeIdx = 3;
             end
 
+            data = specData.Data{3}(:, traceModeIdx);
+            if ismember(detectionConfig.TraceMode, {'MinHold', 'MaxHold'})
+                data = smoothdata(data, 'movmean', 'SmoothingFactor', 0.05);
+            end
             aCoef = util.Detection.idx2freqCoeffs(specData);
         
             idxRange = matlab.findpeaks( ...
-                specData.Data{3}(:, traceModeIdx), ...
+                data, ...
                 'NPeaks', detectionConfig.NumPeaks, ...
                 'MinPeakHeight', detectionConfig.Threshold, ...
                 'MinPeakProminence', detectionConfig.MinProminence, ...
@@ -183,7 +187,7 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthList, methodList, emissions] = findConnectedRegions(specData, detectionConfig)
+        function [idxList, freqList, widthList, methodList] = findConnectedRegions(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct = util.Detection.findConnectedRegionsDefaultValues
@@ -505,14 +509,15 @@ classdef (Abstract) Detection
                     util.Detection.drawEmission('Delete', axesHandle)
 
                     restoreView = varargin{1};
-                    emissions = varargin{2};
-
                     yMin = restoreView(1).yLim(1) + 1;
                     yMax = diff(restoreView(1).yLim) - 2;
+
+                    freqList = varargin{2};
+                    widthKHzList = varargin{3};
         
-                    for ii = 1:height(emissions)
-                        bandWidth = emissions.BandWidth(ii);
-                        freqStart = emissions.FreqCenter(ii) - bandWidth/2;
+                    for ii = 1:height(freqList)
+                        bandWidth = widthKHzList(ii) / 1000;
+                        freqStart = freqList(ii) - bandWidth/2;
         
                         images.roi.Rectangle( ...
                             axesHandle, ...

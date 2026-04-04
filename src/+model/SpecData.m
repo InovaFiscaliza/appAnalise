@@ -128,9 +128,12 @@ classdef SpecData < model.SpecDataBase
                 end
             end
 
-            obj = obj(cellfun(@(x) find(strcmp(x, {obj.Hash})), uniqueHashs));
-
-            % Por fim, atualiza mapeamento entre fluxos de espectro e ocupação.
+            % Reordena fluxos de espectro, além de mapear fluxos de espectro
+            % e ocupação.
+            sortedIdxs = cellfun(@(x) find(strcmp(x, {obj.Hash})), uniqueHashs, 'UniformOutput', false);
+            sortedIdxs = horzcat(sortedIdxs{:});
+            obj = obj(sortedIdxs);
+            
             occupancyMapping(obj)
         end
 
@@ -202,14 +205,15 @@ classdef SpecData < model.SpecDataBase
                 % - "OccupancyComputationMode",
                 % - "OccupancyFiniteIntegrationCache"
                 % - "OccupancyCumulativeIntegration"
+                % - "ReportAlgorithms.Detection"
                 if isempty(obj(ii).UserData.PlotDisplayConfig)
                     obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
+                    obj(ii).UserData.ReportAlgorithms.Detection = model.UserData.getFieldTemplate('DefaultAlgorithm: Detection', generalSettings.context.PLAYBACK.detection.manualMode);
+                    obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
                     
                     if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
                         obj(ii).UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj(ii));
                     end
-    
-                    obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
                 end
             end
 
