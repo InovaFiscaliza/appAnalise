@@ -152,13 +152,13 @@ classdef UserData
 
                 case 'ChannelAssigned'
                     chAssigned    = util.emissionChannel(varargin{:});
-                    fieldTemplate = struct('autoSuggested', chAssigned, ...
-                                           'userModified',  chAssigned);
+                    fieldTemplate = struct('AutoSuggested', chAssigned, ...
+                                           'UserModified',  chAssigned);
 
                 case 'Classification'
                     emissionInfo  = util.Classification.run(varargin{:});
-                    fieldTemplate = struct('autoSuggested', emissionInfo, ...
-                                           'userModified',  emissionInfo);
+                    fieldTemplate = struct('AutoSuggested', emissionInfo, ...
+                                           'UserModified',  emissionInfo);
 
                 case 'DefaultAlgorithm: Detection'
                     fieldTemplate = struct('ManualMode', varargin{1}, ...

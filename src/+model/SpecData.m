@@ -5,11 +5,11 @@ classdef SpecData < model.SpecDataBase
     %   ├── syncCollection
     %   |   └── buildSpectrumReferenceTable (model.MetaData)
     %   ├── populateSpectrum
-    %   │   │── buildSpectrumReferenceTable (model.MetaData)
     %   │   │── preallocateData             (model.SpecDataBase)
     %   │   │── read                        (model.SpecDataBase)
-    %   │   └── basicStats                  (model.SpecDataBase)
-    %   ├── mergeWith ⚠️
+    %   │   │── basicStats                  (model.SpecDataBase)
+    %   │   └── computeOccupancyPerBin
+    %   ├── mergeWith
     %   ├── applyFilter
     %   ├── update ⚠️
     %   ├── hasOccupancyPerBin ⚠️
@@ -19,9 +19,8 @@ classdef SpecData < model.SpecDataBase
 
     % PRIVATE
     %   ├── checkIfScalar
-    %   ├── createFlow
     %   ├── occupancyMapping
-    %   └── buildSpectrumReferenceTableByCriteria
+    %   └── getSpectrumMergeTable
 
     % STATIC
     %   └── identifyMergeType
@@ -35,16 +34,14 @@ classdef SpecData < model.SpecDataBase
         % de "MetaData", como "FreqStart", "FreqStop", "DataPoints", "TraceMode", 
         % "Detector" e "LevelUnit".
         Hash
-    
-        % "IsMerged" indica se o fluxo foi gerado por mesclagem MANUAL via 
+
+        % "InputFiles" armazena informações dos arquivos que compõem specData.
+        % Dentre os seus campos, "Indexes" registra o mapeamento metaData x specData,
+        % e "IsUserMerged" registra se o fluxo foi gerado por mesclagem MANUAL via 
         % GUI. Ressalta-se, contudo, que os fluxos com mesmo Hash podem ser 
         % mesclados automaticamente, a depender da distância limite definida 
         % em arquivo de configuração ".\src\config\GeneralSettings.json".
-        IsMerged (1,1) logical = false
-    
-        % "MergedeSources" armazena informações das fontes utilizadas na 
-        % mesclagem MANUAL, quando aplicável.
-        MergedSources struct = struct('Hash', {}, 'File', {})
+        InputFiles struct = struct('File', {}, 'Indexes', {}, 'Hash', {}, 'IsUserMerged', {})
     
         % "UserData" contém informações relacionadas à GUI, incluindo a lista
         % de emissões e customizações de plot.
@@ -63,7 +60,7 @@ classdef SpecData < model.SpecDataBase
             % que os suportam. Exceção aos fluxos mesclados, que são criados
             % e apagados APENAS manualmente.
             for ii = numel(obj):-1:1
-                if obj(ii).IsMerged
+                if any([obj(ii).InputFiles.IsUserMerged])
                     continue
                 end
 
@@ -75,56 +72,79 @@ classdef SpecData < model.SpecDataBase
                         flowRefRelatedFiles = vertcat(flowRefRelatedFiles{:});
                     end
 
-                    obj(ii).RelatedFiles(~ismember(obj(ii).RelatedFiles.File, flowRefRelatedFiles), :) = [];
+                    relatedFilesMatch = ~ismember(obj(ii).RelatedFiles.File, flowRefRelatedFiles);
+                    if any(relatedFilesMatch)
+                        obj(ii).Data = {};
+                        obj(ii).RelatedFiles(relatedFilesMatch, :) = [];
+                    end
                 end
 
                 if ~hashIdx || isempty(obj(ii).RelatedFiles)
                     delete(obj(ii))
                     obj(ii) = [];
+                else
+                    obj(ii).InputFiles(:) = [];
                 end
             end
 
             % Atualiza specData, editando fluxos atuais e includindo novos, 
             % caso aplicável.
-            for ii = 1:numel(uniqueHashs)
-                flowHash = uniqueHashs{ii};
-                flowHashIdxs = find(uniqueHashIdxs == ii)';
+            for jj = 1:numel(uniqueHashs)
+                flowHash = uniqueHashs{jj};
+                flowHashIdxs = find(uniqueHashIdxs == jj)';
 
-                for jj = flowHashIdxs
-                    fileName = referenceTable.File{jj};
-                    fileIdx  = referenceTable.Idx{jj}{1}(1);
-                    flowIdx  = referenceTable.Idx{jj}{1}(2);
-                    flowLat  = referenceTable.Latitude(jj);
-                    flowLng  = referenceTable.Longitude(jj);
-
-                    idxs = find(strcmp({obj.Hash}, flowHash));
-                    if isempty(idxs)
-                        obj = createFlow(obj, metaData, fileIdx, flowIdx, flowHash, fileName);
-                        continue
-                    end
-
+                for kk = flowHashIdxs
                     neededNewFlow = true;
-                    for kk = idxs
-                        if all(ismember(referenceTable.RelatedFiles(jj), obj(kk).RelatedFiles.File))
+                    
+                    fileIdx = referenceTable.Idx{kk}{1}(1);
+                    flowIdx = referenceTable.Idx{kk}{1}(2);
+                    flowLat = referenceTable.Latitude(kk);
+                    flowLng = referenceTable.Longitude(kk);
+                    
+                    objIdxs = find(strcmp({obj.Hash}, flowHash));
+                    for ll = objIdxs
+                        if all(ismember(referenceTable.RelatedFiles(kk), obj(ll).RelatedFiles.File))
                             neededNewFlow = false;
                             break
 
                         else
-                            distanceMeters = deg2km(distance(obj(kk).GPS.Latitude, obj(kk).GPS.Longitude, flowLat, flowLng)) * 1000;
+                            distanceMeters = deg2km(distance(obj(ll).GPS.Latitude, obj(ll).GPS.Longitude, flowLat, flowLng)) * 1000;
                             if distanceMeters <= generalSettings.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters
                                 neededNewFlow = false;
     
-                                obj(kk).Data = {};
-                                obj(kk).GPS = rmfield(gpsLib.summary(cell2mat(obj(kk).RelatedFiles.GPS)), 'Matrix');
-                                obj(kk).RelatedFiles = [obj(kk).RelatedFiles; metaData(fileIdx).Data(flowIdx).RelatedFiles];
+                                obj(ll).Data = {};
+                                obj(ll).RelatedFiles = [obj(ll).RelatedFiles; metaData(fileIdx).Data(flowIdx).RelatedFiles];
+                                obj(ll).GPS = rmfield(gpsLib.summary(cell2mat(obj(ll).RelatedFiles.GPS)), 'Matrix');
                                 break
                             end
                         end
                     end
 
                     if neededNewFlow
-                        obj = createFlow(obj, metaData, fileIdx, flowIdx, flowHash, fileName);
+                        idx = numel(obj) + 1;
+                        obj(idx) = copy(metaData(fileIdx).Data(flowIdx), {'FileMap'});
+                        obj(idx).Hash = flowHash;
+                    else
+                        idx = ll;
                     end
+
+                    currentFile = struct( ...
+                        'File', referenceTable.File{kk}, ...
+                        'Indexes', [fileIdx, flowIdx], ...
+                        'Hash', flowHash, ...
+                        'IsUserMerged', false ...
+                    );
+
+                    currentFileIdx = [];
+                    if ~isempty(obj(idx).InputFiles)
+                        currentFileIdx = find(arrayfun(@(x) isequal(x.File, currentFile.File) && isequal(x.Hash, currentFile.Hash), obj(idx).InputFiles), 1);
+                    end
+
+                    if isempty(currentFileIdx)
+                        currentFileIdx = numel(obj(idx).InputFiles) + 1;
+                    end
+
+                    obj(idx).InputFiles(currentFileIdx) = currentFile;
                 end
             end
 
@@ -139,15 +159,11 @@ classdef SpecData < model.SpecDataBase
 
         %-----------------------------------------------------------------%
         function populateSpectrum(obj, metaData, channelObj, generalSettings)
-            referenceTable = buildSpectrumReferenceTable(metaData, generalSettings);
-
             for ii = 1:numel(obj)
                 if ~isempty(obj(ii).Data) && (numel(obj(ii).Data{1}) == sum(obj(ii).RelatedFiles.NumSweeps))
                     continue
                 end
 
-                hashIdxs = find(strcmp(referenceTable.Hash, obj(ii).Hash));
-    
                 % Pré-aloca propriedade "Data" que registra timestamp, valores 
                 % de níveis, azimutes etc.
                 fileFormatName = '';
@@ -157,11 +173,11 @@ classdef SpecData < model.SpecDataBase
                 end
                 preallocateData(obj(ii), fileFormatName);
 
-                for jj = 1:numel(hashIdxs)
-                    fileIdx  = referenceTable.Idx{hashIdxs(jj)}{1}(1);
-                    flowIdx  = referenceTable.Idx{hashIdxs(jj)}{1}(2);
-                    fileName = metaData(fileIdx).File;
-    
+                for jj = 1:numel(obj(ii).InputFiles)
+                    fileIdx  = obj(ii).InputFiles(jj).Indexes(1);
+                    flowIdx  = obj(ii).InputFiles(jj).Indexes(2);
+                    
+                    fileName = metaData(fileIdx).File;    
                     tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData');
                     if ~isscalar(tempObj)
                         delete(tempObj(setdiff(1:numel(tempObj), flowIdx)))
@@ -182,6 +198,8 @@ classdef SpecData < model.SpecDataBase
                         obj(ii).Data{4}(:, idx1:idx2) = tempObj.Data{4};
                         obj(ii).Data{5}(:, idx1:idx2) = tempObj.Data{5};
                     end
+
+                    delete(tempObj)
                 end
 
                 if ~issorted(obj(ii).Data{1})
@@ -222,100 +240,89 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function obj = mergeWith(obj, flowIdxs, hFigure)
-            % "obj" como saída é ESSENCIAL para garantir que tenha efeito
-            % a diretriz: obj(idxThreads(2:nThreads)) = []; 
-
-            % PROIBIR QUE SEJAM MESCLADOS FLUXOS QUE I TIMESTAMP SE
-            % SOBREPÕE.
-
-
-            arguments 
-                obj
-                flowIdxs
-                hFigure    (1,1) matlab.ui.Figure
-            end
-            
-            % <VALIDATION>
-            if numel(flowIdxs) < 2
-                error([ ...
-                    'Os fluxos espectrais a mesclar não atendem aos requisitos dos dois tipos de mesclagem implantados no <i>app</i>, quais sejam:\n\n'    ...
-                    '• Tipo "co-channel": os fluxos devem possuir os campos "FreqStart", "FreqStop", "LevelUnit", "DataPoints" e "DataType" idênticos;\n\n' ...
-                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "nSweeps" e "DataType" idênticos.'
-                ])
+        function msg = validateMergeRequirements(obj, flowIdxs)
+            if isscalar(flowIdxs)
+                error('model:SpecData:InvalidMergeRequirements', 'O processo de mesclagem requer ao menos dois fluxos espectrais.')
             end
 
-            mergeTable = buildSpectrumReferenceTableByCriteria(obj, flowIdxs);
+            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
 
             if ~isscalar(unique(mergeTable.Receiver)) || ~isscalar(unique(mergeTable.DataType)) || ~isscalar(unique(mergeTable.LevelUnit))               
-                error([ ...
+                error('model:SpecData:InvalidMergeRequirements', [ ...
                     'Os fluxos espectrais a mesclar não atendem aos requisitos dos dois tipos de mesclagem implantados no <i>app</i>, quais sejam:\n\n'    ...
                     '• Tipo "co-channel": os fluxos devem possuir os campos "FreqStart", "FreqStop", "LevelUnit", "DataPoints" e "DataType" idênticos;\n\n' ...
-                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "nSweeps" e "DataType" idênticos.'
+                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "NumSweeps" e "DataType" idênticos.'
                 ])
             end
 
             if any(mergeTable.NumCoordinates == 0)
-                error('Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.')
+                error('model:SpecData:MissingMonitoringLocation', 'Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.')
             end
 
             resolutionList = unique(mergeTable.Resolution);
             stepWidthList  = unique(mergeTable.StepWidth);
 
-            msgQuestion = {};
+            msg = {};
             if ~isscalar(resolutionList) && ~isscalar(stepWidthList)
-                msgQuestion = arrayfun(@(x,y,z,w) sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW), %.3f kHz (passo)', x, y, z, w), mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000, mergeTable.StepWidth/1000, 'UniformOutput', false);
+                msg = arrayfun(@(x,y,z,w) sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW), %.3f kHz (passo)', x, y, z, w), mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000, mergeTable.StepWidth/1000, 'UniformOutput', false);
             elseif ~isscalar(resolutionList)
-                msgQuestion = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW)',                   x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000,                            'UniformOutput', false);
+                msg = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW)',                   x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000,                            'UniformOutput', false);
             elseif ~isscalar(stepWidthList)
-                msgQuestion = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (passo)',                 x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.StepWidth/1000,                             'UniformOutput', false);
+                msg = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (passo)',                 x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.StepWidth/1000,                             'UniformOutput', false);
             end
 
-            if ~isempty(msgQuestion)
-                msgQuestion = sprintf(['Os fluxos espectrais a mesclar possuem valores diferentes de resolução ou passo da varredura.\n\n' ...
-                                       '<font style="font-size: 11px;">%s</font>\n\nDeseja continuar esse processo de mesclagem, o que '   ...
-                                       'resultará em um fluxo que armazenará como metadados os maiores valores de resolução e passo da varredura?'], strjoin(msgQuestion, '\n'));
-                
-                userSelection = ui.Dialog(hFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
-                if userSelection == "Não"
-                    return
-                end
-            end
-            % </VALIDATION>
-            
-            % <PROCESS>
-            mergeType  = identifyMergeType(mergeTable);
-            nThreads   = numel(flowIdxs);
-            azTaskFlag = false;
+            % % ToDo: Migrar trecho p/ auxApp.winMisc...
+
+            % if ~isempty(msg)
+            %     msg = sprintf([ ...
+            %         'Os fluxos espectrais a mesclar possuem valores diferentes de resolução ou passo da varredura.\n\n' ...
+            %         '<font style="font-size: 11px;">%s</font>\n\nDeseja continuar esse processo de mesclagem, o que '   ...
+            %         'resultará em um fluxo que armazenará como metadados os maiores valores de resolução e passo da varredura?' ...
+            %     ], strjoin(msg, '\n'));
+            % 
+            %     userSelection = ui.Dialog(hFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            %     if userSelection == "Não"
+            %         return
+            %     end
+            % end
+        end
+
+        %-----------------------------------------------------------------%
+        function obj = mergeWith(obj, flowIdxs)            
+            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
+            mergeType = model.SpecData.identifyMergeType(mergeTable);
+
+            numFlows = numel(flowIdxs);
+            isAzimuthTask = false;
 
             switch mergeType
                 case 'co-channel'
-                    refIndex     = 1;
-                    timeArray    = [];
-                    dataMatrix   = [];
-                    azimuth      = [];
-                    trustLevel   = [];
+                    idx = 1;
+                    timestampArray = [];
+                    levelMatrix = [];
+                    azimuthMatrix = [];
+                    azimuthTrustScore = [];
                     relatedFiles = [];
 
-                    for ii = 1:nThreads
-                        timeArray    = [timeArray,    obj(flowIdxs(ii)).Data{1}]; 
-                        dataMatrix   = [dataMatrix,   obj(flowIdxs(ii)).Data{2}];
-                        relatedFiles = [relatedFiles; obj(flowIdxs(ii)).RelatedFiles];
+                    for ii = 1:numFlows
+                        timestampArray = [timestampArray, obj(flowIdxs(ii)).Data{1}]; 
+                        levelMatrix    = [levelMatrix,    obj(flowIdxs(ii)).Data{2}];
+                        relatedFiles   = [relatedFiles;   obj(flowIdxs(ii)).RelatedFiles];
 
                         if numel(obj(flowIdxs(ii)).Data) == 5
-                            azTaskFlag = true;
-                            azimuth    = [azimuth,    obj(flowIdxs(ii)).Data{4}];
-                            trustLevel = [trustLevel, obj(flowIdxs(ii)).Data{5}];
+                            isAzimuthTask     = true;
+                            azimuthMatrix     = [azimuthMatrix,     obj(flowIdxs(ii)).Data{4}];
+                            azimuthTrustScore = [azimuthTrustScore, obj(flowIdxs(ii)).Data{5}];
                         end
                     end
     
-                    if ~issorted(timeArray)
-                        [timeArray, idxSort] = sort(timeArray);
-                        dataMatrix = dataMatrix(:,idxSort);
+                    if ~issorted(timestampArray)
+                        [timestampArray, sortIdxs] = sort(timestampArray);
+                        levelMatrix = levelMatrix(:, sortIdxs);
 
-                        if azTaskFlag
-                            azimuth    = azimuth(:,idxSort);
-                            trustLevel = trustLevel(:,idxSort);
+                        if isAzimuthTask
+                            azimuthMatrix     = azimuthMatrix(:, sortIdxs);
+                            azimuthTrustScore = azimuthTrustScore(:, sortIdxs);
                         end
                     end
 
@@ -323,16 +330,16 @@ classdef SpecData < model.SpecDataBase
                         relatedFiles = sortrows(relatedFiles, 'BeginTime');
                     end
     
-                    obj(flowIdxs(refIndex)).Data{1}      = timeArray;
-                    obj(flowIdxs(refIndex)).GPS          = rmfield(gpsLib.summary(cell2mat(relatedFiles.GPS)), 'Matrix');
-                    obj(flowIdxs(refIndex)).RelatedFiles = relatedFiles;
+                    obj(flowIdxs(idx)).Data{1}      = timestampArray;
+                    obj(flowIdxs(idx)).GPS          = rmfield(gpsLib.summary(cell2mat(relatedFiles.GPS)), 'Matrix');
+                    obj(flowIdxs(idx)).RelatedFiles = relatedFiles;
 
                 case {'adjacent-channel', 'gap-adjacent-channel'}
                     stepWidthRef = mode(mergeTable.StepWidth);
-                    [refNumSweeps, refIndex] = min(mergeTable.NumSweeps);
-                    dataMatrix   = [];
+                    [refNumSweeps, idx] = min(mergeTable.NumSweeps);
+                    levelMatrix   = [];
 
-                    for ii = 1:nThreads
+                    for ii = 1:numFlows
                         newDataPoints = round((mergeTable.FreqStop(ii) - mergeTable.FreqStart(ii))/stepWidthRef + 1);
                         
                         x  = linspace(mergeTable.FreqStart(ii), mergeTable.FreqStop(ii), mergeTable.DataPoints(ii));
@@ -365,29 +372,35 @@ classdef SpecData < model.SpecDataBase
                             newDataMatrix = newDataMatrix(2:end,:);
                         end
 
-                        dataMatrix = [dataMatrix; newDataMatrix];
+                        levelMatrix = [levelMatrix; newDataMatrix];
                     end
 
-                    obj(flowIdxs(refIndex)).MetaData.DataPoints = height(dataMatrix);
-                    obj(flowIdxs(refIndex)).MetaData.FreqStart  = min(mergeTable.FreqStart);
-                    obj(flowIdxs(refIndex)).MetaData.FreqStop   = max(mergeTable.FreqStop);
+                    obj(flowIdxs(idx)).MetaData.DataPoints = height(levelMatrix);
+                    obj(flowIdxs(idx)).MetaData.FreqStart  = min(mergeTable.FreqStart);
+                    obj(flowIdxs(idx)).MetaData.FreqStop   = max(mergeTable.FreqStop);
             end
 
-            obj(flowIdxs(refIndex)).MetaData.Resolution = max(resolutionList);
-            obj(flowIdxs(refIndex)).Data{2}  = dataMatrix;
-            basicStats(obj(flowIdxs(refIndex)))
-
-            if azTaskFlag
-                obj(flowIdxs(refIndex)).Data{4} = azimuth;
-                obj(flowIdxs(refIndex)).Data{5} = trustLevel;
+            obj(flowIdxs(idx)).MetaData.Resolution = max(unique(mergeTable.Resolution));
+            obj(flowIdxs(idx)).Data{2}  = levelMatrix;
+            
+            if isAzimuthTask
+                obj(flowIdxs(idx)).Data{4} = azimuthMatrix;
+                obj(flowIdxs(idx)).Data{5} = azimuthTrustScore;
             end
 
-            othersIndex = setdiff(1:nThreads, refIndex);
+            basicStats(obj(flowIdxs(idx)))
+
+            obj(flowIdxs(idx)).UserData.OccupancyComputationMode.CacheIndex = [];
+            computeOccupancyPerBin(obj(flowIdxs(idx)))
+
+            % Exclui fluxos...
+            othersIndex = setdiff(1:numFlows, idx);
             delete(obj(flowIdxs(othersIndex)))
             obj(flowIdxs(othersIndex)) = [];
 
+            % Remapeia fluxos de espectro com fluxos de ocupação, caso
+            % aplicável.
             occupancyMapping(obj)
-            % </PROCESS>
         end
 
         %-----------------------------------------------------------------%
@@ -613,58 +626,61 @@ classdef SpecData < model.SpecDataBase
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
-                case 'UserData:Emissions' % Origem: winAppAnalise
+                case 'UserData:Emissions'
                     checkIfScalar(obj)
 
                     switch updateType
                         case 'Add'
-                            idxFreq     = varargin{1};
-                            FreqCenter  = varargin{2};
-                            BandWidth   = varargin{3};
-                            Detection   = varargin{4};
-                            Description = varargin{5};
-                            channelObj  = varargin{end};
+                            idxList     = varargin{1};
+                            freqList    = varargin{2};
+                            widthList   = varargin{3};
+                            methodList  = varargin{4};
+                            userComment = varargin{5};
+                            channelObj  = varargin{6};
 
                             % Inicialmente, verifica se a ocupação por bin já foi aferida.
                             % Caso não, afere-se com os parâmetros padrão.
                             computeOccupancyPerBin(obj)
         
-                            for ii = 1:numel(idxFreq)
-                                idxEmission = height(obj.UserData.Emissions) + 1;
-                                obj.UserData.Emissions(idxEmission, 1:4) = table(idxFreq(ii), FreqCenter(ii), BandWidth(ii), true);
+                            for ii = 1:numel(idxList)
+                                idx = height(obj.UserData.Emissions) + 1;
+                                obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated'}) = {freqList(ii), idxList(ii), widthList(ii), true};
 
-                                defaultChannelEmission  = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idxEmission, channelObj);
+                                defaultChannelEmission = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
 
                                 % Ideia abaixo é eliminar as emissões com características
                                 % muito parecidas com a de outras emissões já inclusas.
-                                hasMatchingFrequency    = abs(obj.UserData.Emissions.Frequency(1:end-1) - obj.UserData.Emissions.Frequency(end)) <= .015; % 15kHz
-                                hasMatchingBandWidth    = abs(obj.UserData.Emissions.BW_kHz(1:end-1)    - obj.UserData.Emissions.BW_kHz(end))    <= 30;   % 30kHz
-                                hasMatchingChannel      = arrayfun(@(x) isequal(x, defaultChannelEmission.autoSuggested), arrayfun(@(x) x.userModified, obj.UserData.Emissions.ChannelAssigned(1:end-1)));
+                                hasMatchingFrequency = abs(obj.UserData.Emissions.Frequency(1:end-1) - obj.UserData.Emissions.Frequency(end)) <= .015; % 15kHz
+                                hasMatchingBandWidth = abs(obj.UserData.Emissions.BandWidthkHz(1:end-1) - obj.UserData.Emissions.BandWidthkHz(end)) <= 30; % 30kHz
+                                hasMatchingChannel = arrayfun(@(x) isequal(x, defaultChannelEmission.AutoSuggested), arrayfun(@(x) x.UserModified, obj.UserData.Emissions.ChannelAssigned(1:end-1)));
                                 
                                 if any(hasMatchingFrequency & hasMatchingBandWidth & hasMatchingChannel)
-                                    obj.UserData.Emissions(idxEmission, :) = [];
+                                    obj.UserData.Emissions(idx, :) = [];
                                     continue
                                 end
         
                                 userDescription = "";
-                                if ~isempty(Description)
-                                    userDescription = string(Description{ii});
+                                if ~isempty(userComment)
+                                    userDescription = string(userComment{ii});
                                 end        
-                                obj.UserData.Emissions.Description(idxEmission)               = userDescription;
+                                obj.UserData.Emissions.Description(idx) = userDescription;
                                 
-                                obj.UserData.Emissions.Algorithms(idxEmission).Detection      = Detection{ii};
-                                obj.UserData.Emissions.Algorithms(idxEmission).Classification = jsonencode(obj.UserData.ReportAlgorithms.Classification);
-                                obj.UserData.Emissions.Algorithms(idxEmission).Occupancy      = jsonencode(obj.UserData.ReportAlgorithms.Occupancy);
+                                obj.UserData.Emissions.Algorithms(idx) = struct( ...
+                                    'Detection', methodList{ii}, ...
+                                    'Classification', jsonencode(obj.UserData.ReportAlgorithms.Classification), ...
+                                    'Occupancy', jsonencode(obj.UserData.ReportAlgorithms.Occupancy), ...
+                                    'BandWidth', '' ...
+                                );
                                 
-                                obj.UserData.Emissions.ChannelAssigned(idxEmission)           = defaultChannelEmission;
-                                obj.UserData.Emissions.Classification(idxEmission)            = model.UserData.getFieldTemplate('Classification',  obj, 1, idxEmission, channelObj);
+                                obj.UserData.Emissions.ChannelAssigned(idx) = defaultChannelEmission;
+                                obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification', obj, 1, idx, channelObj);
                                 
-                                util.Measures(obj, 1, idxEmission, 'Emission', channelObj)
+                                util.Measures(obj, 1, idx, 'Emission', channelObj)
                             end
         
                         case 'Edit'
                             parameter   = varargin{1};
-                            idxEmission = varargin{2};
+                            idx = varargin{2};
                             channelObj  = varargin{end};
         
                             % A alteração das características de frequência e BW de uma emissão 
@@ -678,42 +694,42 @@ classdef SpecData < model.SpecDataBase
         
                             switch parameter
                                 case {'Frequency', 'BandWidth', 'Frequency|BandWidth'}
-                                    obj.UserData.Emissions.idxFrequency(idxEmission)         = varargin{3};
-                                    obj.UserData.Emissions.Frequency(idxEmission)            = varargin{4};
-                                    obj.UserData.Emissions.BW_kHz(idxEmission)               = varargin{5};
+                                    obj.UserData.Emissions.FrequencyIdx(idx) = varargin{3};
+                                    obj.UserData.Emissions.Frequency(idx) = varargin{4};
+                                    obj.UserData.Emissions.BandWidthkHz(idx) = varargin{5};
 
-                                    obj.UserData.Emissions.Algorithms(idxEmission).Detection = '{"Algorithm":"Manual"}';
+                                    obj.UserData.Emissions.Algorithms(idx).Detection = '{"Algorithm":"Manual"}';
 
-                                    if isequal(obj.UserData.Emissions.ChannelAssigned(idxEmission).autoSuggested, obj.UserData.Emissions.ChannelAssigned(idxEmission).userModified)
-                                        obj.UserData.Emissions.ChannelAssigned(idxEmission)  = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idxEmission, channelObj);
+                                    if isequal(obj.UserData.Emissions.ChannelAssigned(idx).AutoSuggested, obj.UserData.Emissions.ChannelAssigned(idx).UserModified)
+                                        obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
                                     end
 
-                                    if isequal(obj.UserData.Emissions.Classification(idxEmission).autoSuggested, obj.UserData.Emissions.Classification(idxEmission).userModified)
-                                        obj.UserData.Emissions.Classification(idxEmission)   = model.UserData.getFieldTemplate('Classification',  obj, 1, idxEmission, channelObj);
+                                    if isequal(obj.UserData.Emissions.Classification(idx).AutoSuggested, obj.UserData.Emissions.Classification(idx).UserModified)
+                                        obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);
                                     end
 
-                                    obj.UserData.Emissions.auxAppData(idxEmission).DriveTest = [];
-                                    util.Measures(obj, 1, idxEmission, 'Emission', channelObj)
+                                    obj.UserData.Emissions.auxAppData(idx).DriveTest = [];
+                                    util.Measures(obj, 1, idx, 'Emission', channelObj)
 
                                 case 'IsTruncated'
-                                    obj.UserData.Emissions.isTruncated(idxEmission)          = varargin{3};
+                                    obj.UserData.Emissions.IsTruncated(idx) = varargin{3};
 
-                                    obj.UserData.Emissions.ChannelAssigned(idxEmission)      = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idxEmission, channelObj);
+                                    obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
 
-                                    if isequal(obj.UserData.Emissions.Classification(idxEmission).autoSuggested, obj.UserData.Emissions.Classification(idxEmission).userModified)
-                                        obj.UserData.Emissions.Classification(idxEmission)   = model.UserData.getFieldTemplate('Classification',  obj, 1, idxEmission, channelObj);
+                                    if isequal(obj.UserData.Emissions.Classification(idx).AutoSuggested, obj.UserData.Emissions.Classification(idx).UserModified)
+                                        obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);
                                     end
                                     return
 
                                 case 'Description'
-                                    obj.UserData.Emissions.Description(idxEmission)          = varargin{3};
+                                    obj.UserData.Emissions.Description(idx) = varargin{3};
                                     return
                             end
         
                         case 'Delete'
-                            idxEmissions = varargin{1};
+                            idx = varargin{1};
         
-                            obj.UserData.Emissions(idxEmissions, :) = [];
+                            obj.UserData.Emissions(idx, :) = [];
                             return
 
                         otherwise 
@@ -857,9 +873,9 @@ classdef SpecData < model.SpecDataBase
                 % Insere a coluna "Base64", que retorna um Hash do tag da emissão, no
                 % formato "100.300 MHz ⌂ 256.0 kHz", por exemplo. Esse Hash é usado p/
                 % identificar as emissões únicas.
-                emissionsBase64Hash = cellfun(@(x) Hash.base64encode(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissionsTable.Frequency, emissionsTable.BW_kHz, "UniformOutput", false), 'UniformOutput', false);
-                [~, uniqueIndex]    = unique(emissionsBase64Hash);
-                emissionsTable      = sortrows(emissionsTable(uniqueIndex, :), {'idxFrequency', 'BW_kHz'});
+                emissionHashs  = cellfun(@(x) Hash.sha1(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissionsTable.Frequency, emissionsTable.BandWidthkHz, "UniformOutput", false), 'UniformOutput', false);
+                [~, hashIdxs]  = unique(emissionHashs);
+                emissionsTable = sortrows(emissionsTable(hashIdxs, :), {'FrequencyIdx', 'BandWidthkHz'});
 
                 obj(ii).UserData.Emissions = emissionsTable;
             end
@@ -921,20 +937,6 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function obj = createFlow(obj, metaData, fileIdx, flowIdx, flowHash, fileName)
-            mergedSources = [obj.MergedSources];
-            if ~isempty(mergedSources)
-                if any(strcmp({mergedSources.Hash}, flowHash) & strcmp({mergedSources.File}, fileName))
-                    return
-                end
-            end
-
-            idx = numel(obj) + 1;
-            obj(idx) = copy(metaData(fileIdx).Data(flowIdx), {'FileMap'});
-            obj(idx).Hash = flowHash;
-        end
-
-        %-----------------------------------------------------------------%
         function occupancyMapping(obj)
             dataTypes = arrayfun(@(x) x.MetaData.DataType, obj);
             occupancyFlowIdxs = find(ismember(dataTypes, class.Constants.occDataTypes));
@@ -964,18 +966,18 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function [sortedTable, sortedIndexes] = buildSpectrumReferenceTableByCriteria(obj, idxThreads)
-            numFlows = numel(idxThreads);
-            sortedTable = table( ...
+        function mergeTable = getSpectrumMergeTable(obj, flowIdxs)
+            numFlows = numel(flowIdxs);
+            mergeTable = table( ...
                 'Size', [numFlows, 10], ...
                 'VariableTypes', {'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
                 'VariableNames', {'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
             );
 
             for ii = 1:numFlows
-                idx = idxThreads(ii);
+                idx = flowIdxs(ii);
                 
-                sortedTable(ii,:) = {
+                mergeTable(ii,:) = {
                     obj(idx).Receiver, ...
                     obj(idx).MetaData.DataType, ...
                     obj(idx).MetaData.FreqStart, ...
@@ -984,13 +986,12 @@ classdef SpecData < model.SpecDataBase
                     obj(idx).MetaData.DataPoints, ...
                     (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
                     obj(idx).MetaData.Resolution, ...
-                    numel(obj(idx).Data{1}), ...
+                    sum(obj(idx).RelatedFiles.NumSweeps), ...
                     obj(idx).GPS.Count ...
                 };
             end
             
-            sortedTable = sortrows(sortedTable, {'FreqStart', 'FreqStop'});
-            sortedIndexes = sortedTable.idx;
+            mergeTable = sortrows(mergeTable, {'FreqStart', 'FreqStop'});
         end
     end
 
@@ -1012,10 +1013,10 @@ classdef SpecData < model.SpecDataBase
                 mergeType = 'gap-adjacent-channel';
             
             else
-                error([ ...
+                error('model:SpecData:InvalidMergeRequirements', [ ...
                     'Os fluxos espectrais a mesclar não atendem aos requisitos dos dois tipos de mesclagem implantados no <i>app</i>, quais sejam:\n\n'    ...
                     '• Tipo "co-channel": os fluxos devem possuir os campos "FreqStart", "FreqStop", "LevelUnit", "DataPoints" e "DataType" idênticos;\n\n' ...
-                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "nSweeps" e "DataType" idênticos.'
+                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "NumSweeps" e "DataType" idênticos.'
                 ])
             end
         end

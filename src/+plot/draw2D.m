@@ -16,7 +16,7 @@ classdef (Abstract) draw2D
                 case 'line'
                     plotHandle = line(axesHandle, xArray, yArray, plotConfig{:});
                 case 'area'
-                    plotHandle = area(axesHandle, xArray, yArray, 'BaseValue', axesHandle.YLim(1), 'FaceAlpha', 0.25, plotConfig{:});
+                    plotHandle = area(axesHandle, xArray, yArray, 'BaseValue', min(min(yArray), axesHandle.YLim(1)), 'FaceAlpha', 0.25, plotConfig{:});
             end
 
             plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)

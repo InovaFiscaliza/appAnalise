@@ -414,7 +414,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'ReportLib', 'Detection', 'Classification', 'AddFiles', 'TimeFiltering', 'EditLocation', 'AddKFactor', 'AddChannel', 'LevelFiltering'})}
+                auxAppName char {mustBeMember(auxAppName, {'AddChannel', 'AddFiles', 'AddKFactor', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'EditLocation', 'FilterByLevel', 'FilterByTime', 'ReportLib'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'CONFIG'})}
             end
 
@@ -423,33 +423,39 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             switch auxAppName
-                case 'ReportLib'
-                    screenWidth  = 460;
-                    screenHeight = 602;
-                case 'Detection'
+                case 'AddChannel'
+                    screenWidth  = 560; 
+                    screenHeight = 480;
+                case 'AddFiles'
+                    screenWidth  = 880; 
+                    screenHeight = 480;
+                case 'AddKFactor'
+                    screenWidth  = 480; 
+                    screenHeight = 360;                
+                case 'Channels'          % auxApp.winPlayback
                     screenWidth  = 412;
                     screenHeight = 484;
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
-                case 'AddFiles'
-                    screenWidth  = 880; 
-                    screenHeight = 480;
-                case 'TimeFiltering'
-                    screenWidth  = 640; 
-                    screenHeight = 480;
-                case 'LevelFiltering'
-                    screenWidth  = 540; 
-                    screenHeight = 300;
+                case 'Detection'        % auxApp.winPlayback
+                    screenWidth  = 412;
+                    screenHeight = 484;
+                case 'DetectionLimits'  % auxApp.winPlayback
+                    screenWidth  = 292;
+                    screenHeight = 360;
                 case 'EditLocation'
                     screenWidth  = 394; 
                     screenHeight = 194;
-                case 'AddKFactor'
-                    screenWidth  = 480; 
-                    screenHeight = 360;
-                case 'AddChannel'
-                    screenWidth  = 560; 
+                case 'FilterByLevel'
+                    screenWidth  = 540; 
+                    screenHeight = 300;
+                case 'FilterByTime'
+                    screenWidth  = 640; 
                     screenHeight = 480;
+                case 'ReportLib'
+                    screenWidth  = 460;
+                    screenHeight = 602;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
@@ -773,7 +779,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             end
 
                             dataNode = uitreenode(receiverNode, ...
-                                'Text', sprintf('ID %d: %.3f - %.3f MHz%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, nodeTextNote), ...
+                                'Text', sprintf('ID %d: %.3f – %.3f MHz%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, nodeTextNote), ...
                                 'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
                                 'ContextMenu', app.FileTreeContextMenu ...
                             );
@@ -845,7 +851,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                         % FREQUÊNCIA
                         if ~isempty(filterSentence_Frequency)
-                            flowTag = sprintf('%.3f - %.3f MHz', app.metaData(ii).Data(jj).MetaData.FreqStart / 1e+6, app.metaData(ii).Data(jj).MetaData.FreqStop  / 1e+6);
+                            flowTag = sprintf('%.3f – %.3f MHz', app.metaData(ii).Data(jj).MetaData.FreqStart / 1e+6, app.metaData(ii).Data(jj).MetaData.FreqStop  / 1e+6);
                             if ismember(flowTag, filterSentence_Frequency)
                                 updateEnabledState(app.metaData, 'specific-flow', ii, jj, true)
                                 continue

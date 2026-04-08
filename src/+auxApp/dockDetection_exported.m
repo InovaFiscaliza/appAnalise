@@ -364,7 +364,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
                 if app.OnlySearchEmissions.Value
                     util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthKHzList)
                 else
-                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], channelObj)
+                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], app.mainApp.channelObj)
                     % atualiza plot...
                 end
             end

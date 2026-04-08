@@ -106,7 +106,7 @@ classdef (Abstract) HtmlTextGenerator
                     receiverList = unique(arrayfun(@(x) x.Receiver, metaData(fileIdx).Data(flowIdxs), "UniformOutput", false));
                     receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
 
-                    flowTag = strjoin(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
+                    flowTag = strjoin(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
     
                     initialText = [ ...
                         strjoin(strcat({'<font style="color: white; background-color: #b7312c; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">'}, receiverList, {'</font><br>'}), '') ...
@@ -128,7 +128,7 @@ classdef (Abstract) HtmlTextGenerator
 
                 receiverList = unique({specData.Receiver});
                 receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
-                flowTag = strjoin(unique(arrayfun(@(x) sprintf('%.3f - %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
+                flowTag = strjoin(unique(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
 
                 dataStruct = struct('group', 'GERAL', ...
                                     'value', struct('File',   textFormatGUI.cellstr2ListWithQuotes({metaData(fileIdx).File}), ...
@@ -146,8 +146,8 @@ classdef (Abstract) HtmlTextGenerator
 
         %-----------------------------------------------------------------%
         function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData)
-            threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
-            observationPeriod = sprintf('%s - %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
+            threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+            observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
             description = sprintf('"%s"', specData.RelatedFiles.Description{1});
             
             dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}));
@@ -192,7 +192,7 @@ classdef (Abstract) HtmlTextGenerator
                                            'value', struct('Id',              specData.RelatedFiles.Id(ii), ...
                                                            'Task',            sprintf('"%s"', specData.RelatedFiles.Task{ii}), ...
                                                            'Description',     sprintf('"%s"', specData.RelatedFiles.Description{ii}), ...
-                                                           'ObservationTime', sprintf('%s - %s', beginTime, endTime), ...
+                                                           'ObservationTime', sprintf('%s – %s', beginTime, endTime), ...
                                                            'NumSweeps',       specData.RelatedFiles.NumSweeps(ii), ...
                                                            'RevisitTime',     sprintf('%.3f segundos', specData.RelatedFiles.RevisitTime(ii))));
             end
@@ -218,7 +218,7 @@ classdef (Abstract) HtmlTextGenerator
             levelUnit   = specData.MetaData.LevelUnit;
             numPoints   = specData.MetaData.DataPoints;
             numSweeps   = sum(specData.RelatedFiles.NumSweeps);
-            observationPeriod = sprintf('%s - %s', ...
+            observationPeriod = sprintf('%s – %s', ...
                 datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), ...
                 datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS') ...
             );
@@ -354,13 +354,13 @@ classdef (Abstract) HtmlTextGenerator
         % WINAPPANALISE - MODO "REPORT"
         %-----------------------------------------------------------------%
         function htmlContent = ReportAlgorithms(specData)
-            threadTag = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+            threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
         
             if specData.UserData.bandLimitsStatus && height(specData.UserData.bandLimitsTable)
-                detectionBands = strjoin(arrayfun(@(x,y) sprintf('%.3f - %.3f MHz', x, y), specData.UserData.bandLimitsTable.FreqStart, ...
+                detectionBands = strjoin(arrayfun(@(x,y) sprintf('%.3f – %.3f MHz', x, y), specData.UserData.bandLimitsTable.FreqStart, ...
                                                                                            specData.UserData.bandLimitsTable.FreqStop, 'UniformOutput', false), ', ');
             else
-                detectionBands = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart/1e+6, ...
+                detectionBands = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, ...
                                                             specData.MetaData.FreqStop /1e+6);
             end
         
@@ -387,7 +387,7 @@ classdef (Abstract) HtmlTextGenerator
             htmlContent = {};
         
             for ii = 1:numel(specData)
-                threadTag      = sprintf('%.3f - %.3f MHz', specData(ii).MetaData.FreqStart/1e+6, specData(ii).MetaData.FreqStop/1e+6);
+                threadTag      = sprintf('%.3f – %.3f MHz', specData(ii).MetaData.FreqStart/1e+6, specData(ii).MetaData.FreqStop/1e+6);
         
                 FilteredSweeps = '';
                 if filteringSummary.RawSweeps(ii) ~= filteringSummary.FilteredSweeps(ii)
@@ -400,11 +400,11 @@ classdef (Abstract) HtmlTextGenerator
                     FilteredSweeps = sprintf('<br><font style="color: %s; font-size: 10px;">%d varreduras pós-filtragem</font>', fontColor, filteringSummary.FilteredSweeps(ii));
                 end
             
-                dataStruct(1)  = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s - %s', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
+                dataStruct(1)  = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
                 dataStruct(2)  = struct('group', 'VARREDURAS',          'value', sprintf('%d >> %d', filteringSummary.RawSweeps(ii), filteringSummary.FilteredSweeps(ii)));
             
                 htmlContent{end+1} = [sprintf('<p style="font-family: Helvetica, Arial, sans-serif; font-size: 16px; text-align: justify; line-height: 16px; margin: 10px;"><b>%s</b><br>', threadTag)               ...
-                                      sprintf('<font style="color: gray; font-size: 10px;">%s - %s</font><br>', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')) ...
+                                      sprintf('<font style="color: gray; font-size: 10px;">%s – %s</font><br>', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')) ...
                                       sprintf('<font style="color: gray; font-size: 10px;">%d varreduras inicias</font>%s</p>', filteringSummary.RawSweeps(ii), FilteredSweeps)];
             end
         
@@ -453,7 +453,7 @@ classdef (Abstract) HtmlTextGenerator
         
             % HTML
             dataStruct(1) = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
-            dataStruct(2) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s - %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));    
+            dataStruct(2) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));    
             dataStruct(3) = struct('group', 'CANAL',               'value', struct('autoSuggested', sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.autoSuggested.Frequency, emissionTable.ChannelAssigned.autoSuggested.ChannelBW)));
             
             if ~isequal(emissionTable.ChannelAssigned.autoSuggested, emissionTable.ChannelAssigned.userModified)
@@ -514,7 +514,7 @@ classdef (Abstract) HtmlTextGenerator
                                      'LevelUnit',        specData(idxThread).MetaData.LevelUnit);
         
             dataStruct(1)   = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
-            dataStruct(2)   = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s - %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
+            dataStruct(2)   = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
             dataStruct(3)   = struct('group', 'METADADOS',           'value', metaData);
 
             gpsInfo = specData(idxThread).GPS;

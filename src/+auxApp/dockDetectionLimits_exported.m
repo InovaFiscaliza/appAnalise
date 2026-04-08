@@ -4,8 +4,8 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                  matlab.ui.Figure
         GridLayout                matlab.ui.container.GridLayout
-        play_BandLimits_Tree      matlab.ui.control.ListBox
         play_BandLimits_add       matlab.ui.control.Image
+        play_BandLimits_Tree      matlab.ui.control.ListBox
         play_BandLimits_Panel     matlab.ui.container.Panel
         play_BandLimits_Grid      matlab.ui.container.GridLayout
         play_BandLimits_xLabel_2  matlab.ui.control.Label
@@ -40,6 +40,11 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
     
     
     methods (Access = private)
+        %-----------------------------------------------------------------%
+        function updatePanel(app)
+
+        end
+        
         %-----------------------------------------------------------------%
         function play_BandLimits_Layout(app, idx)
             if app.play_BandLimits_Status.Value
@@ -166,7 +171,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function AlgorithmValueChanged(app, event)
             
             updatePanel(app)
@@ -193,7 +198,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function occValueChanged(app, event)
             
             switch event.Source
@@ -221,7 +226,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function ButtonPushed(app, event)
 
             algorithm = app.Algorithm.Value;
@@ -316,7 +321,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function SearchModePanelSelectionChanged(app, event)
             
             app.SearchAllFlows.Visible = ~app.OnlySearchEmissions.Value && ~strcmp(app.Algorithm.Value, 'Manual – selecionar região da emissão');
@@ -496,7 +501,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 18};
+            app.GridLayout.ColumnWidth = {224, 18};
             app.GridLayout.RowHeight = {22, 76, 22, '1x'};
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
@@ -557,15 +562,6 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             app.play_BandLimits_xLabel_2.Layout.Column = 2;
             app.play_BandLimits_xLabel_2.Text = {'Frequência final:'; '(MHz)'};
 
-            % Create play_BandLimits_add
-            app.play_BandLimits_add = uiimage(app.GridLayout);
-            app.play_BandLimits_add.ScaleMethod = 'none';
-            app.play_BandLimits_add.ImageClickedFcn = createCallbackFcn(app, @play_BandLimits_addImageClicked, true);
-            app.play_BandLimits_add.Enable = 'off';
-            app.play_BandLimits_add.Layout.Row = 3;
-            app.play_BandLimits_add.Layout.Column = 2;
-            app.play_BandLimits_add.ImageSource = 'Add_16.png';
-
             % Create play_BandLimits_Tree
             app.play_BandLimits_Tree = uilistbox(app.GridLayout);
             app.play_BandLimits_Tree.Items = {};
@@ -574,6 +570,15 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             app.play_BandLimits_Tree.Layout.Row = 4;
             app.play_BandLimits_Tree.Layout.Column = [1 2];
             app.play_BandLimits_Tree.Value = {};
+
+            % Create play_BandLimits_add
+            app.play_BandLimits_add = uiimage(app.GridLayout);
+            app.play_BandLimits_add.ScaleMethod = 'none';
+            app.play_BandLimits_add.ImageClickedFcn = createCallbackFcn(app, @play_BandLimits_addImageClicked, true);
+            app.play_BandLimits_add.Enable = 'off';
+            app.play_BandLimits_add.Layout.Row = 3;
+            app.play_BandLimits_add.Layout.Column = 2;
+            app.play_BandLimits_add.ImageSource = 'Add_16.png';
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);

@@ -1,4 +1,4 @@
-function chAssigned = emissionChannel(specData, idxThread, idxEmission, channelObj)
+function chAssigned = emissionChannel(specData, flowIdx, emissionIdx, channelObj)
 
     % Trata-se de função auxiliar ao módulo de DRIVE-TEST, que busca identificar 
     % o canal relacionado à emissão.
@@ -10,35 +10,37 @@ function chAssigned = emissionChannel(specData, idxThread, idxEmission, channelO
     % E, em posse dessa informação, busca-se no RFDataHub todos os registros 
     % com essa frequência, retornando a largura mais comum.
 
-    if isempty(idxEmission)
-        chFrequency = (specData(idxThread).MetaData.FreqStart + specData(idxThread).MetaData.FreqStop) / 2e6; % MHz
-        chBW        = (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart) / 1e3; % kHz
+    if isempty(emissionIdx)
+        chFrequency = (specData(flowIdx).MetaData.FreqStart + specData(flowIdx).MetaData.FreqStop) / 2e6; % MHz
+        chBandWidth = (specData(flowIdx).MetaData.FreqStop - specData(flowIdx).MetaData.FreqStart) / 1e3; % kHz
     else
-        chFrequency = getChannelFrequency(specData, idxThread, idxEmission, channelObj);
-        chBW        = getChannelBW(specData, idxThread, idxEmission, chFrequency);
+        chFrequency = getChannelFrequency(specData, flowIdx, emissionIdx, channelObj);
+        chBandWidth = getChannelBW(specData, flowIdx, emissionIdx, chFrequency);
     end
 
-    chAssigned  = struct('Frequency', round(double(chFrequency), 6), ...
-                         'ChannelBW', round(double(chBW), 6));
+    chAssigned  = struct( ...
+        'Frequency', round(double(chFrequency), 6), ...
+        'ChannelBW', round(double(chBandWidth), 6) ...
+    );
 end
 
 %-------------------------------------------------------------------------%
-function chFrequency = getChannelFrequency(specData, idxThread, idxEmission, channelObj)
-    if specData(idxThread).UserData.Emissions.isTruncated(idxEmission)
-        chFrequency = TruncatedFrequency(channelObj, specData(idxThread), idxEmission);
+function chFrequency = getChannelFrequency(specData, flowIdx, emissionIdx, channelObj)
+    if specData(flowIdx).UserData.Emissions.IsTruncated(emissionIdx)
+        chFrequency = estimateChannelFrequency(channelObj, specData(flowIdx), specData(flowIdx).UserData.Emissions.Frequency(emissionIdx), 0);
     else
-        chFrequency = specData(idxThread).UserData.Emissions.Frequency(idxEmission);
+        chFrequency = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx);
     end
 end
 
 %-------------------------------------------------------------------------%
-function chBW = getChannelBW(specData, idxThread, idxEmission, chFrequency)
+function channelBandwidth = getChannelBW(specData, flowIdx, emissionIdx, channelFrequency)
     global RFDataHub
 
-    idx  = abs(RFDataHub.Frequency - chFrequency) <= class.Constants.floatDiffTolerance;
-    chBW = mode(RFDataHub.BW(idx));
+    frequencyMatchMask = abs(RFDataHub.Frequency - channelFrequency) <= 1e-5;
+    channelBandwidth   = mode(RFDataHub.BW(frequencyMatchMask));
     
-    if isempty(chBW) || ~isnumeric(chBW) || isnan(chBW) || (chBW <= 0)
-        chBW = specData(idxThread).UserData.Emissions.BW_kHz(idxEmission);
+    if isempty(channelBandwidth) || ~isnumeric(channelBandwidth) || isnan(channelBandwidth) || (channelBandwidth <= 0)
+        channelBandwidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
     end
 end

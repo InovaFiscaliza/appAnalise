@@ -60,20 +60,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
         LeftPanel                      matlab.ui.container.GridLayout
         FlowPanel                      matlab.ui.container.Panel
         FlowPanelGrid                  matlab.ui.container.GridLayout
-        FlowEmissionsBtn2              matlab.ui.control.Image
-        FlowEmissionsBtn1              matlab.ui.control.Image
-        FlowAnalysis                   matlab.ui.control.Label
-        FlowEmissions                  matlab.ui.container.Tree
-        FlowEmissionsLabel             matlab.ui.control.Label
         FlowChannel                    matlab.ui.control.ListBox
-        FlowChannelBtn                 matlab.ui.control.Image
+        FlowChannelEdit                matlab.ui.control.Image
         FlowChannelLabel               matlab.ui.control.Label
-        FlowDetection                  matlab.ui.control.Label
-        FlowDetectionBtn               matlab.ui.control.Image
+        FlowEmissions                  matlab.ui.control.Table
+        FlowEmissionsAdd               matlab.ui.control.Image
+        FlowEmissionsLabel             matlab.ui.control.Label
+        FlowDetectionLimits            matlab.ui.control.ListBox
+        FlowDetectionLimitsEdit        matlab.ui.control.Image
         FlowDetectionLabel             matlab.ui.control.Label
-        FlowOccupancy                  matlab.ui.control.Label
-        FlowOccupancyBtn               matlab.ui.control.Image
-        FlowOccupancyLabel             matlab.ui.control.Label
         FlowMetadata                   matlab.ui.control.Label
         FlowAttributesPanelRightBtn    matlab.ui.control.Image
         FlowAttributesPanelLeftBtn     matlab.ui.control.Image
@@ -82,6 +77,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         SpectrumFlowList               matlab.ui.control.DropDown
         AxesAnnotation                 matlab.ui.control.Label
         AxesToolbar                    matlab.ui.container.GridLayout
+        axesTool_FlowInfo              matlab.ui.control.Image
+        axesTool_Separator3_2          matlab.ui.control.Image
         axesTool_DataTip               matlab.ui.control.Image
         axesTool_waterfall             matlab.ui.control.Image
         axesTool_Separator3            matlab.ui.control.Image
@@ -235,9 +232,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.SpectrumFlowList;
                         app.FlowPanelLabel;
                         app.FlowMetadata;
-                        app.FlowOccupancy;
-                        app.FlowDetection;
-                        app.FlowAnalysis;
+                        app.FlowDetectionLimitsEdit;
+                        app.FlowEmissionsAdd;
+                        app.FlowChannelEdit;
                         app.tool_LayoutLeft;
                         app.tool_Play;
                         app.tool_LoopControl;
@@ -252,27 +249,27 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,           'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,      'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', 'rgba(183, 49, 44, 0.75)'), ...
-                            struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id,        'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
-                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,             'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
-                            struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
-                            struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
-                            struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,     'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,      'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,             'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,        'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', 'rgba(183, 49, 44, 0.75)'), ...
+                            struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id,          'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,               'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
+                            struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,     'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,       'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,        'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')), ...
+                            struct('appName', appName, 'dataTag', app.FlowDetectionLimitsEdit.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os limites de detecção')), ...
+                            struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Busca novas emissões')), ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelEdit.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os canais')) ...
                         });
                     catch
                     end
 
                     try
                         ui.TextView.startup(app.jsBackDoor, app.FlowMetadata,  appName, struct('class', {{'textview--borderless'}}));
-                        ui.TextView.startup(app.jsBackDoor, app.FlowOccupancy, appName, struct('class', {{'textview--wordbreak'}}));
-                        ui.TextView.startup(app.jsBackDoor, app.FlowDetection, appName, struct('class', {{'textview--wordbreak'}}));
-                        ui.TextView.startup(app.jsBackDoor, app.FlowAnalysis,  appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
                     catch
                     end
 
@@ -305,6 +302,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LoopControl.UserData.loopMode = true;
 
             initializeAxes(app)
+
+            addStyle(app.FlowEmissions, uistyle('HorizontalAlignment', 'center'), "column", 1)
+            addStyle(app.FlowEmissions, uistyle('HorizontalAlignment', 'right'), "column", 2:3)
         end
 
         %-----------------------------------------------------------------%
@@ -486,7 +486,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % timestamps, níveis das varreduras, azimutes e notas de qualidade.
             % Caso ocorra erro na leitura, o registro é excluído e o layout é
             % reinicializado.
-            specData = app.mainApp.specData(idx);
+            specData = [];
+            if ~isempty(idx)
+                specData = app.mainApp.specData(idx);
+            end
 
             if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
                 requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
@@ -539,11 +542,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             isOccupancyFlow = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
 
             set([
-                app.FlowOccupancyBtn;
-                app.FlowDetectionBtn;
-                app.FlowChannelBtn;
-                app.FlowEmissionsBtn1;
-                app.FlowEmissionsBtn2;
+                app.FlowDetectionLimitsEdit;
+                app.FlowEmissionsAdd;
+                app.FlowChannelEdit;
                 app.axesTool_crearWrite;
                 app.axesTool_minHold;
                 app.axesTool_average;
@@ -552,6 +553,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.axesTool_occupancy;
                 app.axesTool_waterfall;
                 app.axesTool_DataTip;
+                app.axesTool_FlowInfo;
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
@@ -579,57 +581,37 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateUIPanelContent(app, specData)
             if ~isempty(specData)
-                app.FlowMetadata.Text  = util.HtmlTextGenerator.ThreadMetaData(specData);
-                app.FlowOccupancy.Text = util.HtmlTextGenerator.Algorithms(specData, 'Occupancy');
-                app.FlowDetection.Text = util.HtmlTextGenerator.Algorithms(specData, 'Detection+Classification');
-                app.FlowAnalysis.Text  = util.HtmlTextGenerator.ThreadAnalysis(specData);
+                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData);
+
+                if specData.UserData.DetectionSubBandsEnabled && ~isempty(specData.UserData.DetectionSubBands)
+                    app.FlowDetectionLimits.Items = cellstr(string(specData.UserData.DetectionSubBands.FreqStart) + " – " + string(specData.UserData.DetectionSubBands.FreqStop) + " MHz");
+                else
+                    app.FlowDetectionLimits.Items = {sprintf('%.3f – %.3f MHz (padrão)', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6)};
+                end
+
+                emissionTable = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
+                if ~isempty(emissionTable)
+                    emissionTable.('#') = string(1:height(emissionTable))';
+                    emissionTable.Frequency = arrayfun(@(x) sprintf('%.3f', x), emissionTable.Frequency, "UniformOutput", false);
+                    emissionTable.BandWidthkHz = arrayfun(@(x) sprintf('%.3f', x), emissionTable.BandWidthkHz, "UniformOutput", false);
+
+                    app.FlowEmissions.Data  = emissionTable(:, {'#', 'Frequency', 'BandWidthkHz', 'Description'});
+                else
+                    app.FlowEmissions.Data = [];
+                end
                 
                 channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
                 if isempty(channelLibIndex)
                     app.FlowChannel.Items = {};
                 else
-                    app.FlowChannel.Items = arrayfun(@(x) sprintf('%.3f - %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
+                    app.FlowChannel.Items = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
                 end
 
             else
-                app.FlowMetadata.Text  = '';
-                app.FlowOccupancy.Text = '';
-                app.FlowDetection.Text = '';
-                app.FlowAnalysis.Text  = '';
-                app.FlowChannel.Items  = {};
-            end
-
-            buildFlowEmissionsTree(app, specData, 1)
-        end
-
-        %-----------------------------------------------------------------%
-        function buildFlowEmissionsTree(app, specData, selectedEmissionIdx)
-            if ~isempty(app.FlowEmissions.Children)
-                delete(app.FlowEmissions.Children)
-            end
-
-            if ~isempty(specData) && ~isempty(specData.UserData.Emissions)
-                emissionTable = specData.UserData.Emissions;
-
-                for ii = 1:height(emissionTable)
-                    if emissionTable.isTruncated(ii)
-                        iconFileName = 'signalTruncated_32.png';
-                    else
-                        iconFileName = 'signalUntruncated_32.png';
-                    end
-
-                    if isempty(emissionTable.auxAppData(ii).DriveTest)
-                        driveTestReportFlag = '';
-                    else
-                        driveTestReportFlag = ' (DT)';
-                    end
-
-                    uitreenode(app.FlowEmissions, 'Text', sprintf('%d: %.3f MHz ⌂ %.1f kHz%s', ii, emissionTable.Frequency(ii), emissionTable.BW_kHz(ii), driveTestReportFlag), ...
-                                                  'NodeData', ii, 'Icon', iconFileName);
-                end
-
-                app.FlowEmissions.SelectedNodes = app.FlowEmissions.Children(selectedEmissionIdx);
-                onEmissionsSelectionChanged(app)
+                app.FlowMetadata.Text = '';
+                app.FlowDetectionLimits.Items = {};
+                app.FlowEmissions.Data = [];
+                app.FlowChannel.Items = {};
             end
         end
 
@@ -736,7 +718,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             if ~isempty(specData)
                 app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1));
-                app.AxesAnnotation.Text = sprintf('%s \n%.3f - %.3f MHz ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
+                app.AxesAnnotation.Text = sprintf('%s \n%.3f – %.3f MHz ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
 
             else
                 app.tool_TimestampLabel.Text = '';
@@ -1122,15 +1104,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ...and 1 other component
         function onFlowPanelViewChanged(app, event)
             
-            numPanels = 4;
+            numPanels = 3;
 
-            panelSubtitles = {'Metadados', 'Emissões', 'Canais', 'Sumário de análise'};
-            panelBtnStatus = [false true; true true; true true; true false];
+            panelSubtitles = {'Metadados', 'Emissões', 'Canais'};
+            panelBtnStatus = [false true; true true; true false];
             columnWidths = {
-                {'1x',0,0,0,0,0,0,0,0,0,0};
-                {0,10,'1x',18,10,0,0,0,0,0,0};
-                {0,0,0,0,10,'1x',18,5,18,10,0};
-                {0,0,0,0,0,0,0,0,0,0,'1x'}
+                {'1x',0,0,0,0,0,0,0};
+                {0,10,'1x',18,10,0,0,0};
+                {0,0,0,0,10,'1x',18,10}
             };
 
             currentIndex = app.FlowAttributesPanelVisibleIdx.UserData.index;
@@ -1146,17 +1127,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             app.FlowAttributesPanelLeftBtn.Enable  = panelBtnStatus(currentIndex, 1);
             app.FlowAttributesPanelRightBtn.Enable = panelBtnStatus(currentIndex, 2);
-            app.FlowAttributesPanelVisibleIdx.Text   = sprintf('%d/%d', currentIndex, numPanels);
-            app.FlowPanelGrid.ColumnWidth    = columnWidths{currentIndex};
-            app.FlowPanelLabel.Text     = replace(app.FlowPanelLabel.Text, extractBetween(app.FlowPanelLabel.Text, '<i>', '</i>'), panelSubtitles{currentIndex});
+            app.FlowAttributesPanelVisibleIdx.Text = sprintf('%d/%d', currentIndex, numPanels);
+
+            app.FlowPanelGrid.ColumnWidth = columnWidths{currentIndex};
+            app.FlowEmissions.Visible = ismember(panelSubtitles{currentIndex}, {'Metadados', 'Emissões'});
+
+            app.FlowPanelLabel.Text = replace(app.FlowPanelLabel.Text, extractBetween(app.FlowPanelLabel.Text, '<i>', '</i>'), panelSubtitles{currentIndex});
             app.FlowAttributesPanelVisibleIdx.UserData.index = currentIndex;
 
-        end
-
-        % Selection changed function: FlowEmissions
-        function onEmissionsSelectionChanged(app, event)
-            selectedNodes = app.FlowEmissions.SelectedNodes;
-            
         end
 
         % Image clicked function: axesTool_DataTip, axesTool_Pan, 
@@ -1487,10 +1465,30 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: FlowEmissionsBtn1
-        function FlowEmissionsBtn1ImageClicked(app, event)
+        % Image clicked function: FlowChannelEdit, 
+        % ...and 2 other components
+        function openPopupApp(app, event)
             
-            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context)
+            switch event.Source
+                case app.FlowDetectionLimitsEdit
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'DetectionLimits', app.Context)
+                case app.FlowEmissionsAdd
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context)
+                case app.FlowChannelEdit
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Channels', app.Context)
+            end
+
+        end
+
+        % Image clicked function: axesTool_FlowInfo
+        function axesTool_FlowInfoImageClicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+            
+            if ~isempty(specData)
+                flowAnalysis = util.HtmlTextGenerator.ThreadAnalysis(specData);
+                ui.Dialog(app.UIFigure, 'info', flowAnalysis);
+            end
 
         end
     end
@@ -1623,7 +1621,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 244, '1x', 5, 10, 232};
+            app.Document.ColumnWidth = {320, 10, 5, 271, '1x', 5, 10, 232};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1642,7 +1640,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, '1x'};
+            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, 5, 22, '1x'};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -1764,6 +1762,22 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_DataTip.Layout.Column = 14;
             app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
+            % Create axesTool_Separator3_2
+            app.axesTool_Separator3_2 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator3_2.ScaleMethod = 'none';
+            app.axesTool_Separator3_2.Enable = 'off';
+            app.axesTool_Separator3_2.Layout.Row = 1;
+            app.axesTool_Separator3_2.Layout.Column = 15;
+            app.axesTool_Separator3_2.ImageSource = 'LineV.svg';
+
+            % Create axesTool_FlowInfo
+            app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
+            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @axesTool_FlowInfoImageClicked, true);
+            app.axesTool_FlowInfo.Enable = 'off';
+            app.axesTool_FlowInfo.Layout.Row = 1;
+            app.axesTool_FlowInfo.Layout.Column = 16;
+            app.axesTool_FlowInfo.ImageSource = 'Info_32.png';
+
             % Create AxesAnnotation
             app.AxesAnnotation = uilabel(app.Document);
             app.AxesAnnotation.HorizontalAlignment = 'right';
@@ -1810,7 +1824,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowAttributesPanelVisibleIdx.FontColor = [0.502 0.502 0.502];
             app.FlowAttributesPanelVisibleIdx.Layout.Row = 2;
             app.FlowAttributesPanelVisibleIdx.Layout.Column = [2 4];
-            app.FlowAttributesPanelVisibleIdx.Text = '1/4';
+            app.FlowAttributesPanelVisibleIdx.Text = '1/3';
 
             % Create FlowAttributesPanelLeftBtn
             app.FlowAttributesPanelLeftBtn = uiimage(app.LeftPanel);
@@ -1835,8 +1849,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {0, 10, '1x', 18, 10, 0, 0, 0, 0, 0, 0};
-            app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 22, 5, '1x', 22, 5, '1x', '1x', 10};
+            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0};
+            app.FlowPanelGrid.RowHeight = {5, 22, 5, 88, 5, 22, 5, '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
             app.FlowPanelGrid.Padding = [0 0 0 0];
@@ -1847,62 +1861,64 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.VerticalAlignment = 'top';
             app.FlowMetadata.WordWrap = 'on';
             app.FlowMetadata.FontSize = 11;
-            app.FlowMetadata.Layout.Row = [1 12];
+            app.FlowMetadata.Layout.Row = [1 9];
             app.FlowMetadata.Layout.Column = 1;
             app.FlowMetadata.Interpreter = 'html';
             app.FlowMetadata.Text = '';
-
-            % Create FlowOccupancyLabel
-            app.FlowOccupancyLabel = uilabel(app.FlowPanelGrid);
-            app.FlowOccupancyLabel.VerticalAlignment = 'bottom';
-            app.FlowOccupancyLabel.FontSize = 10;
-            app.FlowOccupancyLabel.Layout.Row = 2;
-            app.FlowOccupancyLabel.Layout.Column = 3;
-            app.FlowOccupancyLabel.Text = 'ALGORITMOS';
-
-            % Create FlowOccupancyBtn
-            app.FlowOccupancyBtn = uiimage(app.FlowPanelGrid);
-            app.FlowOccupancyBtn.Enable = 'off';
-            app.FlowOccupancyBtn.Layout.Row = 2;
-            app.FlowOccupancyBtn.Layout.Column = 4;
-            app.FlowOccupancyBtn.VerticalAlignment = 'bottom';
-            app.FlowOccupancyBtn.ImageSource = 'Edit_32.png';
-
-            % Create FlowOccupancy
-            app.FlowOccupancy = uilabel(app.FlowPanelGrid);
-            app.FlowOccupancy.VerticalAlignment = 'top';
-            app.FlowOccupancy.WordWrap = 'on';
-            app.FlowOccupancy.FontSize = 11;
-            app.FlowOccupancy.Layout.Row = 4;
-            app.FlowOccupancy.Layout.Column = [3 4];
-            app.FlowOccupancy.Interpreter = 'html';
-            app.FlowOccupancy.Text = '';
 
             % Create FlowDetectionLabel
             app.FlowDetectionLabel = uilabel(app.FlowPanelGrid);
             app.FlowDetectionLabel.VerticalAlignment = 'bottom';
             app.FlowDetectionLabel.FontSize = 10;
-            app.FlowDetectionLabel.Layout.Row = 5;
+            app.FlowDetectionLabel.Layout.Row = 2;
             app.FlowDetectionLabel.Layout.Column = 3;
             app.FlowDetectionLabel.Text = 'LIMITES DE DETECÇÃO';
 
-            % Create FlowDetectionBtn
-            app.FlowDetectionBtn = uiimage(app.FlowPanelGrid);
-            app.FlowDetectionBtn.Enable = 'off';
-            app.FlowDetectionBtn.Layout.Row = 5;
-            app.FlowDetectionBtn.Layout.Column = 4;
-            app.FlowDetectionBtn.VerticalAlignment = 'bottom';
-            app.FlowDetectionBtn.ImageSource = 'Edit_32.png';
+            % Create FlowDetectionLimitsEdit
+            app.FlowDetectionLimitsEdit = uiimage(app.FlowPanelGrid);
+            app.FlowDetectionLimitsEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowDetectionLimitsEdit.Enable = 'off';
+            app.FlowDetectionLimitsEdit.Layout.Row = 2;
+            app.FlowDetectionLimitsEdit.Layout.Column = 4;
+            app.FlowDetectionLimitsEdit.VerticalAlignment = 'bottom';
+            app.FlowDetectionLimitsEdit.ImageSource = 'Edit_32.png';
 
-            % Create FlowDetection
-            app.FlowDetection = uilabel(app.FlowPanelGrid);
-            app.FlowDetection.VerticalAlignment = 'top';
-            app.FlowDetection.WordWrap = 'on';
-            app.FlowDetection.FontSize = 11;
-            app.FlowDetection.Layout.Row = 7;
-            app.FlowDetection.Layout.Column = [3 4];
-            app.FlowDetection.Interpreter = 'html';
-            app.FlowDetection.Text = '';
+            % Create FlowDetectionLimits
+            app.FlowDetectionLimits = uilistbox(app.FlowPanelGrid);
+            app.FlowDetectionLimits.Items = {};
+            app.FlowDetectionLimits.FontSize = 11;
+            app.FlowDetectionLimits.Layout.Row = 4;
+            app.FlowDetectionLimits.Layout.Column = [3 4];
+            app.FlowDetectionLimits.Value = {};
+
+            % Create FlowEmissionsLabel
+            app.FlowEmissionsLabel = uilabel(app.FlowPanelGrid);
+            app.FlowEmissionsLabel.VerticalAlignment = 'bottom';
+            app.FlowEmissionsLabel.FontSize = 10;
+            app.FlowEmissionsLabel.Layout.Row = 6;
+            app.FlowEmissionsLabel.Layout.Column = 3;
+            app.FlowEmissionsLabel.Text = 'EMISSÕES';
+
+            % Create FlowEmissionsAdd
+            app.FlowEmissionsAdd = uiimage(app.FlowPanelGrid);
+            app.FlowEmissionsAdd.ScaleMethod = 'none';
+            app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowEmissionsAdd.Enable = 'off';
+            app.FlowEmissionsAdd.Layout.Row = 6;
+            app.FlowEmissionsAdd.Layout.Column = 4;
+            app.FlowEmissionsAdd.VerticalAlignment = 'bottom';
+            app.FlowEmissionsAdd.ImageSource = 'search-sparkle.svg';
+
+            % Create FlowEmissions
+            app.FlowEmissions = uitable(app.FlowPanelGrid);
+            app.FlowEmissions.ColumnName = {'#'; 'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
+            app.FlowEmissions.ColumnWidth = {20, 70, 70, 'auto'};
+            app.FlowEmissions.RowName = {};
+            app.FlowEmissions.SelectionType = 'row';
+            app.FlowEmissions.ColumnEditable = [false true true true];
+            app.FlowEmissions.Layout.Row = 8;
+            app.FlowEmissions.Layout.Column = [3 4];
+            app.FlowEmissions.FontSize = 11;
 
             % Create FlowChannelLabel
             app.FlowChannelLabel = uilabel(app.FlowPanelGrid);
@@ -1910,67 +1926,24 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannelLabel.FontSize = 10;
             app.FlowChannelLabel.Layout.Row = 2;
             app.FlowChannelLabel.Layout.Column = 6;
-            app.FlowChannelLabel.Text = 'CANALIZAÇÃO:';
+            app.FlowChannelLabel.Text = 'CANAIS';
 
-            % Create FlowChannelBtn
-            app.FlowChannelBtn = uiimage(app.FlowPanelGrid);
-            app.FlowChannelBtn.Enable = 'off';
-            app.FlowChannelBtn.Layout.Row = 2;
-            app.FlowChannelBtn.Layout.Column = 9;
-            app.FlowChannelBtn.VerticalAlignment = 'bottom';
-            app.FlowChannelBtn.ImageSource = 'Edit_32.png';
+            % Create FlowChannelEdit
+            app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
+            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowChannelEdit.Enable = 'off';
+            app.FlowChannelEdit.Layout.Row = 2;
+            app.FlowChannelEdit.Layout.Column = 7;
+            app.FlowChannelEdit.VerticalAlignment = 'bottom';
+            app.FlowChannelEdit.ImageSource = 'Edit_32.png';
 
             % Create FlowChannel
             app.FlowChannel = uilistbox(app.FlowPanelGrid);
             app.FlowChannel.Items = {};
             app.FlowChannel.FontSize = 11;
-            app.FlowChannel.Layout.Row = [4 11];
-            app.FlowChannel.Layout.Column = [6 9];
+            app.FlowChannel.Layout.Row = [4 8];
+            app.FlowChannel.Layout.Column = [6 7];
             app.FlowChannel.Value = {};
-
-            % Create FlowEmissionsLabel
-            app.FlowEmissionsLabel = uilabel(app.FlowPanelGrid);
-            app.FlowEmissionsLabel.VerticalAlignment = 'bottom';
-            app.FlowEmissionsLabel.FontSize = 10;
-            app.FlowEmissionsLabel.Layout.Row = 8;
-            app.FlowEmissionsLabel.Layout.Column = 3;
-            app.FlowEmissionsLabel.Text = 'EMISSÕES';
-
-            % Create FlowEmissions
-            app.FlowEmissions = uitree(app.FlowPanelGrid);
-            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsSelectionChanged, true);
-            app.FlowEmissions.FontSize = 11;
-            app.FlowEmissions.Layout.Row = [10 11];
-            app.FlowEmissions.Layout.Column = [3 4];
-
-            % Create FlowAnalysis
-            app.FlowAnalysis = uilabel(app.FlowPanelGrid);
-            app.FlowAnalysis.VerticalAlignment = 'top';
-            app.FlowAnalysis.WordWrap = 'on';
-            app.FlowAnalysis.FontSize = 11;
-            app.FlowAnalysis.Layout.Row = [1 11];
-            app.FlowAnalysis.Layout.Column = 11;
-            app.FlowAnalysis.Interpreter = 'html';
-            app.FlowAnalysis.Text = '';
-
-            % Create FlowEmissionsBtn1
-            app.FlowEmissionsBtn1 = uiimage(app.FlowPanelGrid);
-            app.FlowEmissionsBtn1.ScaleMethod = 'none';
-            app.FlowEmissionsBtn1.ImageClickedFcn = createCallbackFcn(app, @FlowEmissionsBtn1ImageClicked, true);
-            app.FlowEmissionsBtn1.Enable = 'off';
-            app.FlowEmissionsBtn1.Layout.Row = 8;
-            app.FlowEmissionsBtn1.Layout.Column = 4;
-            app.FlowEmissionsBtn1.VerticalAlignment = 'bottom';
-            app.FlowEmissionsBtn1.ImageSource = 'search-sparkle.svg';
-
-            % Create FlowEmissionsBtn2
-            app.FlowEmissionsBtn2 = uiimage(app.FlowPanelGrid);
-            app.FlowEmissionsBtn2.Enable = 'off';
-            app.FlowEmissionsBtn2.Visible = 'off';
-            app.FlowEmissionsBtn2.Layout.Row = 5;
-            app.FlowEmissionsBtn2.Layout.Column = 9;
-            app.FlowEmissionsBtn2.VerticalAlignment = 'bottom';
-            app.FlowEmissionsBtn2.ImageSource = 'Edit_32.png';
 
             % Create RightPanel
             app.RightPanel = uigridlayout(app.Document);
