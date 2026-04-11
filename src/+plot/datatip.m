@@ -84,15 +84,15 @@ classdef (Abstract) datatip
 
             switch dtType
                 case 'Frequency+Level'
-                    hUnit = varargin{1};
+                    hUnit = getUnit(varargin{1});
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = '';
                     dtParent.DataTipTemplate.DataTipRows(1).Format = '%.3f MHz';                    
                     dtParent.DataTipTemplate.DataTipRows(2).Label  = '';
-                    dtParent.DataTipTemplate.DataTipRows(2).Format = ['%.1f ' hUnit];
+                    dtParent.DataTipTemplate.DataTipRows(2).Format = ['%.1f' hUnit];
 
                 case 'Frequency+Occupancy'
-                    hUnit = varargin{1};
+                    hUnit = getUnit(varargin{1});
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = '';
                     dtParent.DataTipTemplate.DataTipRows(1).Format = '%.3f MHz';                    
@@ -100,7 +100,7 @@ classdef (Abstract) datatip
                     dtParent.DataTipTemplate.DataTipRows(2).Format = ['%.1f' hUnit];
 
                 case 'Frequency+Timestamp+Level'
-                    hUnit = varargin{1};
+                    hUnit = getUnit(varargin{1});
 
                     switch class(dtParent)
                         case 'matlab.graphics.chart.primitive.Surface'
@@ -110,14 +110,14 @@ classdef (Abstract) datatip
                                             
                             dtParent.DataTipTemplate.DataTipRows(1).Format = '%.3f MHz';
                             dtParent.DataTipTemplate.DataTipRows(2).Format =  'dd/MM/yyyy HH:mm:ss';
-                            dtParent.DataTipTemplate.DataTipRows(3).Format =  ['%.1f ' hUnit];
+                            dtParent.DataTipTemplate.DataTipRows(3).Format =  ['%.1f' hUnit];
 
                         case 'matlab.graphics.primitive.Image'
                             dtParent.DataTipTemplate.DataTipRows(1).Label  = '';
                             dtParent.DataTipTemplate.DataTipRows(2).Label  = '';
 
                             dtParent.DataTipTemplate.DataTipRows(1).Format = '%.3f';
-                            dtParent.DataTipTemplate.DataTipRows(2).Format = ['%.1f ' hUnit];
+                            dtParent.DataTipTemplate.DataTipRows(2).Format = ['%.1f' hUnit];
                             dtParent.DataTipTemplate.DataTipRows(3)        = [];
                     end
 
@@ -140,12 +140,12 @@ classdef (Abstract) datatip
 
                 case 'SweepID+ChannelPower+Coordinates'
                     hTable = table((1:numel(dtParent.LatitudeData))', 'VariableNames', {'ID'});
-                    hUnit = varargin{1};
+                    hUnit = getUnit(varargin{1});
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = 'Lat:';
                     dtParent.DataTipTemplate.DataTipRows(2).Label  = 'Lon:';
                     dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', hTable.ID, '#%d');
-                    dtParent.DataTipTemplate.DataTipRows(4)        = dataTipTextRow('', 'CData', ['%.1f ' hUnit]);
+                    dtParent.DataTipTemplate.DataTipRows(4)        = dataTipTextRow('', 'CData', ['%.1f' hUnit]);
 
                     if numel(dtParent.DataTipTemplate.DataTipRows) > 4
                         dtParent.DataTipTemplate.DataTipRows(5:end) = [];
@@ -154,11 +154,11 @@ classdef (Abstract) datatip
                     dtParent.DataTipTemplate.DataTipRows           = dtParent.DataTipTemplate.DataTipRows([3:4,1:2]);
 
                 case 'SweepID+ChannelPower'
-                    hUnit = varargin{1};
+                    hUnit = getUnit(varargin{1});
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = '';
                     dtParent.DataTipTemplate.DataTipRows(1).Format = '#%d';
-                    dtParent.DataTipTemplate.DataTipRows(2)        = dataTipTextRow('', 'YData', ['%.1f ' hUnit]);
+                    dtParent.DataTipTemplate.DataTipRows(2)        = dataTipTextRow('', 'YData', ['%.1f' hUnit]);
 
 
                 case 'winRFDataHub.Geographic'
@@ -189,6 +189,14 @@ classdef (Abstract) datatip
 
             if exist('dt', 'var')
                 delete(dt)
+            end
+
+            function unit = getUnit(unit)
+                if strcmp(unit, '%')
+                    unit = '%%';
+                elseif startsWith(unit, 'dB')
+                    unit = [' ' unit];
+                end
             end
         end
     end

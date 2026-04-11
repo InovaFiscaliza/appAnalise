@@ -60,15 +60,18 @@ classdef winPlayback_exported < matlab.apps.AppBase
         LeftPanel                      matlab.ui.container.GridLayout
         FlowPanel                      matlab.ui.container.Panel
         FlowPanelGrid                  matlab.ui.container.GridLayout
-        FlowChannel                    matlab.ui.control.ListBox
-        FlowChannelEdit                matlab.ui.control.Image
-        FlowChannelLabel               matlab.ui.control.Label
+        FlowOccupancy                  matlab.ui.control.ListBox
+        FlowOccupancyEdit              matlab.ui.control.Image
+        FlowOccupancyLabel             matlab.ui.control.Label
         FlowEmissions                  matlab.ui.control.Table
         FlowEmissionsAdd               matlab.ui.control.Image
         FlowEmissionsLabel             matlab.ui.control.Label
         FlowDetectionLimits            matlab.ui.control.ListBox
         FlowDetectionLimitsEdit        matlab.ui.control.Image
         FlowDetectionLabel             matlab.ui.control.Label
+        FlowChannel                    matlab.ui.control.ListBox
+        FlowChannelEdit                matlab.ui.control.Image
+        FlowChannelLabel               matlab.ui.control.Label
         FlowMetadata                   matlab.ui.control.Label
         FlowAttributesPanelRightBtn    matlab.ui.control.Image
         FlowAttributesPanelLeftBtn     matlab.ui.control.Image
@@ -235,6 +238,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowDetectionLimitsEdit;
                         app.FlowEmissionsAdd;
                         app.FlowChannelEdit;
+                        app.FlowOccupancyEdit;
                         app.tool_LayoutLeft;
                         app.tool_Play;
                         app.tool_LoopControl;
@@ -263,7 +267,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,        'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')), ...
                             struct('appName', appName, 'dataTag', app.FlowDetectionLimitsEdit.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os limites de detecção')), ...
                             struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Busca novas emissões')), ...
-                            struct('appName', appName, 'dataTag', app.FlowChannelEdit.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os canais')) ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelEdit.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os canais')), ...
+                            struct('appName', appName, 'dataTag', app.FlowOccupancyEdit.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Afere ocupação por outro método')) ...
                         });
                     catch
                     end
@@ -335,7 +340,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             plot.axes.Colorbar(app.UIAxes3, app.mainApp.General.plot.waterfall.Colorbar)
 
             ylabel(app.UIAxes1, 'Nível (dB)')
-            set(app.UIAxes1.Title, Visible='on', FontSize=10, FontWeight='normal', HorizontalAlignment='right', Color=[.8,.8,.8])
             ylabel(app.UIAxes2, 'Ocupação (%)')
             xlabel(app.UIAxes3, 'Frequência (MHz)')
             ylabel(app.UIAxes3, 'Instante')
@@ -453,13 +457,18 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     for jj = receiverIdxs
                         freqStart = specData(jj).MetaData.FreqStart / 1e+6;
                         freqStop  = specData(jj).MetaData.FreqStop  / 1e+6;
+
+                        occupancyStatus = '';
+                        if ismember(specData(jj).MetaData.DataType, class.Constants.occDataTypes)
+                            occupancyStatus = ' (Ocupação)';
+                        end
                         
                         reportStatus = '';
                         if ~isempty(specData(jj).UserData) && specData(jj).UserData.ReportInclude
                             reportStatus = '&emsp;&#x1F7E2;';
                         end
             
-                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s', receiverName, freqStart, freqStop, reportStatus);
+                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s%s', receiverName, freqStart, freqStop, occupancyStatus, reportStatus);
                         itemsData(end+1) = jj;
                     end
                 end
@@ -496,6 +505,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                 try
                     populateSpectrum(specData, app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    
+                    relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                    if ~isempty(relatedHases)
+                        relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    end
+
                 catch ME
                     ui.Dialog(app.UIFigure, 'error', ME.message);
 
@@ -542,17 +558,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             isOccupancyFlow = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
 
             set([
-                app.FlowDetectionLimitsEdit;
-                app.FlowEmissionsAdd;
-                app.FlowChannelEdit;
                 app.axesTool_crearWrite;
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
-                app.axesTool_persistence;
-                app.axesTool_occupancy;
-                app.axesTool_waterfall;
-                app.axesTool_DataTip;
                 app.axesTool_FlowInfo;
                 app.tool_Play;
                 app.tool_LoopControl;
@@ -560,9 +569,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.tool_GenerateReport
             ], 'Enable', nonEmptySpecData)
 
+            set([
+                app.FlowDetectionLimitsEdit;
+                app.FlowEmissionsAdd;
+                app.FlowChannelEdit
+            ], 'Enable', ~isOccupancyFlow)
+
+            set([
+                app.FlowOccupancyEdit;
+                app.axesTool_occupancy
+            ], 'Enable', hasMoreThanTwoSamples && ~isOccupancyFlow)
+
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
-            app.axesTool_occupancy.Enable   = hasMoreThanTwoSamples && ~isOccupancyFlow;            
             app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
 
             % DataCursorMode
@@ -576,12 +595,29 @@ classdef winPlayback_exported < matlab.apps.AppBase
             if ~isWaterfallRenderedAsImage && app.axesTool_DataTip.UserData.status
                 onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_DataTip))
             end
+
+            if isOccupancyFlow
+                app.LimitsYLimLabel.Text = '%  ';
+            else
+                app.LimitsYLimLabel.Text = 'dB  ';
+            end
         end
 
         %-----------------------------------------------------------------%
         function updateUIPanelContent(app, specData)
             if ~isempty(specData)
                 app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData);
+            else
+                app.FlowMetadata.Text = '';
+            end
+
+            if ~isempty(specData) && ~ismember(specData.MetaData.DataType, class.Constants.occDataTypes)
+                channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
+                if isempty(channelLibIndex)
+                    app.FlowChannel.Items = {};
+                else
+                    app.FlowChannel.Items = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
+                end
 
                 if specData.UserData.DetectionSubBandsEnabled && ~isempty(specData.UserData.DetectionSubBands)
                     app.FlowDetectionLimits.Items = cellstr(string(specData.UserData.DetectionSubBands.FreqStart) + " – " + string(specData.UserData.DetectionSubBands.FreqStop) + " MHz");
@@ -599,19 +635,56 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 else
                     app.FlowEmissions.Data = [];
                 end
+
+                occupancyList = {};
+                cacheIndex = specData.UserData.OccupancyComputationMode.CacheIndex;
+                selectedHash = specData.UserData.OccupancyComputationMode.SelectedHash;                
+                selectedStatus = false;
                 
-                channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
-                if isempty(channelLibIndex)
-                    app.FlowChannel.Items = {};
-                else
-                    app.FlowChannel.Items = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
+                for ii = 1:numel(specData.UserData.OccupancyComputationMode.RelatedHashes)
+                    relatedHash = specData.UserData.OccupancyComputationMode.RelatedHashes{ii};
+                    
+                    threshold = -1;
+                    [~, occupancyFlowIdx] = ismember(relatedHash, {app.mainApp.specData.Hash});
+                    if occupancyFlowIdx
+                        threshold = app.mainApp.specData(occupancyFlowIdx).MetaData.Threshold;
+                    end
+
+                    levelUnit = app.mainApp.specData(occupancyFlowIdx).MetaData.LevelUnit;
+                    occupancyRegister = sprintf('Limiar: %d %s (coleta) (%s...)', threshold, levelUnit, relatedHash(1:18));
+
+                    if strcmp(relatedHash, selectedHash)
+                        selectedStatus = true;
+                        occupancyRegister = [occupancyRegister ' 🟢'];
+                    end
+
+                    occupancyList{end+1} = occupancyRegister;
                 end
 
+                for jj = 1:numel(specData.UserData.OccupancyFiniteIntegrationCache)
+                    [minTHR, maxTHR] = bounds(specData.UserData.OccupancyFiniteIntegrationCache(jj).Threshold);
+                    if minTHR == maxTHR
+                        threshold = num2str(minTHR);
+                    else
+                        threshold = sprintf('%d a %d', minTHR, maxTHR);
+                    end
+
+                    levelUnit = specData.MetaData.LevelUnit;
+                    occupancyRegister = sprintf('Limiar: %s %s', threshold, levelUnit);
+
+                    if ~selectedStatus && isequal(jj, cacheIndex)
+                        occupancyRegister = [occupancyRegister ' 🟢'];
+                    end
+
+                    occupancyList{end+1} = occupancyRegister;
+                end
+                app.FlowOccupancy.Items = occupancyList;
+
             else
-                app.FlowMetadata.Text = '';
+                app.FlowChannel.Items = {};
                 app.FlowDetectionLimits.Items = {};
                 app.FlowEmissions.Data = [];
-                app.FlowChannel.Items = {};
+                app.FlowOccupancy.Items = {};
             end
         end
 
@@ -922,9 +995,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     [~, selectedHashIdx] = ismember(selectedHash, {app.mainApp.specData.Hash});
         
                     if selectedHashIdx
-                        occParameters  = struct('Method', 'Linear fixo (COLETA)', 'Threshold', app.mainApp.specData(selectedHashIdx).MetaData.Threshold);
+                        occParameters  = struct( ...
+                            'Method', 'Linear fixo (coleta)', ...
+                            'Threshold', app.mainApp.specData(selectedHashIdx).MetaData.Threshold, ...
+                            'IntegrationTime', app.mainApp.specData(selectedHashIdx).RelatedFiles.RevisitTime / 60 ... % sec >> min
+                        );
                         occThreshold   = app.mainApp.specData(selectedHashIdx).MetaData.Threshold;
-                        occAverageData = app.mainApp.specData(selectedHashIdx).Data{3}(2, :);
+                        occAverageData = app.mainApp.specData(selectedHashIdx).Data{3}(:, 2);
+
                     else
                         cacheIdx = specData.UserData.OccupancyComputationMode.CacheIndex;
                         if ~isempty(cacheIdx)
@@ -986,7 +1064,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
         function runPlaybackLoop(app, idx, nSweeps)
-            app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';                
+            app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
+
+            if ~app.plotHandles.clearWrite.Visible
+                app.plotHandles.clearWrite.Visible = true;
+            end
 
             while app.sweepTimeIdx <= nSweeps
                 switch app.plotUpdateEvent
@@ -1104,14 +1186,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ...and 1 other component
         function onFlowPanelViewChanged(app, event)
             
-            numPanels = 3;
+            numPanels = 4;
 
-            panelSubtitles = {'Metadados', 'Emissões', 'Canais'};
-            panelBtnStatus = [false true; true true; true false];
+            panelSubtitles = {'Metadados', 'Canais', 'Emissões', 'Ocupação'};
+            panelBtnStatus = [false true; true true; true true; true false];
             columnWidths = {
-                {'1x',0,0,0,0,0,0,0};
-                {0,10,'1x',18,10,0,0,0};
-                {0,0,0,0,10,'1x',18,10}
+                {'1x',0,0,0,0,0,0,0,0,0,0};
+                {0,10,'1x',18,10,0,0,0,0,0,0};
+                {0,0,0,0,10,'1x',18,10,0,0,0};
+                {0,0,0,0,0,0,0,10,'1x',18,10}
             };
 
             currentIndex = app.FlowAttributesPanelVisibleIdx.UserData.index;
@@ -1130,7 +1213,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowAttributesPanelVisibleIdx.Text = sprintf('%d/%d', currentIndex, numPanels);
 
             app.FlowPanelGrid.ColumnWidth = columnWidths{currentIndex};
-            app.FlowEmissions.Visible = ismember(panelSubtitles{currentIndex}, {'Metadados', 'Emissões'});
+            app.FlowEmissions.Visible = strcmp(panelSubtitles{currentIndex}, 'Emissões');
 
             app.FlowPanelLabel.Text = replace(app.FlowPanelLabel.Text, extractBetween(app.FlowPanelLabel.Text, '<i>', '</i>'), panelSubtitles{currentIndex});
             app.FlowAttributesPanelVisibleIdx.UserData.index = currentIndex;
@@ -1164,6 +1247,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case app.axesTool_crearWrite
                     if ~isempty(app.plotHandles.clearWrite) && isvalid(app.plotHandles.clearWrite)
                         app.plotHandles.clearWrite.Visible = ~app.plotHandles.clearWrite.Visible;
+                    end
+
+                    if app.plotUpdateEvent
+                        app.plotUpdateEvent = 0;
                     end
 
                 case {app.axesTool_minHold, app.axesTool_average, app.axesTool_maxHold}
@@ -1418,8 +1505,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             if ~app.plotUpdateEvent
-                % idx = app.play_PlotPanel.UserData.NodeData;
-                app.plotHandles.('clearWrite').YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
+                if ~app.plotHandles.clearWrite.Visible
+                    app.plotHandles.clearWrite.Visible = true;
+                end
+                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
     
                 % for ii = 1:numel(app.hEmissionMarkers)
                 %     app.hEmissionMarkers(ii).Position(2) = app.hClearWrite.YData(app.hClearWrite.MarkerIndices(ii));
@@ -1491,6 +1580,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Double-clicked callback: FlowOccupancy
+        function FlowOccupancyDoubleClicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+            item = event.InteractionInformation.Item
+            
+        end
     end
 
     % Component initialization
@@ -1539,10 +1636,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
             app.Toolbar.ColumnWidth = {22, 22, 22, 248, '1x', 24, 24, 24, 24, 24, 24, '1x', 167, 22, 22, 22, 22, 22};
-            app.Toolbar.RowHeight = {4, 17, 3};
+            app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
-            app.Toolbar.Padding = [5 5 5 5];
+            app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 6;
             app.Toolbar.Layout.Column = [1 5];
 
@@ -1824,7 +1921,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowAttributesPanelVisibleIdx.FontColor = [0.502 0.502 0.502];
             app.FlowAttributesPanelVisibleIdx.Layout.Row = 2;
             app.FlowAttributesPanelVisibleIdx.Layout.Column = [2 4];
-            app.FlowAttributesPanelVisibleIdx.Text = '1/3';
+            app.FlowAttributesPanelVisibleIdx.Text = '1/4';
 
             % Create FlowAttributesPanelLeftBtn
             app.FlowAttributesPanelLeftBtn = uiimage(app.LeftPanel);
@@ -1849,8 +1946,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0};
-            app.FlowPanelGrid.RowHeight = {5, 22, 5, 88, 5, 22, 5, '1x', 10};
+            app.FlowPanelGrid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
+            app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 5, 22, 5, '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
             app.FlowPanelGrid.Padding = [0 0 0 0];
@@ -1866,11 +1963,36 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.Interpreter = 'html';
             app.FlowMetadata.Text = '';
 
+            % Create FlowChannelLabel
+            app.FlowChannelLabel = uilabel(app.FlowPanelGrid);
+            app.FlowChannelLabel.VerticalAlignment = 'bottom';
+            app.FlowChannelLabel.FontSize = 10;
+            app.FlowChannelLabel.Layout.Row = 2;
+            app.FlowChannelLabel.Layout.Column = 3;
+            app.FlowChannelLabel.Text = 'CANAIS';
+
+            % Create FlowChannelEdit
+            app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
+            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowChannelEdit.Enable = 'off';
+            app.FlowChannelEdit.Layout.Row = 2;
+            app.FlowChannelEdit.Layout.Column = 4;
+            app.FlowChannelEdit.VerticalAlignment = 'bottom';
+            app.FlowChannelEdit.ImageSource = 'Edit_32.png';
+
+            % Create FlowChannel
+            app.FlowChannel = uilistbox(app.FlowPanelGrid);
+            app.FlowChannel.Items = {};
+            app.FlowChannel.FontSize = 11;
+            app.FlowChannel.Layout.Row = 4;
+            app.FlowChannel.Layout.Column = [3 4];
+            app.FlowChannel.Value = {};
+
             % Create FlowDetectionLabel
             app.FlowDetectionLabel = uilabel(app.FlowPanelGrid);
             app.FlowDetectionLabel.VerticalAlignment = 'bottom';
             app.FlowDetectionLabel.FontSize = 10;
-            app.FlowDetectionLabel.Layout.Row = 2;
+            app.FlowDetectionLabel.Layout.Row = 6;
             app.FlowDetectionLabel.Layout.Column = 3;
             app.FlowDetectionLabel.Text = 'LIMITES DE DETECÇÃO';
 
@@ -1878,7 +2000,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetectionLimitsEdit = uiimage(app.FlowPanelGrid);
             app.FlowDetectionLimitsEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
             app.FlowDetectionLimitsEdit.Enable = 'off';
-            app.FlowDetectionLimitsEdit.Layout.Row = 2;
+            app.FlowDetectionLimitsEdit.Layout.Row = 6;
             app.FlowDetectionLimitsEdit.Layout.Column = 4;
             app.FlowDetectionLimitsEdit.VerticalAlignment = 'bottom';
             app.FlowDetectionLimitsEdit.ImageSource = 'Edit_32.png';
@@ -1887,7 +2009,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetectionLimits = uilistbox(app.FlowPanelGrid);
             app.FlowDetectionLimits.Items = {};
             app.FlowDetectionLimits.FontSize = 11;
-            app.FlowDetectionLimits.Layout.Row = 4;
+            app.FlowDetectionLimits.Layout.Row = 8;
             app.FlowDetectionLimits.Layout.Column = [3 4];
             app.FlowDetectionLimits.Value = {};
 
@@ -1895,8 +2017,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsLabel = uilabel(app.FlowPanelGrid);
             app.FlowEmissionsLabel.VerticalAlignment = 'bottom';
             app.FlowEmissionsLabel.FontSize = 10;
-            app.FlowEmissionsLabel.Layout.Row = 6;
-            app.FlowEmissionsLabel.Layout.Column = 3;
+            app.FlowEmissionsLabel.Layout.Row = 2;
+            app.FlowEmissionsLabel.Layout.Column = 6;
             app.FlowEmissionsLabel.Text = 'EMISSÕES';
 
             % Create FlowEmissionsAdd
@@ -1904,8 +2026,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsAdd.ScaleMethod = 'none';
             app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
             app.FlowEmissionsAdd.Enable = 'off';
-            app.FlowEmissionsAdd.Layout.Row = 6;
-            app.FlowEmissionsAdd.Layout.Column = 4;
+            app.FlowEmissionsAdd.Layout.Row = 2;
+            app.FlowEmissionsAdd.Layout.Column = 7;
             app.FlowEmissionsAdd.VerticalAlignment = 'bottom';
             app.FlowEmissionsAdd.ImageSource = 'search-sparkle.svg';
 
@@ -1916,34 +2038,35 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = [false true true true];
-            app.FlowEmissions.Layout.Row = 8;
-            app.FlowEmissions.Layout.Column = [3 4];
+            app.FlowEmissions.Visible = 'off';
+            app.FlowEmissions.Layout.Row = [4 8];
+            app.FlowEmissions.Layout.Column = [6 7];
             app.FlowEmissions.FontSize = 11;
 
-            % Create FlowChannelLabel
-            app.FlowChannelLabel = uilabel(app.FlowPanelGrid);
-            app.FlowChannelLabel.VerticalAlignment = 'bottom';
-            app.FlowChannelLabel.FontSize = 10;
-            app.FlowChannelLabel.Layout.Row = 2;
-            app.FlowChannelLabel.Layout.Column = 6;
-            app.FlowChannelLabel.Text = 'CANAIS';
+            % Create FlowOccupancyLabel
+            app.FlowOccupancyLabel = uilabel(app.FlowPanelGrid);
+            app.FlowOccupancyLabel.VerticalAlignment = 'bottom';
+            app.FlowOccupancyLabel.FontSize = 10;
+            app.FlowOccupancyLabel.Layout.Row = 2;
+            app.FlowOccupancyLabel.Layout.Column = 9;
+            app.FlowOccupancyLabel.Text = 'OCUPAÇÃO';
 
-            % Create FlowChannelEdit
-            app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
-            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
-            app.FlowChannelEdit.Enable = 'off';
-            app.FlowChannelEdit.Layout.Row = 2;
-            app.FlowChannelEdit.Layout.Column = 7;
-            app.FlowChannelEdit.VerticalAlignment = 'bottom';
-            app.FlowChannelEdit.ImageSource = 'Edit_32.png';
+            % Create FlowOccupancyEdit
+            app.FlowOccupancyEdit = uiimage(app.FlowPanelGrid);
+            app.FlowOccupancyEdit.Enable = 'off';
+            app.FlowOccupancyEdit.Layout.Row = 2;
+            app.FlowOccupancyEdit.Layout.Column = 10;
+            app.FlowOccupancyEdit.VerticalAlignment = 'bottom';
+            app.FlowOccupancyEdit.ImageSource = 'Edit_32.png';
 
-            % Create FlowChannel
-            app.FlowChannel = uilistbox(app.FlowPanelGrid);
-            app.FlowChannel.Items = {};
-            app.FlowChannel.FontSize = 11;
-            app.FlowChannel.Layout.Row = [4 8];
-            app.FlowChannel.Layout.Column = [6 7];
-            app.FlowChannel.Value = {};
+            % Create FlowOccupancy
+            app.FlowOccupancy = uilistbox(app.FlowPanelGrid);
+            app.FlowOccupancy.Items = {};
+            app.FlowOccupancy.FontSize = 11;
+            app.FlowOccupancy.Layout.Row = [4 8];
+            app.FlowOccupancy.Layout.Column = [9 10];
+            app.FlowOccupancy.DoubleClickedFcn = createCallbackFcn(app, @FlowOccupancyDoubleClicked, true);
+            app.FlowOccupancy.Value = {};
 
             % Create RightPanel
             app.RightPanel = uigridlayout(app.Document);

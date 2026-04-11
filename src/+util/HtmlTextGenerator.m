@@ -182,7 +182,12 @@ classdef (Abstract) HtmlTextGenerator
             );
     
             dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui);
-            dataStruct(3) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('NumFiles', height(specData.RelatedFiles), 'NumSweeps', sum(specData.RelatedFiles.NumSweeps)));
+
+            if ~isempty(specData.Hash)
+                dataStruct(end+1) = struct('group', 'HASH', 'value', specData.Hash);
+            end
+
+            dataStruct(end+1) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('NumFiles', height(specData.RelatedFiles), 'NumSweeps', sum(specData.RelatedFiles.NumSweeps)));
     
             for ii = 1:height(specData.RelatedFiles)
                 beginTime = datestr(specData.RelatedFiles.BeginTime(ii), 'dd/mm/yyyy HH:MM:SS');

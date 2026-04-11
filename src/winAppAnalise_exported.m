@@ -434,7 +434,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenHeight = 360;                
                 case 'Channels'          % auxApp.winPlayback
                     screenWidth  = 412;
-                    screenHeight = 484;
+                    screenHeight = 516;
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
@@ -1608,10 +1608,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create Toolbar
             app.Toolbar = uigridlayout(app.Tab1Grid);
             app.Toolbar.ColumnWidth = {22, '1x'};
-            app.Toolbar.RowHeight = {3, 17, 2};
+            app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
-            app.Toolbar.Padding = [10 6 10 6];
+            app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 5;
             app.Toolbar.Layout.Column = [1 7];
 

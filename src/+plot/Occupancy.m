@@ -13,7 +13,7 @@ function Occupancy(operationType, axes1Handle, axes2Handle, varargin)
             xArray = bandObj.XArray;
             levelUnit = bandObj.LevelUnit;
             switch occParameters.Method
-                case 'Linear fixo (COLETA)'
+                case 'Linear fixo (coleta)'
                     thresholdPlotHandle    = plot(axes1Handle, [xArray(1), xArray(end)], [occThreshold, occThreshold], Color='red', LineStyle='-', LineWidth=1, Marker='o', MarkerSize=4, MarkerIndices=1:2, MarkerFaceColor='red', MarkerEdgeColor='black', Tag='occupancyThreshold');
 
                 case 'Linear fixo'
@@ -38,8 +38,10 @@ function Occupancy(operationType, axes1Handle, axes2Handle, varargin)
 
             if isinf(occParameters.IntegrationTime)
                 integrationTime = 'integração cumulativa';
+            elseif occParameters.IntegrationTime >= 1
+                integrationTime = sprintf('integração: %d minutos', round(occParameters.IntegrationTime));
             else
-                integrationTime = sprintf('integração: %d minutos', occParameters.IntegrationTime);
+                integrationTime = sprintf('integração: %d segundos', round(occParameters.IntegrationTime * 60));
             end
 
             [minTHR, maxTHR] = bounds(occThreshold);
@@ -49,7 +51,7 @@ function Occupancy(operationType, axes1Handle, axes2Handle, varargin)
                 threshold = sprintf('%d a %d', minTHR, maxTHR);
             end
 
-            ysecondarylabel(axes2Handle, sprintf('Método: "%s", %s, threshold: %s %s', occParameters.Method, integrationTime, threshold, levelUnit))
+            ysecondarylabel(axes2Handle, sprintf('Método: "%s", %s, limiar: %s %s', occParameters.Method, integrationTime, threshold, levelUnit))
 
             % DataTip
             customizeDataTipStyle(thresholdPlotHandle, levelUnit)

@@ -80,7 +80,7 @@ classdef ChannelLib < handle
             [~, idx1] = max(commumSpan);
             
             if ~isempty(idx1)
-                idx2  = find(strcmp(obj.FindPeaks.Name, allRelatedChannels(idx1).FindPeaksName), 1);
+                idx2  = find(strcmp(obj.FindPeaks.Name, allRelatedChannels(idx1).EmissionClass), 1);
                 findPeaks = obj.FindPeaks(idx2,:);
             end
         end
@@ -122,41 +122,41 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function checkIfNewChannelIsValid(obj, Name, Band, FirstChannel, LastChannel, StepWidth, ChannelBW, FreqList, Reference, FindPeaksName)
+        function checkIfNewChannelIsValid(obj, name, band, firstChannel, lastChannel, stepWidth, channelBW, freqList, reference, emissionClass)
             arguments
                 obj
-                Name           (1,:) char   {mustBeTextScalar}
-                Band           (2,1) double {mustBeFinite, mustBePositive}
-                FirstChannel   (1,1) double {mustBeFinite, mustBePositive}
-                LastChannel    (1,1) double {mustBeFinite, mustBePositive}
-                StepWidth      (1,1) double {mustBeFinite, mustBeGreaterThanOrEqual(StepWidth, -1)}
-                ChannelBW      (1,1) double {mustBeFinite, mustBeGreaterThanOrEqual(ChannelBW, -1)}
-                FreqList             double
-                Reference            char   {mustBeTextScalar}
-                FindPeaksName  (1,:) char   {mustBeTextScalar}
+                name           (1,:) char   {mustBeTextScalar}
+                band           (2,1) double {mustBeFinite, mustBePositive}
+                firstChannel   (1,1) double {mustBeFinite, mustBePositive}
+                lastChannel    (1,1) double {mustBeFinite, mustBePositive}
+                stepWidth      (1,1) double {mustBeFinite, mustBeGreaterThanOrEqual(stepWidth, -1)}
+                channelBW      (1,1) double {mustBeFinite, mustBeGreaterThanOrEqual(channelBW, -1)}
+                freqList             double
+                reference            char   {mustBeTextScalar}
+                emissionClass  (1,:) char   {mustBeTextScalar}
             end
 
-            if isempty(strtrim(Name))
+            if isempty(strtrim(name))
                 error('ChannelLib:checkIfNewChannelIsValid', 'O nome de um registro de canalização não pode ser vazio.')
             end
             
-            if ~issorted(Band, 'strictascend')
+            if ~issorted(band, 'strictascend')
                 error('ChannelLib:checkIfNewChannelIsValid', 'Campo "Band" deve ser um vetor numérico 1x2 em que o segundo elemento é maior do que o primeiro.')
             end
 
-            if StepWidth <= 0
-                if (FirstChannel ~= LastChannel) && isempty(FreqList)
+            if stepWidth <= 0
+                if (firstChannel ~= lastChannel) && isempty(freqList)
                     error('ChannelLib:checkIfNewChannelIsValid', 'Quando não é informado o espaçamento entre os canais, o campo "FreqList" deve ser um vetor numérico 1xn com a lista de frequências centrais dos canais.')
                 end
             else
-                if ~isempty(FreqList)
+                if ~isempty(freqList)
                     error('ChannelLib:checkIfNewChannelIsValid', 'Em sendo preenchido o espaçamento entre os canais, não deve ser preenchido o campo "FreqList".')
                 end
             end
 
             refFindPeaksName = unique(obj.FindPeaks.Name);
-            if ~ismember(FindPeaksName, refFindPeaksName)
-                error('ChannelLib:checkIfNewChannelIsValid', 'Campo "FindPeaksName" deve ser membro da lista %s.', textFormatGUI.cellstr2ListWithQuotes(refFindPeaksName))
+            if ~ismember(emissionClass, refFindPeaksName)
+                error('ChannelLib:checkIfNewChannelIsValid', 'Campo "EmissionClass" deve ser membro da lista %s.', textFormatGUI.cellstr2ListWithQuotes(refFindPeaksName))
             end
         end
 

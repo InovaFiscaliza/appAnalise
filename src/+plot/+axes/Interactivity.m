@@ -84,11 +84,6 @@ classdef (Abstract) Interactivity
 
             if ~isempty(interactionList)
                 for ii = 1:numel(hMultiAxes)
-                    hMultiAxes(ii).InteractionOptions.LimitsDimensions  = 'xy';
-                    hMultiAxes(ii).InteractionOptions.RotateSupported   = 'off';
-                    hMultiAxes(ii).InteractionOptions.BrushSupported    = 'off';
-                    hMultiAxes(ii).InteractionOptions.ZoomLimitsBounded = 'on';
-
                     hMultiAxes(ii).Interactions = interactionList;
                     enableDefaultInteractivity(hMultiAxes(ii))
                 end
@@ -100,15 +95,15 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % TOOLBAR: INTERAÇÕES HABILITÁVEIS EM TOOLBAR (POP-UP)
         %-----------------------------------------------------------------%
-        function ToolbarCreation(hMultiAxes, interactionToAdd, interaction2Remove)
+        function ToolbarCreation(hMultiAxes, interaction2Add, interaction2Remove)
             arguments
                 hMultiAxes
-                interactionToAdd         = {'pan', 'restoreview'}
+                interaction2Add         = {'pan', 'restoreview'}
                 interaction2Remove cell = {}
             end
 
             for ii = 1:numel(hMultiAxes)
-                hToolbar = axtoolbar(hMultiAxes(ii), interactionToAdd);
+                hToolbar = axtoolbar(hMultiAxes(ii), interaction2Add);
 
                 if isa(hMultiAxes, 'matlab.graphics.axis.GeographicAxes')
                     addToolbarMapButton(hToolbar, "basemap")

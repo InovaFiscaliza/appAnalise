@@ -104,6 +104,7 @@ classdef SpecData < model.SpecDataBase
                     objIdxs = find(strcmp({obj.Hash}, flowHash));
                     for ll = objIdxs
                         if all(ismember(referenceTable.RelatedFiles(kk), obj(ll).RelatedFiles.File))
+                            obj(ll).RelatedFiles = [obj(ll).RelatedFiles; metaData(fileIdx).Data(flowIdx).RelatedFiles];
                             neededNewFlow = false;
                             break
 
@@ -118,6 +119,8 @@ classdef SpecData < model.SpecDataBase
                                 break
                             end
                         end
+
+                        obj(ll).RelatedFiles = unique(obj(ll).RelatedFiles, 'rows');
                     end
 
                     if neededNewFlow
@@ -128,23 +131,12 @@ classdef SpecData < model.SpecDataBase
                         idx = ll;
                     end
 
-                    currentFile = struct( ...
+                    obj(idx).InputFiles(end+1) = struct( ...
                         'File', referenceTable.File{kk}, ...
                         'Indexes', [fileIdx, flowIdx], ...
                         'Hash', flowHash, ...
                         'IsUserMerged', false ...
                     );
-
-                    currentFileIdx = [];
-                    if ~isempty(obj(idx).InputFiles)
-                        currentFileIdx = find(arrayfun(@(x) isequal(x.File, currentFile.File) && isequal(x.Hash, currentFile.Hash), obj(idx).InputFiles), 1);
-                    end
-
-                    if isempty(currentFileIdx)
-                        currentFileIdx = numel(obj(idx).InputFiles) + 1;
-                    end
-
-                    obj(idx).InputFiles(currentFileIdx) = currentFile;
                 end
             end
 
@@ -223,10 +215,8 @@ classdef SpecData < model.SpecDataBase
                 % - "OccupancyComputationMode",
                 % - "OccupancyFiniteIntegrationCache"
                 % - "OccupancyCumulativeIntegration"
-                % - "ReportAlgorithms.Detection"
                 if isempty(obj(ii).UserData.PlotDisplayConfig)
                     obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
-                    obj(ii).UserData.ReportAlgorithms.Detection = model.UserData.getFieldTemplate('DefaultAlgorithm: Detection', generalSettings.context.PLAYBACK.detection.manualMode);
                     obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
                     
                     if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
@@ -669,7 +659,7 @@ classdef SpecData < model.SpecDataBase
                                     'Detection', methodList{ii}, ...
                                     'Classification', jsonencode(obj.UserData.ReportAlgorithms.Classification), ...
                                     'Occupancy', jsonencode(obj.UserData.ReportAlgorithms.Occupancy), ...
-                                    'BandWidth', '' ...
+                                    'BandWidth', jsonencode(obj.UserData.ReportAlgorithms.BandWidth) ...
                                 );
                                 
                                 obj.UserData.Emissions.ChannelAssigned(idx) = defaultChannelEmission;
@@ -837,15 +827,13 @@ classdef SpecData < model.SpecDataBase
                     continue
                 end
 
-                occParameters = RF.Occupancy.getDefaultParameters();
-                occThreshold  = RF.Occupancy.getThreshold(occParameters.Method, occParameters, obj(ii), 'bin');
-                occData       = RF.Occupancy.run(obj(ii).Data{1}, obj(ii).Data{2}, occParameters.Method, occThreshold, occParameters.IntegrationTime);
+                occupancyParameters = RF.Occupancy.getDefaultParameters();
+                occupancyThreshold = RF.Occupancy.getThreshold(occupancyParameters.Method, occupancyParameters, obj(ii), 'bin');
+                occupancyData = RF.Occupancy.run(obj(ii).Data{1}, obj(ii).Data{2}, occupancyParameters.Method, occupancyThreshold, occupancyParameters.IntegrationTime);
 
                 obj(ii).UserData.OccupancyComputationMode.CacheIndex = 1;
-                obj(ii).UserData.OccupancyFiniteIntegrationCache     = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Data', {occData});
-
-                occParameters.IntegrationTime = inf;
-                obj(ii).UserData.OccupancyCumulativeIntegration      = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Matrix', obj(ii).Data{2} > occThreshold);
+                obj(ii).UserData.OccupancyFiniteIntegrationCache = struct('Method', occupancyParameters.Method, 'Parameters', occupancyParameters, 'Threshold', occupancyThreshold, 'Data', {occupancyData});
+                obj(ii).UserData.OccupancyCumulativeIntegration = obj(ii).Data{2} > occupancyThreshold;
             end
         end
 
@@ -941,27 +929,34 @@ classdef SpecData < model.SpecDataBase
             dataTypes = arrayfun(@(x) x.MetaData.DataType, obj);
             occupancyFlowIdxs = find(ismember(dataTypes, class.Constants.occDataTypes));
             
-            for ii = 1:numel(obj)                         
-                relatedHashes = {};
-                selectedHash  = '';
-                if ~isempty(obj(ii).UserData)
-                    selectedHash = obj(ii).UserData.OccupancyComputationMode.SelectedHash;
+            for ii = 1:numel(obj)
+                if ismember(obj(ii).MetaData.DataType, class.Constants.occDataTypes)
+                    continue
                 end
 
+                relatedHashes = {};
+                selectedHash = obj(ii).UserData.OccupancyComputationMode.SelectedHash;
+
                 for jj = occupancyFlowIdxs
-                    hasSameMetaData = strcmp(obj(ii).Receiver, obj(jj).Receiver) && obj(ii).MetaData.FreqStart == obj(jj).MetaData.FreqStart && obj(ii).MetaData.FreqStop == obj(jj).MetaData.FreqStop && obj(ii).MetaData.DataPoints == obj(jj).MetaData.DataPoints;
+                    hasSameMetaData = ...
+                        strcmp(obj(ii).Receiver, obj(jj).Receiver) && ...
+                        obj(ii).MetaData.FreqStart == obj(jj).MetaData.FreqStart && ...
+                        obj(ii).MetaData.FreqStop == obj(jj).MetaData.FreqStop && ...
+                        obj(ii).MetaData.DataPoints == obj(jj).MetaData.DataPoints;
 
                     if hasSameMetaData
                         relatedHashes{end+1} = obj(jj).Hash;
                     end
                 end
 
-                if ~isempty(relatedHashes) && ~ismember(selectedHash, relatedHashes)
+                if isempty(relatedHashes)
+                    selectedHash = '';
+                elseif ~ismember(selectedHash, relatedHashes)
                     selectedHash = relatedHashes{1};
                 end
 
                 obj(ii).UserData.OccupancyComputationMode.RelatedHashes = relatedHashes;
-                obj(ii).UserData.OccupancyComputationMode.SelectedHash  = selectedHash;
+                obj(ii).UserData.OccupancyComputationMode.SelectedHash = selectedHash;
             end
         end
 
