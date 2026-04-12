@@ -21,6 +21,7 @@ classdef MetaData < handle
                 obj(idx).File = fileFullPath;
                 obj(idx).Type = fileType;
                 obj(idx).Data = read(obj(idx).Data, fileFullPath, 'MetaData');
+                addHashColumnToRelatedFilesTable(obj(idx).Data)
                 obj(idx).Samples = computeSweepNumber(obj(idx).Data);
 
                 if isempty(obj(idx).Samples)

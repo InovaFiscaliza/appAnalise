@@ -52,87 +52,48 @@ classdef SpecData < model.SpecDataBase
     methods
         %-----------------------------------------------------------------%
         function obj = syncCollection(obj, metaData, generalSettings)
-            % Identifica fluxos espectrais presentes nos diversos arquivos.
+            % Identifica fluxos espectrais presentes nos arquivos.
             referenceTable = buildSpectrumReferenceTable(metaData, generalSettings);
             [uniqueHashs, ~, uniqueHashIdxs] = unique(referenceTable.Hash, 'stable');
 
-            % Exclui fluxos de specData, caso não mais existentes arquivos
-            % que os suportam. Exceção aos fluxos mesclados, que são criados
-            % e apagados APENAS manualmente.
-            for ii = numel(obj):-1:1
-                if any([obj(ii).InputFiles.IsUserMerged])
-                    continue
-                end
-
-                [~, hashIdx] = ismember(obj(ii).Hash, uniqueHashs);
-
-                if hashIdx
-                    flowRefRelatedFiles = referenceTable.RelatedFiles(uniqueHashIdxs == hashIdx);
-                    if ~isscalar(flowRefRelatedFiles)
-                        flowRefRelatedFiles = vertcat(flowRefRelatedFiles{:});
-                    end
-
-                    relatedFilesMatch = ~ismember(obj(ii).RelatedFiles.File, flowRefRelatedFiles);
-                    if any(relatedFilesMatch)
-                        obj(ii).Data = {};
-                        obj(ii).RelatedFiles(relatedFilesMatch, :) = [];
-                    end
-                end
-
-                if ~hashIdx || isempty(obj(ii).RelatedFiles)
-                    delete(obj(ii))
-                    obj(ii) = [];
-                else
-                    obj(ii).InputFiles(:) = [];
-                end
-            end
+            obj = deleteObsoleteFlows(obj, referenceTable, uniqueHashs, uniqueHashIdxs);
 
             % Atualiza specData, editando fluxos atuais e includindo novos, 
-            % caso aplicável.
-            for jj = 1:numel(uniqueHashs)
-                flowHash = uniqueHashs{jj};
-                flowHashIdxs = find(uniqueHashIdxs == jj)';
+            % caso aplicável. A mesclagem segue três critérios: mesmo hash,
+            % proximidade geográfica e timestamps não sobrepostos.
+            for ii = 1:numel(uniqueHashs)
+                flowHash = uniqueHashs{ii};
+                flowHashIdxs = find(uniqueHashIdxs == ii)';
 
-                for kk = flowHashIdxs
-                    neededNewFlow = true;
+                for jj = flowHashIdxs
+                    fileIdx = referenceTable.Idx{jj}{1}(1);
+                    flowIdx = referenceTable.Idx{jj}{1}(2);
+                    newFlowRelatedFiles = metaData(fileIdx).Data(flowIdx).RelatedFiles;
                     
-                    fileIdx = referenceTable.Idx{kk}{1}(1);
-                    flowIdx = referenceTable.Idx{kk}{1}(2);
-                    flowLat = referenceTable.Latitude(kk);
-                    flowLng = referenceTable.Longitude(kk);
+                    % Tenta encontrar um fluxo existente para mesclar
+                    candidateObjIdx = findMergeableFlow(obj, flowHash, referenceTable, jj, newFlowRelatedFiles, generalSettings);
                     
-                    objIdxs = find(strcmp({obj.Hash}, flowHash));
-                    for ll = objIdxs
-                        if all(ismember(referenceTable.RelatedFiles(kk), obj(ll).RelatedFiles.File))
-                            obj(ll).RelatedFiles = [obj(ll).RelatedFiles; metaData(fileIdx).Data(flowIdx).RelatedFiles];
-                            neededNewFlow = false;
-                            break
+                    if ~isempty(candidateObjIdx)
+                        % Mescla com fluxo existente
+                        idx = candidateObjIdx;
 
-                        else
-                            distanceMeters = deg2km(distance(obj(ll).GPS.Latitude, obj(ll).GPS.Longitude, flowLat, flowLng)) * 1000;
-                            if distanceMeters <= generalSettings.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters
-                                neededNewFlow = false;
-    
-                                obj(ll).Data = {};
-                                obj(ll).RelatedFiles = [obj(ll).RelatedFiles; metaData(fileIdx).Data(flowIdx).RelatedFiles];
-                                obj(ll).GPS = rmfield(gpsLib.summary(cell2mat(obj(ll).RelatedFiles.GPS)), 'Matrix');
-                                break
-                            end
-                        end
+                        obj(idx).RelatedFiles = [obj(idx).RelatedFiles; newFlowRelatedFiles];
+                        [~, relatedFilesIdxs] = unique(obj(idx).RelatedFiles.Hash);
+                        obj(idx).RelatedFiles = sortrows(obj(idx).RelatedFiles(relatedFilesIdxs, :), 'BeginTime');
 
-                        obj(ll).RelatedFiles = unique(obj(ll).RelatedFiles, 'rows');
-                    end
+                        obj(idx).Data = {};
+                        obj(idx).GPS = rmfield(gpsLib.summary(cell2mat(obj(idx).RelatedFiles.GPS)), 'Matrix');
 
-                    if neededNewFlow
+                    else
+                        % Cria novo fluxo
                         idx = numel(obj) + 1;
+
                         obj(idx) = copy(metaData(fileIdx).Data(flowIdx), {'FileMap'});
                         obj(idx).Hash = flowHash;
-                    else
-                        idx = ll;
                     end
 
                     obj(idx).InputFiles(end+1) = struct( ...
-                        'File', referenceTable.File{kk}, ...
+                        'File', referenceTable.File{jj}, ...
                         'Indexes', [fileIdx, flowIdx], ...
                         'Hash', flowHash, ...
                         'IsUserMerged', false ...
@@ -227,6 +188,27 @@ classdef SpecData < model.SpecDataBase
 
             basicStats(obj)
             computeOccupancyPerBin(obj)
+        end
+
+        %-----------------------------------------------------------------%
+        function addHashColumnToRelatedFilesTable(obj)
+            % Criada coluna "Hash", facilitando atualização de instância de 
+            % model.SpecData.
+            for ii = 1:numel(obj)
+                comparableData = cellstr( ...
+                    string(obj(ii).RelatedFiles.File) + " - " + ...
+                    string(obj(ii).RelatedFiles.Task) + " - " + ...
+                    string(obj(ii).RelatedFiles.Id) + " - " + ...
+                    string(obj(ii).RelatedFiles.Description) + " - " + ...
+                    string(obj(ii).RelatedFiles.BeginTime) + " - " + ...
+                    string(obj(ii).RelatedFiles.EndTime) + " - " + ...
+                    string(obj(ii).RelatedFiles.NumSweeps) + " - " + ...
+                    string(obj(ii).RelatedFiles.RevisitTime) + " - " + ...
+                    string(jsonencode(obj(ii).GPS)) ...
+                );
+                
+                obj(ii).RelatedFiles.Hash = cellfun(@(x) Hash.sha1(x), comparableData, 'UniformOutput', false);
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -918,6 +900,89 @@ classdef SpecData < model.SpecDataBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
+        function obj = deleteObsoleteFlows(obj, referenceTable, uniqueHashs, uniqueHashIdxs)
+            % Exclui fluxos de specData cujos arquivos de suporte não existem mais.
+            % Exceção aos fluxos mesclados manualmente pelo usuário (IsUserMerged),
+            % que são criados e apagados APENAS pela GUI.
+            %
+            % Para cada fluxo não mesclado:
+            %   - Se o Hash não existe mais em uniqueHashs, apaga o fluxo
+            %   - Se o Hash existe mas alguns arquivos foram removidos, limpa esses
+            %     arquivos e invalida o cache de dados (Data)
+            %   - Se o Hash existe e ningum arquivo foi removido, apenas limpa
+            %
+            % InputFiles será reconstruído na segunda etapa de syncCollection.
+
+            for ii = numel(obj):-1:1
+                if any([obj(ii).InputFiles.IsUserMerged])
+                    continue
+                end
+
+                [~, hashIdx] = ismember(obj(ii).Hash, uniqueHashs);
+
+                if hashIdx
+                    % Reúne todos os arquivos ainda válidos para este Hash
+                    flowRefRelatedFiles = referenceTable.RelatedFiles(uniqueHashIdxs == hashIdx);
+                    if ~isscalar(flowRefRelatedFiles)
+                        flowRefRelatedFiles = vertcat(flowRefRelatedFiles{:});
+                    end
+
+                    % Remove arquivos relacionados que não existem mais
+                    obsoleteFilesMatch = ~ismember(obj(ii).RelatedFiles.File, flowRefRelatedFiles);
+                    if any(obsoleteFilesMatch)
+                        obj(ii).Data = {};
+                        obj(ii).RelatedFiles(obsoleteFilesMatch, :) = [];
+                    end
+                end
+
+                if ~hashIdx || isempty(obj(ii).RelatedFiles)
+                    delete(obj(ii))
+                    obj(ii) = [];
+                else
+                    obj(ii).InputFiles(:) = [];
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function candidateIdx = findMergeableFlow(obj, flowHash, referenceTable, refTableIdx, newFlowRelatedFiles, generalSettings)
+            % Procura um fluxo existente que pode ser mesclado com o novo fluxo.
+            % Retorna o índice do fluxo candidato, ou [] se nenhum for encontrado.
+            % 
+            % Critério de mesclagem:
+            % - Mesmo Hash + proximidade geográfica (< maxCoLocationDistanceMeters) 
+            %   + timestamps não sobrepostos
+            
+            candidateIdx = [];
+            
+            objIdxs = find(strcmp({obj.Hash}, flowHash));
+            if isempty(objIdxs)
+                return
+            end
+            
+            flowLat = referenceTable.Latitude(refTableIdx);
+            flowLng = referenceTable.Longitude(refTableIdx);
+            
+            for ii = objIdxs
+                if all(ismember(newFlowRelatedFiles.Hash, obj(ii).RelatedFiles.Hash))
+                    candidateIdx = ii;
+                    return
+                end
+
+                % Critério: Proximidade geográfica + timestamps não sobrepostos
+                distanceMeters = deg2km(distance(obj(ii).GPS.Latitude, obj(ii).GPS.Longitude, flowLat, flowLng)) * 1000;
+                
+                if distanceMeters <= generalSettings.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters
+                    % Verifica sobreposição de timestamps
+                    if ~model.SpecData.hasTimestampOverlap(obj(ii).RelatedFiles, newFlowRelatedFiles)
+                        candidateIdx = ii;
+                        return
+                    end
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function checkIfScalar(obj)
             if ~isscalar(obj)
                 error('model:SpecData:ScalarObjectRequired', 'This method requires a scalar object.');
@@ -1013,6 +1078,37 @@ classdef SpecData < model.SpecDataBase
                     '• Tipo "co-channel": os fluxos devem possuir os campos "FreqStart", "FreqStop", "LevelUnit", "DataPoints" e "DataType" idênticos;\n\n' ...
                     '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "NumSweeps" e "DataType" idênticos.'
                 ])
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function overlap = hasTimestampOverlap(existingRelatedFiles, newRelatedFiles)
+            arguments
+                existingRelatedFiles table
+                newRelatedFiles table
+            end
+
+            % Verifica se há sobreposição de timestamps entre dois conjuntos
+            % de arquivos relacionados.
+            % Retorna true se houver sobreposição, false caso contrário.
+            
+            overlap = false;
+            
+            for ii = 1:height(newRelatedFiles)
+                newBegin = newRelatedFiles.BeginTime(ii);
+                newEnd   = newRelatedFiles.EndTime(ii);
+                
+                for jj = 1:height(existingRelatedFiles)
+                    existBegin = existingRelatedFiles.BeginTime(jj);
+                    existEnd   = existingRelatedFiles.EndTime(jj);
+                    
+                    % Verifica se há sobreposição entre os períodos
+                    % Sobreposição ocorre quando: newBegin <= existEnd AND newEnd >= existBegin
+                    if newBegin <= existEnd && newEnd >= existBegin
+                        overlap = true;
+                        return
+                    end
+                end
             end
         end
     end
