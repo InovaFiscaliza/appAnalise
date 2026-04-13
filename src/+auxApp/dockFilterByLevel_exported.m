@@ -4,7 +4,6 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure              matlab.ui.Figure
         GridLayout            matlab.ui.container.GridLayout
-        Document              matlab.ui.container.GridLayout
         btnOK                 matlab.ui.control.Button
         FilterPanel           matlab.ui.container.Panel
         FilterGrid            matlab.ui.container.GridLayout
@@ -18,7 +17,6 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
         ConstantLabel         matlab.ui.control.Label
         Constant              matlab.ui.control.CheckBox
         FilterPanelLabel      matlab.ui.control.Label
-        btnClose              matlab.ui.control.Image
     end
 
     
@@ -50,7 +48,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: btnClose, btnOK
+        % Button pushed function: btnOK
         function OKButtonPushed(app, event)
             
             pushedButtonTag = event.Source.Tag;
@@ -170,35 +168,15 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 30};
-            app.GridLayout.RowHeight = {30, '1x'};
-            app.GridLayout.ColumnSpacing = 0;
-            app.GridLayout.RowSpacing = 0;
-            app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.902 0.902 0.902];
-
-            % Create btnClose
-            app.btnClose = uiimage(app.GridLayout);
-            app.btnClose.ScaleMethod = 'none';
-            app.btnClose.ImageClickedFcn = createCallbackFcn(app, @OKButtonPushed, true);
-            app.btnClose.Tag = 'Close';
-            app.btnClose.Layout.Row = 1;
-            app.btnClose.Layout.Column = 2;
-            app.btnClose.ImageSource = 'Delete_12SVG.svg';
-
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {'1x', 90};
-            app.Document.RowHeight = {22, '1x', 22};
-            app.Document.ColumnSpacing = 5;
-            app.Document.RowSpacing = 5;
-            app.Document.Padding = [10 10 10 5];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = [1 2];
-            app.Document.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.ColumnWidth = {405, 90};
+            app.GridLayout.RowHeight = {22, 206, 22};
+            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.Padding = [20 20 20 20];
+            app.GridLayout.BackgroundColor = [0.9804 0.9804 0.9804];
 
             % Create FilterPanelLabel
-            app.FilterPanelLabel = uilabel(app.Document);
+            app.FilterPanelLabel = uilabel(app.GridLayout);
             app.FilterPanelLabel.VerticalAlignment = 'bottom';
             app.FilterPanelLabel.FontSize = 10;
             app.FilterPanelLabel.Layout.Row = 1;
@@ -206,7 +184,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             app.FilterPanelLabel.Text = 'FILTRAGEM POR NÍVEIS';
 
             % Create FilterPanel
-            app.FilterPanel = uipanel(app.Document);
+            app.FilterPanel = uipanel(app.GridLayout);
             app.FilterPanel.AutoResizeChildren = 'off';
             app.FilterPanel.Layout.Row = 2;
             app.FilterPanel.Layout.Column = [1 2];
@@ -290,7 +268,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             app.ThresholdBottomValue.Value = -100;
 
             % Create btnOK
-            app.btnOK = uibutton(app.Document, 'push');
+            app.btnOK = uibutton(app.GridLayout, 'push');
             app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @OKButtonPushed, true);
             app.btnOK.Tag = 'OK';
             app.btnOK.IconAlignment = 'right';

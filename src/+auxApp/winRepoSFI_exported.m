@@ -2,28 +2,37 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure              matlab.ui.Figure
-        GridLayout            matlab.ui.container.GridLayout
-        DockModule            matlab.ui.container.GridLayout
-        dockModule_Close      matlab.ui.control.Image
-        dockModule_Undock     matlab.ui.control.Image
-        Document              matlab.ui.container.GridLayout
-        AxesToolbar           matlab.ui.container.GridLayout
-        axesTool_RegionZoom   matlab.ui.control.Image
-        axesTool_RestoreView  matlab.ui.control.Image
-        plotPanel             matlab.ui.container.Panel
-        Toolbar               matlab.ui.container.GridLayout
-        tool_tableNRowsIcon   matlab.ui.control.Image
-        tool_ExportButton     matlab.ui.control.Image
-        tool_Separator2       matlab.ui.control.Image
-        tool_PDFButton        matlab.ui.control.Image
-        tool_RFLinkButton     matlab.ui.control.Image
-        tool_TableVisibility  matlab.ui.control.Image
-        tool_Separator1       matlab.ui.control.Image
-        tool_PanelVisibility  matlab.ui.control.Image
-        ContextMenu           matlab.ui.container.ContextMenu
-        contextmenu_del       matlab.ui.container.Menu
-        contextmenu_delAll    matlab.ui.container.Menu
+        UIFigure                   matlab.ui.Figure
+        GridLayout                 matlab.ui.container.GridLayout
+        TabGroup                   matlab.ui.container.TabGroup
+        Tab                        matlab.ui.container.Tab
+        GridLayout2                matlab.ui.container.GridLayout
+        ColorPicker                matlab.ui.control.ColorPicker
+        ColorPickerLabel           matlab.ui.control.Label
+        Label                      matlab.ui.control.Label
+        bdededededebDropDown       matlab.ui.control.DropDown
+        bdededededebDropDownLabel  matlab.ui.control.Label
+        Tab2                       matlab.ui.container.Tab
+        DockModule                 matlab.ui.container.GridLayout
+        dockModule_Close           matlab.ui.control.Image
+        dockModule_Undock          matlab.ui.control.Image
+        Document                   matlab.ui.container.GridLayout
+        AxesToolbar                matlab.ui.container.GridLayout
+        axesTool_RegionZoom        matlab.ui.control.Image
+        axesTool_RestoreView       matlab.ui.control.Image
+        plotPanel                  matlab.ui.container.Panel
+        Toolbar                    matlab.ui.container.GridLayout
+        tool_tableNRowsIcon        matlab.ui.control.Image
+        tool_ExportButton          matlab.ui.control.Image
+        tool_Separator2            matlab.ui.control.Image
+        tool_PDFButton             matlab.ui.control.Image
+        tool_RFLinkButton          matlab.ui.control.Image
+        tool_TableVisibility       matlab.ui.control.Image
+        tool_Separator1            matlab.ui.control.Image
+        tool_PanelVisibility       matlab.ui.control.Image
+        ContextMenu                matlab.ui.container.ContextMenu
+        contextmenu_del            matlab.ui.container.Menu
+        contextmenu_delAll         matlab.ui.container.Menu
     end
 
     
@@ -366,6 +375,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Value changed function: bdededededebDropDown
+        function bdededededebDropDownValueChanged(app, event)
+            
+            value = app.bdededededebDropDown.Value;
+            event
+
+
+            
+        end
     end
 
     % Component initialization
@@ -404,7 +423,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {10, '1x', 48, 8, 2};
+            app.GridLayout.ColumnWidth = {10, 320, 10, '1x', 48, 8, 2};
             app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
@@ -419,7 +438,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.Toolbar.RowSpacing = 0;
             app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 6;
-            app.Toolbar.Layout.Column = [1 5];
+            app.Toolbar.Layout.Column = [1 7];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
             % Create tool_PanelVisibility
@@ -496,7 +515,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.Document.RowSpacing = 0;
             app.Document.Padding = [0 0 0 0];
             app.Document.Layout.Row = [3 4];
-            app.Document.Layout.Column = [2 3];
+            app.Document.Layout.Column = [4 5];
             app.Document.BackgroundColor = [1 1 1];
 
             % Create plotPanel
@@ -539,7 +558,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.DockModule.Padding = [5 2 5 2];
             app.DockModule.Visible = 'off';
             app.DockModule.Layout.Row = [2 3];
-            app.DockModule.Layout.Column = [3 4];
+            app.DockModule.Layout.Column = [5 6];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Undock
@@ -558,6 +577,56 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.dockModule_Close.Layout.Row = 1;
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
+
+            % Create TabGroup
+            app.TabGroup = uitabgroup(app.GridLayout);
+            app.TabGroup.Layout.Row = [3 4];
+            app.TabGroup.Layout.Column = 2;
+
+            % Create Tab
+            app.Tab = uitab(app.TabGroup);
+            app.Tab.Title = 'Tab';
+
+            % Create GridLayout2
+            app.GridLayout2 = uigridlayout(app.Tab);
+            app.GridLayout2.RowHeight = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
+
+            % Create bdededededebDropDownLabel
+            app.bdededededebDropDownLabel = uilabel(app.GridLayout2);
+            app.bdededededebDropDownLabel.VerticalAlignment = 'bottom';
+            app.bdededededebDropDownLabel.Layout.Row = 1;
+            app.bdededededebDropDownLabel.Layout.Column = 1;
+            app.bdededededebDropDownLabel.Interpreter = 'html';
+            app.bdededededebDropDownLabel.Text = '<b>dedededede</b>';
+
+            % Create bdededededebDropDown
+            app.bdededededebDropDown = uidropdown(app.GridLayout2);
+            app.bdededededebDropDown.ValueChangedFcn = createCallbackFcn(app, @bdededededebDropDownValueChanged, true);
+            app.bdededededebDropDown.FontColor = [1 1 1];
+            app.bdededededebDropDown.BackgroundColor = [0.851 0.3255 0.098];
+            app.bdededededebDropDown.Layout.Row = 2;
+            app.bdededededebDropDown.Layout.Column = [1 2];
+
+            % Create Label
+            app.Label = uilabel(app.GridLayout2);
+            app.Label.Layout.Row = 3;
+            app.Label.Layout.Column = 1;
+
+            % Create ColorPickerLabel
+            app.ColorPickerLabel = uilabel(app.GridLayout2);
+            app.ColorPickerLabel.HorizontalAlignment = 'right';
+            app.ColorPickerLabel.Layout.Row = 4;
+            app.ColorPickerLabel.Layout.Column = 1;
+            app.ColorPickerLabel.Text = 'Color Picker';
+
+            % Create ColorPicker
+            app.ColorPicker = uicolorpicker(app.GridLayout2);
+            app.ColorPicker.Layout.Row = 4;
+            app.ColorPicker.Layout.Column = 2;
+
+            % Create Tab2
+            app.Tab2 = uitab(app.TabGroup);
+            app.Tab2.Title = 'Tab2';
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);

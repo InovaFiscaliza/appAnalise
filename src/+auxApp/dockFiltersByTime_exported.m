@@ -4,7 +4,6 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure              matlab.ui.Figure
         GridLayout            matlab.ui.container.GridLayout
-        Document              matlab.ui.container.GridLayout
         filterAddImage        matlab.ui.control.Image
         threadInfo            matlab.ui.control.Label
         btnOK                 matlab.ui.control.Button
@@ -31,7 +30,6 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
         filterType_DateTime   matlab.ui.control.RadioButton
         filterTypePanelLabel  matlab.ui.control.Label
         HTMLLabel             matlab.ui.control.Label
-        btnClose              matlab.ui.control.Image
         ContextMenu           matlab.ui.container.ContextMenu
         btnDelete             matlab.ui.container.Menu
     end
@@ -315,7 +313,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: btnClose, btnOK
+        % Button pushed function: btnOK
         function ButtonPushed(app, event)
             
             pushedButtonTag = event.Source.Tag;
@@ -447,35 +445,15 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 30};
-            app.GridLayout.RowHeight = {30, '1x'};
-            app.GridLayout.ColumnSpacing = 0;
-            app.GridLayout.RowSpacing = 0;
-            app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.902 0.902 0.902];
-
-            % Create btnClose
-            app.btnClose = uiimage(app.GridLayout);
-            app.btnClose.ScaleMethod = 'none';
-            app.btnClose.ImageClickedFcn = createCallbackFcn(app, @ButtonPushed, true);
-            app.btnClose.Tag = 'Close';
-            app.btnClose.Layout.Row = 1;
-            app.btnClose.Layout.Column = 2;
-            app.btnClose.ImageSource = 'Delete_12SVG.svg';
-
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {'1x', '1x', 65, 20};
-            app.Document.RowHeight = {17, 33, 72, 8, '1x', 22};
-            app.Document.ColumnSpacing = 5;
-            app.Document.RowSpacing = 5;
-            app.Document.Padding = [10 10 10 5];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = [1 2];
-            app.Document.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.ColumnWidth = {250, 250, 65, 20};
+            app.GridLayout.RowHeight = {17, 33, 72, 18, '1x', 22};
+            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.Padding = [20 20 20 20];
+            app.GridLayout.BackgroundColor = [0.9804 0.9804 0.9804];
 
             % Create HTMLLabel
-            app.HTMLLabel = uilabel(app.Document);
+            app.HTMLLabel = uilabel(app.GridLayout);
             app.HTMLLabel.VerticalAlignment = 'bottom';
             app.HTMLLabel.FontSize = 10;
             app.HTMLLabel.Layout.Row = 1;
@@ -483,15 +461,15 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.HTMLLabel.Text = 'FLUXOS A PROCESSAR';
 
             % Create filterTypePanelLabel
-            app.filterTypePanelLabel = uilabel(app.Document);
+            app.filterTypePanelLabel = uilabel(app.GridLayout);
             app.filterTypePanelLabel.VerticalAlignment = 'bottom';
             app.filterTypePanelLabel.FontSize = 10;
             app.filterTypePanelLabel.Layout.Row = 1;
-            app.filterTypePanelLabel.Layout.Column = 2;
+            app.filterTypePanelLabel.Layout.Column = [2 4];
             app.filterTypePanelLabel.Text = 'FILTRAGEM NO TEMPO';
 
             % Create filterTypePanel
-            app.filterTypePanel = uibuttongroup(app.Document);
+            app.filterTypePanel = uibuttongroup(app.GridLayout);
             app.filterTypePanel.SelectionChangedFcn = createCallbackFcn(app, @filterTypePanelSelectionChanged, true);
             app.filterTypePanel.BackgroundColor = [0.9804 0.9804 0.9804];
             app.filterTypePanel.Layout.Row = 2;
@@ -527,7 +505,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.filterType_DayOfWeek.Position = [248 6 93 22];
 
             % Create filterValuePanel
-            app.filterValuePanel = uipanel(app.Document);
+            app.filterValuePanel = uipanel(app.GridLayout);
             app.filterValuePanel.Layout.Row = 3;
             app.filterValuePanel.Layout.Column = [2 4];
 
@@ -660,7 +638,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.DayOfWeek_7.Layout.Column = 4;
 
             % Create filterTree
-            app.filterTree = uitree(app.Document);
+            app.filterTree = uitree(app.GridLayout);
             app.filterTree.Multiselect = 'on';
             app.filterTree.FontSize = 10.5;
             app.filterTree.BackgroundColor = [0.9804 0.9804 0.9804];
@@ -668,7 +646,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.filterTree.Layout.Column = [2 4];
 
             % Create btnOK
-            app.btnOK = uibutton(app.Document, 'push');
+            app.btnOK = uibutton(app.GridLayout, 'push');
             app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
             app.btnOK.Tag = 'OK';
             app.btnOK.IconAlignment = 'right';
@@ -679,7 +657,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.btnOK.Text = 'OK';
 
             % Create threadInfo
-            app.threadInfo = uilabel(app.Document);
+            app.threadInfo = uilabel(app.GridLayout);
             app.threadInfo.VerticalAlignment = 'top';
             app.threadInfo.WordWrap = 'on';
             app.threadInfo.FontSize = 11;
@@ -689,13 +667,14 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
             app.threadInfo.Text = '';
 
             % Create filterAddImage
-            app.filterAddImage = uiimage(app.Document);
+            app.filterAddImage = uiimage(app.GridLayout);
+            app.filterAddImage.ScaleMethod = 'none';
             app.filterAddImage.ImageClickedFcn = createCallbackFcn(app, @filterAddImageClicked, true);
             app.filterAddImage.Layout.Row = 4;
             app.filterAddImage.Layout.Column = 4;
             app.filterAddImage.HorizontalAlignment = 'right';
             app.filterAddImage.VerticalAlignment = 'bottom';
-            app.filterAddImage.ImageSource = 'addSymbol_32.png';
+            app.filterAddImage.ImageSource = 'Add_16.png';
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);

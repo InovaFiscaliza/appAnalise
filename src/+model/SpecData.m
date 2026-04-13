@@ -434,20 +434,36 @@ classdef SpecData < model.SpecDataBase
             end
 
             switch propertyName
-                case 'GPS' % Origem: auxApp.dockEditLocation
-                    idxThreads = varargin{1};
-
+                case 'GPS' % Origem: auxApp.dockLocation
                     switch updateType
                         case 'Refresh'
-                            for ii = idxThreads
+                            for ii = 1:numel(obj)
                                 gpsData = cell2mat(obj(ii).RelatedFiles.GPS);
                                 obj(ii).GPS = rmfield(gpsLib.summary(gpsData), 'Matrix');
                             end         
 
                         case 'ManualEdition'
-                            newGPS = varargin{2};        
-                            for ii = idxThreads
-                                obj(ii).GPS = newGPS;
+                            manualGPS = varargin{1};        
+                            for ii = 1:numel(obj)
+                                obj(ii).GPS = manualGPS;
+                            end
+
+                        otherwise 
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
+                    end
+
+                case 'UserData:AntennaHeight' % Origem: auxApp.dockLocation
+                    switch updateType
+                        case 'Refresh'
+                            for ii = 1:numel(obj)
+                                autoAntennaHeight = calculateAntennaHeight(obj, ii, -1, 'refreshValue');
+                                obj(ii).UserData.AntennaHeightMeters = autoAntennaHeight;
+                            end
+
+                        case 'ManualEdition'
+                            manualAntennaHeight = varargin{1};
+                            for ii = 1:numel(obj)
+                                obj(ii).UserData.AntennaHeightMeters = manualAntennaHeight;
                             end
 
                         otherwise 
@@ -474,26 +490,6 @@ classdef SpecData < model.SpecDataBase
                     end
 
                     hasEmissionsInSearchBand(obj)
-
-                case 'UserData:AntennaHeight' % Origem: auxApp.dockEditLocation
-                    idxThreads = varargin{1};
-        
-                    switch updateType
-                        case 'Refresh'
-                            for ii = idxThreads
-                                newAntennaHeight = calculateAntennaHeight(obj, ii, -1, 'refreshValue');
-                                obj(ii).UserData.AntennaHeightMeters = newAntennaHeight;
-                            end
-
-                        case 'ManualEdition'
-                            newAntennaHeight = varargin{2};
-                            for ii = idxThreads
-                                obj(ii).UserData.AntennaHeightMeters = newAntennaHeight;
-                            end
-
-                        otherwise 
-                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
-                    end
 
                 case 'UserData:Channel'
                     checkIfScalar(obj)

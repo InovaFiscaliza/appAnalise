@@ -4,7 +4,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure           matlab.ui.Figure
         GridLayout         matlab.ui.container.GridLayout
-        Document           matlab.ui.container.GridLayout
         btnOK              matlab.ui.control.Button
         btnRefresh         matlab.ui.control.Image
         kFactorPanel       matlab.ui.container.Panel
@@ -17,7 +16,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
         unitRaw            matlab.ui.control.EditField
         unitRawLabel       matlab.ui.control.Label
         kFactorPanelLabel  matlab.ui.control.Label
-        btnClose           matlab.ui.control.Image
         ContextMenu        matlab.ui.container.ContextMenu
         ContextMenu_del    matlab.ui.container.Menu
     end
@@ -259,7 +257,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: btnClose, btnOK
+        % Button pushed function: btnOK
         function ButtonPushed(app, event)
             
             callingMainApp(app, false, false)
@@ -318,43 +316,23 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 30};
-            app.GridLayout.RowHeight = {30, '1x'};
-            app.GridLayout.ColumnSpacing = 0;
-            app.GridLayout.RowSpacing = 0;
-            app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.902 0.902 0.902];
-
-            % Create btnClose
-            app.btnClose = uiimage(app.GridLayout);
-            app.btnClose.ScaleMethod = 'none';
-            app.btnClose.ImageClickedFcn = createCallbackFcn(app, @ButtonPushed, true);
-            app.btnClose.Tag = 'Close';
-            app.btnClose.Layout.Row = 1;
-            app.btnClose.Layout.Column = 2;
-            app.btnClose.ImageSource = 'Delete_12SVG.svg';
-
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {16, '1x', 90};
-            app.Document.RowHeight = {22, '1x', 22};
-            app.Document.ColumnSpacing = 5;
-            app.Document.RowSpacing = 5;
-            app.Document.Padding = [10 10 10 5];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = [1 2];
-            app.Document.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.ColumnWidth = {16, 324, 90};
+            app.GridLayout.RowHeight = {22, 266, 22};
+            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.Padding = [20 20 20 20];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
             % Create kFactorPanelLabel
-            app.kFactorPanelLabel = uilabel(app.Document);
+            app.kFactorPanelLabel = uilabel(app.GridLayout);
             app.kFactorPanelLabel.VerticalAlignment = 'bottom';
             app.kFactorPanelLabel.FontSize = 10;
             app.kFactorPanelLabel.Layout.Row = 1;
             app.kFactorPanelLabel.Layout.Column = [1 2];
-            app.kFactorPanelLabel.Text = 'CURVA DE CORREÇÃO';
+            app.kFactorPanelLabel.Text = 'CALIBRAÇÃO';
 
             % Create kFactorPanel
-            app.kFactorPanel = uipanel(app.Document);
+            app.kFactorPanel = uipanel(app.GridLayout);
             app.kFactorPanel.AutoResizeChildren = 'off';
             app.kFactorPanel.Layout.Row = 2;
             app.kFactorPanel.Layout.Column = [1 3];
@@ -362,10 +340,10 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             % Create kFactorGrid
             app.kFactorGrid = uigridlayout(app.kFactorPanel);
             app.kFactorGrid.ColumnWidth = {110, '1x', 18};
-            app.kFactorGrid.RowHeight = {26, 22, 8, '1x'};
+            app.kFactorGrid.RowHeight = {26, 22, 18, '1x'};
             app.kFactorGrid.RowSpacing = 5;
             app.kFactorGrid.Padding = [10 10 10 5];
-            app.kFactorGrid.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.kFactorGrid.BackgroundColor = [1 1 1];
 
             % Create unitRawLabel
             app.unitRawLabel = uilabel(app.kFactorGrid);
@@ -381,7 +359,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             app.unitRaw = uieditfield(app.kFactorGrid, 'text');
             app.unitRaw.Editable = 'off';
             app.unitRaw.FontSize = 11;
-            app.unitRaw.BackgroundColor = [0.9804 0.9804 0.9804];
             app.unitRaw.Layout.Row = 2;
             app.unitRaw.Layout.Column = 1;
 
@@ -415,13 +392,13 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             % Create kFactorAdd
             app.kFactorAdd = uiimage(app.kFactorGrid);
-            app.kFactorAdd.ScaleMethod = 'scaledown';
+            app.kFactorAdd.ScaleMethod = 'none';
             app.kFactorAdd.ImageClickedFcn = createCallbackFcn(app, @FieldValueChanged, true);
             app.kFactorAdd.Layout.Row = 3;
             app.kFactorAdd.Layout.Column = 3;
             app.kFactorAdd.HorizontalAlignment = 'right';
             app.kFactorAdd.VerticalAlignment = 'bottom';
-            app.kFactorAdd.ImageSource = 'addSymbol_32.png';
+            app.kFactorAdd.ImageSource = 'Add_16.png';
 
             % Create kFactorTree
             app.kFactorTree = uitree(app.kFactorGrid);
@@ -430,7 +407,8 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             app.kFactorTree.Layout.Column = [1 3];
 
             % Create btnRefresh
-            app.btnRefresh = uiimage(app.Document);
+            app.btnRefresh = uiimage(app.GridLayout);
+            app.btnRefresh.ScaleMethod = 'none';
             app.btnRefresh.ImageClickedFcn = createCallbackFcn(app, @FieldValueChanged, true);
             app.btnRefresh.Tooltip = {'Retorna às configurações iniciais'};
             app.btnRefresh.Layout.Row = 3;
@@ -438,7 +416,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             app.btnRefresh.ImageSource = 'Refresh_18.png';
 
             % Create btnOK
-            app.btnOK = uibutton(app.Document, 'push');
+            app.btnOK = uibutton(app.GridLayout, 'push');
             app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
             app.btnOK.Tag = 'OK';
             app.btnOK.IconAlignment = 'right';

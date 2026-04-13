@@ -97,10 +97,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
         axesTool_RestoreView           matlab.ui.control.Image
         AxesContainer                  matlab.ui.container.Panel
         Toolbar                        matlab.ui.container.GridLayout
-        tool_OpenPopupProject          matlab.ui.control.Image
+        tool_Separator1_2              matlab.ui.control.Image
         tool_LayoutRight               matlab.ui.control.Image
+        tool_Separator2                matlab.ui.control.Image
         tool_UploadFinalFile           matlab.ui.control.Image
         tool_GenerateReport            matlab.ui.control.Image
+        tool_OpenPopupProject          matlab.ui.control.Image
+        tool_Separator1                matlab.ui.control.Image
+        tool_OpenPopupMisc             matlab.ui.control.Image
         tool_TimestampLabel            matlab.ui.control.Label
         tool_TimestampSlider           matlab.ui.control.Slider
         tool_LoopControl               matlab.ui.control.Image
@@ -566,6 +570,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
+                app.tool_OpenPopupMisc;
                 app.tool_GenerateReport
             ], 'Enable', nonEmptySpecData)
 
@@ -573,7 +578,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowDetectionLimitsEdit;
                 app.FlowEmissionsAdd;
                 app.FlowChannelEdit
-            ], 'Enable', ~isOccupancyFlow)
+            ], 'Enable', nonEmptySpecData && ~isOccupancyFlow)
 
             set([
                 app.FlowOccupancyEdit;
@@ -1562,17 +1567,27 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: FlowChannelEdit, 
-        % ...and 2 other components
+        % ...and 5 other components
         function openPopupApp(app, event)
             
             switch event.Source
                 case app.FlowDetectionLimitsEdit
-                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'DetectionLimits', app.Context)
+                    dockAppTag = 'DetectionLimits';
                 case app.FlowEmissionsAdd
-                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Emissions', app.Context)
+                    dockAppTag = 'Detection';
                 case app.FlowChannelEdit
-                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Channels', app.Context)
+                    dockAppTag = 'Channels';
+                case app.FlowOccupancyEdit
+                    dockAppTag = 'Occupancy';
+                case app.tool_OpenPopupMisc
+                    dockAppTag = 'Miscellaneous';
+                case app.tool_OpenPopupProject
+                    dockAppTag = 'ReportLib';
+                otherwise
+                    error('auxApp:winPlayback:UnexpectedEventSource', 'Unexpected event source.')
             end
+
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context)
 
         end
 
@@ -1642,7 +1657,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 22, 22, 248, '1x', 24, 24, 24, 24, 24, 24, '1x', 167, 22, 22, 22, 22, 22};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, '1x', 22, 5, 22, 22, 22, 5, 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -1664,7 +1679,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlButtonPushed, true);
             app.tool_Play.Enable = 'off';
             app.tool_Play.Layout.Row = [1 3];
-            app.tool_Play.Layout.Column = 2;
+            app.tool_Play.Layout.Column = 3;
             app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
 
             % Create tool_LoopControl
@@ -1672,7 +1687,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlButtonPushed, true);
             app.tool_LoopControl.Enable = 'off';
             app.tool_LoopControl.Layout.Row = [1 3];
-            app.tool_LoopControl.Layout.Column = 3;
+            app.tool_LoopControl.Layout.Column = 4;
             app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
 
             % Create tool_TimestampSlider
@@ -1684,44 +1699,83 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_TimestampSlider.FontSize = 8;
             app.tool_TimestampSlider.Enable = 'off';
             app.tool_TimestampSlider.Layout.Row = 2;
-            app.tool_TimestampSlider.Layout.Column = 4;
+            app.tool_TimestampSlider.Layout.Column = 5;
 
             % Create tool_TimestampLabel
             app.tool_TimestampLabel = uilabel(app.Toolbar);
             app.tool_TimestampLabel.WordWrap = 'on';
             app.tool_TimestampLabel.FontSize = 10;
             app.tool_TimestampLabel.Layout.Row = [1 3];
-            app.tool_TimestampLabel.Layout.Column = 5;
+            app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'22 de 328 '; '22/02/2022 08:00:00 '};
+
+            % Create tool_OpenPopupMisc
+            app.tool_OpenPopupMisc = uiimage(app.Toolbar);
+            app.tool_OpenPopupMisc.ScaleMethod = 'none';
+            app.tool_OpenPopupMisc.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.tool_OpenPopupMisc.Enable = 'off';
+            app.tool_OpenPopupMisc.Layout.Row = [1 3];
+            app.tool_OpenPopupMisc.Layout.Column = 7;
+            app.tool_OpenPopupMisc.ImageSource = 'miscellaneous-18px.png';
+
+            % Create tool_Separator1
+            app.tool_Separator1 = uiimage(app.Toolbar);
+            app.tool_Separator1.ScaleMethod = 'none';
+            app.tool_Separator1.Enable = 'off';
+            app.tool_Separator1.Layout.Row = [1 3];
+            app.tool_Separator1.Layout.Column = 8;
+            app.tool_Separator1.VerticalAlignment = 'bottom';
+            app.tool_Separator1.ImageSource = 'LineV.svg';
+
+            % Create tool_OpenPopupProject
+            app.tool_OpenPopupProject = uiimage(app.Toolbar);
+            app.tool_OpenPopupProject.ScaleMethod = 'none';
+            app.tool_OpenPopupProject.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.tool_OpenPopupProject.Layout.Row = [1 3];
+            app.tool_OpenPopupProject.Layout.Column = 9;
+            app.tool_OpenPopupProject.ImageSource = 'organization-20px-black.svg';
 
             % Create tool_GenerateReport
             app.tool_GenerateReport = uiimage(app.Toolbar);
             app.tool_GenerateReport.ScaleMethod = 'none';
+            app.tool_GenerateReport.Enable = 'off';
             app.tool_GenerateReport.Layout.Row = [1 3];
-            app.tool_GenerateReport.Layout.Column = 16;
+            app.tool_GenerateReport.Layout.Column = 10;
             app.tool_GenerateReport.ImageSource = 'Publish_HTML_16.png';
 
             % Create tool_UploadFinalFile
             app.tool_UploadFinalFile = uiimage(app.Toolbar);
             app.tool_UploadFinalFile.ScaleMethod = 'none';
+            app.tool_UploadFinalFile.Enable = 'off';
             app.tool_UploadFinalFile.Layout.Row = [1 3];
-            app.tool_UploadFinalFile.Layout.Column = 17;
+            app.tool_UploadFinalFile.Layout.Column = 11;
             app.tool_UploadFinalFile.ImageSource = 'up-20px.png';
+
+            % Create tool_Separator2
+            app.tool_Separator2 = uiimage(app.Toolbar);
+            app.tool_Separator2.ScaleMethod = 'none';
+            app.tool_Separator2.Enable = 'off';
+            app.tool_Separator2.Layout.Row = [1 3];
+            app.tool_Separator2.Layout.Column = 12;
+            app.tool_Separator2.VerticalAlignment = 'bottom';
+            app.tool_Separator2.ImageSource = 'LineV.svg';
 
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
             app.tool_LayoutRight.ScaleMethod = 'none';
             app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
             app.tool_LayoutRight.Layout.Row = [1 3];
-            app.tool_LayoutRight.Layout.Column = 18;
+            app.tool_LayoutRight.Layout.Column = 13;
             app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
 
-            % Create tool_OpenPopupProject
-            app.tool_OpenPopupProject = uiimage(app.Toolbar);
-            app.tool_OpenPopupProject.ScaleMethod = 'none';
-            app.tool_OpenPopupProject.Layout.Row = [1 3];
-            app.tool_OpenPopupProject.Layout.Column = 15;
-            app.tool_OpenPopupProject.ImageSource = 'organization-20px-black.svg';
+            % Create tool_Separator1_2
+            app.tool_Separator1_2 = uiimage(app.Toolbar);
+            app.tool_Separator1_2.ScaleMethod = 'none';
+            app.tool_Separator1_2.Enable = 'off';
+            app.tool_Separator1_2.Layout.Row = [1 3];
+            app.tool_Separator1_2.Layout.Column = 2;
+            app.tool_Separator1_2.VerticalAlignment = 'bottom';
+            app.tool_Separator1_2.ImageSource = 'LineV.svg';
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
@@ -2060,6 +2114,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowOccupancyEdit
             app.FlowOccupancyEdit = uiimage(app.FlowPanelGrid);
+            app.FlowOccupancyEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
             app.FlowOccupancyEdit.Enable = 'off';
             app.FlowOccupancyEdit.Layout.Row = 2;
             app.FlowOccupancyEdit.Layout.Column = 10;
