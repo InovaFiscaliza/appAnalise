@@ -2,38 +2,36 @@ classdef (Abstract) Emission
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function TStyle(hAxes, bandObj, idx, plotTag, varargin)
-            specData       = bandObj.callingApp.specData(idx);
+        function TStyle(axesHandle, bandObj, plotTag, varargin)
+            specData = bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
 
-            emissionsTable = specData.UserData.Emissions;
-            emissionsTable.FreqStart = emissionsTable.Frequency - emissionsTable.BW_kHz/2000;
-            emissionsTable.FreqStop  = emissionsTable.Frequency + emissionsTable.BW_kHz/2000;
+            emissions = specData.UserData.Emissions;
+            emissions.FreqStart = emissions.Frequency - emissions.BandWidthkHz/2000;
+            emissions.FreqStop  = emissions.Frequency + emissions.BandWidthkHz/2000;
 
-            delete(findobj(hAxes, 'Tag', plotTag))
+            delete(findobj(axesHandle, 'Tag', plotTag))
             
-            if ~isempty(emissionsTable)
-                defaultProp  = bandObj.callingApp.General_I;
+            if ~isempty(emissions)
+                [~, yLimOffsetMode, yLimOffset, stepEffect] = plot.Config(plotTag, bandObj.GeneralSettings);
 
-                [plotConfig,     ...
-                 YLimOffsetMode, ...
-                 YLimOffset,     ...
-                 StepEffect] = plot.Config(plotTag, defaultProp, []);
-
-                switch YLimOffsetMode
+                switch yLimOffsetMode
                     case 'bottom'
-                        YLimOffset = 0;
-                        yLevel = hAxes.YLim(1)+YLimOffset;
+                        yLimOffset = 0;
+                        yLevel = axesHandle.YLim(1)+yLimOffset;
                     otherwise % 'top'
-                        yLevel = hAxes.YLim(2)-YLimOffset;                        
+                        yLevel = axesHandle.YLim(2)-yLimOffset;                        
                 end
             
-                for ii = 1:height(emissionsTable)
-                    FreqCenter = emissionsTable.Frequency(ii);
-                    FreqStart  = emissionsTable.FreqStart(ii);
-                    FreqStop   = emissionsTable.FreqStop(ii);
+                for ii = 1:height(emissions)
+                    freqCenter = emissions.Frequency(ii);
+                    freqStart  = emissions.FreqStart(ii);
+                    freqStop   = emissions.FreqStop(ii);
 
-                    if StepEffect
-                        switch YLimOffsetMode
+                    if stepEffect
+                        switch yLimOffsetMode
                             case 'bottom'
                                 yLevel2Plot = yLevel + mod(ii+1,2);
                             otherwise
@@ -47,12 +45,12 @@ classdef (Abstract) Emission
                     % Deixar configuráveis os parâmetros...
                     % Editar "GeneralSettings.json"
 
-                    line(hAxes, [FreqStart, FreqStop], [yLevel2Plot, yLevel2Plot], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'Marker', '.', 'MarkerSize', 8, 'PickableParts', 'none', 'Tag', 'Emission');
-                    line(hAxes, [FreqCenter, FreqCenter], [-1000, 1000], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'PickableParts', 'none', 'Tag', 'Emission');
-                    text(hAxes, FreqCenter, yLevel2Plot, sprintf(' %d', ii), Color='#ffff12', FontSize=10, FontWeight='bold', FontName='Helvetica', VerticalAlignment='bottom', Tag='EmissionTag');
+                    line(axesHandle, [freqStart, freqStop], [yLevel2Plot, yLevel2Plot], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'Marker', '.', 'MarkerSize', 8, 'PickableParts', 'none', 'Tag', 'Emission');
+                    line(axesHandle, [freqCenter, freqCenter], [-1000, 1000], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'PickableParts', 'none', 'Tag', 'Emission');
+                    text(axesHandle, freqCenter, yLevel2Plot, sprintf(' %d', ii), Color='#ffff12', FontSize=10, FontWeight='bold', FontName='Helvetica', VerticalAlignment='bottom', Tag='EmissionTag');
                 end
 
-                plot.axes.StackingOrder.execute(hAxes, bandObj.Context)
+                plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
             end
         end
     end

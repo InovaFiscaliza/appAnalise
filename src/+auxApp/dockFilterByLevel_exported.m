@@ -1,4 +1,4 @@
-classdef dockLevelFiltering_exported < matlab.apps.AppBase
+classdef dockFilterByLevel_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -308,7 +308,7 @@ classdef dockLevelFiltering_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = dockLevelFiltering_exported(Container, varargin)
+        function app = dockFilterByLevel_exported(Container, varargin)
 
             % Create UIFigure and components
             createComponents(app, Container)

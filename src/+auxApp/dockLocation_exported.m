@@ -1,4 +1,4 @@
-classdef dockEditLocation_exported < matlab.apps.AppBase
+classdef dockLocation_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -438,7 +438,7 @@ classdef dockEditLocation_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = dockEditLocation_exported(Container, varargin)
+        function app = dockLocation_exported(Container, varargin)
 
             % Create UIFigure and components
             createComponents(app, Container)

@@ -551,45 +551,45 @@ classdef SpecData < model.SpecDataBase
                         % LIMITES
                         case 'limitsXYCStartup'
                             bandObj = varargin{1};
-                            obj.UserData.PlotDisplayConfig.limits.frequency.initial   = bandObj.XLimits;
-                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = bandObj.XLimits;            
-                            obj.UserData.PlotDisplayConfig.limits.level.initial       = bandObj.YLimitsLevel;
-                            obj.UserData.PlotDisplayConfig.limits.level.current       = bandObj.YLimitsLevel;            
-                            obj.UserData.PlotDisplayConfig.limits.color.initial       = bandObj.CLimits;
-                            obj.UserData.PlotDisplayConfig.limits.color.current       = bandObj.CLimits;
+                            obj.UserData.PlotDisplayConfig.limits.frequency.initial = bandObj.XLimits;
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current = bandObj.XLimits;            
+                            obj.UserData.PlotDisplayConfig.limits.level.initial = bandObj.YLimitsLevel;
+                            obj.UserData.PlotDisplayConfig.limits.level.current = bandObj.YLimitsLevel;            
+                            obj.UserData.PlotDisplayConfig.limits.color.initial = bandObj.CLimits;
+                            obj.UserData.PlotDisplayConfig.limits.color.current = bandObj.CLimits;
 
                         case 'limitsXYRefresh'
-                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = obj.UserData.PlotDisplayConfig.limits.frequency.initial;
-                            obj.UserData.PlotDisplayConfig.limits.level.current       = obj.UserData.PlotDisplayConfig.limits.level.initial;     
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current = obj.UserData.PlotDisplayConfig.limits.frequency.initial;
+                            obj.UserData.PlotDisplayConfig.limits.level.current = obj.UserData.PlotDisplayConfig.limits.level.initial;     
 
                         case 'limitsX'
-                            obj.UserData.PlotDisplayConfig.limits.frequency.current   = varargin{1};     
+                            obj.UserData.PlotDisplayConfig.limits.frequency.current = varargin{1};     
 
                         case 'limitsY'
-                            obj.UserData.PlotDisplayConfig.limits.level.current       = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.level.current = varargin{1};
 
                         case 'limitsPersistence'
-                            obj.UserData.PlotDisplayConfig.limits.persistence.mode    = 'manual';
-                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim    = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.persistence.mode = 'manual';
+                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim = varargin{1};
 
                         case 'limitsPersistenceRefresh'
-                            obj.UserData.PlotDisplayConfig.limits.persistence.mode    = 'auto';
-                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim    = [];
+                            obj.UserData.PlotDisplayConfig.limits.persistence.mode = 'auto';
+                            obj.UserData.PlotDisplayConfig.limits.persistence.cLim = [];
 
                         case 'limitsWaterfallStartup'
-                            obj.UserData.PlotDisplayConfig.limits.waterfall.initial   = varargin{1};
-                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.initial = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current = varargin{1};
 
                         case 'limitsWaterfall'
-                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = varargin{1};
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current = varargin{1};
                             
                         case 'limitsWaterfallRefresh'
-                            obj.UserData.PlotDisplayConfig.limits.waterfall.current   = obj.UserData.PlotDisplayConfig.limits.waterfall.initial;
+                            obj.UserData.PlotDisplayConfig.limits.waterfall.current = obj.UserData.PlotDisplayConfig.limits.waterfall.initial;
 
                         % DATA TIPS
-                        % case 'dataTip'
-                        %     obj.UserData.PlotDisplayConfig.Parameters.dataTips(end+1) = struct('ParentTag', varargin{1}, 'DataIndex', varargin{2});
-                        % 
+                        case 'dataTip'
+                            obj.UserData.PlotDisplayConfig.dataTips = struct('parentTag', varargin{1}, 'dataIndex', varargin{2});
+                        
                         % case 'globalRefresh'
                         %     generalSettings = varargin{1};
                         %     obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);

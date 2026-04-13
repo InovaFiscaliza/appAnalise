@@ -1,4 +1,4 @@
-classdef dockAddFiles_exported < matlab.apps.AppBase
+classdef dockExternalFiles_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -476,7 +476,7 @@ classdef dockAddFiles_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = dockAddFiles_exported(Container, varargin)
+        function app = dockExternalFiles_exported(Container, varargin)
 
             % Create UIFigure and components
             createComponents(app, Container)

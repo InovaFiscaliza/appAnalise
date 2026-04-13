@@ -414,7 +414,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'AddChannel', 'AddFiles', 'AddKFactor', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'EditLocation', 'FilterByLevel', 'FilterByTime', 'ReportLib'})}
+                auxAppName char {mustBeMember(auxAppName, {'ExternalFiles', 'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'Location', 'FilterByLevel', 'FilterByTime', 'ReportLib'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'CONFIG'})}
             end
 
@@ -423,13 +423,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             switch auxAppName
-                case 'AddChannel'
-                    screenWidth  = 560; 
-                    screenHeight = 480;
-                case 'AddFiles'
+                case 'ExternalFiles'
                     screenWidth  = 880; 
                     screenHeight = 480;
-                case 'AddKFactor'
+                case 'Calibration'
                     screenWidth  = 480; 
                     screenHeight = 360;                
                 case 'Channels'          % auxApp.winPlayback
@@ -438,13 +435,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
-                case 'Detection'        % auxApp.winPlayback
+                case 'Emissions'        % auxApp.winPlayback
                     screenWidth  = 412;
                     screenHeight = 484;
                 case 'DetectionLimits'  % auxApp.winPlayback
                     screenWidth  = 292;
                     screenHeight = 360;
-                case 'EditLocation'
+                case 'Location'
                     screenWidth  = 394; 
                     screenHeight = 194;
                 case 'FilterByLevel'

@@ -12,11 +12,11 @@ function varargout = Config(plotTag, defaultProperties)
             plotConfig  = {'Color', tempPlotConfig.Color, 'LineWidth', 1, 'PickableParts', 'none', 'ZData', tempPlotConfig.ZData};
             varargout   = {plotConfig, plotType};
 
-        case {'BandLimits', 'Channel', 'Emission'}
+        case {'bandLimits', 'channel', 'emission'}
             plotConfig  = textFormatGUI.struct2cellArray(rmfield(tempPlotConfig, {'YLimOffsetMode', 'YLimOffset', 'StepEffect'}));
             varargout   = {plotConfig, tempPlotConfig.YLimOffsetMode, tempPlotConfig.YLimOffset, tempPlotConfig.StepEffect};
 
-        case {'EmissionROI', 'ChannelROI'}
+        case {'emissionROI', 'channelROI'}
             if ischar(tempPlotConfig.Color)
                 tempPlotConfig.Color = hex2rgb(tempPlotConfig.Color);
             end

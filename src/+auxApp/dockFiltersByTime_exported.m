@@ -1,4 +1,4 @@
-classdef dockTimeFiltering_exported < matlab.apps.AppBase
+classdef dockFiltersByTime_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -715,7 +715,7 @@ classdef dockTimeFiltering_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = dockTimeFiltering_exported(Container, varargin)
+        function app = dockFiltersByTime_exported(Container, varargin)
 
             % Create UIFigure and components
             createComponents(app, Container)

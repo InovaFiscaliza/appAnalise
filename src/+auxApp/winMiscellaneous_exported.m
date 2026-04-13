@@ -1,4 +1,4 @@
-classdef winPlayback_exported < matlab.apps.AppBase
+classdef winMiscellaneous_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
@@ -227,7 +227,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
             app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
 
-            appName = class(app);
+            appName = class.Constants.appName;
             switch tabIndex
                 case 1 % PLAYBACK
                     elToModify = {
@@ -844,10 +844,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                 % Emissões
                 % plot.draw2D.ClearWrite_old(app, idx, 'InitialPlot', 1)
-                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'emission')
 
                 % BandLimits & Channels
-                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
+                % plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, idx, 'bandLimits')
                 % plot_Draw_Channels(app, idx)
         
                 % Occupancy
@@ -1051,7 +1050,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             %     end
             % 
             %     if ~isempty(chTable)
-            %         plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'channel', chTable) 
+            %         plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, idx, 'Channel', chTable) 
             %     end
             % end
         end
@@ -1118,7 +1117,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp)
+        function startupFcn(app, mainApp, filterTable, rfDataHubAnnotation)
             
             try
                 appEngine.boot(app, app.Role, mainApp)                
@@ -1172,12 +1171,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         % Value changed function: SpectrumFlowList
         function onFlowDropDownValueChanged(app, event)
-
-            if exist('event', 'var')
-                previousIdx = event.PreviousValue;
-                [parentTag, dataIndex] = plot.datatip.Search([app.UIAxes1, app.UIAxes2, app.UIAxes3]);
-                update(app.mainApp.specData(previousIdx), 'UserData:PlotDisplayConfig', 'dataTip', parentTag, dataIndex)
-            end
 
             if app.plotUpdateEvent
                 app.plotUpdateEvent = -1;
@@ -1364,23 +1357,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.plotHandles.persistence.handle.AlphaData = double(logical(app.plotHandles.persistence.handle.CData)) * event.Value;
 
                 case { app.WaterfallFunction, app.WaterfallDecimation }
-                    [~, ~, xData, yData] = plot.datatip.Search(app.UIAxes3);
+                    [~, ~, XData, YData] = plot.datatip.Search(app.UIAxes3);
                     app.plotHandles.waterfall = plot.Waterfall('Delete', app.plotHandles.waterfall);
                     updateWaterfallPlot(app)
 
-                    if ~isempty(xData)
+                    if ~isempty(XData)
                         if event.Source == app.WaterfallFunction
-                            for ii = 1:numel(yData)
+                            for ii = 1:numel(YData)
                                 switch event.Value
                                     case 'image'
-                                        yData{ii} = timestamp2idx(app.bandObj, yData{ii});
+                                        YData{ii} = timestamp2idx(app.bandObj, YData{ii});
                                     case 'mesh'
-                                        yData{ii} = idx2timestamp(app.bandObj, yData{ii});
+                                        YData{ii} = idx2timestamp(app.bandObj, YData{ii});
                                 end
                             end
                         end
 
-                        dtConfig = struct('xData', xData, 'yData', yData);
+                        dtConfig = struct('XData', XData, 'YData', YData);
                         dtParent = app.plotHandles.waterfall;
                         plot.datatip.Create('redrawWaterfall', dtConfig, dtParent)                        
                     end                    
@@ -1569,7 +1562,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case app.FlowDetectionLimitsEdit
                     ipcMainMatlabOpenPopupApp(app.mainApp, app, 'DetectionLimits', app.Context)
                 case app.FlowEmissionsAdd
-                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Emissions', app.Context)
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Detection', app.Context)
                 case app.FlowChannelEdit
                     ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Channels', app.Context)
             end
@@ -1953,7 +1946,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            app.FlowPanelGrid.ColumnWidth = {'1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x', '1x'};
             app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 5, 22, 5, '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
@@ -2567,7 +2560,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = winPlayback_exported(Container, varargin)
+        function app = winMiscellaneous_exported(Container, varargin)
 
             % Create UIFigure and components
             createComponents(app, Container)

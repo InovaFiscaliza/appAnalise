@@ -2,15 +2,12 @@ classdef (Abstract) datatip
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [ParentTag, DataIndex, XData, YData] = Search(dtParent)
-
-            hDataTip  = findobj(dtParent, 'Type', 'datatip');
-
-            ParentTag = arrayfun(@(x) x.Parent.Tag, hDataTip, "UniformOutput", false);
-            DataIndex = arrayfun(@(x) x.DataIndex,  hDataTip, "UniformOutput", false);
-            XData     = arrayfun(@(x) x.X,          hDataTip, "UniformOutput", false);
-            YData     = arrayfun(@(x) x.Y,          hDataTip, "UniformOutput", false);
-
+        function [parentTag, dataIndex, xData, yData] = Search(dtParent)
+            dtHandles = findobj(dtParent, 'Type', 'datatip');
+            parentTag = arrayfun(@(x) x.Parent.Tag, dtHandles, "UniformOutput", false);
+            dataIndex = arrayfun(@(x) x.DataIndex,  dtHandles, "UniformOutput", false);
+            xData     = arrayfun(@(x) x.X,          dtHandles, "UniformOutput", false);
+            yData     = arrayfun(@(x) x.Y,          dtHandles, "UniformOutput", false);
         end
 
 
@@ -24,19 +21,19 @@ classdef (Abstract) datatip
 
             switch callingFcn
                 case 'customPlayback'
-                    % dtConfig = struct('ParentTag', {}, 'DataIndex', {})
+                    % dtConfig = struct('parentTag', {}, 'dataIndex', {})
                     for ii = 1:numel(dtConfig)
-                        hLine = findobj(dtParent, 'Tag', dtConfig(ii).ParentTag);
+                        dtParentHandle = findobj(dtParent, 'Tag', dtConfig(ii).parentTag);
 
-                        if ~isempty(hLine)
-                            datatip(hLine(1), 'DataIndex', dtConfig(ii).DataIndex);
+                        if ~isempty(dtParentHandle)
+                            datatip(dtParentHandle(1), 'DataIndex', dtConfig(ii).dataIndex);
                         end
                     end
 
                 case 'redrawWaterfall'
-                    % dtConfig = struct('XData', {}, 'YData', {})
+                    % dtConfig = struct('xData', {}, 'yData', {})
                     for ii = 1:numel(dtConfig)
-                        datatip(dtParent, dtConfig(ii).XData, dtConfig(ii).YData);
+                        datatip(dtParent, dtConfig(ii).xData, dtConfig(ii).yData);
                     end
             end
         end

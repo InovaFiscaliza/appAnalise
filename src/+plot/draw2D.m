@@ -57,7 +57,7 @@ classdef (Abstract) draw2D
         end
 
         %-----------------------------------------------------------------%
-        function horizontalSetOfLines(hAxes, bandObj, idx, plotTag, varargin)
+        function horizontalSetOfLines(axesHandle, bandObj, plotTag, varargin)
             specData = bandObj.SpecData;
             if isempty(specData)
                 return
@@ -73,8 +73,8 @@ classdef (Abstract) draw2D
 
                 case 'emission'
                     srcInfo  = specData.UserData.Emissions;
-                    srcInfo.FreqStart = srcInfo.Frequency - srcInfo.BW_kHz/2000;
-                    srcInfo.FreqStop  = srcInfo.Frequency + srcInfo.BW_kHz/2000;
+                    srcInfo.FreqStart = srcInfo.Frequency - srcInfo.BandWidthkHz/2000;
+                    srcInfo.FreqStop  = srcInfo.Frequency + srcInfo.BandWidthkHz/2000;
             end
 
             if ~exist('plotFlag', 'var')
@@ -85,29 +85,27 @@ classdef (Abstract) draw2D
                 end
             end
 
-            delete(findobj(hAxes, 'Tag', plotTag))
+            delete(findobj(axesHandle, 'Tag', plotTag))
             
             if plotFlag && ~isempty(srcInfo)
-                defaultProp  = bandObj.mainApp.General_I;
-
                 [plotConfig,     ...
-                 YLimOffsetMode, ...
-                 YLimOffset,     ...
-                 StepEffect] = plot.Config(plotTag, defaultProp, []);
+                 yLimOffsetMode, ...
+                 yLimOffset,     ...
+                 stepEffect] = plot.Config(plotTag, bandObj.GeneralSettings);
 
-                switch YLimOffsetMode
+                switch yLimOffsetMode
                     case 'bottom'
-                        yLevel = hAxes.YLim(1)+YLimOffset;
+                        yLevel = axesHandle.YLim(1)+yLimOffset;
                     otherwise % 'top'
-                        yLevel = hAxes.YLim(2)-YLimOffset;                        
+                        yLevel = axesHandle.YLim(2)-yLimOffset;                        
                 end
             
                 for ii = 1:height(srcInfo)
-                    FreqStart   = srcInfo.FreqStart(ii);
-                    FreqStop    = srcInfo.FreqStop(ii);
+                    freqStart = srcInfo.FreqStart(ii);
+                    freqStop  = srcInfo.FreqStop(ii);
 
-                    if StepEffect
-                        switch YLimOffsetMode
+                    if stepEffect
+                        switch yLimOffsetMode
                             case 'bottom'
                                 yLevel2Plot = yLevel + mod(ii+1,2);
                             otherwise
@@ -117,9 +115,15 @@ classdef (Abstract) draw2D
                         yLevel2Plot = yLevel;
                     end
                     
-                    line(hAxes, [FreqStart, FreqStop], [yLevel2Plot, yLevel2Plot], plotConfig{:})
+                    line(axesHandle, [freqStart, freqStop], [yLevel2Plot, yLevel2Plot], plotConfig{:})
+
+                    if strcmp(plotTag, 'emission')
+                        freqCenter = srcInfo.Frequency(ii);
+                        line(axesHandle, [freqCenter, freqCenter], [-1000, 1000], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'PickableParts', 'none', 'Tag', 'emission');
+                        text(axesHandle, freqCenter, yLevel2Plot, sprintf(' %d', ii), 'Color', '#ffff12', 'FontSize', 10, 'FontWeight', 'bold', 'FontName', 'Helvetica', 'VerticalAlignment', 'bottom', 'Tag', 'emissionTag');
+                    end
                 end
-                plot.axes.StackingOrder.execute(hAxes, bandObj.Context)
+                plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
             end
         end
 
@@ -139,14 +143,11 @@ classdef (Abstract) draw2D
                 idxROI = 1:height(srcROITable);
             end
 
-            if ~isempty(srcROITable)             
-                defaultProp  = bandObj.mainApp.General_I;
-                customProp   = [];
-
+            if ~isempty(srcROITable)
                 [plotConfigROI,   ...
                  plotConfigText,  ...
                  LabelOffsetMode, ...
-                 LabelOffset] = plot.Config(plotTag, defaultProp, customProp);
+                 LabelOffset] = plot.Config(plotTag, bandObj.GeneralSettings);
 
                 if isempty(yLimits)
                     yLimits = double(hAxes.YLim);
