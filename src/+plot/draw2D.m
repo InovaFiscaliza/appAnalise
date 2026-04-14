@@ -154,7 +154,7 @@ classdef (Abstract) draw2D
                 end
                 
                 for ii = idxROI
-                    hROI = drawrectangle(hAxes, 'Position', [srcROITable.Frequency(ii)-srcROITable.BW_kHz(ii)/2000, yLimits(1)+1, srcROITable.BW_kHz(ii)/1000, diff(yLimits)-2], plotConfigROI{:});
+                    hROI = drawrectangle(hAxes, 'Position', [srcROITable.Frequency(ii)-srcROITable.BandWidthkHz(ii)/2000, yLimits(1)+1, srcROITable.BandWidthkHz(ii)/1000, diff(yLimits)-2], plotConfigROI{:});
 
                     if ~isempty(postPlotConfig)
                         set(hROI, postPlotConfig{:})
@@ -188,7 +188,7 @@ classdef (Abstract) draw2D
             switch plotType
                     case 'TreeSelectionChanged'
                         idx2 = app.play_FindPeaks_Tree.SelectedNodes.NodeData;
-                        app.plotHandles.selectedEmission.Position(:, [1, 3]) = [app.mainApp.specData(idx).UserData.Emissions.Frequency(idx2) - app.mainApp.specData(idx).UserData.Emissions.BW_kHz(idx2)/(2*1000), app.mainApp.specData(idx).UserData.Emissions.BW_kHz(idx2)/1000];
+                        app.plotHandles.selectedEmission.Position(:, [1, 3]) = [app.mainApp.specData(idx).UserData.Emissions.Frequency(idx2) - app.mainApp.specData(idx).UserData.Emissions.BandWidthkHz(idx2)/(2*1000), app.mainApp.specData(idx).UserData.Emissions.BandWidthkHz(idx2)/1000];
                         return
                     
                     case 'PeakValueChanged'
@@ -217,9 +217,9 @@ classdef (Abstract) draw2D
                 for ii = 1:height(app.mainApp.specData(idx).UserData.Emissions)
                     mkrLabels = [mkrLabels {['  ' num2str(ii)]}];
         
-                    FreqStart = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) - app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
-                    FreqStop  = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) + app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/(2*1000);
-                    BW        = app.mainApp.specData(idx).UserData.Emissions.BW_kHz(ii)/1000;            
+                    FreqStart = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) - app.mainApp.specData(idx).UserData.Emissions.BandWidthkHz(ii)/(2*1000);
+                    FreqStop  = app.mainApp.specData(idx).UserData.Emissions.Frequency(ii) + app.mainApp.specData(idx).UserData.Emissions.BandWidthkHz(ii)/(2*1000);
+                    BW        = app.mainApp.specData(idx).UserData.Emissions.BandWidthkHz(ii)/1000;            
                     
                     % Cria uma linha por emissão, posicionando-o na parte inferior
                     % do plot.
@@ -295,8 +295,8 @@ classdef (Abstract) draw2D
 
                     idxFrequency = freq2idx(app.bandObj, app.play_FindPeaks_PeakCF.Value*1e+6);
                     FreqCenter   = app.play_FindPeaks_PeakCF.Value;
-                    BW_kHz       = app.play_FindPeaks_PeakBW.Value;
-                    update(app.mainApp.specData(idxThread), 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', idxEmission, idxFrequency, FreqCenter, BW_kHz, app.channelObj)
+                    BandWidthkHz       = app.play_FindPeaks_PeakBW.Value;
+                    update(app.mainApp.specData(idxThread), 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', idxEmission, idxFrequency, FreqCenter, BandWidthkHz, app.channelObj)
 
                     plot_updateSelectedEmission(app, idxThread, idxFrequency)
             end

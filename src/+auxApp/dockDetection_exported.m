@@ -279,6 +279,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
         % Button pushed function: SearchButton
         function ButtonPushed(app, event)
 
+            context = app.inputArgs.context;
             algorithm = app.Algorithm.Value;
             specData = app.callingApp.bandObj.SpecData;
 
@@ -361,11 +362,16 @@ classdef dockDetection_exported < matlab.apps.AppBase
                         [idxList, freqList, widthKHzList, methodList] = util.Detection.run(specData, detectionConfig);
                 end
 
+                if isempty(idxList)
+                    ui.Dialog(app.UIFigure, 'info', 'Não foi encontrada emissão que atenda aos critérios especificados.');
+                    return
+                end
+
                 if app.OnlySearchEmissions.Value
                     util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthKHzList)
                 else
                     update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], app.mainApp.channelObj)
-                    % atualiza plot...
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
                 end
             end
 

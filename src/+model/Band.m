@@ -244,7 +244,7 @@ classdef Band < handle
                 case {'appAnalise:REPORT:EMISSION', 'appAnalise:SIGNALANALYSIS'}
                     emissionIdx = varargin{1};
                     emissionFreqCenter = specData.UserData.Emissions.Frequency(emissionIdx);       % MHz
-                    emissionBandWidth  = specData.UserData.Emissions.BW_kHz(emissionIdx) / 1000;   % kHz >> MHz
+                    emissionBandWidth  = specData.UserData.Emissions.BandWidthkHz(emissionIdx) / 1000;   % kHz >> MHz
 
                     if emissionBandWidth <= 0
                         bandGuard = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));

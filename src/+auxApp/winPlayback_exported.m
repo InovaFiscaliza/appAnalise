@@ -144,7 +144,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         bandObj
 
         % Armazena limites padrão dos eixos cartesianos computados em método 
-        % de class.Band (app.bandObj).
+        % de model.Band (app.bandObj).
         restoreView = struct( ...
             'ID', {}, ...
             'xLim', {}, ...
@@ -205,6 +205,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 else
                                     onFlowDropDownValueChanged(app)
                                 end
+
+                            case 'onEmissionAdded'
+                                specData = app.bandObj.SpecData;
+                                updateUIPanelContent(app, specData)
+                                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'emission')
 
                             case 'onTabNavigatorButtonPushed'
                                 if app.plotUpdateEvent
@@ -1570,6 +1575,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ...and 5 other components
         function openPopupApp(app, event)
             
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = 0;
+            end
+
             switch event.Source
                 case app.FlowDetectionLimitsEdit
                     dockAppTag = 'DetectionLimits';
@@ -1583,8 +1592,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     dockAppTag = 'Miscellaneous';
                 case app.tool_OpenPopupProject
                     dockAppTag = 'ReportLib';
-                otherwise
-                    error('auxApp:winPlayback:UnexpectedEventSource', 'Unexpected event source.')
             end
 
             ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context)

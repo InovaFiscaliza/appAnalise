@@ -151,16 +151,14 @@ classdef (Abstract) Detection
             [secondaryIdxs, secondaryFreqs, secondaryWidths, secondaryMethods] = util.Detection.findPeaks(specData, secondaryCriteriaConfig);
             
             if ~isempty(secondaryIdxs)
-                checkIfOccupancyPerBinExist(specData)
-                occIndex = specData.UserData.occMethod.CacheIndex;
-        
-                occIndex_Mean = find(specData.UserData.occCache(occIndex).Data{3}(:,2) >= detectionConfig.MinOccupancyMeanOverTime);
-                occIndex_Max  = find(specData.UserData.occCache(occIndex).Data{3}(:,3) >= detectionConfig.MinOccupancyMaxOverTime);
+                occupancyCacheIdx = specData.UserData.OccupancyComputationMode.CacheIndex;
+                occupancyMeanIdxs = find(specData.UserData.OccupancyFiniteIntegrationCache(occupancyCacheIdx).Data{3}(:,2) >= detectionConfig.MinOccupancyMeanOverTime);
+                occupancyMaxIdxs  = find(specData.UserData.OccupancyFiniteIntegrationCache(occupancyCacheIdx).Data{3}(:,3) >= detectionConfig.MinOccupancyMaxOverTime);
                 
-                [secondaryIdxs, intersectIdxs] = intersect(secondaryIdxs, intersect(occIndex_Mean, occIndex_Max), 'stable');
+                [secondaryIdxs, intersectIdxs] = intersect(secondaryIdxs, intersect(occupancyMeanIdxs, occupancyMaxIdxs), 'stable');
                 
-                secondaryFreqs = secondaryFreqs(intersectIdxs);
-                secondaryWidths = secondaryWidths(intersectIdxs);
+                secondaryFreqs   = secondaryFreqs(intersectIdxs);
+                secondaryWidths  = secondaryWidths(intersectIdxs);
                 secondaryMethods = secondaryMethods(intersectIdxs);
             end        
         

@@ -65,7 +65,7 @@ classdef ChannelLib < handle
             % e a manual, inserida pelo fiscal no app.
             allRelatedChannels = [
                 obj.Channel(specData.UserData.ChannelLibraryRelatedIndexes); ...
-                specData.UserData.ChannelUserDefined
+                specData.UserData.ChannelUserDefined ...
             ];
 
             % Identifica a canalização que apresenta maior sobreposição com
@@ -80,7 +80,7 @@ classdef ChannelLib < handle
             [~, idx1] = max(commumSpan);
             
             if ~isempty(idx1)
-                idx2  = find(strcmp(obj.FindPeaks.Name, allRelatedChannels(idx1).EmissionClass), 1);
+                idx2  = find(strcmp(obj.FindPeaks.EmissionClass, allRelatedChannels(idx1).EmissionClass), 1);
                 findPeaks = obj.FindPeaks(idx2,:);
             end
         end
@@ -154,7 +154,7 @@ classdef ChannelLib < handle
                 end
             end
 
-            refFindPeaksName = unique(obj.FindPeaks.Name);
+            refFindPeaksName = unique(obj.FindPeaks.EmissionClass);
             if ~ismember(emissionClass, refFindPeaksName)
                 error('ChannelLib:checkIfNewChannelIsValid', 'Campo "EmissionClass" deve ser membro da lista %s.', textFormatGUI.cellstr2ListWithQuotes(refFindPeaksName))
             end

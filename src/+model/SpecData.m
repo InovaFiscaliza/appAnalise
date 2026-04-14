@@ -606,10 +606,6 @@ classdef SpecData < model.SpecDataBase
                             userComment = varargin{5};
                             channelObj  = varargin{6};
 
-                            % Inicialmente, verifica se a ocupação por bin já foi aferida.
-                            % Caso não, afere-se com os parâmetros padrão.
-                            computeOccupancyPerBin(obj)
-        
                             for ii = 1:numel(idxList)
                                 idx = height(obj.UserData.Emissions) + 1;
                                 obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated'}) = {freqList(ii), idxList(ii), widthList(ii), true};

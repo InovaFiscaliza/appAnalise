@@ -2,23 +2,31 @@ classdef (Abstract) Classification
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        ParametersDefault     = struct('Algorithm',  'Frequency+Distance Type 1', ...
-                                       'Parameters', struct('Contour', 30,        ...
-                                                            'ClassMultiplier', 2, ...
-                                                            'bwFactors', [100, 300]))
+        CONFIG_DEFAULT = struct( ...
+            'Algorithm', 'Frequency+Distance Type 1', ...
+            'Parameters', struct( ...
+                'MaxDistanceKm', 30, ...
+                'ClassExpansionFactor', 2, ...
+                'BandwidthTolerancePercent', [100, 300] ...
+            ) ...
+        )
 
-        ClassificationDefault = struct('Service',       int16(-1),                ...
-                                       'Station',       int32(-1),                ...
-                                       'Latitude',      -1,                       ...
-                                       'Longitude',     -1,                       ...
-                                       'AntennaHeight', 0,                        ...
-                                       'Description',   '-',                      ...
-                                       'Details',       '',                       ...
-                                       'Distance',      -1,                       ...
-                                       'Regulatory',    'Não licenciada',         ...
-                                       'EmissionType',  'Pendente identificação', ...
-                                       'Irregular',     'Sim',                    ...
-                                       'RiskLevel',     'Baixo')
+        RESULT_DEFAULT = struct( ...
+            'Service', int16(-1), ...
+            'Station', int32(-1), ...
+            'Latitude', -1, ...
+            'Longitude', -1, ...
+            'AntennaHeight', 0, ...
+            'Description', '-', ...
+            'Details', '', ...
+            'Distance', -1, ...
+            'Regulatory', 'Não licenciada', ...
+            'EmissionType', 'Pendente identificação', ...
+            'Irregular', 'Sim', ...
+            'RiskLevel', 'Baixo' ...
+        )
+
+        FLOAT_TOLERANCE = 1e-5
     end
 
     
@@ -26,7 +34,7 @@ classdef (Abstract) Classification
         %-----------------------------------------------------------------%
         function emissionInfo = run(specData, flowIdx, emissionIdx, channelObj)    
             % Classificação inicial....
-            emissionInfo = util.Classification.ClassificationDefault;
+            emissionInfo = util.Classification.RESULT_DEFAULT;
         
             % Trunca a frequência central da emissão, caso aplicável, possibilitando 
             % a sua classificação.
@@ -35,9 +43,9 @@ classdef (Abstract) Classification
                 emissionFrequency = estimateChannelFrequency(channelObj, specData(flowIdx), specData(flowIdx).UserData.Emissions.Frequency(emissionIdx), 0);
             end
         
-            % Se a frequência trunca estiver na lista de exceção global, então esse
-            % registro retorna como a provável fonte de emissão.
-            idxException = find((abs(channelObj.Exception.FreqCenter - emissionFrequency) <= 1e-5), 1);   
+            % Se a frequência truncada estiver na lista de exceção global, então esse
+            % registro é retornado como a provável fonte de emissão.
+            idxException = find((abs(channelObj.Exception.FreqCenter - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE), 1);   
         
             if ~isempty(idxException)
                 emissionInfo.Regulatory   = 'Não passível de licenciamento';
@@ -47,30 +55,31 @@ classdef (Abstract) Classification
                 emissionInfo.RiskLevel    = '-';
         
             else
-                switch specData(flowIdx).UserData.ReportAlgorithms.Classification.Algorithm
+                algorithm = specData(flowIdx).UserData.ReportAlgorithms.Classification.Algorithm;
+                switch algorithm
                     case 'Frequency+Distance Type 1'
-                        emissionInfo = util.Classification.Type1_FreqDist(emissionInfo, emissionFrequency, specData, flowIdx, emissionIdx, channelObj);
+                        emissionInfo = util.Classification.classifyByFrequencyDistance(specData, flowIdx, emissionIdx, emissionFrequency, emissionInfo, channelObj);
             
                     otherwise
-                        error('Unexpected classification algorithm.')
+                        error('util:Classification:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
                 end
             end
         end
         
-        %-------------------------------------------------------------------------%
-        function emissionInfo = Type1_FreqDist(emissionInfo, emissionFrequency, specData, flowIdx, emissionIdx, channelObj)        
+        %-----------------------------------------------------------------%
+        function emissionInfo = classifyByFrequencyDistance(specData, flowIdx, emissionIdx, emissionFrequency, emissionInfo, channelObj)
             global RFDataHub
         
             % Características da canalização primária do fluxo de dados sob análise,
             % além dos parâmetros relacionados ao algoritmo "Frequency+Distance Type 1".
-            findPeaks       = FindPeaksOfPrimaryBand(channelObj, specData(flowIdx));
-            ruralContour    = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.Contour;
-            classMultiplier = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.ClassMultiplier;
-            bandwidthRange  = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.bwFactors / 100;
+            findPeaks = FindPeaksOfPrimaryBand(channelObj, specData(flowIdx));
+            maxDistanceKm = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.MaxDistanceKm;
+            expansionFactor = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.ClassExpansionFactor;
+            bandwidthTolerance = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.BandwidthTolerancePercent / 100;
             
             % Identifica registros de RFDataHub que possuem a mesma frequência da
             % emissão.
-            stationIdx = find(abs(RFDataHub.Frequency - emissionFrequency) <= 1e-5);
+            stationIdx = find(abs(RFDataHub.Frequency - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE);
             if isempty(stationIdx)
                 return
             end
@@ -114,30 +123,32 @@ classdef (Abstract) Classification
                     refStationBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
                 end
         
-                if isempty(findPeaks) || ~ismember(findPeaks.Name{1}, {'FM', 'TV'})
+                if isempty(findPeaks) || ~ismember(findPeaks.EmissionClass{1}, {'FM', 'TV'})
                     break
                 else
-                    switch findPeaks.Name{1}
+                    switch findPeaks.EmissionClass{1}
                         case 'FM'
                             if contains(refStationDescription, ["[SRD] RADCOM", "[SRD] 231"])
-                                if refStationDistance <= classMultiplier * 2.2
-                                    classContour = 2.2;
-                                    break
-                                else
-                                    stationIdx(idx) = [];
-                                    stationDistance(idx) = [];
-                                    continue
-                                end                        
-                            elseif contains(refStationDescription, "[MOSAICO-SRD] FM") 
-                                classStation = char(RFDataHub.StationClass(stationIdx(idx)));
-                                if ismember(classStation(1), {'A', 'B', 'C', 'E'})
-                                    classContour = util.Classification.FM_classCountour(classStation(1));
+                                if refStationDistance <= expansionFactor * 2.2
+                                    classBaseContour = 2.2;
                                     break
                                 else
                                     stationIdx(idx) = [];
                                     stationDistance(idx) = [];
                                     continue
                                 end
+
+                            elseif contains(refStationDescription, "[MOSAICO-SRD] FM") 
+                                classStation = char(RFDataHub.StationClass(stationIdx(idx)));
+                                if ismember(classStation(1), {'A', 'B', 'C', 'E'})
+                                    classBaseContour = util.Classification.getFMClassContour(classStation(1));
+                                    break
+                                else
+                                    stationIdx(idx) = [];
+                                    stationDistance(idx) = [];
+                                    continue
+                                end
+
                             else
                                 break
                             end
@@ -146,13 +157,14 @@ classdef (Abstract) Classification
                             if contains(refStationDescription, "[MOSAICO-SRD] TV")
                                 classStation = char(RFDataHub.StationClass(stationIdx(idx)));
                                 if ismember(classStation(1), {'A', 'B', 'C', 'E'})
-                                    classContour = util.Classification.TV_classCountour(classStation(1));
+                                    classBaseContour = util.Classification.getTVClassContour(classStation(1));
                                     break
                                 else
                                     stationIdx(idx) = [];
                                     stationDistance(idx) = [];
                                     continue
                                 end
+
                             else
                                 break
                             end
@@ -163,10 +175,10 @@ classdef (Abstract) Classification
             if ~isempty(refStationDistance)
                 emissionBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
                 if exist('classContour', 'var')
-                    ruralContour = classMultiplier * classContour;
+                    maxDistanceKm = expansionFactor * classBaseContour;
                 end        
         
-                if (refStationDistance > ruralContour) || (refStationBandWidth < (1-bandwidthRange(1))*emissionBandWidth) || (refStationBandWidth > (1+bandwidthRange(2))*emissionBandWidth)
+                if (refStationDistance > maxDistanceKm) || (refStationBandWidth < (1-bandwidthTolerance(1))*emissionBandWidth) || (refStationBandWidth > (1+bandwidthTolerance(2))*emissionBandWidth)
                     return
                 end
                 
@@ -187,9 +199,13 @@ classdef (Abstract) Classification
                 end
             end
         end
-        
-        %-------------------------------------------------------------------------%
-        function classContour = FM_classCountour(classStation)
+
+        %-----------------------------------------------------------------%
+        function classContour = getFMClassContour(classStation)
+            arguments
+                classStation (1,:) char {mustBeMember(classStation, {'A', 'B', 'C', 'E'})}
+            end
+
             switch classStation
                 case 'C'; classContour =  7.5;
                 case 'B'; classContour = 16.5;
@@ -198,8 +214,12 @@ classdef (Abstract) Classification
             end
         end
         
-        %-------------------------------------------------------------------------%
-        function classContour = TV_classCountour(classStation)
+        %-----------------------------------------------------------------%
+        function classContour = getTVClassContour(classStation)
+            arguments
+                classStation (1,:) char {mustBeMember(classStation, {'A', 'B', 'C', 'E'})}
+            end
+
             switch classStation
                 case 'C'; classContour = 20.2;
                 case 'B'; classContour = 32.3;

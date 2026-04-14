@@ -420,21 +420,21 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         % AUXAPP.SIGNALANALYSIS
         %-----------------------------------------------------------------%
-        function [htmlContent, emissionTag, userDescription, stationInfo] = Emission(specData, idxThread, idxEmission)
-            emissionTable = specData(idxThread).UserData.Emissions(idxEmission, :);
-            emissionTag   = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BW_kHz);
+        function [htmlContent, emissionTag, userDescription, stationInfo] = Emission(specData, flowIdx, emissionIdx)
+            emissionTable = specData(flowIdx).UserData.Emissions(emissionIdx, :);
+            emissionTag   = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
         
             % Identificando registros que foram editados pelo usuário:
             columns2Compare = {'Regulatory', 'Service', 'Station', 'EmissionType', 'Irregular', 'RiskLevel', 'Latitude', 'Longitude', 'AntennaHeight', 'Description', 'Distance'};
             stationInfo = [];
             for ii = 1:numel(columns2Compare)
                 columnName = columns2Compare{ii};
-                if isequal(emissionTable.Classification.autoSuggested.(columnName), emissionTable.Classification.userModified.(columnName))
-                    columnsDiff.(columnName) = string(emissionTable.Classification.autoSuggested.(columnName));
+                if isequal(emissionTable.Classification.AutoSuggested.(columnName), emissionTable.Classification.UserModified.(columnName))
+                    columnsDiff.(columnName) = string(emissionTable.Classification.AutoSuggested.(columnName));
                 else
-                    columnsDiff.(columnName) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(emissionTable.Classification.autoSuggested.(columnName)), string(emissionTable.Classification.userModified.(columnName)));                    
+                    columnsDiff.(columnName) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(emissionTable.Classification.AutoSuggested.(columnName)), string(emissionTable.Classification.UserModified.(columnName)));                    
                 end
-                stationInfo.(columnName) = emissionTable.Classification.userModified.(columnName);
+                stationInfo.(columnName) = emissionTable.Classification.UserModified.(columnName);
             end
 
             % Destacando em VERMELHO registros que possuem situação diferente de 
@@ -454,15 +454,15 @@ classdef (Abstract) HtmlTextGenerator
             end
         
             % stationInfo
-            stationInfo.Details       = emissionTable.Classification.userModified.Details;
+            stationInfo.Details = emissionTable.Classification.UserModified.Details;
         
             % HTML
-            dataStruct(1) = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
-            dataStruct(2) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));    
-            dataStruct(3) = struct('group', 'CANAL',               'value', struct('autoSuggested', sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.autoSuggested.Frequency, emissionTable.ChannelAssigned.autoSuggested.ChannelBW)));
+            dataStruct(1) = struct('group', 'RECEPTOR',            'value', specData(flowIdx).Receiver);
+            dataStruct(2) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(flowIdx).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(flowIdx).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));    
+            dataStruct(3) = struct('group', 'CANAL',               'value', struct('autoSuggested', sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.AutoSuggested.Frequency, emissionTable.ChannelAssigned.AutoSuggested.ChannelBW)));
             
-            if ~isequal(emissionTable.ChannelAssigned.autoSuggested, emissionTable.ChannelAssigned.userModified)
-                dataStruct(3).value.userModified = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.userModified.Frequency,  emissionTable.ChannelAssigned.userModified.ChannelBW);
+            if ~isequal(emissionTable.ChannelAssigned.AutoSuggested, emissionTable.ChannelAssigned.UserModified)
+                dataStruct(3).value.userModified = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.UserModified.Frequency,  emissionTable.ChannelAssigned.UserModified.ChannelBW);
             end
 
             dataStruct(4) = struct('group', 'CLASSIFICAÇÃO',       'value', columnsDiff);
@@ -470,7 +470,7 @@ classdef (Abstract) HtmlTextGenerator
                                                                                    'Detection',       emissionTable.Algorithms.Detection, ...
                                                                                    'Classification',  emissionTable.Algorithms.Classification));
         
-            userDescription = specData(idxThread).UserData.Emissions.Description(idxEmission);
+            userDescription = specData(flowIdx).UserData.Emissions.Description(emissionIdx);
             if userDescription ~= ""
                 dataStruct(4).value.userDescription = sprintf('<font style="color: blue;">%s</font>', userDescription);
             end
@@ -493,30 +493,30 @@ classdef (Abstract) HtmlTextGenerator
             % virtual", que corresponde à toda a faixa de frequência
             % monitorada.
             if isempty(idxEmission) % Emissão virtual
-                FreqCenter  = (specData(idxThread).MetaData.FreqStart + specData(idxThread).MetaData.FreqStop) / 2e6; % MHz
-                BW_kHz      = (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart) / 1e3; % kHz
+                freqCenter   = (specData(idxThread).MetaData.FreqStart + specData(idxThread).MetaData.FreqStop) / 2e6; % MHz
+                bandWidthKHz = (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart) / 1e3; % kHz
             
             else % Emissão real
-                FreqCenter  = specData(idxThread).UserData.Emissions.Frequency(idxEmission);
-                BW_kHz      = specData(idxThread).UserData.Emissions.BW_kHz(idxEmission);
+                freqCenter   = specData(idxThread).UserData.Emissions.Frequency(idxEmission);
+                bandWidthKHz = specData(idxThread).UserData.Emissions.BandWidthkHz(idxEmission);
             end
         
-            emissionTag     = sprintf('%.3f MHz ⌂ %.1f kHz', FreqCenter, BW_kHz);
+            emissionTag      = sprintf('%.3f MHz ⌂ %.1f kHz', freqCenter, bandWidthKHz);
         
-            bandFreqStart   = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStart/1e+6);
-            bandFreqStop    = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStop/1e+6);
-            bandStepWidth   = sprintf('%.1f kHz', (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart)/(1000*(specData(idxThread).MetaData.DataPoints-1)));
-            bandResolution  = sprintf('%.1f kHz', specData(idxThread).MetaData.Resolution/1000);
+            bandFreqStart    = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStart/1e+6);
+            bandFreqStop     = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStop/1e+6);
+            bandStepWidth    = sprintf('%.1f kHz', (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart)/(1000*(specData(idxThread).MetaData.DataPoints-1)));
+            bandResolution   = sprintf('%.1f kHz', specData(idxThread).MetaData.Resolution/1000);
         
-            metaData        = struct('FreqStart',        bandFreqStart,                           ...
-                                     'FreqStop',         bandFreqStop,                            ...
-                                     'DataPoints',       specData(idxThread).MetaData.DataPoints,       ...
-                                     'StepWidth',        bandStepWidth,                           ...
-                                     'Resolution',       bandResolution,                          ...
-                                     'TraceMode',        specData(idxThread).MetaData.TraceMode,        ...
-                                     'TraceIntegration', specData(idxThread).MetaData.TraceIntegration, ...
-                                     'Detector',         specData(idxThread).MetaData.Detector,         ...
-                                     'LevelUnit',        specData(idxThread).MetaData.LevelUnit);
+            metaData         = struct('FreqStart',        bandFreqStart,                           ...
+                                      'FreqStop',         bandFreqStop,                            ...
+                                      'DataPoints',       specData(idxThread).MetaData.DataPoints,       ...
+                                      'StepWidth',        bandStepWidth,                           ...
+                                      'Resolution',       bandResolution,                          ...
+                                      'TraceMode',        specData(idxThread).MetaData.TraceMode,        ...
+                                      'TraceIntegration', specData(idxThread).MetaData.TraceIntegration, ...
+                                      'Detector',         specData(idxThread).MetaData.Detector,         ...
+                                      'LevelUnit',        specData(idxThread).MetaData.LevelUnit);
         
             dataStruct(1)   = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
             dataStruct(2)   = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
@@ -534,8 +534,8 @@ classdef (Abstract) HtmlTextGenerator
             emissionID      = struct('Thread',   struct('Index',     idxThread, ...
                                                         'Hash',      specData(idxThread).Hash), ...
                                      'Emission', struct('Index',     idxEmission, ...
-                                                        'Frequency', FreqCenter, ...
-                                                        'BW_kHz',    BW_kHz, ...
+                                                        'Frequency', freqCenter, ...
+                                                        'BW_kHz',    bandWidthKHz, ...
                                                         'Tag',       emissionTag));
         end
 

@@ -26,7 +26,7 @@ classdef UserData
             'ChannelBW', {}, ...
             'FreqList', {}, ...
             'Reference', {}, ...
-            'FindPeaksName', {} ...
+            'EmissionClass', {} ...
         )
 
         % Subfaixas que restringem o escopo da detecção de emissões
@@ -159,7 +159,7 @@ classdef UserData
                                            'UserModified',  emissionInfo);
 
                 case 'DefaultAlgorithm: Classification'
-                    fieldTemplate = util.Classification.ParametersDefault;
+                    fieldTemplate = util.Classification.CONFIG_DEFAULT;
 
                 case 'DefaultAlgorithm: Occupancy'
                     fieldTemplate = RF.Occupancy.getDefaultParameters();

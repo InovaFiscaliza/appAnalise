@@ -275,7 +275,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         ipcMainMatlabCallAuxiliarApp(app, 'RFDATAHUB', 'MATLAB', eventName)
 
                                     otherwise
-                                        error('UnexpectedCall')
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
 
                             % auxApp.winPlayback (PLAYBACK)
@@ -284,100 +284,76 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onPlaybackStarted'
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName)
 
+                                    case 'onReportGenerate'
+                                        context = varargin{1};
+                                        indexes = varargin{2};
+                                        reportGenerate(app, context, [], indexes)
+
+                                    case 'onUploadArtifacts'
+                                        context = varargin{1};
+                                        reportUploadArtifacts(app, context, [], 'uploadDocument')
+
                                     otherwise
-                                        error('UnexpectedCall')
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
         
-                            % DRIVETEST
-                            % case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
-                            %     switch eventName
-                            %         case {'ChannelParameterChanged', 'ChannelDefault'}
-                            %             play_UpdateAuxiliarApps(app, 'SIGNALANALYSIS')
-                            % 
-                            %         otherwise
-                            %             error('UnexpectedCall')
-                            %     end
-                            % 
-                            % % SIGNALANALYSIS
-                            % case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
-                            %     switch eventName
-                            %         case 'DeleteButtonPushed'
-                            %             % ...
-                            % 
-                            %         case 'IsTruncatedValueChanged'
-                            %             % ...
-                            % 
-                            %         case 'PeakDescriptionChanged'
-                            %             % ...
-                            % 
-                            %         otherwise
-                            %             error('UnexpectedCall')
-                            %     end
-                            % 
-                            % % DOCKS:OTHERS
-                            % case {'auxApp.dockAddChannel',     'auxApp.dockAddChannel_exported',     ... % PLAYBACK:CHANNEL
-                            %       'auxApp.dockDetection',      'auxApp.dockDetection_exported',      ... % REPORT:DETECTION
-                            %       'auxApp.dockClassification', 'auxApp.dockClassification_exported', ... % REPORT:CLASSIFICATION
-                            %       'auxApp.dockAddFiles',       'auxApp.dockAddFiles_exported',       ... % REPORT:EXTERNALFILES
-                            %       'auxApp.dockTimeFiltering',  'auxApp.dockTimeFiltering_exported',  ... % MISCELLANEOUS:TIMEFILTERING
-                            %       'auxApp.dockEditLocation',   'auxApp.dockEditLocation_exported',   ... % MISCELLANEOUS:EDITLOCATION
-                            %       'auxApp.dockAddKFactor',     'auxApp.dockAddKFactor_exported',     ... % MISCELLANEOUS:ADDKFACTOR
-                            %       'auxApp.dockLevelFiltering', 'auxApp.dockLevelFiltering_exported'}     % MISCELLANEOUS:LEVELFILTERING
-                            % 
-                            %     switch eventName
-                            %         case '123'
-                            %             % ... organizar essas chamadas,
-                            %             % eliminando essa forma antiga de
-                            %             % chamar com updateFlag e
-                            %             % returnFlag.
-                            % 
-                            %         otherwise
-                            %             updateFlag = varargin{1};
-                            %             returnFlag = varargin{2};
-                            % 
-                            %             if updateFlag
-                            %                 switch eventName
-                            %                     case 'PLAYBACK:CHANNEL'
-                            %                         channel2Add   = varargin{3};
-                            %                         typeOfChannel = varargin{4};
-                            %                         idxThreads    = varargin{5};
-                            %                         play_Channel_AddChannel(app, channel2Add, typeOfChannel, idxThreads)
-                            % 
-                            %                     case {'REPORT:DETECTION', 'REPORT:CLASSIFICATION'}
-                            %                         idxThread     = varargin{3};
-                            % 
-                            %                         % Esse estado força a atualização do painel
-                            %                         app.report_ThreadAlgorithms.UserData.idxThread = [];
-                            %                         report_Algorithms(app, idxThread)
-                            %                         report_SaveWarn(app)
-                            % 
-                            %                     case 'REPORT:EXTERNALFILES'
-                            %                         report_TreeBuilding(app)
-                            % 
-                            %                     case 'MISCELLANEOUS'
-                            %                         SelectedNodesTextList = misc_SelectedNodesText(app);
-                            %                         play_TreeRebuilding(app, SelectedNodesTextList)
-                            % 
-                            %                     case 'MISCELLANEOUS:LEVELFILTERING'
-                            %                         editedData = varargin{3};
-                            %                         copyMode   = varargin{4};
-                            % 
-                            %                         if strcmp(copyMode, 'copy')              
-                            %                             app.specData(end+1:end+numel(editedData)) = editedData;
-                            %                         end
-                            % 
-                            %                         SelectedNodesTextList = misc_SelectedNodesText(app);
-                            %                         play_TreeRebuilding(app, SelectedNodesTextList)
-                            %                 end
-                            %             end
-                            % 
-                            %             if returnFlag
-                            %                 return
-                            %             end
-                            %     end
+                            % auxApp.winDriveTest (DRIVETEST)
+                            case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
+                                switch eventName
+                                    case {'ChannelParameterChanged', 'ChannelDefault'}
+                                        % ...
+
+                                    otherwise
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
+                                end
+
+                            % auxApp.winSignalAnalysis (SIGNALANALYSIS)
+                            case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
+                                switch eventName
+                                    case 'DeleteButtonPushed'
+                                        % ...
+
+                                    case 'IsTruncatedValueChanged'
+                                        % ...
+
+                                    case 'PeakDescriptionChanged'
+                                        % ...
+
+                                    otherwise
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
+                                end
+
+                            % auxApp.winRFDataHub (RFDATAHUB)
+                            % ...
+
+                            % auxApp.winRepoSFI (REPOSFI)
+                            % ...
+
+                            % DOCKS:OTHERS
+                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ...
+                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ...
+                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ...
+                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ...
+                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ...
+                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ...
+                                  'auxApp.dockFilterByLevel',   'auxApp.dockTimeFiltering_exported',   ...
+                                  'auxApp.dockFiltersByTime',   'auxApp.dockEditLocation_exported',    ...
+                                  'auxApp.dockLocation',        'auxApp.dockAddKFactor_exported',      ...
+                                  'auxApp.dockMiscellaneous',   'auxApp.dockLevelFiltering_exported',  ...
+                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ...
+                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported'}
+
+                                switch eventName
+                                    case 'onEmissionAdded'
+                                        context  = varargin{1};
+                                        ipcMainMatlabCallAuxiliarApp(app, context, 'MATLAB', eventName)
+
+                                    otherwise
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
+                                end
             
                             otherwise
-                                error('UnexpectedCall')
+                                error('winAppAnalise:UnexpectedCaller', 'Unexpected caller "%s"', class(callingApp))
                         end
                 end
 
