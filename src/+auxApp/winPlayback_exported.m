@@ -206,7 +206,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                     onFlowDropDownValueChanged(app)
                                 end
 
-                            case 'onEmissionAdded'
+                            case {'onEmissionAdded', 'onEmissionDeleted'}
                                 specData = app.bandObj.SpecData;
                                 updateUIPanelContent(app, specData)
                                 emissionSelectedIdx = app.FlowEmissions.Selection;
@@ -317,9 +317,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LoopControl.UserData.loopMode = true;
 
             initializeAxes(app)
-
-            addStyle(app.FlowEmissions, uistyle('HorizontalAlignment', 'center'), "column", 1)
-            addStyle(app.FlowEmissions, uistyle('HorizontalAlignment', 'right'), "column", 2:3)
         end
 
         %-----------------------------------------------------------------%

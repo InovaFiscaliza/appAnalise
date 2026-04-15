@@ -420,68 +420,69 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         % AUXAPP.SIGNALANALYSIS
         %-----------------------------------------------------------------%
-        function [htmlContent, emissionTag, userDescription, stationInfo] = Emission(specData, flowIdx, emissionIdx)
-            emissionTable = specData(flowIdx).UserData.Emissions(emissionIdx, :);
+        function [htmlContent1, htmlContent2, emissionTag, userDescription, stationInfo] = Emission(specData, emissionIdx)
+            emissionTable = specData.UserData.Emissions(emissionIdx, :);
+
+            % TÍTULO
             emissionTag   = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
-        
+            observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
+            description = sprintf('"%s"', specData.RelatedFiles.Description{1});
+
+            monitoringType = gpsLib.classifyMonitoringType(specData.GPS);
+            switch monitoringType
+                case 'fixed'
+                    monitoringTypeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('Pin').html;
+                case 'mobile'
+                    monitoringTypeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('Car').html;
+                otherwise
+                    monitoringTypeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('InterrogationMark').html;
+            end
+
+            initialText = [ ...
+                sprintf('<font style="color: white; background-color: #b7312c; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">%s</font><br><br>', util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, description, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
+            ];
+            htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', initialText);
+
+            % LOG
             % Identificando registros que foram editados pelo usuário:
-            columns2Compare = {'Regulatory', 'Service', 'Station', 'EmissionType', 'Irregular', 'RiskLevel', 'Latitude', 'Longitude', 'AntennaHeight', 'Description', 'Distance'};
+            columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable');
             stationInfo = [];
-            for ii = 1:numel(columns2Compare)
-                columnName = columns2Compare{ii};
-                if isequal(emissionTable.Classification.AutoSuggested.(columnName), emissionTable.Classification.UserModified.(columnName))
-                    columnsDiff.(columnName) = string(emissionTable.Classification.AutoSuggested.(columnName));
-                else
+            columnsDiff = [];
+
+            for ii = 1:numel(columnsToCompare)
+                columnName = columnsToCompare{ii};
+                if ~isequal(emissionTable.Classification.AutoSuggested.(columnName), emissionTable.Classification.UserModified.(columnName))
                     columnsDiff.(columnName) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(emissionTable.Classification.AutoSuggested.(columnName)), string(emissionTable.Classification.UserModified.(columnName)));                    
                 end
                 stationInfo.(columnName) = emissionTable.Classification.UserModified.(columnName);
             end
 
-            % Destacando em VERMELHO registros que possuem situação diferente de 
-            % "Licenciada" e, também, registros cujo número da estação é igual a -1.
-            % Este último caso, contudo, é feito apenas se a tabela exceptionList 
-            % estiver vazia.
-            if stationInfo.Regulatory ~= "Licenciada"
-                columnsDiff.Regulatory = sprintf('<font style="color: red;">%s</font>', columnsDiff.Regulatory);
-            end
-        
-            if stationInfo.Station == -1
-                columnsDiff.Station = sprintf('<font style="color: red;">%s</font>', columnsDiff.Station);
-            end
-
-            if stationInfo.AntennaHeight <= 0
-                columnsDiff.AntennaHeight = '<font style="color: red;">-1</font>';
-            end
-        
-            % stationInfo
-            stationInfo.Details = emissionTable.Classification.UserModified.Details;
-        
-            % HTML
-            dataStruct(1) = struct('group', 'RECEPTOR',            'value', specData(flowIdx).Receiver);
-            dataStruct(2) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(flowIdx).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(flowIdx).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));    
-            dataStruct(3) = struct('group', 'CANAL',               'value', struct('autoSuggested', sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.AutoSuggested.Frequency, emissionTable.ChannelAssigned.AutoSuggested.ChannelBW)));
+            if ~isempty(columnsDiff)
+                % Destacando em VERMELHO registros que possuem situação diferente de 
+                % "Licenciada" e, também, registros cujo número da estação é igual a -1.
+                % Este último caso, contudo, é feito apenas se a tabela exceptionList 
+                % estiver vazia.
+                if isfield(columnsDiff, 'Regulatory') && stationInfo.Regulatory ~= "Licenciada"
+                    columnsDiff.Regulatory = sprintf('<font style="color: red;">%s</font>', columnsDiff.Regulatory);
+                end
             
-            if ~isequal(emissionTable.ChannelAssigned.AutoSuggested, emissionTable.ChannelAssigned.UserModified)
-                dataStruct(3).value.userModified = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.ChannelAssigned.UserModified.Frequency,  emissionTable.ChannelAssigned.UserModified.ChannelBW);
+                if isfield(columnsDiff, 'Station') && stationInfo.Station == -1
+                    columnsDiff.Station = sprintf('<font style="color: red;">%s</font>', columnsDiff.Station);
+                end
+    
+                if isfield(columnsDiff, 'AntennaHeight') && stationInfo.AntennaHeight <= 0
+                    columnsDiff.AntennaHeight = '<font style="color: red;">-1</font>';
+                end
+                
+                htmlContent2 = replace(sprintf('<p style="padding: 10px;">%s</p>', strtrim(textFormatGUI.structParser('', columnsDiff, 1))), newline, '<br>');
+
+            else
+                htmlContent2 = sprintf('<p style="padding: 10px;">%s</p>', 'Não evidenciada alteração da classificação automática.');
             end
 
-            dataStruct(4) = struct('group', 'CLASSIFICAÇÃO',       'value', columnsDiff);
-            dataStruct(5) = struct('group', 'ALGORITMOS',          'value', struct('Occupancy',       emissionTable.Algorithms.Occupancy, ...
-                                                                                   'Detection',       emissionTable.Algorithms.Detection, ...
-                                                                                   'Classification',  emissionTable.Algorithms.Classification));
-        
-            userDescription = specData(flowIdx).UserData.Emissions.Description(emissionIdx);
-            if userDescription ~= ""
-                dataStruct(4).value.userDescription = sprintf('<font style="color: blue;">%s</font>', userDescription);
-            end
-        
-            freeInitialText1 = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', emissionTag);
-            htmlContent1     = textFormatGUI.struct2PrettyPrintList(dataStruct(1:4), 'print -1', freeInitialText1);
-
-            freeInitialText2 = '<font style="color: gray; font-size: 10px;">&thinsp;&thinsp;&thinsp;&thinsp;&thinsp;&thinsp;&thinsp;____________________<br>&thinsp;̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ ̅ <br></font>';
-            htmlContent2     = textFormatGUI.struct2PrettyPrintList(dataStruct(5),   'delete',   freeInitialText2);
-
-            htmlContent      = strjoin({htmlContent1, htmlContent2}, '');
+            stationInfo.Details = emissionTable.Classification.UserModified.Details;
+            userDescription = emissionTable.Description(1);
         end
 
 

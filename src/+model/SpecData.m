@@ -643,7 +643,7 @@ classdef SpecData < model.SpecDataBase
                             end
         
                         case 'Edit'
-                            parameter   = varargin{1};
+                            parameter = varargin{1};
                             idx = varargin{2};
                             channelObj  = varargin{end};
         
@@ -678,11 +678,13 @@ classdef SpecData < model.SpecDataBase
                                 case 'IsTruncated'
                                     obj.UserData.Emissions.IsTruncated(idx) = varargin{3};
 
+                                    % Atualiza o canal da emissão e, caso a classificação não tenha sido editada pelo usuário,
+                                    % atualiza-se, também, a sua classificação (provável emissor, risco etc).
                                     obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
-
                                     if isequal(obj.UserData.Emissions.Classification(idx).AutoSuggested, obj.UserData.Emissions.Classification(idx).UserModified)
                                         obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);
                                     end
+                                    
                                     return
 
                                 case 'Description'

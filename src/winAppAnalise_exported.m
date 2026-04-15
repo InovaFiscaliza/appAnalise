@@ -310,14 +310,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % auxApp.winSignalAnalysis (SIGNALANALYSIS)
                             case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
                                 switch eventName
-                                    case 'DeleteButtonPushed'
-                                        % ...
-
-                                    case 'IsTruncatedValueChanged'
-                                        % ...
-
-                                    case 'PeakDescriptionChanged'
-                                        % ...
+                                    case {'onEmissionDeleted', 'onEmissionUserDescriptionValueChanged'}
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
