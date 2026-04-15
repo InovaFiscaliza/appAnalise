@@ -672,7 +672,7 @@ classdef SpecData < model.SpecDataBase
                                         obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);
                                     end
 
-                                    obj.UserData.Emissions.auxAppData(idx).DriveTest = [];
+                                    obj.UserData.Emissions.AuxAppData(idx).DriveTest = [];
                                     util.Measures(obj, 1, idx, 'Emission', channelObj)
 
                                 case 'IsTruncated'

@@ -123,11 +123,11 @@ classdef (Abstract) Classification
                     refStationBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
                 end
         
-                if isempty(findPeaks) || ~ismember(findPeaks.EmissionClass{1}, {'FM', 'TV'})
+                if isempty(findPeaks) || ~ismember(findPeaks.EmissionClass{1}, {'BroadcastFM', 'BroadcastTV'})
                     break
                 else
                     switch findPeaks.EmissionClass{1}
-                        case 'FM'
+                        case 'BroadcastFM'
                             if contains(refStationDescription, ["[SRD] RADCOM", "[SRD] 231"])
                                 if refStationDistance <= expansionFactor * 2.2
                                     classBaseContour = 2.2;
@@ -153,7 +153,7 @@ classdef (Abstract) Classification
                                 break
                             end
                         
-                        case 'TV'
+                        case 'BroadcastTV'
                             if contains(refStationDescription, "[MOSAICO-SRD] TV")
                                 classStation = char(RFDataHub.StationClass(stationIdx(idx)));
                                 if ismember(classStation(1), {'A', 'B', 'C', 'E'})
@@ -174,7 +174,7 @@ classdef (Abstract) Classification
         
             if ~isempty(refStationDistance)
                 emissionBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
-                if exist('classContour', 'var')
+                if exist('classBaseContour', 'var')
                     maxDistanceKm = expansionFactor * classBaseContour;
                 end        
         

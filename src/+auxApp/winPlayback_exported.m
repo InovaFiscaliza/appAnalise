@@ -209,8 +209,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'onEmissionAdded'
                                 specData = app.bandObj.SpecData;
                                 updateUIPanelContent(app, specData)
-                                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'emission')
-
+                                emissionSelectedIdx = app.FlowEmissions.Selection;
+                                app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+            
                             case 'onTabNavigatorButtonPushed'
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
@@ -635,13 +636,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.FlowDetectionLimits.Items = {sprintf('%.3f – %.3f MHz (padrão)', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6)};
                 end
 
-                emissionTable = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                if ~isempty(emissionTable)
-                    emissionTable.('#') = string(1:height(emissionTable))';
-                    emissionTable.Frequency = arrayfun(@(x) sprintf('%.3f', x), emissionTable.Frequency, "UniformOutput", false);
-                    emissionTable.BandWidthkHz = arrayfun(@(x) sprintf('%.3f', x), emissionTable.BandWidthkHz, "UniformOutput", false);
-
-                    app.FlowEmissions.Data  = emissionTable(:, {'#', 'Frequency', 'BandWidthkHz', 'Description'});
+                if ~isempty(specData.UserData.Emissions)
+                    app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
+                    app.FlowEmissions.Selection = 1;
                 else
                     app.FlowEmissions.Data = [];
                 end
@@ -787,8 +784,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 'average', [], ...
                 'maxHold', [], ...
                 'persistence', [], ...
-                'selectedEmission', [], ...
-                'emissionMarkers', [], ...
+                'emissionSelected', [], ...
                 'thresholdLine', [], ...
                 'thresholdLabel', [], ...
                 'waterfall', [], ...
@@ -837,7 +833,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 set(app.UIAxes1, 'XLim', app.restoreView(1).xLim, 'YLim', app.restoreView(1).yLim)
                 ylabel(app.UIAxes1, sprintf('Nível (%s)', app.bandObj.LevelUnit))
         
-                % (a) ClearWrite, MinHold, Average, e MaxHold
+                % ClearWrite, MinHold, Average, e MaxHold
                 for plotTag = ["clearWrite", "minHold", "average", "maxHold"]
                     if ismember(plotTag, {'minHold', 'average', 'maxHold'}) && ~eval(sprintf('app.axesTool_%s.UserData.status', plotTag))
                         continue
@@ -847,14 +843,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     plot.datatip.Template(app.plotHandles.(plotTag), "Frequency+Level", app.bandObj.LevelUnit)
                 end
                 
-                % (b) Persistence
+                % Persistence
                 if app.axesTool_persistence.UserData.status
                     updatePersistencePlot(app, 'Creation')
                 end
 
-                % Emissões
-                % plot.draw2D.ClearWrite_old(app, idx, 'InitialPlot', 1)
-                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'emission')
+                % Emissions
+                updateEmissionsPlot(app, specData)
 
                 % BandLimits & Channels
                 plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
@@ -887,10 +882,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
         
                     plot.draw2D.OrdinaryLineUpdate(plotTag, app.plotHandles.(plotTag), app.bandObj, app.sweepTimeIdx);
-                end
-        
-                for ii = 1:numel(app.plotHandles.emissionMarkers)
-                    app.plotHandles.emissionMarkers(ii).Position(2) = app.plotHandles.clearWrite.YData(app.plotHandles.clearWrite.MarkerIndices(ii));
                 end
         
                 % Persistence
@@ -952,6 +943,58 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case 'Delete'
                     app.plotHandles.persistence = plot.Persistence('Delete', app.plotHandles.persistence);
                     updatePersistencePanel(app, 'initialization')
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        % ## EMISSIONS ## 
+        %-----------------------------------------------------------------%
+        function updateEmissionsPlot(app, specData)
+            emissions = specData.UserData.Emissions;
+            if isempty(emissions)
+                return
+            end
+
+            emissionSelectedIdx = app.FlowEmissions.Selection;
+            app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
+            app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+
+            addlistener(app.plotHandles.emissionSelected, 'MovingROI', @(~, evt)emissionROI(evt));
+            addlistener(app.plotHandles.emissionSelected, 'ROIMoved',  @(~, evt)emissionROI(evt));
+
+            function emissionROI(evt)
+                emissionSelectedIdx = app.FlowEmissions.Selection;
+    
+                switch(evt.EventName)
+                    case 'MovingROI'
+                        plot.axes.Interactivity.DefaultDisable([app.UIAxes1, app.UIAxes2, app.UIAxes3])
+            
+                        freqCenter = round(app.plotHandles.emissionSelected.Position(1) + app.plotHandles.emissionSelected.Position(3)/2, 3);
+                        if (freqCenter*1e+6 < specData.MetaData.FreqStart) || (freqCenter*1e+6 > specData.MetaData.FreqStop)                        
+                           return
+                        end
+
+                        bandWidthkHz = round(app.plotHandles.emissionSelected.Position(3) * 1000, 3);
+
+                        app.FlowEmissions.Data(emissionSelectedIdx, {'Frequency', 'BandWidthkHz'}) = {freqCenter, bandWidthkHz};                        
+                        app.plotHandles.clearWrite.MarkerIndices(emissionSelectedIdx) = freq2idx(app.bandObj, freqCenter*1e+6);
+                        
+                    case 'ROIMoved'
+                        plot.axes.Interactivity.DefaultEnable([app.UIAxes1, app.UIAxes2, app.UIAxes3])
+    
+                        freqCenter   = app.FlowEmissions.Data.Frequency(emissionSelectedIdx);
+                        frequencyIdx = freq2idx(app.bandObj, freqCenter * 1e+6);                        
+                        bandWidthkHz = app.FlowEmissions.Data.BandWidthkHz(emissionSelectedIdx);
+
+                        update(specData, 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', emissionSelectedIdx, frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
+
+                        [~, freqSortIdxs] = sort(app.FlowEmissions.Data.Frequency);
+                        [~, emissionSelectedIdx] = ismember(emissionSelectedIdx, freqSortIdxs);
+                        
+                        app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
+                        app.FlowEmissions.Selection = emissionSelectedIdx;
+                        FlowEmissionsSelectionChanged(app)
+                end
             end
         end
 
@@ -1526,10 +1569,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.plotHandles.clearWrite.Visible = true;
                 end
                 app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
-    
-                % for ii = 1:numel(app.hEmissionMarkers)
-                %     app.hEmissionMarkers(ii).Position(2) = app.hClearWrite.YData(app.hClearWrite.MarkerIndices(ii));
-                % end
                 
                 updatePersistencePlot(app, 'Update')
 
@@ -1615,6 +1654,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             specData = app.bandObj.SpecData;
             item = event.InteractionInformation.Item
+            
+        end
+
+        % Selection changed function: FlowEmissions
+        function FlowEmissionsSelectionChanged(app, event)
+            
+            emissionSelectedIdx = app.FlowEmissions.Selection;
+
+            if isempty(emissionSelectedIdx)
+                if exist('event', 'var')
+                    emissionSelectedIdx = event.PreviousSelection;
+                else
+                    emissionSelectedIdx = 1;
+                end
+
+                app.FlowEmissions.Selection = emissionSelectedIdx;
+            end
+
+            delete(findobj(app.UIAxes1, 'Tag', 'emissions'))            
+            app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+            
+        end
+
+        % Cell edit callback: FlowEmissions
+        function FlowEmissionsCellEdit(app, event)
+            indices = event.Indices;
+            newData = event.NewData;
             
         end
     end
@@ -2101,11 +2167,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowEmissions
             app.FlowEmissions = uitable(app.FlowPanelGrid);
-            app.FlowEmissions.ColumnName = {'#'; 'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
-            app.FlowEmissions.ColumnWidth = {20, 70, 70, 'auto'};
+            app.FlowEmissions.ColumnName = {'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
+            app.FlowEmissions.ColumnWidth = {70, 70, 'auto'};
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
-            app.FlowEmissions.ColumnEditable = [false true true true];
+            app.FlowEmissions.ColumnEditable = true;
+            app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @FlowEmissionsCellEdit, true);
+            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @FlowEmissionsSelectionChanged, true);
+            app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Visible = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
             app.FlowEmissions.Layout.Column = [6 7];

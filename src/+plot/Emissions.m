@@ -1,6 +1,54 @@
-classdef (Abstract) Emission
+classdef (Abstract) Emissions
 
     methods (Static = true)
+        %-----------------------------------------------------------------%
+        function emissionSelected = draw(emissionSelected, emissionSelectedIdx, axesHandle, restoreView, bandObj)
+            delete(findobj(axesHandle, 'Tag', 'emissions'))
+
+            specData = bandObj.SpecData;
+            if isempty(specData)
+                emissionSelected = [];
+                delete(findobj(axesHandle, 'Tag', 'emissionSelected'))
+
+                return
+            end
+
+            yLevel1 = restoreView(1).yLim(1) + 1;
+            yLevel2 = diff(restoreView(1).yLim) - 2;
+    
+            emissions = specData.UserData.Emissions;
+
+            if ~isempty(emissions)
+                if isempty(emissionSelectedIdx)
+                    emissionSelectedIdx = 1;
+                end
+
+                for ii = 1:height(emissions)
+                    freqStart = emissions.Frequency(ii) - emissions.BandWidthkHz(ii) / 2000;
+                    freqStop  = emissions.Frequency(ii) + emissions.BandWidthkHz(ii) / 2000;
+                    bandWidthKHz = specData.UserData.Emissions.BandWidthkHz(ii) / 1000;            
+                    
+                    % Cria uma linha por emissão, posicionando-o na parte inferior
+                    % do plot.
+                    line(axesHandle, [freqStart, freqStop], [yLevel1, yLevel1], 'Color', [0.40,0.73,0.88], 'LineWidth', 1, 'Marker', '.', 'MarkerSize', 14, 'PickableParts', 'none', 'Tag', 'emissions');
+        
+                    % Cria um ROI para a emissão selecionada, posicionando-o em
+                    % todo o plot.
+                    if ii == emissionSelectedIdx
+                        roiPosition = [freqStart, yLevel1, bandWidthKHz, yLevel2];
+                        
+                        if isempty(emissionSelected)
+                            emissionSelected = images.roi.Rectangle(axesHandle, 'Position', roiPosition, 'Color', [0.40,0.73,0.88], 'MarkerSize', 5, 'Deletable', 0, 'FaceSelectable', 0, 'LineWidth', 1, 'Tag', 'emissionSelected');
+                        else
+                            emissionSelected.Position = roiPosition;
+                        end
+                    end
+                end
+
+                plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
+            end
+        end
+
         %-----------------------------------------------------------------%
         function TStyle(axesHandle, bandObj, plotTag, varargin)
             specData = bandObj.SpecData;
