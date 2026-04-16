@@ -35,8 +35,8 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
             end
     
             emissionsTempTable.Band(:) = {sprintf('%.3f - %.3f MHz', specData(ii).MetaData.FreqStart/1e6, specData(ii).MetaData.FreqStop/1e6)};
-            emissionsTempTable.idxThread(:) = ii;
-            emissionsTempTable.idxEmission = (1:height(emissionsTempTable))';
+            emissionsTempTable.flowIdx(:) = ii;
+            emissionsTempTable.emissionIdx = (1:height(emissionsTempTable))';
     
             emissionsTempTable.Level_FreqCenter_Min           = arrayfun(@(x) x.Level.FreqCenter_Min,       emissionsTempTable.Measures);
             emissionsTempTable.Level_FreqCenter_Mean          = arrayfun(@(x) x.Level.FreqCenter_Mean,      emissionsTempTable.Measures);

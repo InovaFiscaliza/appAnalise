@@ -2,14 +2,11 @@ classdef (Abstract) Emissions
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function emissionSelected = draw(emissionSelected, emissionSelectedIdx, axesHandle, restoreView, bandObj)
-            delete(findobj(axesHandle, 'Tag', 'emissions'))
-
+        function emissionSelected = draw(emissionSelectedIdx, axesHandle, restoreView, bandObj)
+            emissionSelected = [];
+            
             specData = bandObj.SpecData;
             if isempty(specData)
-                emissionSelected = [];
-                delete(findobj(axesHandle, 'Tag', 'emissionSelected'))
-
                 return
             end
 
@@ -36,12 +33,7 @@ classdef (Abstract) Emissions
                     % todo o plot.
                     if ii == emissionSelectedIdx
                         roiPosition = [freqStart, yLevel1, bandWidthKHz, yLevel2];
-                        
-                        if isempty(emissionSelected)
-                            emissionSelected = images.roi.Rectangle(axesHandle, 'Position', roiPosition, 'Color', [0.40,0.73,0.88], 'MarkerSize', 5, 'Deletable', 0, 'FaceSelectable', 0, 'LineWidth', 1, 'Tag', 'emissionSelected');
-                        else
-                            emissionSelected.Position = roiPosition;
-                        end
+                        emissionSelected = images.roi.Rectangle(axesHandle, 'Position', roiPosition, 'Color', [0.40,0.73,0.88], 'MarkerSize', 5, 'Deletable', 0, 'FaceSelectable', 0, 'LineWidth', 1, 'Tag', 'emissionSelected');
                     end
                 end
 

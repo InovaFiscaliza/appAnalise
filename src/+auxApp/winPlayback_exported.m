@@ -110,6 +110,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_LoopControl               matlab.ui.control.Image
         tool_Play                      matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
+        ContextMenu                    matlab.ui.container.ContextMenu
+        ClassificaoMenu                matlab.ui.container.Menu
+        ExcluirMenu                    matlab.ui.container.Menu
     end
 
     
@@ -207,10 +210,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 end
 
                             case {'onEmissionAdded', 'onEmissionDeleted'}
-                                specData = app.bandObj.SpecData;
-                                updateUIPanelContent(app, specData)
-                                emissionSelectedIdx = app.FlowEmissions.Selection;
-                                app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+                                updateUIPanelContent(app)
+                                updateEmissionsPlot(app)
             
                             case 'onTabNavigatorButtonPushed'
                                 if app.plotUpdateEvent
@@ -540,7 +541,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Atualiza PAINEL À ESQUERDA com metadados do fluxo, algoritmos de
             % ocupação, detecção e classificação, além da lista de emissões.
             updateUIControlsState(app, specData)
-            updateUIPanelContent(app, specData)
+            updateUIPanelContent(app)
 
             % Reseta o PLOT e atualiza informações que suportam o plot, como 
             % as dispostas no painel à direita.            
@@ -612,14 +613,20 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateUIPanelContent(app, specData)
-            if ~isempty(specData)
+        function updateUIPanelContent(app)
+            specData = app.bandObj.SpecData;
+
+            hasData = ~isempty(specData);
+            isSpectralData = hasData && ~ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
+            hasEmissions = isSpectralData && ~isempty(specData.UserData.Emissions);
+
+            if hasData
                 app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData);
             else
                 app.FlowMetadata.Text = '';
             end
 
-            if ~isempty(specData) && ~ismember(specData.MetaData.DataType, class.Constants.occDataTypes)
+            if isSpectralData
                 channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
                 if isempty(channelLibIndex)
                     app.FlowChannel.Items = {};
@@ -631,13 +638,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.FlowDetectionLimits.Items = cellstr(string(specData.UserData.DetectionSubBands.FreqStart) + " – " + string(specData.UserData.DetectionSubBands.FreqStop) + " MHz");
                 else
                     app.FlowDetectionLimits.Items = {sprintf('%.3f – %.3f MHz (padrão)', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6)};
-                end
-
-                if ~isempty(specData.UserData.Emissions)
-                    app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                    app.FlowEmissions.Selection = 1;
-                else
-                    app.FlowEmissions.Data = [];
                 end
 
                 occupancyList = {};
@@ -687,9 +687,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 app.FlowChannel.Items = {};
                 app.FlowDetectionLimits.Items = {};
-                app.FlowEmissions.Data = [];
                 app.FlowOccupancy.Items = {};
             end
+
+            if hasEmissions
+                app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
+                app.FlowEmissions.Selection = 1;
+            else
+                app.FlowEmissions.Data = [];
+            end
+            set(app.ContextMenu.Children, 'Enable', hasEmissions)
         end
 
         %-----------------------------------------------------------------%
@@ -781,7 +788,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 'average', [], ...
                 'maxHold', [], ...
                 'persistence', [], ...
-                'emissionSelected', [], ...
                 'thresholdLine', [], ...
                 'thresholdLabel', [], ...
                 'waterfall', [], ...
@@ -846,7 +852,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 end
 
                 % Emissions
-                updateEmissionsPlot(app, specData)
+                updateEmissionsPlot(app)
 
                 % BandLimits & Channels
                 plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
@@ -946,7 +952,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## EMISSIONS ## 
         %-----------------------------------------------------------------%
-        function updateEmissionsPlot(app, specData)
+        function updateEmissionsPlot(app)
+            delete(findobj(app.UIAxes1, 'Tag', 'emissions', '-or', 'Tag', 'emissionSelected'))
+
+            specData = app.bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
+
             emissions = specData.UserData.Emissions;
             if isempty(emissions)
                 return
@@ -954,10 +967,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             emissionSelectedIdx = app.FlowEmissions.Selection;
             app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
-            app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+            emissionSelectedHandle = plot.Emissions.draw(emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
 
-            addlistener(app.plotHandles.emissionSelected, 'MovingROI', @(~, evt)emissionROI(evt));
-            addlistener(app.plotHandles.emissionSelected, 'ROIMoved',  @(~, evt)emissionROI(evt));
+            addlistener(emissionSelectedHandle, 'MovingROI', @(~, evt)emissionROI(evt));
+            addlistener(emissionSelectedHandle, 'ROIMoved',  @(~, evt)emissionROI(evt));
 
             function emissionROI(evt)
                 emissionSelectedIdx = app.FlowEmissions.Selection;
@@ -966,12 +979,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     case 'MovingROI'
                         plot.axes.Interactivity.DefaultDisable([app.UIAxes1, app.UIAxes2, app.UIAxes3])
             
-                        freqCenter = round(app.plotHandles.emissionSelected.Position(1) + app.plotHandles.emissionSelected.Position(3)/2, 3);
+                        freqCenter = round(emissionSelectedHandle.Position(1) + emissionSelectedHandle.Position(3)/2, 3);
                         if (freqCenter*1e+6 < specData.MetaData.FreqStart) || (freqCenter*1e+6 > specData.MetaData.FreqStop)                        
                            return
                         end
 
-                        bandWidthkHz = round(app.plotHandles.emissionSelected.Position(3) * 1000, 3);
+                        bandWidthkHz = round(emissionSelectedHandle.Position(3) * 1000, 3);
 
                         app.FlowEmissions.Data(emissionSelectedIdx, {'Frequency', 'BandWidthkHz'}) = {freqCenter, bandWidthkHz};                        
                         app.plotHandles.clearWrite.MarkerIndices(emissionSelectedIdx) = freq2idx(app.bandObj, freqCenter*1e+6);
@@ -991,6 +1004,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
                         app.FlowEmissions.Selection = emissionSelectedIdx;
                         FlowEmissionsSelectionChanged(app)
+
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
                 end
             end
         end
@@ -1669,8 +1684,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowEmissions.Selection = emissionSelectedIdx;
             end
 
-            delete(findobj(app.UIAxes1, 'Tag', 'emissions'))            
-            app.plotHandles.emissionSelected = plot.Emissions.draw(app.plotHandles.emissionSelected, emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
+            updateEmissionsPlot(app)
             
         end
 
@@ -2165,7 +2179,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowEmissions
             app.FlowEmissions = uitable(app.FlowPanelGrid);
             app.FlowEmissions.ColumnName = {'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
-            app.FlowEmissions.ColumnWidth = {70, 70, 'auto'};
+            app.FlowEmissions.ColumnWidth = {95, 95, 150};
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = true;
@@ -2685,6 +2699,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.dockModule_Close.Layout.Row = 1;
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
+
+            % Create ContextMenu
+            app.ContextMenu = uicontextmenu(app.UIFigure);
+
+            % Create ClassificaoMenu
+            app.ClassificaoMenu = uimenu(app.ContextMenu);
+            app.ClassificaoMenu.Enable = 'off';
+            app.ClassificaoMenu.Text = '🏷️ Classificação';
+
+            % Create ExcluirMenu
+            app.ExcluirMenu = uimenu(app.ContextMenu);
+            app.ExcluirMenu.Enable = 'off';
+            app.ExcluirMenu.Separator = 'on';
+            app.ExcluirMenu.Text = '❌ Excluir';
+            
+            % Assign app.ContextMenu
+            app.FlowEmissions.ContextMenu = app.ContextMenu;
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

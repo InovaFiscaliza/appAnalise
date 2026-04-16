@@ -51,7 +51,7 @@ classdef SpecData < model.SpecDataBase
 
     methods
         %-----------------------------------------------------------------%
-        function obj = syncCollection(obj, metaData, generalSettings)
+        function obj = syncCollection(obj, metaData, channelObj, generalSettings)
             % Identifica fluxos espectrais presentes nos arquivos.
             referenceTable = buildSpectrumReferenceTable(metaData, generalSettings);
             [uniqueHashs, ~, uniqueHashIdxs] = unique(referenceTable.Hash, 'stable');
@@ -63,7 +63,18 @@ classdef SpecData < model.SpecDataBase
             % proximidade geográfica e timestamps não sobrepostos.
             for ii = 1:numel(uniqueHashs)
                 flowHash = uniqueHashs{ii};
-                flowHashIdxs = find(uniqueHashIdxs == ii)';
+                flowHashIdxs = find(uniqueHashIdxs == ii)';                
+                
+                % Identifica fluxos que não foram alterados...
+                flowRelatedFiles = referenceTable.RelatedFiles(flowHashIdxs);
+                if any(cellfun(@iscellstr, flowRelatedFiles))
+                    flowRelatedFiles = vertcat(flowRelatedFiles{:});
+                end
+                identicalObjIdx = find(arrayfun(@(x) strcmp(x.Hash, flowHash) & isequal(sort(x.RelatedFiles.File), sort(flowRelatedFiles)), obj), 1);
+                if ~isempty(identicalObjIdx)
+                    addInputFileInfo(obj(identicalObjIdx), referenceTable(flowHashIdxs, :))
+                    continue
+                end
 
                 for jj = flowHashIdxs
                     fileIdx = referenceTable.Idx{jj}{1}(1);
@@ -92,12 +103,7 @@ classdef SpecData < model.SpecDataBase
                         obj(idx).Hash = flowHash;
                     end
 
-                    obj(idx).InputFiles(end+1) = struct( ...
-                        'File', referenceTable.File{jj}, ...
-                        'Indexes', [fileIdx, flowIdx], ...
-                        'Hash', flowHash, ...
-                        'IsUserMerged', false ...
-                    );
+                    addInputFileInfo(obj(idx), referenceTable(jj, :))
                 end
             end
 
@@ -108,6 +114,13 @@ classdef SpecData < model.SpecDataBase
             obj = obj(sortedIdxs);
             
             occupancyMapping(obj)
+
+            % Popula espectro dos fluxos para os quais já foi identificado
+            % ao menos uma emissão.
+            emissionDetectedIdxs = find(arrayfun(@(x) ~isempty(x.UserData.Emissions), obj));
+            if ~isempty(emissionDetectedIdxs)
+                populateSpectrum(obj(emissionDetectedIdxs), metaData, channelObj, generalSettings)
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -677,18 +690,23 @@ classdef SpecData < model.SpecDataBase
 
                                 case 'IsTruncated'
                                     obj.UserData.Emissions.IsTruncated(idx) = varargin{3};
-
-                                    % Atualiza o canal da emissão e, caso a classificação não tenha sido editada pelo usuário,
-                                    % atualiza-se, também, a sua classificação (provável emissor, risco etc).
                                     obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
-                                    if isequal(obj.UserData.Emissions.Classification(idx).AutoSuggested, obj.UserData.Emissions.Classification(idx).UserModified)
-                                        obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);
-                                    end
-                                    
+                                    obj.UserData.Emissions.Classification(idx) = model.UserData.getFieldTemplate('Classification',  obj, 1, idx, channelObj);                                    
                                     return
 
                                 case 'Description'
                                     obj.UserData.Emissions.Description(idx) = varargin{3};
+                                    return
+
+                                case 'Latitude+Longitude+AntennaHeight'
+                                    lat = varargin{3};
+                                    lng = varargin{4};
+                                    antennaHeight = varargin{5};
+
+                                    obj.UserData.Emissions.Classification(idx).UserModified.Latitude = lat;
+                                    obj.UserData.Emissions.Classification(idx).UserModified.Longitude = lng;
+                                    obj.UserData.Emissions.Classification(idx).UserModified.AntennaHeight = antennaHeight;
+                                    obj.UserData.Emissions.Classification(idx).UserModified.Distance = deg2km(distance(obj.GPS.Latitude, obj.GPS.Longitude, lat, lng));
                                     return
                             end
         
@@ -894,6 +912,13 @@ classdef SpecData < model.SpecDataBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
+        function checkIfScalar(obj)
+            if ~isscalar(obj)
+                error('model:SpecData:ScalarObjectRequired', 'This method requires a scalar object.');
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function obj = deleteObsoleteFlows(obj, referenceTable, uniqueHashs, uniqueHashIdxs)
             % Exclui fluxos de specData cujos arquivos de suporte não existem mais.
             % Exceção aos fluxos mesclados manualmente pelo usuário (IsUserMerged),
@@ -917,7 +942,7 @@ classdef SpecData < model.SpecDataBase
                 if hashIdx
                     % Reúne todos os arquivos ainda válidos para este Hash
                     flowRefRelatedFiles = referenceTable.RelatedFiles(uniqueHashIdxs == hashIdx);
-                    if ~isscalar(flowRefRelatedFiles)
+                    if any(cellfun(@iscellstr, flowRefRelatedFiles))
                         flowRefRelatedFiles = vertcat(flowRefRelatedFiles{:});
                     end
 
@@ -943,9 +968,8 @@ classdef SpecData < model.SpecDataBase
             % Procura um fluxo existente que pode ser mesclado com o novo fluxo.
             % Retorna o índice do fluxo candidato, ou [] se nenhum for encontrado.
             % 
-            % Critério de mesclagem:
-            % - Mesmo Hash + proximidade geográfica (< maxCoLocationDistanceMeters) 
-            %   + timestamps não sobrepostos
+            % Critério de mesclagem: mesmo hash + proximidade geográfica 
+            % (< maxCoLocationDistanceMeters) + timestamps não sobrepostos.
             
             candidateIdx = [];
             
@@ -977,9 +1001,16 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function checkIfScalar(obj)
-            if ~isscalar(obj)
-                error('model:SpecData:ScalarObjectRequired', 'This method requires a scalar object.');
+        function addInputFileInfo(obj, filteredReferenceTable)
+            checkIfScalar(obj)
+
+            for ii = 1:height(filteredReferenceTable)
+                obj.InputFiles(end+1) = struct( ...
+                    'File', filteredReferenceTable.File{ii}, ...
+                    'Indexes', [filteredReferenceTable.Idx{ii}{1}(1), filteredReferenceTable.Idx{ii}{1}(2)], ...
+                    'Hash', filteredReferenceTable.Hash{ii}, ...
+                    'IsUserMerged', false ...
+                );
             end
         end
 

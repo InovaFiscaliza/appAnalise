@@ -163,7 +163,13 @@ classdef (Abstract) Interactivity
         end
 
         %-----------------------------------------------------------------%
-        function CustomRestoreViewFcn(hAxes, hRelatedAxes, callingApp)
+        function CustomRestoreViewFcn(hAxes, hRelatedAxes, callingApp, isAxesLinkedX)
+            arguments
+                hAxes 
+                hRelatedAxes 
+                callingApp 
+                isAxesLinkedX = true
+            end
             % Para que essa função customizada funcione, o callingApp precisa 
             % ter uma propriedade chamada "restoreView", que é uma estrutura 
             % com ao menos os campos "xLim" e "yLim".
@@ -171,26 +177,31 @@ classdef (Abstract) Interactivity
             hMultiAxes = [hAxes, hRelatedAxes];
 
             try
-                xLim = callingApp.restoreView(1).xLim;
+                for ii = 1:numel(hMultiAxes)
+                    if ii == 1 || ~isAxesLinkedX
+                        hMultiAxes(ii).XLim = getXLim(callingApp.restoreView(ii).xLim);
+                    end
+
+                    hMultiAxes(ii).YLim = getYLim(callingApp.restoreView(ii).yLim, class(hMultiAxes(ii).YAxis));
+                end
+            catch
+            end
+
+            function xLim = getXLim(xLim)
                 if isempty(xLim)
                     xLim = [0, 1];
                 end
-                hAxes.XLim = xLim;
+            end
 
-                for ii = 1:numel(hMultiAxes)
-                    yLim = callingApp.restoreView(ii).yLim;
-                    if isempty(yLim)
-                        switch class(hMultiAxes(ii).YAxis)
-                            case 'matlab.graphics.axis.decorator.DatetimeRuler'
-                                yLim = [datetime('now'), datetime('now')+seconds(1)];
-                            otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
-                                yLim = [0, 1];
-                        end
+            function yLim = getYLim(yLim, yAxisClass)
+                if isempty(yLim)
+                    switch yAxisClass
+                        case 'matlab.graphics.axis.decorator.DatetimeRuler'
+                            yLim = [datetime('now'), datetime('now')+seconds(1)];
+                        otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
+                            yLim = [0, 1];
                     end
-
-                    hMultiAxes(ii).YLim = yLim;
                 end
-            catch
             end
         end
         

@@ -45,11 +45,11 @@ classdef (Abstract) Classification
         
             % Se a frequência truncada estiver na lista de exceção global, então esse
             % registro é retornado como a provável fonte de emissão.
-            idxException = find((abs(channelObj.Exception.FreqCenter - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE), 1);   
+            exceptionIdx = find((abs(channelObj.Exception.FreqCenter - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE), 1);   
         
-            if ~isempty(idxException)
+            if ~isempty(exceptionIdx)
                 emissionInfo.Regulatory   = 'Não passível de licenciamento';
-                emissionInfo.Description  = channelObj.Exception.Description{idxException};
+                emissionInfo.Description  = channelObj.Exception.Description{exceptionIdx};
                 emissionInfo.EmissionType = 'Fundamental';
                 emissionInfo.Irregular    = 'Não';
                 emissionInfo.RiskLevel    = '-';

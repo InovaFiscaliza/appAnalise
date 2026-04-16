@@ -134,7 +134,20 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             try
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
-                        onToolbarCheckBoxValueChanged(app)
+                        eventName = varargin{1};
+
+                        switch eventName
+                            case {'onFileListAdded', ...
+                                  'onFileListRemoved', ...
+                                  'onFileFilterChanged', ...
+                                  'onEmissionAdded', ...
+                                  'onEmissionParameterValueChanged', ...
+                                  'onEmissionDeleted'}
+                                applyInitialLayout(app)
+
+                            otherwise
+                                error('auxApp:winSignalAnalysis:UnexpectedCall', 'Unexpected call "%s"', eventName)
+                        end
 
                     otherwise
                         error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
@@ -256,8 +269,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             xlabel(app.UIAxes2, 'Distância (km)')
             ylabel(app.UIAxes2, 'Elevação (m)')
 
-            plot.axes.Interactivity.DefaultCreation(app.UIAxes1, [dataTipInteraction, regionZoomInteraction])
-            plot.axes.Interactivity.DefaultCreation(app.UIAxes2, [dataTipInteraction, regionZoomInteraction])
+            plot.axes.Interactivity.DefaultCreation([app.UIAxes1, app.UIAxes2], [dataTipInteraction, regionZoomInteraction, rulerPanInteraction])
         end
 
         %-----------------------------------------------------------------%
@@ -306,34 +318,108 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.progressDialog.Visible = 'hidden';
             end
         end
-        
+
         %-----------------------------------------------------------------%
-        function updateCoordinatesPanelStyle(app, editionStatus)
-            arguments
-                app 
-                editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
-            end            
+        function updateTableStyle(app)
+            removeStyle(app.UITable)
+                
+            % Destaca registros que tiveram a sua classificação editada...
+            editedEmissionIdxs = [];            
+            for ii = 1:height(app.emissionsTable)
+                if ~isequal(app.emissionsTable.Classification(ii).AutoSuggested, ...
+                            app.emissionsTable.Classification(ii).UserModified)
+                    editedEmissionIdxs = [editedEmissionIdxs; ii];
+                end
+            end
+            
+            if ~isempty(editedEmissionIdxs)
+                listOfCells1 = [editedEmissionIdxs, ones(numel(editedEmissionIdxs), 1)];
+                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', listOfCells1) 
+            end
 
-            switch editionStatus
-                case 'on'
-                    app.TXLocationEditMode.ImageSource = 'Edit_32Filled.png';
-                    app.TXLocationEditMode.UserData.status = true;
+            % Destaca registros que apresentam valores inválidos de estações...
+            % (usei o método dois por robustez na obtenção dos índices)
+            % idxInvalidStationNumber = find(arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification) == -1);
+            invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
+            if ~isempty(invalidStationNumberIdxs)
+                listOfCells2 = [invalidStationNumberIdxs, repmat(2, numel(invalidStationNumberIdxs), 1)];
+                addStyle(app.UITable, uistyle('Icon', 'Circle_18Red.png',  'IconAlignment', 'leftmargin'), 'cell', listOfCells2) 
+            end
+        end
 
-                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {18, 18};
-                    app.TXLocationEditConfirm.Enable = 1;
-                    app.TXLocationEditCancel.Enable  = 1;
-                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 1)
+        %-----------------------------------------------------------------%
+        function updateSelectedEmissionFormAndPlot(app)
+            if ~isempty(app.emissionsTable)
+                [flowIdx, emissionIdx] = getEmissionIndexes(app);
+                specData = app.mainApp.specData(flowIdx);
+                selectedRow = app.UITable.Selection;
+    
+                [htmlContent1, ...
+                 htmlContent2, ...
+                 emissionTag, ...
+                 userDescription, ...
+                 stationInfo] = util.HtmlTextGenerator.Emission(specData, emissionIdx);
+    
+                ui.TextView.update(app.EmissionTitle, htmlContent1);
+                ui.TextView.update(app.LOG, htmlContent2);
+                set(app.AdditionalDescription, 'Value', userDescription, 'UserData', userDescription) 
+    
+                % TABLE CONTEXT MENU
+                if specData.UserData.Emissions.IsTruncated(emissionIdx)
+                    app.contextmenu_NonTruncateEmission.Enable  = 1;
+                    app.contextmenu_TruncateEmission.Enable = 0;
+                else
+                    app.contextmenu_NonTruncateEmission.Enable  = 0;
+                    app.contextmenu_TruncateEmission.Enable = 1;
+                end
+    
+                % CONTROL PANEL
+                app.ClassificationRefresh.Visible = ~isequal(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, ...
+                                                     specData.UserData.Emissions.Classification(emissionIdx).UserModified);
+                
+                app.Regulatory.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Regulatory;
+                updateRegulatoryStyle(app)
 
-                case 'off'
-                    app.TXLocationEditMode.ImageSource = 'Edit_32.png';
-                    app.TXLocationEditMode.UserData.status = false;
+                app.StationID.Value = num2str(specData.UserData.Emissions.Classification(emissionIdx).UserModified.Station);
+                updateStationIdStyle(app)
 
-                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {0, 0};
-                    app.TXLocationEditConfirm.Enable = 0;
-                    app.TXLocationEditCancel.Enable  = 0;
-                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 0)
+                app.EmissionType.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.EmissionType;
+                updateEmissionTypeStyle(app)
 
-                    updateCoordinatesPanel(app)
+                app.Compliance.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Irregular;
+                updateComplianceStyle(app)
+
+                app.RiskLevel.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.RiskLevel;
+    
+                % PLOT CONFIG PANEL
+                app.TXLocationEditConfirm.UserData = stationInfo;
+                updateCoordinatesPanelContent(app)
+    
+                % PLOT
+                createSpectrumPlot(app, specData, emissionIdx, emissionTag)
+                createRFLinkPlot(app, selectedRow, flowIdx)
+                
+                app.SelectedEmissionPanelGrid.Visible = 1;
+                app.tool_ExportJSONFile.Enable = 1;
+
+            else
+                ui.TextView.update(app.EmissionTitle, '');
+                
+                cla(app.UIAxes1)
+                cla(app.UIAxes2)
+                
+                app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [0, 1], 'yLim', [0, 1], 'cLim', 'auto');
+                app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', [0, 1], 'yLim', [0, 1], 'cLim', 'auto');
+                onAxesToolbarButtonClicked(app, struct('Source', app.AxesRestoreViewButton))
+                
+                ylabel(app.UIAxes1, 'Nível (dB)')
+                ysecondarylabel(app.UIAxes1, [newline, newline])
+                
+                
+                app.RFLinkWarning.Visible = 0;
+                app.ClassificationRefresh.Visible = 0;
+                app.SelectedEmissionPanelGrid.Visible = 0;
+                app.tool_ExportJSONFile.Enable = 0;
             end
         end
 
@@ -399,109 +485,41 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateTableStyle(app)
-            removeStyle(app.UITable)
-                
-            % Destaca registros que tiveram a sua classificação editada...
-            idxEditedPeaks = [];            
-            for ii = 1:height(app.emissionsTable)
-                if ~isequal(app.emissionsTable.Classification(ii).AutoSuggested, ...
-                            app.emissionsTable.Classification(ii).UserModified)
-                    idxEditedPeaks = [idxEditedPeaks; ii];
-                end
-            end
-            
-            if ~isempty(idxEditedPeaks)
-                listOfCells1 = [idxEditedPeaks, ones(numel(idxEditedPeaks), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', listOfCells1) 
-            end
+        function updateCoordinatesPanelStyle(app, editionStatus)
+            arguments
+                app 
+                editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
+            end            
 
-            % Destaca registros que apresentam valores inválidos de estações...
-            % (usei o método dois por robustez na obtenção dos índices)
-            % idxInvalidStationNumber = find(arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification) == -1);
-            idxInvalidStationNumber = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
-            if ~isempty(idxInvalidStationNumber)
-                listOfCells2 = [idxInvalidStationNumber, repmat(2, numel(idxInvalidStationNumber), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'Circle_18Red.png',  'IconAlignment', 'leftmargin'), 'cell', listOfCells2) 
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function updateSelectedEmissionFormAndPlot(app)
-            if ~isempty(app.emissionsTable)
-                [flowIdx, emissionIdx] = getEmissionIndexes(app);
-                specData = app.mainApp.specData(flowIdx);
-                selectedRow = app.UITable.Selection;
-    
-                [htmlContent1, ...
-                 htmlContent2, ...
-                 emissionTag, ...
-                 userDescription, ...
-                 stationInfo] = util.HtmlTextGenerator.Emission(specData, emissionIdx);
-    
-                ui.TextView.update(app.EmissionTitle, htmlContent1);
-                ui.TextView.update(app.LOG, htmlContent2);
-                set(app.AdditionalDescription, 'Value', userDescription, 'UserData', userDescription) 
-    
-                % TABLE CONTEXT MENU
-                if specData.UserData.Emissions.IsTruncated(emissionIdx)
-                    app.contextmenu_NonTruncateEmission.Enable  = 1;
-                    app.contextmenu_TruncateEmission.Enable = 0;
-                else
-                    app.contextmenu_NonTruncateEmission.Enable  = 0;
-                    app.contextmenu_TruncateEmission.Enable = 1;
-                end
-    
-                % CONTROL PANEL
-                app.ClassificationRefresh.Visible = ~isequal(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, ...
-                                                     specData.UserData.Emissions.Classification(emissionIdx).UserModified);
-                
-                app.Regulatory.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Regulatory;
-                updateRegulatoryStyle(app)
+            switch editionStatus
+                case 'on'
+                    app.TXLocationEditMode.ImageSource = 'Edit_32Filled.png';
+                    app.TXLocationEditMode.UserData.status = true;
 
-                app.StationID.Value = num2str(specData.UserData.Emissions.Classification(emissionIdx).UserModified.Station);
-                updateStationIdStyle(app)
+                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {18, 18};
+                    app.TXLocationEditConfirm.Enable = 1;
+                    app.TXLocationEditCancel.Enable  = 1;
+                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 1)
 
-                app.EmissionType.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.EmissionType;
-                updateEmissionTypeStyle(app)
+                case 'off'
+                    app.TXLocationEditMode.ImageSource = 'Edit_32.png';
+                    app.TXLocationEditMode.UserData.status = false;
 
-                app.Compliance.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Irregular;
-                updateComplianceStyle(app)
+                    app.TXLocationEditionGrid.ColumnWidth(end-1:end) = {0, 0};
+                    app.TXLocationEditConfirm.Enable = 0;
+                    app.TXLocationEditCancel.Enable  = 0;
+                    set(findobj(app.TXLocationGrid.Children, 'Type', 'uinumericeditfield'), 'Editable', 0)
 
-                app.RiskLevel.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.RiskLevel;
-    
-                % PLOT CONFIG PANEL
-                app.TXLocationEditConfirm.UserData = stationInfo;
-                updateCoordinatesPanel(app)
-    
-                % PLOT
-                createSpectrumPlot(app, specData, emissionIdx, emissionTag)
-                createRFLinkPlot(app, selectedRow, flowIdx)
-                
-                app.SelectedEmissionPanelGrid.Visible = 1;
-                app.tool_ExportJSONFile.Enable = 1;
-
-            else
-                ui.TextView.update(app.EmissionTitle, '');
-                
-                cla(app.UIAxes1)
-                cla(app.UIAxes2)
-                ylabel(app.UIAxes1, 'Nível')
-                set(app.UIAxes1, 'XLim', [0, 1], 'YLim', [0, 1])
-                ysecondarylabel(app.UIAxes1, [newline, newline])
-                
-                app.ClassificationRefresh.Visible = 0;
-                app.SelectedEmissionPanelGrid.Visible = 0;
-                app.tool_ExportJSONFile.Enable = 0;
+                    updateCoordinatesPanelContent(app)
             end
         end
 
         %-----------------------------------------------------------------%
-        function updateCoordinatesPanel(app)
+        function updateCoordinatesPanelContent(app)
             stationInfo = app.TXLocationEditConfirm.UserData;
 
-            app.TXLatitude.Value  = round(double(stationInfo.Latitude),  6);
-            app.TXLongitude.Value = round(double(stationInfo.Longitude), 6);
+            app.TXLatitude.Value  = double(stationInfo.Latitude);
+            app.TXLongitude.Value = double(stationInfo.Longitude);
 
             if stationInfo.AntennaHeight > 0
                 app.TXAntennaHeight.Value = stationInfo.AntennaHeight;
@@ -573,33 +591,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function [txSite, rxSite] = getRFLinkObjects(app, specData, selectedRow)
-            % txSite e rxSite estão como struct, mas basta mudar para "txsite" e 
-            % "rxsite" que eles poderão ser usados em predições, uma vez que os 
-            % campos da estrutura são idênticos às propriedades dos objetos.
-            if (app.TXLatitude.Value == -1) && (app.TXLongitude.Value == -1)
-                error('winSignalAnalysis:RFLinkObjects:UnexpectedEmptyIndex', 'Unexpected empty index')
-            end
-
-            % TX
-            txSite = struct( ...
-                'Name', 'TX', ...
-                'TransmitterFrequency', double(app.UITable.Data.Truncated(selectedRow) * 1e+6), ...
-                'Latitude', app.TXLatitude.Value, ...
-                'Longitude', app.TXLongitude.Value, ...
-                'AntennaHeight', app.TXAntennaHeight.Value ...
-            );
-
-            % RX
-            rxSite = struct( ...
-                'Name', 'RX', ...
-                'Latitude', specData.GPS.Latitude,  ...
-                'Longitude', specData.GPS.Longitude, ...
-                'AntennaHeight', calculateAntennaHeight(specData, 1, 10) ...
-            );
-        end
-
-        %-----------------------------------------------------------------%
         function fetchEmissionUpdate(app, triggeredComponent, varargin)
             [flowIdx, emissionIdx] = getEmissionIndexes(app);
             specData = app.mainApp.specData(flowIdx);
@@ -642,14 +633,10 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     end
 
                     specData.UserData.Emissions.Description(emissionIdx) = userDescription;
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'PeakDescriptionChanged')
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
                     
                 case app.TXLocationEditConfirm % Latitude | Longitude | AntennaHeight
-                    specData.UserData.Emissions.Classification(emissionIdx).UserModified.Latitude      = app.TXLatitude.Value;
-                    specData.UserData.Emissions.Classification(emissionIdx).UserModified.Longitude     = app.TXLongitude.Value;
-                    specData.UserData.Emissions.Classification(emissionIdx).UserModified.AntennaHeight = app.TXAntennaHeight.Value;
-                    specData.UserData.Emissions.Classification(emissionIdx).UserModified.Distance      = deg2km(distance(specData.GPS.Latitude, specData.GPS.Longitude, ...
-                                                                                                                                        app.TXLatitude.Value, app.TXLongitude.Value));
+                    update(specData, 'UserData:Emissions', 'Edit', 'Latitude+Longitude+AntennaHeight', emissionIdx, app.TXLatitude.Value, app.TXLongitude.Value, app.TXAntennaHeight.Value)
 
                 otherwise
                     oldRegulatory = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Regulatory;
@@ -681,8 +668,35 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function [flowIdx, emissionIdx] = getEmissionIndexes(app)
             selectedRow = app.UITable.Selection;
-            flowIdx = app.emissionsTable.idxThread(selectedRow);
-            emissionIdx = app.emissionsTable.idxEmission(selectedRow);
+            flowIdx = app.emissionsTable.flowIdx(selectedRow);
+            emissionIdx = app.emissionsTable.emissionIdx(selectedRow);
+        end
+
+        %-----------------------------------------------------------------%
+        function [txSite, rxSite] = getRFLinkObjects(app, specData, selectedRow)
+            % txSite e rxSite estão como struct, mas basta mudar para "txsite" e 
+            % "rxsite" que eles poderão ser usados em predições, uma vez que os 
+            % campos da estrutura são idênticos às propriedades dos objetos.
+            if (app.TXLatitude.Value == -1) && (app.TXLongitude.Value == -1)
+                error('winSignalAnalysis:RFLinkObjects:UnexpectedEmptyIndex', 'Unexpected empty index')
+            end
+
+            % TX
+            txSite = struct( ...
+                'Name', 'TX', ...
+                'TransmitterFrequency', double(app.UITable.Data.Truncated(selectedRow) * 1e+6), ...
+                'Latitude', app.TXLatitude.Value, ...
+                'Longitude', app.TXLongitude.Value, ...
+                'AntennaHeight', app.TXAntennaHeight.Value ...
+            );
+
+            % RX
+            rxSite = struct( ...
+                'Name', 'RX', ...
+                'Latitude', specData.GPS.Latitude,  ...
+                'Longitude', specData.GPS.Longitude, ...
+                'AntennaHeight', calculateAntennaHeight(specData, 1, 10) ...
+            );
         end
     end
 
@@ -758,11 +772,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             switch event.Source
                 case app.contextmenu_DeleteEmission
                     update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted')
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
 
                 otherwise % app.contextmenu_TruncateEmission | app.contextmenu_NonTruncateEmission
                     isTruncated = ~specData.UserData.Emissions.IsTruncated(emissionIdx);
-                    update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, isTruncated)
+                    update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, isTruncated, app.mainApp.channelObj)
             end
 
             applyInitialLayout(app)
@@ -965,7 +979,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.AxesRestoreViewButton
-                    plot.axes.Interactivity.CustomRestoreViewFcn(app.UIAxes1, app.UIAxes2, app)
+                    plot.axes.Interactivity.CustomRestoreViewFcn(app.UIAxes1, app.UIAxes2, app, false)
                 
                 case app.AxesPanButton
                     app.AxesPanButton.UserData.status = ~app.AxesPanButton.UserData.status;

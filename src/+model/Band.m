@@ -68,7 +68,7 @@ classdef Band < handle
                 obj.Receiver   = util.layoutTreeNodeText(obj.SpecData.Receiver, 'model.Band.updateSpectrumInfo');
                 obj.FreqStart  = obj.SpecData.MetaData.FreqStart / 1e+6;
                 obj.FreqStop   = obj.SpecData.MetaData.FreqStop  / 1e+6;
-                obj.NumSweeps  = numel(obj.SpecData.Data{1});
+                obj.NumSweeps  = sum(obj.SpecData.RelatedFiles.NumSweeps);
                 obj.DataPoints = obj.SpecData.MetaData.DataPoints;
 
                 if ismember(obj.SpecData.MetaData.DataType, class.Constants.occDataTypes)

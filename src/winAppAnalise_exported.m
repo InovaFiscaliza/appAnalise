@@ -293,6 +293,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         context = varargin{1};
                                         reportUploadArtifacts(app, context, [], 'uploadDocument')
 
+                                    case {'onEmissionDeleted', 'onEmissionParameterValueChanged'}
+                                        context = varargin{1};
+                                        notifySecondaryApps(app, eventName, {context})
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -310,8 +314,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % auxApp.winSignalAnalysis (SIGNALANALYSIS)
                             case {'auxApp.winSignalAnalysis', 'auxApp.winSignalAnalysis_exported'}
                                 switch eventName
-                                    case {'onEmissionDeleted', 'onEmissionUserDescriptionValueChanged'}
-                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
+                                    case {'onEmissionDeleted', 'onEmissionParameterValueChanged'}
+                                        context = varargin{1};
+                                        notifySecondaryApps(app, eventName, {context})
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -339,8 +344,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                 switch eventName
                                     case 'onEmissionAdded'
-                                        context  = varargin{1};
-                                        ipcMainMatlabCallAuxiliarApp(app, context, 'MATLAB', eventName)
+                                        notifySecondaryApps(app, eventName)
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -672,11 +676,24 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             buildFileTree(app, previousSelectionIdxs)
-            app.specData = syncCollection(app.specData, app.metaData, app.General);
+            app.specData = syncCollection(app.specData, app.metaData, app.channelObj, app.General);
+            notifySecondaryApps(app, updateType)
+        end
+
+        %-----------------------------------------------------------------%
+        function notifySecondaryApps(app, updateType, excludeTags)
+            arguments
+                app
+                updateType char {mustBeMember(updateType, {'onFileListAdded', ...
+                                                           'onFileListRemoved', ...
+                                                           'onFileFilterChanged', ...
+                                                           'onEmissionAdded', ...
+                                                           'onEmissionParameterValueChanged'})}
+                excludeTags cell = {}
+            end
             
-            ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK',       'MATLAB', updateType)
-            ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST',      'MATLAB', updateType)
-            ipcMainMatlabCallAuxiliarApp(app, 'SIGNALANALYSIS', 'MATLAB', updateType)
+            secondaryAppTags = setdiff({'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS'}, excludeTags);
+            cellfun(@(x) ipcMainMatlabCallAuxiliarApp(app, x, 'MATLAB', updateType), secondaryAppTags)
         end
 
         %-----------------------------------------------------------------%

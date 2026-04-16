@@ -452,8 +452,10 @@ classdef (Abstract) HtmlTextGenerator
 
             for ii = 1:numel(columnsToCompare)
                 columnName = columnsToCompare{ii};
-                if ~isequal(emissionTable.Classification.AutoSuggested.(columnName), emissionTable.Classification.UserModified.(columnName))
-                    columnsDiff.(columnName) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(emissionTable.Classification.AutoSuggested.(columnName)), string(emissionTable.Classification.UserModified.(columnName)));                    
+                isNumeric = isnumeric(emissionTable.Classification.AutoSuggested.(columnName));
+                if isNumeric && abs(emissionTable.Classification.AutoSuggested.(columnName) - emissionTable.Classification.UserModified.(columnName)) > 1e-5 || ...
+                  ~isNumeric && ~isequal(emissionTable.Classification.AutoSuggested.(columnName), emissionTable.Classification.UserModified.(columnName))
+                    columnsDiff.(columnName) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(emissionTable.Classification.AutoSuggested.(columnName)), string(emissionTable.Classification.UserModified.(columnName)));
                 end
                 stationInfo.(columnName) = emissionTable.Classification.UserModified.(columnName);
             end
