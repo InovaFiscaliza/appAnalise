@@ -35,7 +35,7 @@ function tableStr = fiscalizaJsonFile(specData, flowIdxs, emissionsTable)
                                       specData(ii).RelatedFiles.Description{1}, ...
                                       strjoin(specData(ii).RelatedFiles.File, ', ')};
                 
-                idx1 = find(emissionsTable.idxThread == ii);
+                idx1 = find(emissionsTable.flowIdx == ii);
                 if ~isempty(idx1)
                     emissionsTable.FK1(idx1) = uint16(jj);
                 end

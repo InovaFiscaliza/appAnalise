@@ -5,8 +5,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         UIFigure                      matlab.ui.Figure
         GridLayout                    matlab.ui.container.GridLayout
         DockModule                    matlab.ui.container.GridLayout
-        dockModule_Undock             matlab.ui.control.Image
         dockModule_Close              matlab.ui.control.Image
+        dockModule_Undock             matlab.ui.control.Image
         Toolbar                       matlab.ui.container.GridLayout
         tool_ControlPanelVisibility   matlab.ui.control.Image
         tool_Separator                matlab.ui.control.Image
@@ -48,13 +48,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         SelectedEmissionLabel         matlab.ui.control.Label
         SelectedEmissionIcon          matlab.ui.control.Image
         Document                      matlab.ui.container.GridLayout
+        RFLinkWarning                 matlab.ui.control.Image
         AxesToolbar                   matlab.ui.container.GridLayout
         AxesPanButton                 matlab.ui.control.Image
         AxesRestoreViewButton         matlab.ui.control.Image
-        RFLinkWarning                 matlab.ui.control.Image
         AxesContainer                 matlab.ui.container.Panel
         UITable                       matlab.ui.control.Table
         UITableLabel                  matlab.ui.control.Label
+        UITableIcon                   matlab.ui.control.Image
         ContextMenu                   matlab.ui.container.ContextMenu
         contextmenu_TruncateItem      matlab.ui.container.Menu
         contextmenu_NonTruncateEmission  matlab.ui.container.Menu
@@ -81,15 +82,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         SubTabGroup = struct('Children', -1, 'UserData', [])
 
-        % Handles dos eixos cartesianos utilizados por este módulo. No futuro,
-        % simplificar para uma lista de handles, permitindo a criação dinâmica
-        % de quantos eixos forem necessários, como ocorre na geração do relatório.
+        % Handles dos eixos cartesianos utilizados por este módulo.
         UIAxes1
         UIAxes2
 
         % Informações relacionadas ao specData selecionado, com atalhos para 
         % os principais metadados e a definição dos limites dos eixos x, y e 
-        % z dos eixos cartesianos. No futuro, remover essa propriedade.
+        % z dos eixos cartesianos.
         bandObj
 
         % Armazena limites padrão dos eixos cartesianos computados em método 
@@ -105,7 +104,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        tempBandObj
         elevationObj = RF.Elevation
         emissionsTable
     end
@@ -124,7 +122,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 end
 
             catch ME
-                struct2table(ME.stack)
                 ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
@@ -150,7 +147,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         end
 
                     otherwise
-                        error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
+                        error('auxApp:winSignalAnalysis:UnexpectedCaller', 'Unexpected caller "%s"', class(callingApp))
                 end
             
             catch ME
@@ -188,7 +185,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,                  'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                             struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Retorna à classificação automática')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id,           'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita parâmetros do provável emissor')), ...
+                            struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id,           'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel de edição')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Confirma edição, recriando perfil de terreno')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Cancela edição')), ...
                             struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta arquivo JSON com informações das emissões')), ...
@@ -285,13 +282,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     selectedRow = height(app.emissionsTable);
                 end
             end
-    
-            if app.progressDialog.Visible == "visible"
-                progressDialogAlreadyVisible = true;
-            else
-                progressDialogAlreadyVisible = false;
-                app.progressDialog.Visible = 'visible';
-            end
+
+            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
     
             columnNames = { ...
                 'Frequency', ...
@@ -314,9 +306,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITable.Selection = selectedRow;
             updateSelectedEmissionFormAndPlot(app)
     
-            if ~progressDialogAlreadyVisible
-                app.progressDialog.Visible = 'hidden';
-            end
+            requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
         end
 
         %-----------------------------------------------------------------%
@@ -822,8 +812,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         % Value changed function: StationID
         function onStationIdValueChanged(app, event)
             
-            global RFDataHub
-
             try
                 app.StationID.Value = strtrim(app.StationID.Value);
                 if isempty(regexp(app.StationID.Value, '^\#?\d+$', 'once'))
@@ -839,42 +827,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 receiverLatitude  = specData.GPS.Latitude;
                 receiverLongitude = specData.GPS.Longitude;
-                stationInfo       = model.RFDataHub.query(RFDataHub, app.StationID.Value, receiverLatitude, receiverLongitude);
+                stationInfo = model.RFDataHub.query(app.mainApp.rfDataHub, app.StationID.Value, receiverLatitude, receiverLongitude);
 
                 % Caso a estação não conste em RFDataHub, o método query
                 % chamado anteriormente retornará um erro. Mas caso
                 % encontre, confirma-se com o usuário a edição.
-                dataStruct(1) = struct( ...
-                    'group', 'INDICAÇÃO AUTOMÁTICA', ...
-                    'value', struct( ...
-                        'Regulatory', specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Regulatory, ...
-                        'Frequency', sprintf('%.3f MHz', specData.UserData.Emissions.Frequency(emissionIdx)) ...
-                    ) ...
-                );
-                
-                if specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Regulatory == "Licenciada"
-                    dataStruct(1).value.Description = specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Description;
-                    dataStruct(1).value.Distance    = sprintf('%s km', specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Distance);
-                end
-
-                switch stationInfo.Service
-                    case -1
-                        emissionRegulatory = '<font style="color: #c94756;">Não Licenciada</font>';
-                    otherwise
-                        emissionRegulatory = 'Licenciada';
-                end
-                dataStruct(2) = struct( ...
-                    'group', 'MANUAL', ...
-                    'value', struct( ...
-                        'Regulatory',  emissionRegulatory, ...
-                        'Frequency', sprintf('%s MHz', stationInfo.Frequency), ...
-                        'Description', stationInfo.Description,                  ...
-                        'Distance', sprintf('%.1f km', stationInfo.Distance) ...
-                    ) ...
-                );
-
-                msgQuestion   = sprintf('%s<br><font style="font-size: 12px;">Confirma edição?<font>', textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", '', 'popup'));
+                msgQuestion = util.HtmlTextGenerator.EmissionEditionConfirmation(specData, emissionIdx, stationInfo);
                 userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+
                 switch userSelection
                     case 'Sim'
                         fetchEmissionUpdate(app, app.StationID, stationInfo)
@@ -1054,7 +1014,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         return
                     end
 
-                    app.progressDialog.Visible = 'visible';
+                    requestVisibilityChange(app.progressDialog, 'visible', 'locked')
                     
                     try
                         writematrix(emissionFiscalizaTable, JSONFullPath, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
@@ -1062,7 +1022,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         ui.Dialog(app.UIFigure, 'error', ME.message);
                     end
 
-                    app.progressDialog.Visible = 'hidden';
+                    requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
                 %---------------------------------------------------------%
                 case app.tool_ControlPanelVisibility
@@ -1125,8 +1085,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 50, '1x', '1x', 18, 3};
-            app.Document.RowHeight = {53, '1x', 14, 24, 216};
+            app.Document.ColumnWidth = {5, 13, 5, 32, '1x', '1x', 18, 3};
+            app.Document.RowHeight = {22, 5, '1x', 14, 24, 216};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
             app.Document.Padding = [0 0 0 0];
@@ -1134,15 +1094,20 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.Document.Layout.Column = 2;
             app.Document.BackgroundColor = [1 1 1];
 
+            % Create UITableIcon
+            app.UITableIcon = uiimage(app.Document);
+            app.UITableIcon.ScaleMethod = 'none';
+            app.UITableIcon.Layout.Row = [1 2];
+            app.UITableIcon.Layout.Column = [1 2];
+            app.UITableIcon.ImageSource = 'Detection_18.png';
+
             % Create UITableLabel
             app.UITableLabel = uilabel(app.Document);
-            app.UITableLabel.VerticalAlignment = 'top';
-            app.UITableLabel.WordWrap = 'on';
-            app.UITableLabel.FontSize = 14;
+            app.UITableLabel.VerticalAlignment = 'bottom';
+            app.UITableLabel.FontSize = 10;
             app.UITableLabel.Layout.Row = 1;
-            app.UITableLabel.Layout.Column = [1 6];
-            app.UITableLabel.Interpreter = 'html';
-            app.UITableLabel.Text = {'Exibindo emissões relacionadas aos fluxos espectrais'; '<p style="color: #808080; font-size:10px; text-align: justify; margin-right: 2px;"><b>FREQUÊNCIA (MHz)</b> exibe ícone de edição sempre que a classificação da emissão é alterada; e'; '<b>FREQUÊNCIA CANAL (MHz)</b> exibe ícone vermelho quando estação for igual a -1.</p>'};
+            app.UITableLabel.Layout.Column = [4 5];
+            app.UITableLabel.Text = 'EMISSÕES RELACIONADAS AOS FLUXOS ESPECTRAIS';
 
             % Create UITable
             app.UITable = uitable(app.Document);
@@ -1154,8 +1119,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITable.SelectionType = 'row';
             app.UITable.SelectionChangedFcn = createCallbackFcn(app, @onUITableSelectionChanged, true);
             app.UITable.Multiselect = 'off';
-            app.UITable.Layout.Row = 2;
-            app.UITable.Layout.Column = [1 6];
+            app.UITable.Layout.Row = 3;
+            app.UITable.Layout.Column = [1 8];
             app.UITable.FontSize = 10.5;
 
             % Create AxesContainer
@@ -1164,16 +1129,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
-            app.AxesContainer.Layout.Row = [4 5];
-            app.AxesContainer.Layout.Column = [1 6];
-
-            % Create RFLinkWarning
-            app.RFLinkWarning = uiimage(app.Document);
-            app.RFLinkWarning.Visible = 'off';
-            app.RFLinkWarning.Tooltip = {''};
-            app.RFLinkWarning.Layout.Row = 4;
-            app.RFLinkWarning.Layout.Column = 5;
-            app.RFLinkWarning.ImageSource = 'warning.svg';
+            app.AxesContainer.Layout.Row = [5 6];
+            app.AxesContainer.Layout.Column = [1 8];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
@@ -1182,15 +1139,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
             app.AxesToolbar.Padding = [0 2 0 1];
-            app.AxesToolbar.Layout.Row = 4;
-            app.AxesToolbar.Layout.Column = 2;
+            app.AxesToolbar.Layout.Row = 5;
+            app.AxesToolbar.Layout.Column = [2 4];
             app.AxesToolbar.BackgroundColor = [1 1 1];
 
             % Create AxesRestoreViewButton
             app.AxesRestoreViewButton = uiimage(app.AxesToolbar);
             app.AxesRestoreViewButton.ScaleMethod = 'none';
             app.AxesRestoreViewButton.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.AxesRestoreViewButton.Tooltip = {''};
             app.AxesRestoreViewButton.Layout.Row = 1;
             app.AxesRestoreViewButton.Layout.Column = 2;
             app.AxesRestoreViewButton.ImageSource = 'Home_18.png';
@@ -1198,15 +1154,21 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create AxesPanButton
             app.AxesPanButton = uiimage(app.AxesToolbar);
             app.AxesPanButton.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.AxesPanButton.Tooltip = {''};
             app.AxesPanButton.Layout.Row = 1;
             app.AxesPanButton.Layout.Column = 3;
             app.AxesPanButton.ImageSource = 'pan-32px.png';
 
+            % Create RFLinkWarning
+            app.RFLinkWarning = uiimage(app.Document);
+            app.RFLinkWarning.Visible = 'off';
+            app.RFLinkWarning.Layout.Row = 5;
+            app.RFLinkWarning.Layout.Column = 7;
+            app.RFLinkWarning.ImageSource = 'warning.svg';
+
             % Create SelectedEmissionGrid
             app.SelectedEmissionGrid = uigridlayout(app.GridLayout);
             app.SelectedEmissionGrid.ColumnWidth = {18, '1x'};
-            app.SelectedEmissionGrid.RowHeight = {48, '1x', 22, 253};
+            app.SelectedEmissionGrid.RowHeight = {22, '1x', 22, 253};
             app.SelectedEmissionGrid.ColumnSpacing = 5;
             app.SelectedEmissionGrid.RowSpacing = 5;
             app.SelectedEmissionGrid.Padding = [0 0 0 0];
@@ -1347,7 +1309,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.TXLocationPanelLabel.VerticalAlignment = 'bottom';
             app.TXLocationPanelLabel.FontSize = 11;
             app.TXLocationPanelLabel.Layout.Row = 8;
-            app.TXLocationPanelLabel.Layout.Column = [1 3];
+            app.TXLocationPanelLabel.Layout.Column = [1 2];
             app.TXLocationPanelLabel.Text = 'Características de instalação:';
 
             % Create TXLocationEditionGrid
@@ -1363,30 +1325,24 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create TXLocationEditMode
             app.TXLocationEditMode = uiimage(app.TXLocationEditionGrid);
             app.TXLocationEditMode.ImageClickedFcn = createCallbackFcn(app, @onCoordinatesPanelButtonClicked, true);
-            app.TXLocationEditMode.Tooltip = {''};
             app.TXLocationEditMode.Layout.Row = 1;
             app.TXLocationEditMode.Layout.Column = 2;
-            app.TXLocationEditMode.VerticalAlignment = 'bottom';
             app.TXLocationEditMode.ImageSource = 'Edit_32.png';
 
             % Create TXLocationEditConfirm
             app.TXLocationEditConfirm = uiimage(app.TXLocationEditionGrid);
             app.TXLocationEditConfirm.ImageClickedFcn = createCallbackFcn(app, @onCoordinatesPanelButtonClicked, true);
             app.TXLocationEditConfirm.Enable = 'off';
-            app.TXLocationEditConfirm.Tooltip = {''};
             app.TXLocationEditConfirm.Layout.Row = 1;
             app.TXLocationEditConfirm.Layout.Column = 3;
-            app.TXLocationEditConfirm.VerticalAlignment = 'bottom';
             app.TXLocationEditConfirm.ImageSource = 'Ok_32Green.png';
 
             % Create TXLocationEditCancel
             app.TXLocationEditCancel = uiimage(app.TXLocationEditionGrid);
             app.TXLocationEditCancel.ImageClickedFcn = createCallbackFcn(app, @onCoordinatesPanelButtonClicked, true);
             app.TXLocationEditCancel.Enable = 'off';
-            app.TXLocationEditCancel.Tooltip = {''};
             app.TXLocationEditCancel.Layout.Row = 1;
             app.TXLocationEditCancel.Layout.Column = 4;
-            app.TXLocationEditCancel.VerticalAlignment = 'bottom';
             app.TXLocationEditCancel.ImageSource = 'Delete_32Red.png';
 
             % Create TXLocationPanel
@@ -1500,7 +1456,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.ClassificationRefresh.ScaleMethod = 'none';
             app.ClassificationRefresh.ImageClickedFcn = createCallbackFcn(app, @onOthersParametersValueChanged, true);
             app.ClassificationRefresh.Visible = 'off';
-            app.ClassificationRefresh.Tooltip = {''};
             app.ClassificationRefresh.Layout.Row = 12;
             app.ClassificationRefresh.Layout.Column = 4;
             app.ClassificationRefresh.VerticalAlignment = 'bottom';
@@ -1529,7 +1484,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.tool_ExportJSONFile = uiimage(app.Toolbar);
             app.tool_ExportJSONFile.ScaleMethod = 'none';
             app.tool_ExportJSONFile.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
-            app.tool_ExportJSONFile.Tooltip = {''};
             app.tool_ExportJSONFile.Layout.Row = [1 3];
             app.tool_ExportJSONFile.Layout.Column = 2;
             app.tool_ExportJSONFile.ImageSource = 'Export_16.png';
@@ -1538,7 +1492,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.tool_ShowGlobalExceptionList = uiimage(app.Toolbar);
             app.tool_ShowGlobalExceptionList.ScaleMethod = 'none';
             app.tool_ShowGlobalExceptionList.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
-            app.tool_ShowGlobalExceptionList.Tooltip = {''};
             app.tool_ShowGlobalExceptionList.Layout.Row = [1 3];
             app.tool_ShowGlobalExceptionList.Layout.Column = 3;
             app.tool_ShowGlobalExceptionList.ImageSource = 'exceptionList_18.png';
@@ -1570,26 +1523,22 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.DockModule.Layout.Column = [5 6];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModule);
-            app.dockModule_Close.ScaleMethod = 'none';
-            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
-            app.dockModule_Close.Tag = 'DRIVETEST';
-            app.dockModule_Close.Tooltip = {''};
-            app.dockModule_Close.Layout.Row = 1;
-            app.dockModule_Close.Layout.Column = 2;
-            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
-
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
-            app.dockModule_Undock.Tag = 'DRIVETEST';
             app.dockModule_Undock.Enable = 'off';
-            app.dockModule_Undock.Tooltip = {''};
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
             app.dockModule_Undock.ImageSource = 'Undock_18White.png';
+
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModule);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);

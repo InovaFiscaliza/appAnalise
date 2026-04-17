@@ -381,9 +381,8 @@ classdef (Abstract) HtmlTextGenerator
                                                                                  'Parameters', specData.UserData.reportAlgorithms.Classification.Parameters));
             
             freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', threadTag);
-            htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", freeInitialText);
+            htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", freeInitialText);
         end
-
 
         %-----------------------------------------------------------------%
         % AUXAPP.DOCKTIMEFILTERING
@@ -392,7 +391,7 @@ classdef (Abstract) HtmlTextGenerator
             htmlContent = {};
         
             for ii = 1:numel(specData)
-                threadTag      = sprintf('%.3f – %.3f MHz', specData(ii).MetaData.FreqStart/1e+6, specData(ii).MetaData.FreqStop/1e+6);
+                threadTag = sprintf('%.3f – %.3f MHz', specData(ii).MetaData.FreqStart/1e+6, specData(ii).MetaData.FreqStop/1e+6);
         
                 FilteredSweeps = '';
                 if filteringSummary.RawSweeps(ii) ~= filteringSummary.FilteredSweeps(ii)
@@ -405,12 +404,14 @@ classdef (Abstract) HtmlTextGenerator
                     FilteredSweeps = sprintf('<br><font style="color: %s; font-size: 10px;">%d varreduras pós-filtragem</font>', fontColor, filteringSummary.FilteredSweeps(ii));
                 end
             
-                dataStruct(1)  = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
-                dataStruct(2)  = struct('group', 'VARREDURAS',          'value', sprintf('%d >> %d', filteringSummary.RawSweeps(ii), filteringSummary.FilteredSweeps(ii)));
+                dataStruct(1) = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
+                dataStruct(2) = struct('group', 'VARREDURAS',          'value', sprintf('%d >> %d', filteringSummary.RawSweeps(ii), filteringSummary.FilteredSweeps(ii)));
             
-                htmlContent{end+1} = [sprintf('<p style="font-family: Helvetica, Arial, sans-serif; font-size: 16px; text-align: justify; line-height: 16px; margin: 10px;"><b>%s</b><br>', threadTag)               ...
-                                      sprintf('<font style="color: gray; font-size: 10px;">%s – %s</font><br>', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')) ...
-                                      sprintf('<font style="color: gray; font-size: 10px;">%d varreduras inicias</font>%s</p>', filteringSummary.RawSweeps(ii), FilteredSweeps)];
+                htmlContent{end+1} = [ ...
+                    sprintf('<p style="font-family: Helvetica, Arial, sans-serif; font-size: 16px; text-align: justify; line-height: 16px; margin: 10px;"><b>%s</b><br>', threadTag) ...
+                    sprintf('<font style="color: gray; font-size: 10px;">%s – %s</font><br>', datestr(specData(ii).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(ii).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')) ...
+                    sprintf('<font style="color: gray; font-size: 10px;">%d varreduras inicias</font>%s</p>', filteringSummary.RawSweeps(ii), FilteredSweeps) ...
+                ];
             end
         
             htmlContent = strjoin(htmlContent);
@@ -424,7 +425,8 @@ classdef (Abstract) HtmlTextGenerator
             emissionTable = specData.UserData.Emissions(emissionIdx, :);
 
             % TÍTULO
-            emissionTag   = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
+            threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+            emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
             observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
             description = sprintf('"%s"', specData.RelatedFiles.Description{1});
 
@@ -440,7 +442,7 @@ classdef (Abstract) HtmlTextGenerator
 
             initialText = [ ...
                 sprintf('<font style="color: white; background-color: #b7312c; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">%s</font><br><br>', util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, description, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, threadTag, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
             ];
             htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', initialText);
 
@@ -480,11 +482,46 @@ classdef (Abstract) HtmlTextGenerator
                 htmlContent2 = replace(sprintf('<p style="padding: 10px;">%s</p>', strtrim(textFormatGUI.structParser('', columnsDiff, 1))), newline, '<br>');
 
             else
-                htmlContent2 = sprintf('<p style="padding: 10px;">%s</p>', 'Não evidenciada alteração da classificação automática.');
+                htmlContent2 = sprintf('<p style="padding: 10px;">%s</p>', 'Nenhuma alteração na classificação automática foi identificada.');
             end
 
             stationInfo.Details = emissionTable.Classification.UserModified.Details;
             userDescription = emissionTable.Description(1);
+        end
+
+        %-----------------------------------------------------------------%
+        function htmlContent = EmissionEditionConfirmation(specData, emissionIdx, stationInfo)
+            dataStruct(1) = struct( ...
+                'group', 'INDICAÇÃO AUTOMÁTICA', ...
+                'value', struct( ...
+                    'Regulatory', specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Regulatory, ...
+                    'Frequency', sprintf('%.3f MHz', specData.UserData.Emissions.Frequency(emissionIdx)) ...
+                ) ...
+            );
+            
+            if specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Regulatory == "Licenciada"
+                dataStruct(1).value.Description = specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Description;
+                dataStruct(1).value.Distance = sprintf('%.1f km', specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.Distance);
+            end
+
+            switch stationInfo.Service
+                case -1
+                    emissionRegulatory = '<font style="color: #c94756;">Não Licenciada</font>';
+                otherwise
+                    emissionRegulatory = 'Licenciada';
+            end
+
+            dataStruct(2) = struct( ...
+                'group', 'MANUAL', ...
+                'value', struct( ...
+                    'Regulatory',  emissionRegulatory, ...
+                    'Frequency', sprintf('%s MHz', stationInfo.Frequency), ...
+                    'Description', stationInfo.Description,                  ...
+                    'Distance', sprintf('%.1f km', stationInfo.Distance) ...
+                ) ...
+            );
+
+            htmlContent = sprintf('%s<br><font style="font-size: 12px;">Confirma edição?<font>', textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", '', 'popup'));
         end
 
 

@@ -209,7 +209,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                     onFlowDropDownValueChanged(app)
                                 end
 
-                            case {'onEmissionAdded', 'onEmissionDeleted'}
+                            case {'onEmissionAdded', 'onEmissionParameterValueChanged', 'onEmissionDeleted'}
                                 updateUIPanelContent(app)
                                 updateEmissionsPlot(app)
             
@@ -2179,7 +2179,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowEmissions
             app.FlowEmissions = uitable(app.FlowPanelGrid);
             app.FlowEmissions.ColumnName = {'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
-            app.FlowEmissions.ColumnWidth = {95, 95, 150};
+            app.FlowEmissions.ColumnWidth = {95, 95, 190};
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = true;
@@ -2230,12 +2230,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create GeneralPanelIcon
             app.GeneralPanelIcon = uiimage(app.RightPanel);
-            app.GeneralPanelIcon.Layout.Row = [1 2];
+            app.GeneralPanelIcon.Layout.Row = [1 3];
             app.GeneralPanelIcon.Layout.Column = 1;
             app.GeneralPanelIcon.ImageSource = 'DriveTestDensity_32.png';
 
             % Create GeneralPanelLabel
             app.GeneralPanelLabel = uilabel(app.RightPanel);
+            app.GeneralPanelLabel.VerticalAlignment = 'bottom';
             app.GeneralPanelLabel.FontSize = 10;
             app.GeneralPanelLabel.Layout.Row = 2;
             app.GeneralPanelLabel.Layout.Column = 2;
@@ -2349,13 +2350,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create PersistencePanelIcon
             app.PersistencePanelIcon = uiimage(app.RightPanel);
-            app.PersistencePanelIcon.Layout.Row = [6 7];
+            app.PersistencePanelIcon.Layout.Row = [6 8];
             app.PersistencePanelIcon.Layout.Column = 1;
-            app.PersistencePanelIcon.VerticalAlignment = 'bottom';
             app.PersistencePanelIcon.ImageSource = 'persistence-36px.png';
 
             % Create PersistencePanelLabel
             app.PersistencePanelLabel = uilabel(app.RightPanel);
+            app.PersistencePanelLabel.VerticalAlignment = 'bottom';
             app.PersistencePanelLabel.FontSize = 10;
             app.PersistencePanelLabel.Layout.Row = 7;
             app.PersistencePanelLabel.Layout.Column = 2;
@@ -2514,12 +2515,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create WaterfallPanelIcon
             app.WaterfallPanelIcon = uiimage(app.RightPanel);
             app.WaterfallPanelIcon.ScaleMethod = 'none';
-            app.WaterfallPanelIcon.Layout.Row = [11 12];
+            app.WaterfallPanelIcon.Layout.Row = [11 13];
             app.WaterfallPanelIcon.Layout.Column = 1;
             app.WaterfallPanelIcon.ImageSource = 'waterfall-22px.png';
 
             % Create WaterfallPanelLabel
             app.WaterfallPanelLabel = uilabel(app.RightPanel);
+            app.WaterfallPanelLabel.VerticalAlignment = 'bottom';
             app.WaterfallPanelLabel.FontSize = 10;
             app.WaterfallPanelLabel.Layout.Row = 12;
             app.WaterfallPanelLabel.Layout.Column = 2;
