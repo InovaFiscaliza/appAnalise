@@ -5,8 +5,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
         DockModule                      matlab.ui.container.GridLayout
-        dockModule_Undock               matlab.ui.control.Image
         dockModule_Close                matlab.ui.control.Image
+        dockModule_Undock               matlab.ui.control.Image
         AxesToolbar                     matlab.ui.container.GridLayout
         axesTool_PlotSize               matlab.ui.control.Slider
         axesTool_DensityPlot            matlab.ui.control.Image
@@ -141,6 +141,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         tool_TimestampSlider            matlab.ui.control.Slider
         tool_LoopControl                matlab.ui.control.Image
         tool_Play                       matlab.ui.control.Image
+        tool_Separator                  matlab.ui.control.Image
         tool_ControlPanelVisibility     matlab.ui.control.Image
         ContextMenu2                    matlab.ui.container.ContextMenu
         filter_delButton                matlab.ui.container.Menu
@@ -164,11 +165,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         mainApp
         jsBackDoor
         progressDialog
-    end
+        popupContainer
 
-
-    properties (Access = private)
-        %-----------------------------------------------------------------%
+        % Handles dos eixos cartesianos utilizados por este módulo.
         UIAxes1
         UIAxes2
         UIAxes3
@@ -176,30 +175,17 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         % Informações relacionadas ao specData selecionado, com atalhos para 
         % os principais metadados e a definição dos limites dos eixos x, y e 
-        % z dos eixos cartesianos. No futuro, remover essa propriedade.
+        % z dos eixos cartesianos.
         bandObj
 
         % Armazena limites padrão dos eixos cartesianos computados em método 
-        % de class.Band (app.bandObj).
+        % de model.Band (app.bandObj).
         restoreView = struct( ...
             'ID', {}, ...
             'xLim', {}, ...
             'yLim', {}, ...
             'cLim', {} ...
         )
-
-        tempBandObj
-        KMLObj
-
-        % POTÊNCIA DE CANAL, FILTRAGEM, DATA-BINNING
-        selectedEmission
-
-        specRawTable
-        specFilteredTable
-        specBinTable
-
-        filterTable = table({}, {}, struct('handle', {}, 'specification', {}),               'VariableNames', {'type', 'subtype', 'roi'})
-        pointsTable = table({}, struct('Source', {}, 'idxData', {}, 'Data', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
 
         % Controla o estado de atualização do plot:
         %  -1: mudança de fluxo espectral
@@ -209,12 +195,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         % Handles dos objetos gráficos do plot.
         plotHandles
-        % hClearWrite
-        % hTimeline
-        % hCar
 
         % Índice da varredura atual.
-        sweepTimeIdx = 1
+        sweepTimeIdx
+    end
+
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        selectedEmission
+
+        specRawTable
+        specFilteredTable
+        specBinTable
+
+        filterTable = table({}, {}, struct('handle', {}, 'specification', {}),               'VariableNames', {'type', 'subtype', 'roi'})
+        pointsTable = table({}, struct('Source', {}, 'idxData', {}, 'Data', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
+
+        kmlObj
     end
 
 
@@ -268,28 +266,39 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         eventName = varargin{1};
 
                         switch eventName
-                            case 'auxApp.winDriveTest.filter_Tree'
-                                filter_delFilter(app, struct('Source', app.filter_delButton))
+                            case {'onFileListAdded', 'onFileListRemoved', 'onFileFilterChanged'}
+                                % ...
 
-                            case 'auxApp.winDriveTest.points_Tree'
-                                points_delButtonMenuSelected(app)
+                            case {'onEmissionAdded', 'onEmissionParameterValueChanged', 'onEmissionDeleted'}
+                                % ...
+            
+                            case 'onTabNavigatorButtonPushed'
+                                if app.plotUpdateEvent
+                                    app.plotUpdateEvent = 0;
+                                end
 
-                            case 'NÃO SEI'
-                                [idxThread, idxEmission] = specDataIndex(app, 'EmissionShowed');
-                    
-                                if isempty(idxThread) || isempty(app.specData(idxThread).UserData.Emissions)
-                                    closeFcn(app)
-                                    return
-                                end
-                    
-                                preSelection = app.emissionList.Value;
-                                layout_EmissionListCreation(app, idxThread, idxEmission)
-                    
-                                if ismember(preSelection, app.emissionList.Items)
-                                    app.emissionList.Value = preSelection;
-                                else
-                                    general_EmissionChanged(app, struct('Source', app.emissionList))
-                                end
+                            % case 'auxApp.winDriveTest.filter_Tree'
+                            %     filter_delFilter(app, struct('Source', app.filter_delButton))
+                            % 
+                            % case 'auxApp.winDriveTest.points_Tree'
+                            %     points_delButtonMenuSelected(app)
+                            % 
+                            % case 'NÃO SEI'
+                            %     [idxThread, idxEmission] = specDataIndex(app, 'EmissionShowed');
+                            % 
+                            %     if isempty(idxThread) || isempty(app.specData(idxThread).UserData.Emissions)
+                            %         closeFcn(app)
+                            %         return
+                            %     end
+                            % 
+                            %     preSelection = app.emissionList.Value;
+                            %     layout_EmissionListCreation(app, idxThread, idxEmission)
+                            % 
+                            %     if ismember(preSelection, app.emissionList.Items)
+                            %         app.emissionList.Value = preSelection;
+                            %     else
+                            %         general_EmissionChanged(app, struct('Source', app.emissionList))
+                            %     end
 
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -364,13 +373,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
-            app.tempBandObj = model.Band('appAnalise:DRIVETEST', app.mainApp);
+            app.bandObj = model.Band('appAnalise:DRIVETEST', app.mainApp);
 
             if strcmp(app.mainApp.executionMode, 'webApp')
                 app.config_Basemap.Value = 'none';
             end
 
-            startup_AxesCreation(app)
+            initializeAxes(app)
         end
 
         %-----------------------------------------------------------------%
@@ -384,21 +393,20 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.channelEditMode.UserData    = false;
 
             % Lista as emissões:
-            layout_ThreadTreeBuilding(app, idxThread, idxEmission)
-
+            % buildSpecFlowTree(app, idxThread, idxEmission)
         end
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            general_EmissionChanged(app, struct('updateType', 'AppStartup'))
+            % general_EmissionChanged(app, struct('updateType', 'AppStartup'))
         end
     end
 
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function startup_AxesCreation(app)
-            hParent     = tiledlayout(app.Document, 24, 16, "Padding", "none", "TileSpacing", "none");
+        function initializeAxes(app)
+            hParent = tiledlayout(app.Document, 24, 16, "Padding", "none", "TileSpacing", "none");
 
             % Eixo geográfico: MAPA
             app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.config_Basemap.Value,                 ...
@@ -447,7 +455,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             colorBar.Layout.Tile = 284;
             colorBar.Layout.TileSpan = [6,1];
 
-            % Interações:
+            % Interações
             linkaxes([app.UIAxes2, app.UIAxes3], 'x')
             plot.axes.Interactivity.DefaultCreation(app.UIAxes1, [dataTipInteraction, zoomInteraction, panInteraction])
             plot.axes.Interactivity.DefaultCreation([app.UIAxes2, app.UIAxes4], dataTipInteraction)
@@ -455,14 +463,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function layout_ThreadTreeBuilding(app, idxThread, idxEmission)
+        function buildSpecFlowTree(app, flowIdx, emissionIdx)
             if ~isempty(app.spectralThreadTree.Children)
                 delete(app.spectralThreadTree.Children)
             end
 
-            app.spectralThread.Text = sprintf('%s\n%.3f - %.3f MHz', app.specData(idxThread).Receiver,                 ...
-                                                                     app.specData(idxThread).MetaData.FreqStart / 1e6, ...
-                                                                     app.specData(idxThread).MetaData.FreqStop  / 1e6);
+            app.spectralThread.Text = sprintf('%s\n%.3f - %.3f MHz', app.specData(flowIdx).Receiver,                 ...
+                                                                     app.specData(flowIdx).MetaData.FreqStart / 1e6, ...
+                                                                     app.specData(flowIdx).MetaData.FreqStop  / 1e6);
 
             % Cria árvore:
             receiverRawList = {app.specData.Receiver};
@@ -485,10 +493,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             expand(app.spectralThreadTree, 'all')
 
             % Ajusta seleção programaticamente e aplica estilo:
-            layout_changingSpectralThreadTreeStyle(app, idxThread)
+            layout_changingSpectralThreadTreeStyle(app, flowIdx)
 
             % Cria lista de emissões:
-            layout_EmissionListCreation(app, idxThread, idxEmission)
+            layout_EmissionListCreation(app, flowIdx, emissionIdx)
         end
 
         %-----------------------------------------------------------------%
@@ -843,7 +851,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % que simplifica o processo do plot, em especial na passagem de 
             % argumentos para as funções plot.draw2D, plot.Waterfall e plot.Persitance.
             GuardBand  = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', getFrequencyScreenSpanInMHz(app, 'Screen')));
-            axesLimits = update(app.tempBandObj, idxThread, GuardBand, idxEmission);
+            axesLimits = update(app.bandObj, idxThread, GuardBand, idxEmission);
             prePlot_restartProperties(app, axesLimits, operationType)
 
             try
@@ -1081,12 +1089,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     plot_Car(app, 'Creation')
 
                     % (b) ClearWrite+Persistance
-                    app.hClearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, app.tempBandObj, idxThread, 'ClearWrite');
-                    plot.datatip.Template(app.hClearWrite, "Frequency+Level", app.tempBandObj.LevelUnit)
-                    plot.Persistance('Creation', [], app.UIAxes2, app.tempBandObj, idxThread);
+                    app.hClearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, app.bandObj, idxThread, 'ClearWrite');
+                    plot.datatip.Template(app.hClearWrite, "Frequency+Level", app.bandObj.LevelUnit)
+                    plot.Persistance('Creation', [], app.UIAxes2, app.bandObj, idxThread);
     
                     % (c) Waterfall+Timeline
-                    plot.Waterfall('Creation', app.UIAxes3, app.tempBandObj, idxThread);
+                    plot.Waterfall('Creation', app.UIAxes3, app.bandObj, idxThread);
                     plot_Timeline(app, 'Creation', idxThread, numel(app.specData(idxThread).Data{1}))
     
                     % (d) ChannelPower
@@ -1143,10 +1151,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.restoreView(4).xLim = app.UIAxes4.XLim;
             app.restoreView(4).yLim = app.UIAxes4.YLim;
 
-            plot.axes.StackingOrder.execute(app.UIAxes1, app.tempBandObj.Context)
-            plot.axes.StackingOrder.execute(app.UIAxes2, app.tempBandObj.Context)
-            plot.axes.StackingOrder.execute(app.UIAxes3, app.tempBandObj.Context)
-            plot.axes.StackingOrder.execute(app.UIAxes4, app.tempBandObj.Context)
+            plot.axes.StackingOrder.execute(app.UIAxes1, app.bandObj.Context)
+            plot.axes.StackingOrder.execute(app.UIAxes2, app.bandObj.Context)
+            plot.axes.StackingOrder.execute(app.UIAxes3, app.bandObj.Context)
+            plot.axes.StackingOrder.execute(app.UIAxes4, app.bandObj.Context)
 
             drawnow
         end
@@ -1196,7 +1204,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function plot_UpdatePlot(app, idxThread, nSweeps)
-            plot.draw2D.OrdinaryLineUpdate(app.hClearWrite, app.tempBandObj, idxThread, 'ClearWrite')
+            plot.draw2D.OrdinaryLineUpdate(app.hClearWrite, app.bandObj, idxThread, 'ClearWrite')
             plot_Car(app, 'Update')
             plot_Timeline(app, 'Update', idxThread, nSweeps)
             drawnow
@@ -1216,7 +1224,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             InColor   = app.config_route_InColor.Value;
             MarkerSize= app.config_route_Size.Value;
 
-            plot.DriveTest.Route(hAxes, app.tempBandObj, OutTable, InTable, LineStyle, OutColor, InColor, MarkerSize)
+            plot.DriveTest.Route(hAxes, app.bandObj, OutTable, InTable, LineStyle, OutColor, InColor, MarkerSize)
         end
 
         %-----------------------------------------------------------------%
@@ -1233,7 +1241,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     srcTable = app.specBinTable;
             end
 
-            plot.DriveTest.DistortionAndDensityPlot(hAxes, app.tempBandObj, srcTable, plotMode, plotSize)
+            plot.DriveTest.DistortionAndDensityPlot(hAxes, app.bandObj, srcTable, plotMode, plotSize)
         end
 
         %-----------------------------------------------------------------%
@@ -1377,7 +1385,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             FaceAlpha = app.config_chPowerFaceAlpha.Value;
             app.config_chPowerColor.Value = Color;
 
-            plot.DriveTest.ChannelPower(hAxes, app.tempBandObj, app.specRawTable, Color, EdgeAlpha, FaceAlpha)
+            plot.DriveTest.ChannelPower(hAxes, app.bandObj, app.specRawTable, Color, EdgeAlpha, FaceAlpha)
         end
 
         %-----------------------------------------------------------------%
@@ -1388,8 +1396,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             switch operationType
                 case 'Creation'
                     srcROITable = table(chFrequency, chBW, 'VariableNames', {'Frequency', 'BW_kHz'});
-                    plot.draw2D.rectangularROI(app.UIAxes2, app.tempBandObj, srcROITable, 1, 'ChannelROI', {'InteractionsAllowed', 'none'}, [-1000, 1000])
-                    plot.draw2D.rectangularROI(app.UIAxes3, app.tempBandObj, srcROITable, 1, 'ChannelROI', {'InteractionsAllowed', 'none'})
+                    plot.draw2D.rectangularROI(app.UIAxes2, app.bandObj, srcROITable, 1, 'ChannelROI', {'InteractionsAllowed', 'none'}, [-1000, 1000])
+                    plot.draw2D.rectangularROI(app.UIAxes3, app.bandObj, srcROITable, 1, 'ChannelROI', {'InteractionsAllowed', 'none'})
 
                 case 'Relocate'
                     hChannelROI1 = findobj(app.UIAxes2.Children, 'Tag', 'ChannelROI');
@@ -1584,7 +1592,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, idx)
+        function startupFcn(app, mainApp)
 
             try
                 appEngine.boot(app, app.Role, mainApp)
@@ -1692,7 +1700,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function Toolbar_TimelineSliderValueChanging(app, event)
             
             idxThread = app.selectedEmission.Thread.Index;
-            nSweeps   = app.tempBandObj.nSweeps;
+            nSweeps   = app.bandObj.nSweeps;
             
             app.sweepTimeIdx = round(event.Value/100 * nSweeps);
             if app.sweepTimeIdx < 1
@@ -1913,7 +1921,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'FilterROI'))
                     end
 
-                    layout_ThreadTreeBuilding(app, idxSelectedThread, [])
+                    buildSpecFlowTree(app, idxSelectedThread, [])
                     general_EmissionChanged(app, struct('updateType', 'ThreadSelectionChanged'))
 
                     layout_editSpectralThread(app, 'off')
@@ -2340,18 +2348,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.mainApp.General.fileFolder.lastVisited = filePath;
 
                 try
-                    if ~isempty(app.KMLObj)
-                        delete(app.KMLObj)
+                    if ~isempty(app.kmlObj)
+                        delete(app.kmlObj)
                     end
 
-                    app.KMLObj = RF.KML(fullfile(filePath, fileName));
+                    app.kmlObj = RF.KML(fullfile(filePath, fileName));
 
-                    [~, fileName, fileExt] = fileparts(app.KMLObj.File);
+                    [~, fileName, fileExt] = fileparts(app.kmlObj.File);
                     app.filter_KMLFilename.Value  = [fileName fileExt];
-                    app.filter_KMLFileLayer.Items = app.KMLObj.LayerNames;
+                    app.filter_KMLFileLayer.Items = app.kmlObj.LayerNames;
 
                 catch ME
-                    app.KMLObj = [];
+                    app.kmlObj = [];
                     app.filter_KMLFilename.Value  = '';
                     app.filter_KMLFileLayer.Items = {};
 
@@ -2400,9 +2408,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             FilterSubtype = 'PolygonKML';
 
                             try
-                                readgeotable(app.KMLObj, app.filter_KMLFileLayer.Value)
-                                for ii = 1:height(app.KMLObj.GeoTable)
-                                    shapeObj = app.KMLObj.GeoTable.Shape(ii);
+                                readgeotable(app.kmlObj, app.filter_KMLFileLayer.Value)
+                                for ii = 1:height(app.kmlObj.GeoTable)
+                                    shapeObj = app.kmlObj.GeoTable.Shape(ii);
 
                                     if isa(shapeObj, 'geopolyshape')
                                         hROI = plot_FilterROIObject(app, 'DrawInRealTime', FilterSubtype, app.UIAxes1, shapeObj);
@@ -2413,8 +2421,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 if ~exist('hROI', 'var')
                                     error(['A pasta "%s", do arquivo "%s", possui apenas objetos do tipo "%s". Um filtro '  ...
                                            'geográfico, contudo, precisa ser um polígono.'], app.filter_KMLFileLayer.Value, ...
-                                                                                             app.KMLObj.File,               ...
-                                                                                             textFormatGUI.cellstr2ListWithQuotes(unique(arrayfun(@(x) class(x), app.KMLObj.GeoTable.Shape, "UniformOutput", false))))
+                                                                                             app.kmlObj.File,               ...
+                                                                                             textFormatGUI.cellstr2ListWithQuotes(unique(arrayfun(@(x) class(x), app.kmlObj.GeoTable.Shape, "UniformOutput", false))))
                                 end
 
                             catch ME
@@ -2712,7 +2720,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
             app.GridLayout.ColumnWidth = {10, 320, 10, 5, 366, '1x', 48, 8, 2};
-            app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
+            app.GridLayout.RowHeight = {2, 8, 24, '1x', 6, 4, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
@@ -2720,12 +2728,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 22, 22, 248, 196, '1x', 22, 22};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, 196, '1x', 22, 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
-            app.Toolbar.Padding = [5 5 0 5];
-            app.Toolbar.Layout.Row = 6;
+            app.Toolbar.Padding = [10 5 10 5];
+            app.Toolbar.Layout.Row = 7;
             app.Toolbar.Layout.Column = [1 9];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
@@ -2737,34 +2745,42 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_ControlPanelVisibility.Layout.Column = 1;
             app.tool_ControlPanelVisibility.ImageSource = 'layout-sidebar-left.svg';
 
+            % Create tool_Separator
+            app.tool_Separator = uiimage(app.Toolbar);
+            app.tool_Separator.ScaleMethod = 'none';
+            app.tool_Separator.Enable = 'off';
+            app.tool_Separator.Layout.Row = [1 3];
+            app.tool_Separator.Layout.Column = 2;
+            app.tool_Separator.VerticalAlignment = 'bottom';
+            app.tool_Separator.ImageSource = 'LineV.svg';
+
             % Create tool_Play
             app.tool_Play = uiimage(app.Toolbar);
             app.tool_Play.ScaleMethod = 'none';
             app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @Toolbar_PlaybackControlImageClicked, true);
-            app.tool_Play.Tooltip = {'Playback'};
+            app.tool_Play.Enable = 'off';
             app.tool_Play.Layout.Row = [1 3];
-            app.tool_Play.Layout.Column = 2;
+            app.tool_Play.Layout.Column = 3;
             app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
 
             % Create tool_LoopControl
             app.tool_LoopControl = uiimage(app.Toolbar);
             app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @Toolbar_PlaybackControlImageClicked, true);
-            app.tool_LoopControl.Tag = 'loop';
-            app.tool_LoopControl.Tooltip = {'Loop do playback'};
+            app.tool_LoopControl.Enable = 'off';
             app.tool_LoopControl.Layout.Row = [1 3];
-            app.tool_LoopControl.Layout.Column = 3;
+            app.tool_LoopControl.Layout.Column = 4;
             app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
 
             % Create tool_TimestampSlider
             app.tool_TimestampSlider = uislider(app.Toolbar);
             app.tool_TimestampSlider.MajorTicks = [0 50 100];
-            app.tool_TimestampSlider.MajorTickLabels = {''};
+            app.tool_TimestampSlider.MajorTickLabels = {'0', '50', '100'};
             app.tool_TimestampSlider.ValueChangingFcn = createCallbackFcn(app, @Toolbar_TimelineSliderValueChanging, true);
             app.tool_TimestampSlider.MinorTicks = [0 2.5 5 7.5 10 12.5 15 17.5 20 22.5 25 27.5 30 32.5 35 37.5 40 42.5 45 47.5 50 52.5 55 57.5 60 62.5 65 67.5 70 72.5 75 77.5 80 82.5 85 87.5 90 92.5 95 97.5 100];
             app.tool_TimestampSlider.FontSize = 8;
-            app.tool_TimestampSlider.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.tool_TimestampSlider.Enable = 'off';
             app.tool_TimestampSlider.Layout.Row = 2;
-            app.tool_TimestampSlider.Layout.Column = 4;
+            app.tool_TimestampSlider.Layout.Column = 5;
 
             % Create tool_TimestampLabel
             app.tool_TimestampLabel = uilabel(app.Toolbar);
@@ -2772,7 +2788,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.FontSize = 10;
             app.tool_TimestampLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.tool_TimestampLabel.Layout.Row = [1 3];
-            app.tool_TimestampLabel.Layout.Column = 5;
+            app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
 
             % Create tool_DataBinningExport
@@ -2781,7 +2797,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_DataBinningExport.ImageClickedFcn = createCallbackFcn(app, @Toolbar_ExportFileButtonPushed, true);
             app.tool_DataBinningExport.Tooltip = {'Exporta análise em arquivos XLSX e KML'};
             app.tool_DataBinningExport.Layout.Row = 2;
-            app.tool_DataBinningExport.Layout.Column = 7;
+            app.tool_DataBinningExport.Layout.Column = 8;
             app.tool_DataBinningExport.ImageSource = 'Export_16.png';
 
             % Create tool_FilterSummary
@@ -2789,7 +2805,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_FilterSummary.ImageClickedFcn = createCallbackFcn(app, @Toolbar_SummaryImageClicked, true);
             app.tool_FilterSummary.Tooltip = {'Informações acerca do processo de análise dos dados'};
             app.tool_FilterSummary.Layout.Row = 2;
-            app.tool_FilterSummary.Layout.Column = 8;
+            app.tool_FilterSummary.Layout.Column = 9;
             app.tool_FilterSummary.ImageSource = 'Info_32.png';
 
             % Create SubTabGroup
@@ -3136,11 +3152,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create filter_KMLOpenFile
             app.filter_KMLOpenFile = uiimage(app.filter_RadioGroup);
+            app.filter_KMLOpenFile.ScaleMethod = 'none';
             app.filter_KMLOpenFile.ImageClickedFcn = createCallbackFcn(app, @filter_KMLOpenFileClicked, true);
             app.filter_KMLOpenFile.Tag = 'KML';
             app.filter_KMLOpenFile.Visible = 'off';
             app.filter_KMLOpenFile.Position = [268 -72 18 18];
-            app.filter_KMLOpenFile.ImageSource = 'OpenFile_36x36.png';
+            app.filter_KMLOpenFile.ImageSource = 'folder-opened-16px.svg';
 
             % Create filter_KMLFileLayer
             app.filter_KMLFileLayer = uidropdown(app.filter_RadioGroup);
@@ -3926,16 +3943,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.Document.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.Document.BorderType = 'none';
             app.Document.BackgroundColor = [1 1 1];
-            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Row = [3 5];
             app.Document.Layout.Column = [4 7];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.GridLayout);
-            app.AxesToolbar.ColumnWidth = {22, 22, 5, '1x', 5, 22, 22, 5, '1x'};
+            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, '1x', 5, 22, 22, 5, '1x'};
             app.AxesToolbar.RowHeight = {22};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
-            app.AxesToolbar.Padding = [2 2 2 0];
+            app.AxesToolbar.Padding = [0 2 0 1];
             app.AxesToolbar.Layout.Row = 3;
             app.AxesToolbar.Layout.Column = 5;
             app.AxesToolbar.BackgroundColor = [1 1 1];
@@ -3946,7 +3963,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
             app.axesTool_RestoreView.Tooltip = {'RestoreView'};
             app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 1;
+            app.axesTool_RestoreView.Layout.Column = 2;
             app.axesTool_RestoreView.ImageSource = 'Home_18.png';
 
             % Create axesTool_RegionZoom
@@ -3955,7 +3972,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
             app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
             app.axesTool_RegionZoom.Layout.Row = 1;
-            app.axesTool_RegionZoom.Layout.Column = 2;
+            app.axesTool_RegionZoom.Layout.Column = 3;
             app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
             % Create axesTool_DropDown
@@ -3966,7 +3983,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_DropDown.BackgroundColor = [1 1 1];
             app.axesTool_DropDown.Layout.Row = 1;
-            app.axesTool_DropDown.Layout.Column = 4;
+            app.axesTool_DropDown.Layout.Column = 5;
             app.axesTool_DropDown.Value = 'Dados brutos';
 
             % Create axesTool_DistortionPlot
@@ -3974,7 +3991,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
             app.axesTool_DistortionPlot.Tooltip = {'Distortion'};
             app.axesTool_DistortionPlot.Layout.Row = 1;
-            app.axesTool_DistortionPlot.Layout.Column = 6;
+            app.axesTool_DistortionPlot.Layout.Column = 7;
             app.axesTool_DistortionPlot.ImageSource = 'DriveTestDistortion_32.png';
 
             % Create axesTool_DensityPlot
@@ -3983,7 +4000,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DensityPlot.Enable = 'off';
             app.axesTool_DensityPlot.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
             app.axesTool_DensityPlot.Layout.Row = 1;
-            app.axesTool_DensityPlot.Layout.Column = 7;
+            app.axesTool_DensityPlot.Layout.Column = 8;
             app.axesTool_DensityPlot.ImageSource = 'DriveTestDensity_32.png';
 
             % Create axesTool_PlotSize
@@ -3995,7 +4012,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanging, true);
             app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_PlotSize.Layout.Row = 1;
-            app.axesTool_PlotSize.Layout.Column = 9;
+            app.axesTool_PlotSize.Layout.Column = 10;
             app.axesTool_PlotSize.Value = 1;
 
             % Create DockModule
@@ -4008,26 +4025,22 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.DockModule.Layout.Column = [7 8];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModule);
-            app.dockModule_Close.ScaleMethod = 'none';
-            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
-            app.dockModule_Close.Tag = 'DRIVETEST';
-            app.dockModule_Close.Tooltip = {'Fecha módulo'};
-            app.dockModule_Close.Layout.Row = 1;
-            app.dockModule_Close.Layout.Column = 2;
-            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
-
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
-            app.dockModule_Undock.Tag = 'DRIVETEST';
             app.dockModule_Undock.Enable = 'off';
-            app.dockModule_Undock.Tooltip = {'Reabre módulo em outra janela'};
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
             app.dockModule_Undock.ImageSource = 'Undock_18White.png';
+
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModule);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Create ContextMenu2
             app.ContextMenu2 = uicontextmenu(app.UIFigure);

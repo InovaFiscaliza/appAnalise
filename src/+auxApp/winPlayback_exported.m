@@ -81,7 +81,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         AxesAnnotation                 matlab.ui.control.Label
         AxesToolbar                    matlab.ui.container.GridLayout
         axesTool_FlowInfo              matlab.ui.control.Image
-        axesTool_Separator3_2          matlab.ui.control.Image
+        axesTool_Separator4            matlab.ui.control.Image
         axesTool_DataTip               matlab.ui.control.Image
         axesTool_waterfall             matlab.ui.control.Image
         axesTool_Separator3            matlab.ui.control.Image
@@ -1882,7 +1882,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, 5, 22, '1x'};
+            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, 5, 22, '1x'};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -2004,13 +2004,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_DataTip.Layout.Column = 14;
             app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
-            % Create axesTool_Separator3_2
-            app.axesTool_Separator3_2 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator3_2.ScaleMethod = 'none';
-            app.axesTool_Separator3_2.Enable = 'off';
-            app.axesTool_Separator3_2.Layout.Row = 1;
-            app.axesTool_Separator3_2.Layout.Column = 15;
-            app.axesTool_Separator3_2.ImageSource = 'LineV.svg';
+            % Create axesTool_Separator4
+            app.axesTool_Separator4 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator4.ScaleMethod = 'none';
+            app.axesTool_Separator4.Enable = 'off';
+            app.axesTool_Separator4.Layout.Row = 1;
+            app.axesTool_Separator4.Layout.Column = 15;
+            app.axesTool_Separator4.ImageSource = 'LineV.svg';
 
             % Create axesTool_FlowInfo
             app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
