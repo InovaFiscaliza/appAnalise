@@ -118,7 +118,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         appEngine.activate(app, app.Role)
 
                     otherwise
-                        error('auxApp:winSignalAnalysis:UnexpectedEvent', 'Unexpected event "%s"', event.HTMLEventName)
+                        ipcMainJSEventsHandler(app.mainApp, event)
                 end
 
             catch ME

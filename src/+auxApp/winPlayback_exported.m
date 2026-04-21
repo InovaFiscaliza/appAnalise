@@ -97,18 +97,18 @@ classdef winPlayback_exported < matlab.apps.AppBase
         axesTool_RestoreView           matlab.ui.control.Image
         AxesContainer                  matlab.ui.container.Panel
         Toolbar                        matlab.ui.container.GridLayout
-        tool_Separator1_2              matlab.ui.control.Image
         tool_LayoutRight               matlab.ui.control.Image
-        tool_Separator2                matlab.ui.control.Image
+        tool_Separator3                matlab.ui.control.Image
         tool_UploadFinalFile           matlab.ui.control.Image
         tool_GenerateReport            matlab.ui.control.Image
         tool_OpenPopupProject          matlab.ui.control.Image
-        tool_Separator1                matlab.ui.control.Image
+        tool_Separator2                matlab.ui.control.Image
         tool_OpenPopupMisc             matlab.ui.control.Image
         tool_TimestampLabel            matlab.ui.control.Label
         tool_TimestampSlider           matlab.ui.control.Slider
         tool_LoopControl               matlab.ui.control.Image
         tool_Play                      matlab.ui.control.Image
+        tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
         ContextMenu                    matlab.ui.container.ContextMenu
         ClassificaoMenu                matlab.ui.container.Menu
@@ -1757,6 +1757,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LayoutLeft.Layout.Column = 1;
             app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
 
+            % Create tool_Separator1
+            app.tool_Separator1 = uiimage(app.Toolbar);
+            app.tool_Separator1.ScaleMethod = 'none';
+            app.tool_Separator1.Enable = 'off';
+            app.tool_Separator1.Layout.Row = [1 3];
+            app.tool_Separator1.Layout.Column = 2;
+            app.tool_Separator1.VerticalAlignment = 'bottom';
+            app.tool_Separator1.ImageSource = 'LineV.svg';
+
             % Create tool_Play
             app.tool_Play = uiimage(app.Toolbar);
             app.tool_Play.ScaleMethod = 'none';
@@ -1802,14 +1811,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_OpenPopupMisc.Layout.Column = 7;
             app.tool_OpenPopupMisc.ImageSource = 'miscellaneous-18px.png';
 
-            % Create tool_Separator1
-            app.tool_Separator1 = uiimage(app.Toolbar);
-            app.tool_Separator1.ScaleMethod = 'none';
-            app.tool_Separator1.Enable = 'off';
-            app.tool_Separator1.Layout.Row = [1 3];
-            app.tool_Separator1.Layout.Column = 8;
-            app.tool_Separator1.VerticalAlignment = 'bottom';
-            app.tool_Separator1.ImageSource = 'LineV.svg';
+            % Create tool_Separator2
+            app.tool_Separator2 = uiimage(app.Toolbar);
+            app.tool_Separator2.ScaleMethod = 'none';
+            app.tool_Separator2.Enable = 'off';
+            app.tool_Separator2.Layout.Row = [1 3];
+            app.tool_Separator2.Layout.Column = 8;
+            app.tool_Separator2.VerticalAlignment = 'bottom';
+            app.tool_Separator2.ImageSource = 'LineV.svg';
 
             % Create tool_OpenPopupProject
             app.tool_OpenPopupProject = uiimage(app.Toolbar);
@@ -1835,14 +1844,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_UploadFinalFile.Layout.Column = 11;
             app.tool_UploadFinalFile.ImageSource = 'up-20px.png';
 
-            % Create tool_Separator2
-            app.tool_Separator2 = uiimage(app.Toolbar);
-            app.tool_Separator2.ScaleMethod = 'none';
-            app.tool_Separator2.Enable = 'off';
-            app.tool_Separator2.Layout.Row = [1 3];
-            app.tool_Separator2.Layout.Column = 12;
-            app.tool_Separator2.VerticalAlignment = 'bottom';
-            app.tool_Separator2.ImageSource = 'LineV.svg';
+            % Create tool_Separator3
+            app.tool_Separator3 = uiimage(app.Toolbar);
+            app.tool_Separator3.ScaleMethod = 'none';
+            app.tool_Separator3.Enable = 'off';
+            app.tool_Separator3.Layout.Row = [1 3];
+            app.tool_Separator3.Layout.Column = 12;
+            app.tool_Separator3.VerticalAlignment = 'bottom';
+            app.tool_Separator3.ImageSource = 'LineV.svg';
 
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
@@ -1851,15 +1860,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LayoutRight.Layout.Row = [1 3];
             app.tool_LayoutRight.Layout.Column = 13;
             app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
-
-            % Create tool_Separator1_2
-            app.tool_Separator1_2 = uiimage(app.Toolbar);
-            app.tool_Separator1_2.ScaleMethod = 'none';
-            app.tool_Separator1_2.Enable = 'off';
-            app.tool_Separator1_2.Layout.Row = [1 3];
-            app.tool_Separator1_2.Layout.Column = 2;
-            app.tool_Separator1_2.VerticalAlignment = 'bottom';
-            app.tool_Separator1_2.ImageSource = 'LineV.svg';
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);

@@ -1,5 +1,5 @@
 {
-    "version": 1.31,
+    "version": 1.32,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -221,6 +221,26 @@
             "FaceColor": "#FF5CAD",
             "EdgeAlpha": 0,
             "FaceAlpha": 0.4
+        },
+        "drivetest": {
+            "route": {
+                "LineStyle": ":",
+                "LineWidth": 1,
+                "Colors": {
+                    "InROI": [0.8706, 0.5412, 0.5412],
+                    "OutROI": [0.502, 0.502, 0.502]
+                }
+            },
+            "car": {
+                "Marker": "square",
+                "MarkerSize": 10,
+                "MarkerFaceColor": [1, 0, 0]                
+            },
+            "points": {
+                "Marker": "^",
+                "MarkerSize": 9,
+                "MarkerFaceColor": [0, 0, 0]                
+            }
         },
         "emission": {
             "Color": "#FF5CAD",
