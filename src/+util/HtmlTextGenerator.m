@@ -417,18 +417,14 @@ classdef (Abstract) HtmlTextGenerator
             htmlContent = strjoin(htmlContent);
         end
 
-
         %-----------------------------------------------------------------%
-        % AUXAPP.SIGNALANALYSIS
-        %-----------------------------------------------------------------%
-        function [htmlContent1, htmlContent2, emissionTag, userDescription, stationInfo] = Emission(specData, emissionIdx)
+        function initialText = EmissionTitle(specData, emissionIdx)
             emissionTable = specData.UserData.Emissions(emissionIdx, :);
 
             % TÍTULO
             threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
             emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
             observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
-            description = sprintf('"%s"', specData.RelatedFiles.Description{1});
 
             monitoringType = gpsLib.classifyMonitoringType(specData.GPS);
             switch monitoringType
@@ -444,6 +440,15 @@ classdef (Abstract) HtmlTextGenerator
                 sprintf('<font style="color: white; background-color: #b7312c; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">%s</font><br><br>', util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) ...
                 sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, threadTag, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
             ];
+        end
+
+        %-----------------------------------------------------------------%
+        function [htmlContent1, htmlContent2, emissionTag, userDescription, stationInfo] = Emission(specData, emissionIdx)
+            emissionTable = specData.UserData.Emissions(emissionIdx, :);
+            emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
+
+            % TÍTULO
+            initialText = util.HtmlTextGenerator.EmissionTitle(specData, emissionIdx);
             htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', initialText);
 
             % LOG
@@ -524,59 +529,54 @@ classdef (Abstract) HtmlTextGenerator
             htmlContent = sprintf('%s<br><font style="font-size: 12px;">Confirma edição?<font>', textFormatGUI.struct2PrettyPrintList(dataStruct, "print -1", '', 'popup'));
         end
 
-
         %-----------------------------------------------------------------%
-        % AUXAPP.DRIVETEST
-        %-----------------------------------------------------------------%
-        function [htmlContent, emissionID] = Emission_v2(specData, idxThread, idxEmission)
-            % No módulo auxApp.DriveTest existe a figura de "emissão
-            % virtual", que corresponde à toda a faixa de frequência
-            % monitorada.
-            if isempty(idxEmission) % Emissão virtual
-                freqCenter   = (specData(idxThread).MetaData.FreqStart + specData(idxThread).MetaData.FreqStop) / 2e6; % MHz
-                bandWidthKHz = (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart) / 1e3; % kHz
-            
-            else % Emissão real
-                freqCenter   = specData(idxThread).UserData.Emissions.Frequency(idxEmission);
-                bandWidthKHz = specData(idxThread).UserData.Emissions.BandWidthkHz(idxEmission);
-            end
-        
-            emissionTag      = sprintf('%.3f MHz ⌂ %.1f kHz', freqCenter, bandWidthKHz);
-        
-            bandFreqStart    = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStart/1e+6);
-            bandFreqStop     = sprintf('%.3f MHz', specData(idxThread).MetaData.FreqStop/1e+6);
-            bandStepWidth    = sprintf('%.1f kHz', (specData(idxThread).MetaData.FreqStop - specData(idxThread).MetaData.FreqStart)/(1000*(specData(idxThread).MetaData.DataPoints-1)));
-            bandResolution   = sprintf('%.1f kHz', specData(idxThread).MetaData.Resolution/1000);
-        
-            metaData         = struct('FreqStart',        bandFreqStart,                           ...
-                                      'FreqStop',         bandFreqStop,                            ...
-                                      'DataPoints',       specData(idxThread).MetaData.DataPoints,       ...
-                                      'StepWidth',        bandStepWidth,                           ...
-                                      'Resolution',       bandResolution,                          ...
-                                      'TraceMode',        specData(idxThread).MetaData.TraceMode,        ...
-                                      'TraceIntegration', specData(idxThread).MetaData.TraceIntegration, ...
-                                      'Detector',         specData(idxThread).MetaData.Detector,         ...
-                                      'LevelUnit',        specData(idxThread).MetaData.LevelUnit);
-        
-            dataStruct(1)   = struct('group', 'RECEPTOR',            'value', specData(idxThread).Receiver);
-            dataStruct(2)   = struct('group', 'TEMPO DE OBSERVAÇÃO', 'value', sprintf('%s – %s', datestr(specData(idxThread).Data{1}(1),   'dd/mm/yyyy HH:MM:SS'), datestr(specData(idxThread).Data{1}(end), 'dd/mm/yyyy HH:MM:SS')));
-            dataStruct(3)   = struct('group', 'METADADOS',           'value', metaData);
+        function htmlContent = EmissionMetaData(specData, emissionSelected, appHandleNameInBase)
+            emissionIdx  = emissionSelected.emissionIdx;
+            emissionTag  = emissionSelected.attributes.tag;
+            freqCenter   = emissionSelected.attributes.freqCenter;
+            bandWidthkHz = emissionSelected.attributes.bandWidthkHz;
 
-            gpsInfo = specData(idxThread).GPS;
-            if ~specData(idxThread).GPS.Status
-                gpsInfo = '🔴 Não identificada informação válida';
+            if ~isempty(emissionIdx)
+                channelAssigned = specData.UserData.Emissions(emissionIdx, :).ChannelAssigned;
+                channelInfo = [];
+                for channelField = ["Frequency", "ChannelBW"]
+                    if isequal(channelAssigned.AutoSuggested.(channelField), channelAssigned.UserModified.(channelField))
+                        channelInfo.(channelField) = formattedValue(channelField, channelAssigned.AutoSuggested.(channelField));
+                    else
+                        channelInfo.(channelField) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', formattedValue(channelField, channelAssigned.AutoSuggested.(channelField)), formattedValue(channelField, channelAssigned.UserModified.(channelField)));
+                    end
+                end
+    
+                classification = specData.UserData.Emissions(emissionIdx, :).Classification;
+                classificationInfo = [];
+                for classificationField = string(setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable'))'
+                    isNumeric = isnumeric(classification.AutoSuggested.(classificationField));
+                    
+                    if isNumeric && abs(classification.AutoSuggested.(classificationField) - classification.UserModified.(classificationField)) < 1e-5 || ...
+                      ~isNumeric && isequal(classification.AutoSuggested.(classificationField), classification.UserModified.(classificationField))
+                        classificationInfo.(classificationField) = classification.AutoSuggested.(classificationField);
+                    else
+                        classificationInfo.(classificationField) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(classification.AutoSuggested.(classificationField)), string(classification.UserModified.(classificationField)));                    
+                    end
+                end
+    
+                dataStruct(1) = struct('group', 'CANAL', 'value', channelInfo);
+                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo);
+
+            else
+                dataStruct(1) = struct('group', 'INFO', 'value', 'EMISSÃO VIRTUAL');
             end
-            dataStruct(4)   = struct('group', 'GPS',                 'value', gpsInfo);
-        
-            freeInitialText = sprintf('<font style="font-size: 16px;"><b>%s</b></font>\n\n', emissionTag);
-            htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
-        
-            emissionID      = struct('Thread',   struct('Index',     idxThread, ...
-                                                        'Hash',      specData(idxThread).Hash), ...
-                                     'Emission', struct('Index',     idxEmission, ...
-                                                        'Frequency', freqCenter, ...
-                                                        'BW_kHz',    bandWidthKHz, ...
-                                                        'Tag',       emissionTag));
+
+            initialText = util.HtmlTextGenerator.EmissionTitle(specData, emissionIdx);
+            initialText = [initialText, sprintf('<a href="matlab:evalin(''base'', ''chamandoDoTextView(%s)'')">❌</a>', appHandleNameInBase), '<br><br>'];
+            htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', initialText);
+
+            function str = formattedValue(field, value)
+                switch field
+                    case 'Frequency'; str = sprintf('%.3f MHz', value);
+                    case 'ChannelBW'; str = sprintf('%.1f kHz', value);
+                end
+            end
         end
 
 

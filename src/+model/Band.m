@@ -259,8 +259,8 @@ classdef Band < handle
                         channelFreqCenter = (specData.MetaData.FreqStart + specData.MetaData.FreqStop) / 2e+6; % MHz
                         channelBandWidth  = (specData.MetaData.FreqStop - specData.MetaData.FreqStart) / 1e+6; % MHz
                     else
-                        channelFreqCenter = specData.UserData.Emissions.ChannelAssigned(emissionIdx).userModified.Frequency; % MHz
-                        channelBandWidth  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).userModified.ChannelBW / 1000; % kHz >> MHz
+                        channelFreqCenter = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency; % MHz
+                        channelBandWidth  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW / 1000; % kHz >> MHz
                     end
 
                     [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, channelFreqCenter, channelBandWidth, bandGuard);

@@ -59,7 +59,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
 
     % Atualiza base de dados, caso necessário.
     RFDataHubOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RFDataHub.mat');
-    RFDataHubEditedFile   = fullfile(fullfile(ccTools.fcn.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RFDataHub.mat');
+    RFDataHubEditedFile   = fullfile(fullfile(appEngine.util.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RFDataHub.mat');
     
     load(RFDataHubOriginalFile, 'RFDataHub_info')
     originalReleaseDate   = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
@@ -111,7 +111,7 @@ function results = desktopCompilation(finalFolder, matlabRuntimeFolder, githubRe
     appResources = cellstr(xmlProject.configuration.fileset_resources.file);
     appPackages  = cellstr(xmlProject.configuration.fileset_package.file);
     appIcon      = fullfile(initFolder, 'desktop_resources', 'icon_48.png');
-    appVersion   = class.Constants.appVersion;
+    appVersion   = char(regexp(class.Constants.appVersion, '^(?:alpha|beta)?_?(\d+(?:\.\d+){2})', 'tokens', 'once'));
 
     % Arquivo EXECUTÁVEL
     cd(fileparts(appMainFile))
@@ -229,16 +229,15 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
         if githubReleaseFlag
             cd(githubCLIFolder)
             try                
-                ghMessage1 = sprintf('gh release upload %s "%s" --repo InovaFiscaliza/.github --clobber', appName, fullfile(finalFolder, sprintf('%s_Installer.zip', appName)));
-                [~, ghStatus1] = system(ghMessage1);
-                warning(ghStatus1)
+                ghCommand1 = sprintf('gh release upload %s "%s" --repo InovaFiscaliza/.github --clobber', appName, fullfile(finalFolder, sprintf('%s_Installer.zip', appName)));
+                system(ghCommand1);
             catch ME
                 warning(ME.message)
             end
 
             try
-                ghMessage2 = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
-                [~, ghStatus2] = system(ghMessage2);
+                ghCommand2 = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
+                [~, ghStatus2] = system(ghCommand2);
                 warning(ghStatus2)
             catch ME
                 warning(ME.message)

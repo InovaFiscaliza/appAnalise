@@ -2,108 +2,102 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                       matlab.ui.Figure
-        GridLayout                     matlab.ui.container.GridLayout
-        DockModule                     matlab.ui.container.GridLayout
-        dockModule_Close               matlab.ui.control.Image
-        dockModule_Undock              matlab.ui.control.Image
-        GridLayout2                    matlab.ui.container.GridLayout
-        RightPanel                     matlab.ui.container.GridLayout
-        WaterfallPanel                 matlab.ui.container.Panel
-        WaterfallPanelGrid             matlab.ui.container.GridLayout
-        WaterfallCLim2                 matlab.ui.control.Spinner
-        WaterfallCLim1                 matlab.ui.control.Spinner
-        WaterfallCLimRefresh           matlab.ui.control.Image
-        WaterfallCLimLabel             matlab.ui.control.Label
-        WaterfallMeshStyle             matlab.ui.control.DropDown
-        WaterfallMeshStyleLabel        matlab.ui.control.Label
-        WaterfallColormap              matlab.ui.control.DropDown
-        WaterfallColormapLabel         matlab.ui.control.Label
-        WaterfallDecimation            matlab.ui.control.DropDown
-        WaterfallDecimationValue       matlab.ui.control.Label
-        WaterfallDecimationLabel       matlab.ui.control.Label
-        WaterfallFunction              matlab.ui.control.DropDown
-        WaterfallFunctionLabel         matlab.ui.control.Label
-        WaterfallPanelLabel            matlab.ui.control.Label
-        WaterfallPanelIcon             matlab.ui.control.Image
-        PersistencePanel               matlab.ui.container.Panel
-        PersistencePanelGrid           matlab.ui.container.GridLayout
-        PersistenceCLim2               matlab.ui.control.Spinner
-        PersistenceCLim1               matlab.ui.control.Spinner
-        PersistenceCLimRefresh         matlab.ui.control.Image
-        PersistenceCLim_Label          matlab.ui.control.Label
-        PersistenceTransparency        matlab.ui.control.Spinner
-        PersistenceTransparencyLabel   matlab.ui.control.Label
-        PersistenceColormap            matlab.ui.control.DropDown
-        PersistenceColormapLabel       matlab.ui.control.Label
-        PersistenceWindowSize          matlab.ui.control.DropDown
-        PersistenceWindowSizeValue     matlab.ui.control.Label
-        PersistenceWindowSizeLabel     matlab.ui.control.Label
-        PersistenceInterpolation       matlab.ui.control.DropDown
-        PersistenceInterpolationLabel  matlab.ui.control.Label
-        PersistencePanelLabel          matlab.ui.control.Label
-        PersistencePanelIcon           matlab.ui.control.Image
-        GeneralPanel                   matlab.ui.container.Panel
-        GeneralPanelGrid               matlab.ui.container.GridLayout
-        LimitsYLim2                    matlab.ui.control.Spinner
-        LimitsYLim1                    matlab.ui.control.Spinner
-        LimitsYLimLabel                matlab.ui.control.Label
-        LimitsXLim2                    matlab.ui.control.Spinner
-        LimitsXLim1                    matlab.ui.control.Spinner
-        LimitsXLimLabel                matlab.ui.control.Label
-        LimitsRefresh                  matlab.ui.control.Image
-        LimitsPanelLabel               matlab.ui.control.Label
-        LayoutRatio                    matlab.ui.control.DropDown
-        LayoutRatioLabel               matlab.ui.control.Label
-        GeneralPanelLabel              matlab.ui.control.Label
-        GeneralPanelIcon               matlab.ui.control.Image
-        AxesToolbar                    matlab.ui.container.GridLayout
-        axesTool_PlotSize              matlab.ui.control.Slider
-        axesTool_DensityPlot           matlab.ui.control.Image
-        axesTool_DistortionPlot        matlab.ui.control.Image
-        axesTool_DataSourceDropDown    matlab.ui.control.DropDown
-        axesTool_RegionZoom            matlab.ui.control.Image
-        axesTool_RestoreView           matlab.ui.control.Image
-        Document                       matlab.ui.container.Panel
-        LeftPanel                      matlab.ui.container.GridLayout
-        EmissionList                   matlab.ui.control.DropDown
-        FlowPanel                      matlab.ui.container.Panel
-        FlowPanelGrid                  matlab.ui.container.GridLayout
-        FlowChannelEdit_2              matlab.ui.control.Image
-        filter_DataBinningLabel_3      matlab.ui.control.Label
-        PointsTree                     matlab.ui.container.CheckBoxTree
-        FlowChannelEdit                matlab.ui.control.Image
-        filter_DataBinningLabel_2      matlab.ui.control.Label
-        filter_DataBinningLabel        matlab.ui.control.Label
-        FilterTree                     matlab.ui.container.Tree
-        filter_DataBinningPanel        matlab.ui.container.Panel
-        filter_DataBinningGrid         matlab.ui.container.GridLayout
-        filter_DataBinningFcn          matlab.ui.control.DropDown
-        filter_DataBinningFcnLabel     matlab.ui.control.Label
-        filter_DataBinningLength       matlab.ui.control.Spinner
-        filter_DataBinningLengthLabel  matlab.ui.control.Label
-        FlowMetadata                   matlab.ui.control.Label
-        FlowAttributesPanelRightBtn    matlab.ui.control.Image
-        FlowAttributesPanelLeftBtn     matlab.ui.control.Image
-        FlowAttributesPanelVisibleIdx  matlab.ui.control.Label
-        FlowPanelLabel                 matlab.ui.control.Label
-        SpectrumFlowList               matlab.ui.control.DropDown
-        Toolbar                        matlab.ui.container.GridLayout
-        tool_LayoutRight               matlab.ui.control.Image
-        tool_Separator3                matlab.ui.control.Image
-        tool_FilterSummary             matlab.ui.control.Image
-        tool_DataBinningExport         matlab.ui.control.Image
-        tool_Play                      matlab.ui.control.Image
-        tool_TimestampLabel            matlab.ui.control.Label
-        tool_TimestampSlider           matlab.ui.control.Slider
-        tool_LoopControl               matlab.ui.control.Image
-        tool_Separator                 matlab.ui.control.Image
-        tool_LayoutLeft                matlab.ui.control.Image
-        ContextMenu2                   matlab.ui.container.ContextMenu
-        filter_delButton               matlab.ui.container.Menu
-        filter_delAllButton            matlab.ui.container.Menu
-        ContextMenu1                   matlab.ui.container.ContextMenu
-        points_delButton               matlab.ui.container.Menu
+        UIFigure                        matlab.ui.Figure
+        GridLayout                      matlab.ui.container.GridLayout
+        DockModule                      matlab.ui.container.GridLayout
+        dockModule_Close                matlab.ui.control.Image
+        dockModule_Undock               matlab.ui.control.Image
+        Document                        matlab.ui.container.GridLayout
+        RightPanel                      matlab.ui.container.GridLayout
+        config_Refresh                  matlab.ui.control.Image
+        CartesianAxesPanel              matlab.ui.container.Panel
+        CartesianAxesGrid               matlab.ui.container.GridLayout
+        config_BandGuardBWRelatedValue  matlab.ui.control.Spinner
+        config_BandGuardFixedValue      matlab.ui.control.NumericEditField
+        config_BandGuardType            matlab.ui.control.DropDown
+        config_BandGuardValueLabel      matlab.ui.control.Label
+        config_BandGuardTypeLabel       matlab.ui.control.Label
+        config_chPowerFaceAlpha         matlab.ui.control.Spinner
+        config_chPowerEdgeAlpha         matlab.ui.control.Spinner
+        config_chPowerColor             matlab.ui.control.ColorPicker
+        config_chPowerVisibility        matlab.ui.control.DropDown
+        config_chPowerLabel             matlab.ui.control.Label
+        config_chROIFaceAlpha           matlab.ui.control.Spinner
+        config_chROIEdgeAlpha           matlab.ui.control.Spinner
+        config_chROIColor               matlab.ui.control.ColorPicker
+        config_chROIVisibility          matlab.ui.control.DropDown
+        config_chROILabel               matlab.ui.control.Label
+        config_PersistanceVisibility    matlab.ui.control.DropDown
+        config_PersistanceLabel         matlab.ui.control.Label
+        CartesianAxesPanelLabel         matlab.ui.control.Label
+        CartesianAxesPanelIcon          matlab.ui.control.Image
+        GeographicAxesPanel             matlab.ui.container.Panel
+        GeographicAxesPanelGrid         matlab.ui.container.GridLayout
+        config_Colormap                 matlab.ui.control.DropDown
+        config_ColormapLabel            matlab.ui.control.Label
+        config_Basemap                  matlab.ui.control.DropDown
+        config_BasemapLabel             matlab.ui.control.Label
+        config_points_Size              matlab.ui.control.Slider
+        config_points_Color             matlab.ui.control.ColorPicker
+        config_points_LineStyle         matlab.ui.control.DropDown
+        config_points_Label             matlab.ui.control.Label
+        config_Car_Size                 matlab.ui.control.Slider
+        config_Car_Color                matlab.ui.control.ColorPicker
+        config_Car_LineStyle            matlab.ui.control.DropDown
+        config_Car_Label                matlab.ui.control.Label
+        config_route_Label              matlab.ui.control.Label
+        config_route_LineStyle          matlab.ui.control.DropDown
+        config_route_OutColor           matlab.ui.control.ColorPicker
+        config_route_InColor            matlab.ui.control.ColorPicker
+        config_route_Size               matlab.ui.control.Slider
+        GeographicAxesPanelLabel        matlab.ui.control.Label
+        GeographicAxesPanelIcon         matlab.ui.control.Image
+        AxesToolbar                     matlab.ui.container.GridLayout
+        axesTool_DensityPlot_2          matlab.ui.control.Image
+        axesTool_PlotSize               matlab.ui.control.Slider
+        axesTool_DensityPlot            matlab.ui.control.Image
+        axesTool_DistortionPlot         matlab.ui.control.Image
+        axesTool_DataSourceDropDown     matlab.ui.control.DropDown
+        axesTool_RegionZoom             matlab.ui.control.Image
+        axesTool_RestoreView            matlab.ui.control.Image
+        AxesContainer                   matlab.ui.container.Panel
+        LeftPanel                       matlab.ui.container.GridLayout
+        EmissionList                    matlab.ui.control.DropDown
+        EmissionPanel                   matlab.ui.container.Panel
+        EmissionPanelGrid               matlab.ui.container.GridLayout
+        PointsTree                      matlab.ui.container.CheckBoxTree
+        PointsTreeButton                matlab.ui.control.Image
+        PointsTreeLabel                 matlab.ui.control.Label
+        FilterTree                      matlab.ui.container.Tree
+        FilterTreeButton                matlab.ui.control.Image
+        FilterTreeLabel                 matlab.ui.control.Label
+        DataBinningPanel                matlab.ui.container.Panel
+        DataBinningGrid                 matlab.ui.container.GridLayout
+        DataBinningFcn                  matlab.ui.control.DropDown
+        DataBinningFcnLabel             matlab.ui.control.Label
+        DataBinningLength               matlab.ui.control.Spinner
+        DataBinningLengthLabel          matlab.ui.control.Label
+        DataBinningLabel                matlab.ui.control.Label
+        EmissionMetadata                matlab.ui.control.Label
+        EmissionAttributesPanelRightBtn  matlab.ui.control.Image
+        EmissionAttributesPanelLeftBtn  matlab.ui.control.Image
+        EmissionAttributesPanelVisibleIdx  matlab.ui.control.Label
+        EmissionPanelLabel              matlab.ui.control.Label
+        SpectrumFlowList                matlab.ui.control.DropDown
+        Toolbar                         matlab.ui.container.GridLayout
+        tool_LayoutRight                matlab.ui.control.Image
+        tool_Separator3                 matlab.ui.control.Image
+        tool_FilterSummary              matlab.ui.control.Image
+        tool_DataBinningExport          matlab.ui.control.Image
+        tool_Play                       matlab.ui.control.Image
+        tool_TimestampLabel             matlab.ui.control.Label
+        tool_TimestampSlider            matlab.ui.control.Slider
+        tool_LoopControl                matlab.ui.control.Image
+        tool_Separator                  matlab.ui.control.Image
+        tool_LayoutLeft                 matlab.ui.control.Image
+        ContextMenu                     matlab.ui.container.ContextMenu
+        DeleteSelectedItem              matlab.ui.container.Menu
+        DeleteAllEntries                matlab.ui.container.Menu
     end
 
     
@@ -111,6 +105,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         Role = 'secondaryApp'
         Context = 'DRIVETEST'
+        AppHandleNameInBase
     end
 
 
@@ -122,6 +117,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         jsBackDoor
         progressDialog
         popupContainer
+
+        SubTabGroup = struct('Children', -1, 'UserData', [])
 
         % Handles dos eixos utilizados por este módulo.
         UIAxes1
@@ -159,37 +156,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        emissionSelectedIdxs = struct('flowIdx', {}, 'emissionIdx', {})
+        projectData
+
+        emissionSelectedIdxs = struct('flowIdx', {}, 'emissionIdx', {}, 'attributes', {})
         emissionPoints = struct('raw', [], 'filtered', [], 'binned', [])
-        emissionPointsTable
-        emissionFilteredPointsTable
-        emissionBinnedPointsTable
 
-        filterTable = table({}, {}, struct('handle', {}, 'specification', {}),               'VariableNames', {'type', 'subtype', 'roi'})
-        pointsTable = table({}, struct('Source', {}, 'idxData', {}, 'Data', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
+        filterTable = table({}, {}, struct('handle', {}, 'specification', {}), 'VariableNames', {'type', 'subtype', 'roi'})
+        pointsTable = table({}, struct('source', {}, 'data', {}, 'dataIdx', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
 
-        kmlObj
-
-        defaultConfigValues = struct(...
-            'Colormap',          'turbo', ...
-            'route_LineStyle',   ':', ...
-            'route_Size',        1, ...
-            'route_OutColor',    [0.502 0.502 0.502], ...
-            'route_InColor',     [0.8706 0.5412 0.5412], ...
-            'Car_LineStyle',     'square', ...
-            'Car_Color',         [1,0,0], ...
-            'Car_Size',          10, ...
-            'points_LineStyle',  '^', ...
-            'points_Color',      [0,0,0], ...
-            'points_Size',       9, ...
-            'persistancePlot',   'on', ...
-            'chROIVisibility',   'on', ...
-            'chROIEdgeAlpha',    0, ...
-            'chROIFaceAlpha',    .4, ...
-            'chPowerVisibility', 'on', ...
-            'chPowerEdgeAlpha',  1, ...
-            'chPowerFaceAlpha',  .4 ...
-        )
         defaultValues
     end
 
@@ -225,22 +199,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
                                   'onEmissionDeleted'}
-                                % [flowIdx, emissionIdx] = getEmissionIndexes(app);
-                            %     [idxThread, idxEmission] = specDataIndex(app, 'EmissionShowed');
-                            % 
-                            %     if isempty(idxThread) || isempty(app.specData(idxThread).UserData.Emissions)
-                            %         closeFcn(app)
-                            %         return
-                            %     end
-                            % 
-                            %     preSelection = app.EmissionList.Value;
-                            %     layout_EmissionListCreation(app, idxThread, idxEmission)
-                            % 
-                            %     if ismember(preSelection, app.EmissionList.Items)
-                            %         app.EmissionList.Value = preSelection;
-                            %     else
-                            %         general_EmissionChanged(app, struct('Source', app.EmissionList))
-                            %     end
+                                updateFlowDropDown(app)
+
+                                if app.plotUpdateEvent
+                                    app.plotUpdateEvent = -1;
+                                else
+                                    onFlowDropDownValueChanged(app)
+                                end
             
                             case 'onTabNavigatorButtonPushed'
                                 if app.plotUpdateEvent
@@ -248,10 +213,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 end
 
                             case 'auxApp.winDriveTest.FilterTree'
-                                filter_delFilter(app, struct('Source', app.filter_delButton))
+                                onContextMenuItemClicked(app, struct('ContextObject', app.FilterTree, 'Source', app.DeleteSelectedItem))
 
                             case 'auxApp.winDriveTest.PointsTree'
-                                points_delButtonMenuSelected(app)
+                                onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree, 'Source', app.DeleteSelectedItem))
 
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -278,10 +243,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 case 1
                     elToModify = {
                         app.AxesToolbar;
-                        app.SelectedFlowTag;
-                        app.EmissionInfo;
-                        app.ToggleEmissionPlotCustomization;
+                        app.SpectrumFlowList;
+                        app.EmissionList;
+                        app.EmissionPanelLabel;
+                        app.EmissionMetadata;
+                        app.FilterTree;
+                        app.PointsTree;
                         app.tool_LayoutLeft;
+                        app.tool_LayoutRight;
                         app.tool_Play;
                         app.tool_LoopControl;
                         app.dockModule_Undock;
@@ -290,20 +259,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     ui.CustomizationBase.getElementsDataTag(elToModify);
 
                     try
-                        ui.TextView.startup(app.jsBackDoor, app.SelectedFlowTag, appName);
-                    catch
-                    end
-
-                    try
-                        ui.TextView.startup(app.jsBackDoor, app.EmissionInfo, appName);
-                    catch
-                    end
-
-                    try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,       'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.ToggleEmissionPlotCustomization.UserData.id, 'generation', 1, 'style', struct('textAlign', 'justify')), ...
+                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,  'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                            struct('appName', appName, 'dataTag', app.EmissionList.UserData.id,      'dropDownBackgroundColor', struct('items', 'rgba(51, 51, 51, 0.75)', 'selectedItem', 'rgb(20, 20, 20)')), ...
+                            struct('appName', appName, 'dataTag', app.EmissionPanelLabel.UserData.id,    'styleImportant', struct('borderLeft', '3px solid #333333', 'paddingLeft', '8px')), ...
+                            struct('appName', appName, 'dataTag', app.FilterTree.UserData.id,        'listener', struct('componentName', 'auxApp.winDriveTest.FilterTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
+                            struct('appName', appName, 'dataTag', app.PointsTree.UserData.id,        'listener', struct('componentName', 'auxApp.winDriveTest.PointsTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
@@ -312,36 +276,21 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     catch
                     end
 
-                case 2
-                    elToModify = {app.FilterTree};
-                    ui.CustomizationBase.getElementsDataTag(elToModify);
                     try
-                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.FilterTree.UserData.id, 'listener', struct('componentName', 'auxApp.winDriveTest.FilterTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
-                        });
-                    catch
-                    end
-                
-                case 3
-                    elToModify = {app.PointsTree};
-                    ui.CustomizationBase.getElementsDataTag(elToModify);
-                    try
-                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.PointsTree.UserData.id, 'listener', struct('componentName', 'auxApp.winDriveTest.PointsTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
-                        });
+                        ui.TextView.startup(app.jsBackDoor, app.EmissionMetadata,  appName, struct('class', {{'textview--borderless'}}));
                     catch
                     end
 
-                case 4
-                    app.config_chROIColor.Value     = app.defaultValues.channelROI.Color;
-                    app.config_chROIEdgeAlpha.Value = app.defaultValues.channelROI.EdgeAlpha;
-                    app.config_chROIFaceAlpha.Value = app.defaultValues.channelROI.FaceAlpha;
-                    app.config_chPowerColor.Value   = app.UIAxes3.Colormap(end,:);
+                otherwise
+                    % ...
             end
         end
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
+            app.projectData = app.mainApp.projectData;
+            app.bandObj = model.Band('appAnalise:DRIVETEST', app.mainApp);
+
             % Lê a versão de "GeneralSettings.json" que vem junto ao
             % projeto (e não a versão armazenada em "ProgramData").
             prjFolder = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
@@ -362,10 +311,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if strcmp(app.mainApp.executionMode, 'webApp')
                 app.defaultValues.basemap = 'none';
             end
-
-            % Cria eixos...
-            app.bandObj = model.Band('appAnalise:DRIVETEST', app.mainApp);
-            initializeAxes(app)
         end
 
         %-----------------------------------------------------------------%
@@ -374,17 +319,26 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
-            % Controle do modo de edição:
-            app.spectralThreadEdit.UserData.status = false;
-            app.ChannelToggleEditMode.UserData.status = false;
+            app.EmissionAttributesPanelVisibleIdx.UserData.index = 1;
 
-            % Lista as emissões:
-            buildSpecFlowTree(app)
+            initializeAxes(app)
+
+            app.config_chROIColor.Value     = app.defaultValues.channelROI.Color;
+            app.config_chROIEdgeAlpha.Value = app.defaultValues.channelROI.EdgeAlpha;
+            app.config_chROIFaceAlpha.Value = app.defaultValues.channelROI.FaceAlpha;
+            app.config_chPowerColor.Value   = app.UIAxes3.Colormap(end,:);
         end
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            % general_EmissionChanged(app, struct('updateType', 'AppStartup'))
+            updateFlowDropDown(app)
+            onFlowDropDownValueChanged(app)
+        end
+
+        %-----------------------------------------------------------------%
+        function chamandoDoTextView(app)
+            'Opa... chegou aqui! :)'
+            % MIGRAR para o ipcJS
         end
     end
 
@@ -392,7 +346,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
     methods (Access = private)
         %-----------------------------------------------------------------%
         function initializeAxes(app)
-            hParent = tiledlayout(app.Document, 24, 16, "Padding", "none", "TileSpacing", "none");
+            hParent = tiledlayout(app.AxesContainer, 24, 16, "Padding", "none", "TileSpacing", "none", "Position", [0, 0, 1, 1]);
 
             % Eixo geográfico: MAPA
             app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.defaultValues.basemap,                ...
@@ -450,70 +404,110 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function buildSpecFlowTree(app, flowIdx, emissionIdx)
+        function updateFlowDropDown(app)
+            specData = app.mainApp.specData;
+
+            if ~isempty(specData)
+                if isempty(app.SpectrumFlowList.StyleConfigurations)
+                    addStyle(app.SpectrumFlowList, uistyle('Interpreter', 'html'))
+                end
+
+                previousValue = app.SpectrumFlowList.Value;
+            
+                [receivers, ~, indexes] = unique({specData.Receiver});
+                items = {};
+                itemsData = [];
+                
+                for ii = 1:numel(receivers)
+                    receiverIdxs = find(indexes == ii)';
+                    receiverName = util.layoutTreeNodeText(receivers{ii}, 'play_TreeBuilding');
+                    
+                    for jj = receiverIdxs
+                        if ismember(specData(jj).MetaData.DataType, class.Constants.occDataTypes)
+                            continue
+                        end
+
+                        freqStart = specData(jj).MetaData.FreqStart / 1e+6;
+                        freqStop  = specData(jj).MetaData.FreqStop  / 1e+6;
+                        
+                        reportStatus = '';
+                        if ~isempty(specData(jj).UserData) && specData(jj).UserData.ReportInclude
+                            reportStatus = '&emsp;&#x1F7E2;';
+                        end
+            
+                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s', receiverName, freqStart, freqStop, reportStatus);
+                        itemsData(end+1) = jj;
+                    end
+                end
+
+                currentValue = {};    
+                if ~isempty(previousValue)
+                    if isnumeric(previousValue) && ismember(previousValue, itemsData)
+                        currentValue = {'Value', previousValue};
+                    end
+                end
+
+                set(app.SpectrumFlowList, 'Items', items, 'ItemsData', itemsData, currentValue{:})
+
+            else
+                removeStyle(app.SpectrumFlowList)
+                app.SpectrumFlowList.Items = {};
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateFlowView(app, flowIdx)
+            % Caso não esteja em cache os dados do fluxo espectral selecionado, 
+            % procede-se a sua leitura, preenchendo a propriedade "Data" com
+            % timestamps, níveis das varreduras, azimutes e notas de qualidade.
+            % Caso ocorra erro na leitura, o registro é excluído e o layout é
+            % reinicializado.
+            specData = [];
+            if ~isempty(flowIdx)
+                specData = app.mainApp.specData(flowIdx);
+            end
+
+            if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
+                requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+
+                try
+                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    
+                    relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                    if ~isempty(relatedHases)
+                        relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    end
+
+                catch ME
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
+
+                    delete(app.mainApp.specData(flowIdx))
+                    app.mainApp.specData(flowIdx) = [];
+                    updateFlowDropDown(app)
+                    return
+                end
+
+                requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+            end
+
+            updateEmissionDropDown(app)
+            onEmissionDropDownValueChanged(app)
+        end
+
+        %-----------------------------------------------------------------%
+        function updateEmissionDropDown(app, emissionIdx)
             arguments
                 app
-                flowIdx = []
                 emissionIdx = []
             end
 
-            if ~isempty(app.SpecFlowTree.Children)
-                removeStyle(app.SpecFlowTree)
-                delete(app.SpecFlowTree.Children)
+            if isempty(app.mainApp.specData)
+                app.EmissionList.Items = {};
+                return
             end
 
-            if ~isempty(app.mainApp.specData)
-                if isempty(flowIdx)
-                    flowIdx = 1;
-                end
-    
-                app.SelectedFlowTag.Text = sprintf('%s\n%.3f - %.3f MHz', app.mainApp.specData(flowIdx).Receiver, ...
-                                                                         app.mainApp.specData(flowIdx).MetaData.FreqStart / 1e6, ...
-                                                                         app.mainApp.specData(flowIdx).MetaData.FreqStop  / 1e6);
-    
-                % Cria árvore:
-                [receiverList, ~, receiverIdxs] = unique({app.mainApp.specData.Receiver});
-    
-                for ii = 1:numel(receiverList)
-                    idxs = find(receiverIdxs == ii)';
-                    receiverNode = uitreenode(app.SpecFlowTree, 'Text',  util.layoutTreeNodeText(receiverList{ii}, 'play_TreeBuilding'), ...
-                                                                      'NodeData', idxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
-                                    
-                    for jj = idxs
-                        uitreenode(receiverNode, 'Text', sprintf('%.3f - %.3f MHz', app.mainApp.specData(jj).MetaData.FreqStart / 1e6, ...
-                                                                                    app.mainApp.specData(jj).MetaData.FreqStop  / 1e6), ...
-                                                 'NodeData', jj, 'Tag', 'BAND');
-                    end
-                end
-                expand(app.SpecFlowTree, 'all')
-
-                % Ajusta seleção programaticamente e aplica estilo:
-                applySpecFlowTreeStyle(app, flowIdx)
-    
-                % Cria lista de emissões:
-                createSpecFlowEmissionDropDownList(app, flowIdx, emissionIdx)
-
-            else
-                app.SelectedFlowTag.Text = '';
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function applySpecFlowTreeStyle(app, flowIdx)
-            nodeTreeList = findobj(app.SpecFlowTree, 'Tag', 'BAND');
-            [~, selectionIdx] = ismember(flowIdx, [nodeTreeList.NodeData]);
-
-            if selectionIdx
-                app.SpecFlowTree.SelectedNodes = nodeTreeList(selectionIdx);
-                addStyle(app.SpecFlowTree, uistyle('FontColor', [0,0,0]), 'node', [nodeTreeList(selectionIdx); nodeTreeList(selectionIdx).Parent])
-
-                expand(nodeTreeList(selectionIdx))
-                scroll(app.SpecFlowTree, nodeTreeList(selectionIdx))
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function createSpecFlowEmissionDropDownList(app, flowIdx, emissionIdx)
+            flowIdx   = findSpecDataIndex(app);
             specData  = app.mainApp.specData(flowIdx);
             emissions = specData.UserData.Emissions;
 
@@ -529,7 +523,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 else
                     freqCenter   = emissions.Frequency(ii); % MHz
                     bandWidthkHz = emissions.BandWidthkHz(ii);    % kHz
-                    if ~isempty(emissions.auxAppData(ii).DriveTest)
+                    if ~isempty(emissions.AuxAppData(ii).DriveTest)
                         additionalNote = ' (DT)';
                     end
                 end
@@ -549,13 +543,76 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateEmissionView(app)
-            updateUIControlsState(app)
-            % ...
+            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+
+            if ~isempty(app.emissionSelectedIdxs) && isequal(app.emissionSelectedIdxs.flowIdx, flowIdx) && isequal(app.emissionSelectedIdxs.emissionIdx, emissionIdx)
+                return
+            end
+
+            specData = [];
+            if ~isempty(flowIdx)
+                specData = app.mainApp.specData(flowIdx);
+            end
+
+            % Atualiza app.bandObj, instância de model.Band, que guarda
+            % informações derivadas da instância de model.SpecData sob análise.
+            % A partir desse momento, a referência ao specData selecionado
+            % se dará por app.bandObj.SpecData.
+            updateEmissionSelected(app, specData, flowIdx, emissionIdx)
+            updateSpectrumInfo(app.bandObj, specData, emissionIdx);
+
+            % Atualiza PAINEL À ESQUERDA com metadados do fluxo e da emissão.
+            updateUIControlsState(app, specData, emissionIdx)
+            updateUIPanelContent(app, specData, emissionIdx)
+
+            % Reseta o PLOT e atualiza informações que suportam o plot, como 
+            % as dispostas no painel à direita.
+            % resetPlotState(app, specData, emissionIdx)
+            % 
+            % % Atualiza PAINEL À DIREITA.
+            % applyCustomPlaybackSettings(app, specData, emissionIdx)
         end
 
         %-----------------------------------------------------------------%
-        function updateUIControlsState(app)
-            hasSpectralFlow = ~isempty(app.mainApp.specData) && any(ismember([specData.MetaData.DataType], class.Constants.specDataTypes));
+        function updateEmissionSelected(app, specData, flowIdx, emissionIdx)
+            if ~isempty(specData)
+                if ~isempty(emissionIdx)
+                    freqCenter   = specData.UserData.Emissions.Frequency(emissionIdx);
+                    bandWidthkHz = specData.UserData.Emissions.BandWidthkHz(emissionIdx);
+                    chFrequency  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
+                    chBandWidth  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW;
+                    
+                else 
+                    freqCenter   = (specData.MetaData.FreqStart + specData.MetaData.FreqStop)  / 2e6; % MHz
+                    bandWidthkHz = (specData.MetaData.FreqStop  - specData.MetaData.FreqStart) / 1e3; % kHz
+                    chFrequency  = freqCenter;
+                    chBandWidth  = bandWidthkHz;
+                end
+
+                emissionChannel = struct( ...
+                    'freqCenter', chFrequency, ...
+                    'bandWidthkHz', chBandWidth ...
+                );
+    
+                app.emissionSelectedIdxs(1) = struct( ...
+                    'flowIdx', flowIdx, ...
+                    'emissionIdx', emissionIdx, ...
+                    'attributes', struct( ...
+                        'tag', sprintf('%.3f MHz ⌂ %.1f kHz', freqCenter, bandWidthkHz), ...
+                        'freqCenter', freqCenter, ...
+                        'bandWidthkHz', bandWidthkHz, ...
+                        'channel', emissionChannel ...
+                    ) ...
+                );
+
+            else
+                app.emissionSelectedIdxs(:) = [];
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateUIControlsState(app, specData, emissionIdx)
+            hasSpectralFlow = ~isempty(specData) && any(ismember([specData.MetaData.DataType], class.Constants.specDataTypes));
 
             set([
                 app.tool_Play;
@@ -567,65 +624,218 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function layout_editSpectralThread(app, editionStatus)
-            arguments
-                app 
-                editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
-            end            
+        function updateUIPanelContent(app, specData, emissionIdx)
+            if ~isempty(specData)
+                % Verifica se o handle para o app continua ativo no workspace
+                % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
+                % capturados corretamente.
+                appHandleNameInBase = app.AppHandleNameInBase;
+                if isempty(appHandleNameInBase) || ~evalin('base', sprintf('exist("%s", "var") && isa(%s, "%s") && isvalid(%s)', appHandleNameInBase, appHandleNameInBase, class(app), appHandleNameInBase))
+                    app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
+                end
+    
+                htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase);
+                ui.TextView.update(app.EmissionMetadata, htmlContent);
+    
+                % Verifica se os limites do plot estão adequados ao tipo de emissão (a
+                % emissão virtual, que corresponde à toda faixa espectral tem particularidades).
+                % if ~isempty(emissionIdx)
+                %     if ~app.config_BandGuardType.Enable
+                %         % Essa situação só ocorre quando estava selecionado uma
+                %         % emissão virtual e agora foi selecionada uma emissão real.
+                %         % Por isso, os valores estavam configurados em "BWRelated" e 1.
+                %         app.config_BandGuardType.Enable = 1;
+                %         set(app.config_BandGuardBWRelatedValue, 'Enable', 1, 'Value', 6)
+                %         config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
+                %     end
+                % 
+                % else
+                %     if app.config_BandGuardType.Enable
+                %         % Essa situação só ocorre quando estava selecionado uma
+                %         % emissão real e agora foi selecionada uma emissão virtual.
+                %         app.config_BandGuardType.Enable = 0;
+                %         app.config_BandGuardBWRelatedValue.Enable = 0;
+                % 
+                %         if app.config_BandGuardType.Value ~= "BWRelated"
+                %             app.config_BandGuardType.Value = 'BWRelated';
+                %             config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardType))
+                %         end
+                % 
+                %         if app.config_BandGuardBWRelatedValue.Value ~= 1
+                %             app.config_BandGuardBWRelatedValue.Value = 1;
+                %             config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
+                %         end
+                %     end
+                % end
+    
+                buildFilterTree(app)
+                buildPointsTree(app)
 
-            switch editionStatus
-                case 'on'
-                    set(app.spectralThreadEdit, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do fluxo espectral', 'UserData', true)
-                    app.SubGrid1.RowHeight{3} = '1x';
-                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {18, 18};
-                    app.spectralThreadEditConfirm.Enable = 1;
-                    app.spectralThreadEditCancel.Enable  = 1;
-
-                case 'off'
-                    set(app.spectralThreadEdit, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do fluxo espectral',   'UserData', false)
-                    app.SubGrid1.RowHeight{3} = 0;
-                    app.spectralThreadEditGrid.ColumnWidth(end-1:end) = {0, 0};
-                    app.spectralThreadEditConfirm.Enable = 0;
-                    app.spectralThreadEditCancel.Enable  = 0;
-
-                    idxThread         = specDataIndex(app, 'ThreadSelectionChanged');
-                    nodeTreeList      = findobj(app.SpecFlowTree, 'Tag', 'BAND');
-                    [~, idxSelection] = ismember(idxThread, [nodeTreeList.NodeData]);
-        
-                    if idxSelection
-                        app.SpecFlowTree.SelectedNodes = nodeTreeList(idxSelection);
-                    end
+            else
+                ui.TextView.update(app.EmissionMetadata, '');
             end
         end
 
         %-----------------------------------------------------------------%
-        function layout_editChannelAssigned(app, editionStatus)
-            arguments
-                app 
-                editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
-            end            
-
-            switch editionStatus
-                case 'on'
-                    set(app.ChannelToggleEditMode, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do canal', 'UserData', true)
-                    app.ChannelPanelEditionGrid.ColumnWidth(end-1:end) = {18, 18};
-                    app.ChannelEditConfirm.Enable = 1;
-                    app.ChannelEditCancel.Enable  = 1;
-                    app.ChannelFrequency.Editable = 1;
-                    app.ChannelBandWidthkHz.Editable = 1;
-
-                case 'off'
-                    set(app.ChannelToggleEditMode, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do canal',   'UserData', false)
-                    app.ChannelPanelEditionGrid.ColumnWidth(end-1:end) = {0, 0};
-                    app.ChannelEditConfirm.Enable = 0;
-                    app.ChannelEditCancel.Enable  = 0;
-                    app.ChannelFrequency.Editable = 0;
-                    app.ChannelBandWidthkHz.Editable = 0;
-
-                    [idxThread, idxEmission]      = specDataIndex(app, 'ChannelDefault');
-                    app.ChannelFrequency.Value    = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified.Frequency;
-                    app.ChannelBandWidthkHz.Value    = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified.ChannelBW;
+        function buildFilterTree(app)
+            if ~isempty(app.FilterTree.Children)
+                delete(app.FilterTree.Children)
             end
+
+            if ~isempty(app.filterTable)
+                for ii = 1:height(app.filterTable)
+                    nodeText = sprintf('%s:%s', app.filterTable.type{ii}, app.filterTable.subtype{ii});
+                    uitreenode(app.FilterTree, 'Text', nodeText, 'NodeData', ii);
+                end
+
+                set(app.FilterTree, 'SelectedNodes', app.FilterTree.Children(end), 'Enable', 1)
+                FilterTreeSelectionChanged(app)
+            else
+                app.FilterTree.Enable = 1;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function buildPointsTree(app)
+            if ~isempty(app.PointsTree.Children)
+                delete(app.PointsTree.Children)
+            end
+
+            checkedTreeNodes = [];
+            for ii = 1:height(app.pointsTable)
+                nodeText = sprintf('%s: %s', app.pointsTable.type{ii}, strjoin("#" + string(app.pointsTable.value(ii).idxData), ', '));
+                treeNode = uitreenode(app.PointsTree, 'Text', nodeText, 'NodeData', ii);
+                if app.pointsTable.visible(ii)
+                    checkedTreeNodes = [checkedTreeNodes, treeNode];
+                end
+            end
+            app.PointsTree.CheckedNodes = checkedTreeNodes;
+        end
+
+        %-----------------------------------------------------------------%
+        % ## PLOT CONTROLLER ##
+        %-----------------------------------------------------------------%
+        function resetPlotState(app, specData)
+            cla([app.UIAxes1, app.UIAxes2, app.UIAxes3])
+            
+            app.UIAxes1.UserData.CLimMode = 'auto';
+            app.UIAxes3.UserData.CLimMode = 'auto';
+
+            app.plotHandles = struct( ...
+                'clearWrite', [], ...
+                'minHold', [], ...
+                'average', [], ...
+                'maxHold', [], ...
+                'persistence', [], ...
+                'thresholdLine', [], ...
+                'thresholdLabel', [], ...
+                'waterfall', [], ...
+                'waterfallTime', [] ...
+            );
+    
+            app.sweepTimeIdx = 1;
+            app.tool_TimestampSlider.Value = 0;
+            resetRestoreView(app)
+
+            if ~isempty(specData)
+                app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1));
+                app.AxesAnnotation.Text = sprintf('%s \n%.3f – %.3f MHz ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
+
+            else
+                app.tool_TimestampLabel.Text = '';
+                app.AxesAnnotation.Text = '';
+
+                if app.axesTool_occupancy.UserData.status || app.axesTool_waterfall.UserData.status
+                    app.axesTool_occupancy.UserData.status = false;
+                    app.axesTool_waterfall.UserData.status = false;
+
+                    plot.axes.Layout.XLabel([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status)
+                    plot.axes.Layout.RatioAspect([app.UIAxes1, app.UIAxes2, app.UIAxes3], app.axesTool_occupancy.UserData.status, app.axesTool_waterfall.UserData.status, app.LayoutRatio)
+                end
+
+                onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_RestoreView))
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function resetRestoreView(app)
+            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+            app.restoreView(4) = struct('ID', 'app.UIAxes4', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+        end
+
+        %-----------------------------------------------------------------%
+        function updatePlot(app)
+            specData = app.bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
+        
+            if isempty(app.plotHandles.clearWrite)
+                set(app.UIAxes1, 'XLim', app.restoreView(1).xLim, 'YLim', app.restoreView(1).yLim)
+                ylabel(app.UIAxes1, sprintf('Nível (%s)', app.bandObj.LevelUnit))
+        
+                % ClearWrite, MinHold, Average, e MaxHold
+                for plotTag = ["clearWrite", "minHold", "average", "maxHold"]
+                    if ismember(plotTag, {'minHold', 'average', 'maxHold'}) && ~eval(sprintf('app.axesTool_%s.UserData.status', plotTag))
+                        continue
+                    end
+        
+                    app.plotHandles.(plotTag) = plot.draw2D.OrdinaryLine(app.UIAxes1, plotTag, app.bandObj, app.sweepTimeIdx);
+                    plot.datatip.Template(app.plotHandles.(plotTag), "Frequency+Level", app.bandObj.LevelUnit)
+                end
+                
+                % Persistence
+                if app.axesTool_persistence.UserData.status
+                    updatePersistencePlot(app, 'Creation')
+                end
+
+                % Emissions
+                updateEmissionsPlot(app)
+
+                % BandLimits & Channels
+                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
+                % plot_Draw_Channels(app, idx)
+        
+                % Occupancy
+                if app.axesTool_occupancy.UserData.status
+                    updateOccupancyPlot(app, 'Creation', specData)
+                end
+        
+                % Waterfall
+                if app.axesTool_waterfall.UserData.status
+                    updateWaterfallPlot(app)
+                end
+        
+                % customPlayback >> DataTips
+                if ~isempty(specData.UserData.PlotDisplayConfig.dataTips)
+                    dtConfig = specData.UserData.PlotDisplayConfig.dataTips;
+                    dtParent = [app.UIAxes1, app.UIAxes2, app.UIAxes3];
+                    plot.datatip.Create('customPlayback', dtConfig, dtParent)
+                end
+        
+            else
+                % ClearWrite, MinHold, Average, e MaxHold
+                for plotTag = ["clearWrite", "minHold", "average", "maxHold"]
+                    if ismember(plotTag, {'minHold', 'average', 'maxHold'})
+                        if ~eval(sprintf('app.axesTool_%s.UserData.status', plotTag)) || isinf(app.mainApp.General.context.PLAYBACK.integration.traceMode)
+                            continue
+                        end
+                    end
+        
+                    plot.draw2D.OrdinaryLineUpdate(plotTag, app.plotHandles.(plotTag), app.bandObj, app.sweepTimeIdx);
+                end
+        
+                % Persistence
+                updatePersistencePlot(app, 'Update')
+
+                % WaterfallTime
+                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
+                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                end
+            end
+            drawnow
         end
 
         %-----------------------------------------------------------------%
@@ -685,30 +895,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function checkChannelAssigned(app, idxThread, idxEmission)            
-            if isempty(idxEmission)
-                chAssigned = util.emissionChannel(app.specData, idxThread, idxEmission, app.mainApp.channelObj);
-                app.ChannelRefresh.Visible = 0;
-
-            else
-                chAssigned = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified;
-                
-                if isequal(app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).autoSuggested, ...
-                           app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified)
-                    app.ChannelRefresh.Visible = 0;
-                else
-                    app.ChannelRefresh.Visible = 1;
-                end
-            end
-
-            app.ChannelGrid.UserData   = chAssigned;
-            app.ChannelFrequency.Value = chAssigned.Frequency;
-            app.ChannelBandWidthkHz.Value = chAssigned.ChannelBW;
-
-            checkFixedScreenSpanLimits(app)
-        end
-
-        %-----------------------------------------------------------------%
         function dataSource = checkDataSource(app)
             switch app.axesTool_DataSourceDropDown.Value
                 case 'Dados brutos'
@@ -727,13 +913,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function checkFixedScreenSpanLimits(app)
             switch app.config_BandGuardType.Value
                 case 'Fixed'
-                    chBW        = app.ChannelBandWidthkHz.Value; % kHz
-                    chBWLimits = chBW * app.config_BandGuardBWRelatedValue.Limits;
+                    chBandWidth = app.emissionSelectedIdxs.attributes.channel.bandWidthkHz;
+                    chBandWidthsLimits = chBandWidth * app.config_BandGuardBWRelatedValue.Limits;
         
-                    if app.config_BandGuardFixedValue.Value < chBWLimits(1)
-                        app.config_BandGuardFixedValue.Value = chBWLimits(1);
-                    elseif app.config_BandGuardFixedValue.Value > chBWLimits(2)
-                        app.config_BandGuardFixedValue.Value = chBWLimits(2);
+                    if app.config_BandGuardFixedValue.Value < chBandWidthsLimits(1)
+                        app.config_BandGuardFixedValue.Value = chBandWidthsLimits(1);
+                    elseif app.config_BandGuardFixedValue.Value > chBandWidthsLimits(2)
+                        app.config_BandGuardFixedValue.Value = chBandWidthsLimits(2);
                     end
 
                 otherwise
@@ -748,19 +934,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 requiredData char {mustBeMember(requiredData, {'Screen', 'ScreenLimits', 'ScreenMaxLimits'})}
             end
 
-            chFrequency = app.ChannelFrequency.Value; % MHz
-            chBW        = app.ChannelBandWidthkHz.Value / 1000; % kHz >> MHz
-            maxFactor   = app.config_BandGuardBWRelatedValue.Limits(2);
+            chFreqCenter = app.emissionSelectedIdxs.attributes.channel.bandWidthkHz;
+            chBandWidth  = app.emissionSelectedIdxs.attributes.channel.bandWidthkHz;
+            maxFactor    = app.config_BandGuardBWRelatedValue.Limits(2);
 
             switch app.config_BandGuardType.Value
                 case 'Fixed'
                     screenSpan = app.config_BandGuardFixedValue.Value / 1000;     % kHz >> MHz
                 case 'BWRelated'
-                    screenSpan = app.config_BandGuardBWRelatedValue.Value * chBW; % MHz
+                    screenSpan = app.config_BandGuardBWRelatedValue.Value * chBandWidth; % MHz
             end
 
-            screenSpanLimits    = [chFrequency - screenSpan/2,     chFrequency + screenSpan/2];
-            screenSpanMaxLimits = [chFrequency - maxFactor*chBW/2, chFrequency + maxFactor*chBW/2];
+            screenSpanLimits    = [chFreqCenter - screenSpan/2,            chFreqCenter + screenSpan/2];
+            screenSpanMaxLimits = [chFreqCenter - maxFactor*chBandWidth/2, chFreqCenter + maxFactor*chBandWidth/2];
 
             switch requiredData
                 case 'Screen'
@@ -773,52 +959,29 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateCustomProperty(app, idxThread, idxEmission, updateType)
+        function updateCustomProperty(app, specData, emissionIdx)
             arguments
                 app
-                idxThread
-                idxEmission
-                updateType char {mustBeMember(updateType, {'DriveTest',               ...
-                                                           'DriveTest:JustTables',    ...
-                                                           'DriveTest:JustPoints',    ...
-                                                           'ChannelParameterChanged', ...
-                                                           'ChannelDefault'})} = 'DriveTest'
+                specData
+                emissionIdx
             end
 
-            if isempty(idxEmission)
+            if isempty(emissionIdx)
                 return
             end
 
-            switch updateType
-                case 'DriveTest'
-                    if app.ToggleEmissionPlotCustomization.Value
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest = createPlotParameters(app);
-                    else
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest = [];
-                    end
+            driveTestAttributes = struct( ...
+                'measures', struct( ...
+                    'raw', app.emissionPointsTable, ...
+                    'filtered', app.emissionFilteredPointsTable, ...
+                    'binned', app.emissionBinnedPointsTable ...
+                ), ...
+                'filters', [], ...
+                'points', [], ...
+                'customPlot', [] ...
+            );
 
-                case 'DriveTest:JustTables'
-                    if ~isempty(app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest)
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest.specRawTable      = app.emissionPointsTable;
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest.specFilteredTable = app.emissionFilteredPointsTable;
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest.specBinTable      = app.emissionBinnedPointsTable;
-                    end
-
-                case 'DriveTest:JustPoints'
-                    if ~isempty(app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest)
-                        app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest.pointsTable = app.pointsTable;
-                    end
-                
-                case 'ChannelParameterChanged'
-                    chAssigned = struct('Frequency', app.ChannelFrequency.Value, ...
-                                        'ChannelBW', app.ChannelBandWidthkHz.Value);
-                    app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified = chAssigned;
-                    ipcMainMatlabCallsHandler(app.mainApp, app, updateType, idxThread, idxEmission)
-                
-                case 'ChannelDefault'
-                    app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).autoSuggested;
-                    ipcMainMatlabCallsHandler(app.mainApp, app, updateType, idxThread, idxEmission)
-            end
+            update(specData, 'UserData:Emissions', 'AuxApp:DriveTest', emissionIdx, driveTestAttributes)
         end
 
         %-----------------------------------------------------------------%
@@ -841,9 +1004,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                          app.emissionPoints.filtered, ...
                          app.emissionPoints.binned, ...
                          app.filterTable, ...
-                         app.tool_FilterSummary.UserData] = RF.DataBinning.execute(app.emissionPoints.raw,             ...
-                                                                                   app.filter_DataBinningLength.Value, ...
-                                                                                   app.filter_DataBinningFcn.Value,    ...
+                         app.tool_FilterSummary.UserData] = RF.DataBinning.execute(app.emissionPoints.raw,      ...
+                                                                                   app.DataBinningLength.Value, ...
+                                                                                   app.DataBinningFcn.Value,    ...
                                                                                    app.filterTable);
                 end
             end
@@ -865,8 +1028,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 'pointsTable',           app.pointsTable,                    ...
                                 'plotType',              app.UIAxes1.UserData.PlotMode,      ...
                                 'plotSize',              app.axesTool_PlotSize.Value,        ...
-                                'binning_Value',         app.filter_DataBinningLength.Value, ...
-                                'binning_Fcn',           app.filter_DataBinningFcn.Value,    ...
+                                'binning_Value',         app.DataBinningLength.Value, ...
+                                'binning_Fcn',           app.DataBinningFcn.Value,    ...
                                 'route_LineStyle',       app.config_route_LineStyle.Value,   ...
                                 'route_OutColor',        app.config_route_OutColor.Value,    ...
                                 'route_InColor',         app.config_route_InColor.Value,     ...
@@ -917,7 +1080,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     arrayfun(@(x) delete(x), [app.filterTable.roi(end).handle]); 
                     app.filterTable(end,:) = [];
     
-                    filter_TreeBuilding(app)
+                    buildFilterTree(app)
                     filter_UpdatePlot(app)
                 else
                     ui.Dialog(app.UIFigure, 'error', ME.message);
@@ -941,7 +1104,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             updateFlag = false;
             switch operationType
                 case {'AppStartup', 'ThreadSelectionChanged', 'EmissionSelectionChanged'}
-                    if isempty(idxEmission) || isempty(app.specData(idxThread).UserData.Emissions.auxAppData(idxEmission).DriveTest)
+                    if isempty(idxEmission) || isempty(app.specData(idxThread).UserData.Emissions.AuxAppData(idxEmission).DriveTest)
                         processingSpecRawTable(app, idxThread, {'specRawTable', 'specRawTable+specFilteredTable+specBinTable'})
                         updateFlag = true;
                     end
@@ -969,7 +1132,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 idxFindPeaks = find(strcmp(app.pointsTable.type, 'FindPeaks'));
                 if ~isempty(idxFindPeaks)
                     app.pointsTable(idxFindPeaks,:) = [];
-                    points_TreeBuilding(app)
+                    buildPointsTree(app)
                     plot_PointsController(app)
                 end
             end
@@ -988,7 +1151,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function prePlot_customProperties(app, flowIdx, emissionIdx, operationType)
             % Customiza-se o plot, caso o flag do relatório estiver desativado...
-            if ~isempty(emissionIdx) && ~isempty(app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest)
+            if ~isempty(emissionIdx) && ~isempty(app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest)
                 app.ToggleEmissionPlotCustomization.Value = 1;
 
                 % Essa "gambi" evita que os ROIs dos filtros sejam redesenhados...
@@ -997,7 +1160,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 end
 
                 % Source
-                switch app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Source
+                switch app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Source
                     case {'Raw', 'Filtered'}
                         app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
                         app.axesTool_DensityPlot.Enable = 0;
@@ -1008,47 +1171,47 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 end
 
                 % specRawTable, specFilteredTable e specBinTable
-                app.emissionPoints = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.emissionPoints;
+                app.emissionPoints = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.emissionPoints;
 
                 % filterTable
-                app.filterTable                    = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.filterTable;
-                filter_TreeBuilding(app)
+                app.filterTable                    = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.filterTable;
+                buildFilterTree(app)
                 plot_FiltersController(app)
 
                 % pointsTable
-                app.pointsTable                    = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.pointsTable;
-                points_TreeBuilding(app)
+                app.pointsTable                    = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.pointsTable;
+                buildPointsTree(app)
                 plot_PointsController(app)
 
                 % potType e plotSize
-                app.UIAxes1.UserData.PlotMode      = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.plotType;
-                app.axesTool_PlotSize.Value        = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.plotSize;
+                app.UIAxes1.UserData.PlotMode      = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.plotType;
+                app.axesTool_PlotSize.Value        = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.plotSize;
 
                 % binningValue e binningFcn
-                app.filter_DataBinningLength.Value = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.binning_Value;
-                app.filter_DataBinningFcn.Value    = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.binning_Fcn;
+                app.DataBinningLength.Value = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.binning_Value;
+                app.DataBinningFcn.Value    = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.binning_Fcn;
 
                 % route...                
-                app.config_route_LineStyle.Value   = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.route_LineStyle;
-                app.config_route_OutColor.Value    = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.route_OutColor;
-                app.config_route_InColor.Value     = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.route_InColor;
-                app.config_route_Size.Value        = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.route_MarkerSize;
+                app.config_route_LineStyle.Value   = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.route_LineStyle;
+                app.config_route_OutColor.Value    = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.route_OutColor;
+                app.config_route_InColor.Value     = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.route_InColor;
+                app.config_route_Size.Value        = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.route_MarkerSize;
 
                 % Colormap
-                if ~strcmp(app.UIAxes1.UserData.Colormap, app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Colormap)
-                    app.config_Colormap.Value      = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Colormap;
+                if ~strcmp(app.UIAxes1.UserData.Colormap, app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Colormap)
+                    app.config_Colormap.Value      = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Colormap;
                     plot.axes.Colormap(app.UIAxes1, app.config_Colormap.Value)
                 end
 
                 % points...                
-                app.config_points_LineStyle.Value  = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.points_Marker;
-                app.config_points_Color.Value      = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.points_Color;
-                app.config_points_Size.Value       = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.points_Size;
+                app.config_points_LineStyle.Value  = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.points_Marker;
+                app.config_points_Color.Value      = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.points_Color;
+                app.config_points_Size.Value       = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.points_Size;
 
                 % Basemap
-                if ~strcmp(app.UIAxes1.Basemap, app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Basemap)
-                    app.config_Basemap.Value       = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Basemap;
-                    app.UIAxes1.Basemap            = app.specData(flowIdx).UserData.Emissions.auxAppData(emissionIdx).DriveTest.Basemap;
+                if ~strcmp(app.UIAxes1.Basemap, app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Basemap)
+                    app.config_Basemap.Value       = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Basemap;
+                    app.UIAxes1.Basemap            = app.specData(flowIdx).UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Basemap;
                 end
 
             else
@@ -1096,6 +1259,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     % TRIGGER: Mudança na lista de filtros.
                     % EFEITO : Redesenha "Route", "Distortion" e "Density".
                     delete(findobj(app.UIAxes1.Children, {'Tag', 'Distortion', '-or', 'Tag', 'Density', '-or', 'Tag', 'InRoute', '-or', 'Tag', 'OutRoute'}))
+
+                    geolimits(app.UIAxes1, 'auto')
+                    app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
+                    app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;
             end
 
             app.UIAxes1.UserData.CLimMode = 'auto';
@@ -1450,175 +1617,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        % FILTROS
-        %-----------------------------------------------------------------%
-        function filter_TreeBuilding(app)
-            if ~isempty(app.FilterTree.Children)
-                delete(app.FilterTree.Children)
-            end
-
-            if ~isempty(app.filterTable)
-                for ii = 1:height(app.filterTable)
-                    nodeText = sprintf('%s:%s', app.filterTable.type{ii}, app.filterTable.subtype{ii});
-                    uitreenode(app.FilterTree, 'Text', nodeText, 'NodeData', ii, 'ContextMenu', app.ContextMenu2);
-                end
-
-                set(app.FilterTree, 'SelectedNodes', app.FilterTree.Children(end), 'Enable', 1)
-                FilterTreeSelectionChanged(app)
-
-                set(app.ContextMenu2.Children, Enable=1)
-            else
-                app.FilterTree.Enable = 1;
-                set(app.ContextMenu2.Children, Enable=0)
-            end
-        end
-
-        %-----------------------------------------------------------------%
         function filter_UpdatePlot(app)
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-
-            prePlot_Startup(app, idxThread, idxEmission, 'AddEditOrDeleteFilter')
-
-            geolimits(app.UIAxes1, 'auto')
-            app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
-            app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;
+            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            updateCustomProperty(app, flowIdx, emissionIdx)
+            prePlot_Startup(app, flowIdx, emissionIdx, 'AddEditOrDeleteFilter')
         end
 
         %-----------------------------------------------------------------%
-        % PONTOS
-        %-----------------------------------------------------------------%
-        function points_TreeBuilding(app)
-            if ~isempty(app.PointsTree.Children)
-                delete(app.PointsTree.Children)
-            end
-
-            checkedTreeNodes = [];
-            for ii = 1:height(app.pointsTable)
-                nodeText = sprintf('%s: %s', app.pointsTable.type{ii}, strjoin("#" + string(app.pointsTable.value(ii).idxData), ', '));
-                treeNode = uitreenode(app.PointsTree, 'Text',        nodeText, ...
-                                                       'NodeData',    ii,       ...
-                                                       'ContextMenu', app.ContextMenu1);
-                if app.pointsTable.visible(ii)
-                    checkedTreeNodes = [checkedTreeNodes, treeNode];
-                end
-            end
-            app.PointsTree.CheckedNodes = checkedTreeNodes;
-
-            if app.ToggleEmissionPlotCustomization.Value
-                [idxThread, idxEmission] = specDataIndex(app);
-                updateCustomProperty(app, idxThread, idxEmission, 'DriveTest:JustPoints')
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function points_AddNewPoint2Table(app, newRow)
-            status = true;
-            for ii = 1:height(app.pointsTable)
-                if isequal(newRow(1), app.pointsTable{ii,1}) && ...
-                   isequal(newRow{2}, app.pointsTable{ii,2})
-                    status = false;
-                    break
-                end
-            end
-
-            if status
-                app.pointsTable(end+1,:) = newRow;
-            else
-                error('Registro já incluído!')
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function [idxPeak, Coordinates] = points_FindPeaks(app, Source, NPeaks, MinDistance)
-            idxPeak = [];
-            Coordinates = [];
-
-            switch Source
-                case 'Dados brutos'
-                    sourceData = app.emissionPointsTable.ChannelPower;
-                case 'Dados processados (Data Binning)'
-                    sourceData = app.emissionBinnedPointsTable.ChannelPower;
-            end
-
-            [~, idxListOfPeaks] = findpeaks(sourceData, 'SortStr', 'descend');
-
-            if ~isempty(idxListOfPeaks)
-                idxPeak = idxListOfPeaks(1);
-                for ii = 2:numel(idxListOfPeaks)
-                    if numel(idxPeak) >= NPeaks
-                        break
-                    end
-
-                    switch Source
-                        case 'Dados brutos'
-                            refCoordinates = app.emissionPointsTable{idxPeak,            {'Latitude', 'Longitude'}};
-                            Coordinates    = app.emissionPointsTable{idxListOfPeaks(ii), {'Latitude', 'Longitude'}};    
-                        
-                        case 'Dados processados (Data Binning)'
-                            refCoordinates = app.emissionBinnedPointsTable{idxPeak,                 {'Latitude', 'Longitude'}};
-                            Coordinates    = app.emissionBinnedPointsTable{idxListOfPeaks(ii),      {'Latitude', 'Longitude'}};
-                    end
-    
-                    tempDistance = deg2km(distance(refCoordinates, Coordinates(end,:))); % em km
-                    if all(tempDistance >= MinDistance)
-                        idxPeak(end+1) = idxListOfPeaks(ii);
-                    end
-                end
-
-                switch Source
-                    case 'Dados brutos'
-                        Coordinates = app.emissionPointsTable{idxPeak, {'Latitude', 'Longitude'}};
-                    case 'Dados processados (Data Binning)'
-                        Coordinates = app.emissionBinnedPointsTable{idxPeak,      {'Latitude', 'Longitude'}};
-                end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function [idxThread, idxEmission] = specDataIndex(app, operationType)
-            arguments
-                app 
-                operationType char {mustBeMember(operationType, {'EmissionShowed',              ...
-                                                                 'RefreshPlotParameters',       ...
-                                                                 'ChannelParameterChanged',     ...
-                                                                 'ChannelDefault',              ...
-                                                                 'PlotDataSourceChanged',       ...
-                                                                 'DataBinningParameterChanged', ...
-                                                                 'ThreadSelectionChanged',      ...
-                                                                 'EmissionSelectionChanged'})} = 'EmissionShowed'
-            end
-
-            % Inicialmente, busca-se o fluxo espectral (referenciado 
-            % unicamente pela lista UUID dos arquivos brutos).
-            threadUUID  = app.emissionSelectedIdxs.Thread.UUID;
-            listOfAllThreadsUUID = arrayfun(@(x) x.RelatedFiles.uuid, app.specData, 'UniformOutput', false);
-            
-            idxThread   = find(cellfun(@(x) isequal(x, threadUUID), listOfAllThreadsUUID), 1);
-            idxEmission = [];
-
-            % Caso seja identificado o fluxo espectral, busca a emissão 
-            % sob análise na lista de emissões.
-            if ~isempty(idxThread)
-                switch operationType
-                    case 'EmissionSelectionChanged'
-                        newEmissionTag = app.EmissionList.Value;
-                        emissions = app.specData(idxThread).UserData.Emissions;
-
-                        for ii = 1:height(emissions)
-                            if strcmp(newEmissionTag, sprintf('%.3f MHz ⌂ %.1f kHz', emissions.Frequency(ii), emissions.BandWidthkHz(ii)))
-                                idxEmission = ii;
-                                break
-                            end
-                        end
-
-                    otherwise
-                        emissionFrequency = app.emissionSelectedIdxs.Emission.Frequency;
-                        emissionBandWidth = app.emissionSelectedIdxs.Emission.BandWidthkHz;
-        
-                        idxEmission = find(abs(app.specData(idxThread).UserData.Emissions.Frequency - emissionFrequency) <= class.Constants.floatDiffTol & ...
-                                           abs(app.specData(idxThread).UserData.Emissions.BandWidthkHz - emissionBandWidth) <= class.Constants.floatDiffTol, 1);
-                end
+        function [flowIdx, emissionIdx] = findSpecDataIndex(app)
+            flowIdx = app.SpectrumFlowList.Value;
+            emissionIdx = find(strcmp(app.EmissionList.Items, app.EmissionList.Value), 1) - 1;
+            if ~emissionIdx
+                emissionIdx = [];
             end
         end
     end
@@ -1670,25 +1680,82 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: not associated with a component
-        function SubTabGroupSelectionChanged(app, event)
+        % Value changed function: SpectrumFlowList
+        function onFlowDropDownValueChanged(app, event)
             
-            [~, tabIndex] = ismember(app.SubTabGroup.SelectedTab, app.SubTabGroup.Children);
-            applyJSCustomizations(app, tabIndex)
+            flowIdx = findSpecDataIndex(app);
+            updateFlowView(app, flowIdx)
 
         end
 
-        % Image clicked function: tool_LayoutLeft
-        function Toolbar_LeftPanelVisibilityImageClicked(app, event)
+        % Value changed function: EmissionList
+        function onEmissionDropDownValueChanged(app, event)
+            
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = -1;
+            else
+                updateEmissionView(app)
+                % updatePlot(app)
+            end
+
+        end
+
+        % Image clicked function: EmissionAttributesPanelLeftBtn, 
+        % ...and 1 other component
+        function onEmissionPanelViewChanged(app, event)
+            
+            numPanels = 3;
+
+            panelSubtitles = {'Metadados', 'Filtros', 'Pontos de interesse'};
+            panelBtnStatus = [false true; true true; true false];
+            columnWidths = {
+                {'1x',0,0,0,0,0,0,0};
+                {0,10,'1x',18,10,0,0,0};
+                {0,0,0,0,10,'1x',18,10};
+            };
+
+            currentIndex = app.EmissionAttributesPanelVisibleIdx.UserData.index;
+
+            switch event.Source
+                case app.EmissionAttributesPanelLeftBtn
+                    step = -1;
+                case app.EmissionAttributesPanelRightBtn
+                    step = 1;
+            end
+
+            currentIndex = mod(currentIndex - 1 + step, numPanels) + 1;
+
+            app.EmissionAttributesPanelLeftBtn.Enable  = panelBtnStatus(currentIndex, 1);
+            app.EmissionAttributesPanelRightBtn.Enable = panelBtnStatus(currentIndex, 2);
+            app.EmissionAttributesPanelVisibleIdx.Text = sprintf('%d/%d', currentIndex, numPanels);
+
+            app.EmissionPanelGrid.ColumnWidth = columnWidths{currentIndex};
+
+            app.EmissionPanelLabel.Text = replace(app.EmissionPanelLabel.Text, extractBetween(app.EmissionPanelLabel.Text, '<i>', '</i>'), panelSubtitles{currentIndex});
+            app.EmissionAttributesPanelVisibleIdx.UserData.index = currentIndex;
+
+        end
+
+        % Image clicked function: tool_LayoutLeft, tool_LayoutRight
+        function tool_PanelVisibilityButtonPushed(app, event)
 
             switch event.Source
                 case app.tool_LayoutLeft
-                    if app.GridLayout.ColumnWidth{2}
-                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
-                        app.GridLayout.ColumnWidth(2:3) = {0,0};
+                    if app.Document.ColumnWidth{1}
+                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left-off.svg';
+                        app.Document.ColumnWidth(1:2)       = {0,0};
                     else
-                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
-                        app.GridLayout.ColumnWidth(2:3) = {320,10};
+                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left.svg';
+                        app.Document.ColumnWidth(1:2)       = {320,10};
+                    end
+
+                case app.tool_LayoutRight
+                    if app.Document.ColumnWidth{end}
+                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right-off.svg';
+                        app.Document.ColumnWidth(end-1:end) = {0,0};
+                    else
+                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right.svg';
+                        app.Document.ColumnWidth(end-1:end) = {10,232};
                     end
             end
 
@@ -1798,8 +1865,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Value changed function: axesTool_DataSourceDropDown, 
-        % ...and 2 other components
+        % Value changed function: DataBinningFcn, DataBinningLength, 
+        % ...and 1 other component
         function AxesToolbar_DataSourceChanged(app, event)
 
             [idxThread, idxEmission] = specDataIndex(app);
@@ -1820,7 +1887,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     end
                     updateCustomProperty(app, idxThread, idxEmission)
 
-                case {app.filter_DataBinningLength, app.filter_DataBinningFcn}
+                case {app.DataBinningLength, app.DataBinningFcn}
                     operationType = 'DataBinningParameterChanged';
                     updateCustomProperty(app, idxThread, idxEmission)
 
@@ -1926,598 +1993,38 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: not associated with a component
-        function general_ThreadChanged(app, event)
+        % Menu selected function: DeleteAllEntries, DeleteSelectedItem
+        function onContextMenuItemClicked(app, event)
             
-            switch event.Source
-                case app.spectralThreadEdit
-                    app.spectralThreadEdit.UserData.status = ~app.spectralThreadEdit.UserData.status;
-                    
-                    if app.spectralThreadEdit.UserData.status
-                        layout_editSpectralThread(app, 'on')
-                    else
-                        general_ThreadChanged(app, struct('Source', app.spectralThreadEditCancel))
-                    end
-
-                case app.spectralThreadEditConfirm
-                    idxSelectedThread = app.SpecFlowTree.SelectedNodes.NodeData;
-        
-                    if (~isempty(app.emissionSelectedIdxs) && isequal(idxSelectedThread, app.emissionSelectedIdxs.Thread.Index)) || ~isscalar(idxSelectedThread)
-                        layout_editSpectralThread(app, 'off')
-                        return
-                    end
-
-                    % Se o fluxo espectral relacionado está relacionado a
-                    % outra coleta, em outro local, os filtros de nível e
-                    % geográficos são apagados...
-                    if ~isequal(app.specData(idxSelectedThread).GPS, app.specData(app.emissionSelectedIdxs.Thread.Index).GPS)
-                        app.filterTable(:,:) = [];
-                        filter_TreeBuilding(app)
-                        delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'FilterROI'))
-                    end
-
-                    buildSpecFlowTree(app, idxSelectedThread, [])
-                    general_EmissionChanged(app, struct('updateType', 'ThreadSelectionChanged'))
-
-                    layout_editSpectralThread(app, 'off')
-
-                case app.spectralThreadEditCancel
-                    layout_editSpectralThread(app, 'off')
+            switch event.ContextObject
+                case app.FilterTree
+                    referenceTable = app.filterTable;
+                    buildTreeFcn   = @buildFilterTree;
+                case app.PointsTree
+                    referenceTable = app.pointsTable;
+                    buildTreeFcn   = @buildPointsTree;
             end
 
-        end
-
-        % Value changed function: EmissionList
-        function general_EmissionChanged(app, event)
-            
-            idxThread   = app.SpecFlowTree.SelectedNodes.NodeData;
-            idxEmission = find(strcmp(app.EmissionList.Items, app.EmissionList.Value), 1) - 1;
-            if ~idxEmission
-                idxEmission = [];
-            end
-
-            if ~isempty(app.emissionSelectedIdxs) && isequal(idxThread, app.emissionSelectedIdxs.Thread.Index) && isequal(idxEmission, app.emissionSelectedIdxs.Emission.Index)
-                return
-            end
-
-            % Inicialmente, a informação acerca do fluxo espectral e da emissão 
-            % sob análise são salvas na propriedade "selectedEmission" do app.
-            [htmlContent, app.emissionSelectedIdxs] = util.HtmlTextGenerator.Emission_v2(app.specData, idxThread, idxEmission);
-            ui.TextView.update(app.EmissionInfo, htmlContent);
-
-            % Atualiza canal, bloqueando edição de informação do canal.
-            checkChannelAssigned(app, idxThread, idxEmission)
-            if app.ChannelToggleEditMode.UserData.status
-                general_chEditImageClicked(app)
-            end
-
-            if ~isempty(idxEmission) && ~isequal(app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).autoSuggested, ...
-                                                 app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified)
-                app.ChannelRefresh.Visible = 1;
-            else
-                app.ChannelRefresh.Visible = 0;
-            end
-
-            % Verifica se os limites do plot estão adequados ao tipo de emissão (a
-            % emissão virtual, que corresponde à toda faixa espectral tem particularidades).
-            if ~isempty(idxEmission)
-                if ~app.config_BandGuardType.Enable
-                    % Essa situação só ocorre quando estava selecionado uma
-                    % emissão virtual e agora foi selecionada uma emissão real.
-                    % Por isso, os valores estavam configurados em "BWRelated" e 1.
-                    app.ToggleEmissionPlotCustomization.Enable = 1;
-                    app.ChannelToggleEditMode.Enable = 1;
-
-                    app.config_BandGuardType.Enable = 1;
-                    set(app.config_BandGuardBWRelatedValue, 'Enable', 1, 'Value', 6)
-                    config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
-                end
-            else
-                if app.config_BandGuardType.Enable
-                    % Essa situação só ocorre quando estava selecionado uma
-                    % emissão real e agora foi selecionada uma emissão virtual.
-                    set(app.ToggleEmissionPlotCustomization, 'Enable', 0, 'Value', 0)                    
-                    app.ChannelToggleEditMode.Enable = 0;
-
-                    app.config_BandGuardType.Enable = 0;
-                    app.config_BandGuardBWRelatedValue.Enable = 0;
-
-                    if app.config_BandGuardType.Value ~= "BWRelated"
-                        app.config_BandGuardType.Value = 'BWRelated';
-                        config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardType))
-                    end
-        
-                    if app.config_BandGuardBWRelatedValue.Value ~= 1
-                        app.config_BandGuardBWRelatedValue.Value = 1;
-                        config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
-                    end
-                end
-            end
-
-            if isfield(event, 'updateType')
-                prePlot_Startup(app, idxThread, idxEmission, event.updateType)
-            else
-                prePlot_Startup(app, idxThread, idxEmission, 'EmissionSelectionChanged')
-            end
-
-        end
-
-        % Callback function: not associated with a component
-        function general_ChannelChanged(app, event)
-            
-            switch event.Source
-                case {app.ChannelRefresh, app.ChannelEditConfirm}
-                    switch event.Source
-                        case app.ChannelRefresh
-                            operationType = 'ChannelDefault';
-                            [idxThread, idxEmission] = specDataIndex(app, operationType);
-                            updateCustomProperty(app, idxThread, idxEmission, operationType)        
-                            checkChannelAssigned(app, idxThread, idxEmission)
-                        otherwise
-                            operationType = 'ChannelParameterChanged';
-                            [idxThread, idxEmission] = specDataIndex(app, operationType);
-                            updateCustomProperty(app, idxThread, idxEmission, operationType)
-                            app.ChannelRefresh.Visible = 1;
-                    end
-
-                    layout_editChannelAssigned(app, 'off')
-
-                    if app.plotUpdateEvent
-                        app.plotUpdateEvent = 0;
-                        pause(.100)
-                    end
-        
-                    prePlot_Startup(app, idxThread, idxEmission, operationType)
-
-                case app.ChannelToggleEditMode
-                    app.ChannelToggleEditMode.UserData.status = ~app.ChannelToggleEditMode.UserData.status;
-        
-                    if app.ChannelToggleEditMode.UserData.status
-                        layout_editChannelAssigned(app, 'on')
-                        focus(app.ChannelFrequency)        
-                    else
-                        layout_editChannelAssigned(app, 'off')
-                    end
-
-                case app.ChannelEditCancel
-                    layout_editChannelAssigned(app, 'off')
-            end
-
-        end
-
-        % Callback function: not associated with a component
-        function general_ReportFlagCheckBoxClicked(app, event)
-
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-            createSpecFlowEmissionDropDownList(app, idxThread, idxEmission)
-
-        end
-
-        % Callback function: not associated with a component
-        function config_geoAxesColorParameterChanged(app, event)
-            
-            selectedColor = event.Source.Value;
-
-            switch event.Source
-                case app.config_route_OutColor
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'OutRoute'), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
-
-                case app.config_route_InColor
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'InRoute'),  'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
-
-                case app.config_Car_Color
-                    set(app.hCar, 'MarkerFaceColor', selectedColor)
-
-                case app.config_points_Color
-                    hPoints = findobj(app.UIAxes1.Children, 'Tag', 'Points');
-                    for ii = 1:numel(hPoints)
-                        if strcmp(hPoints(ii).MarkerFaceColor, 'none')
-                            set(hPoints(ii), 'Color', selectedColor, 'MarkerEdgeColor', selectedColor)
-                        else
-                            set(hPoints(ii), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
-                        end
-                    end
-            end
-
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-            checkIfCustomConfigParameter(app)
-            
-        end
-
-        % Callback function: not associated with a component
-        function config_geoAxesOthersParametersChanged(app, event)
-            
-            switch event.Source
-                case app.config_Basemap
-                    app.UIAxes1.Basemap = app.config_Basemap.Value;
-                    switch app.config_Basemap.Value
-                        case {'darkwater', 'none'}
-                            app.UIAxes1.Grid = 'on';
-                        otherwise
-                            app.UIAxes1.Grid = 'off';
-                    end
-                    return
-
-                case app.config_Colormap
-                    if strcmp(app.UIAxes1.UserData.Colormap, event.Value)
-                        return
-                    end
-
-                    plot.axes.Colormap(app.UIAxes1, event.Value)
-
-                case app.config_route_LineStyle
-                    switch event.Value
-                        case 'none'; markerSize = 1;
-                        otherwise;   markerSize = 8*app.config_route_Size.Value;
-                    end
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'OutRoute'),                          'MarkerSize', markerSize)
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'InRoute'), 'LineStyle', event.Value, 'MarkerSize', markerSize)
-
-                case app.config_route_Size
-                    if ~strcmp(app.config_route_LineStyle.Value, 'none')
-                        set(findobj(app.UIAxes1.Children, 'Tag', 'OutRoute'), 'MarkerSize', 8*event.Value)
-                        set(findobj(app.UIAxes1.Children, 'Tag', 'InRoute'),  'MarkerSize', 8*event.Value)
-                    end
-
-                case app.config_Car_LineStyle
-                    set(app.hCar, 'Marker', event.Value)
-                
-                case app.config_Car_Size
-                    set(app.hCar, 'SizeData', 10*event.Value)
-
-                case app.config_points_LineStyle
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'Points'), 'Marker', event.Value)
-                
-                case app.config_points_Size
-                    set(findobj(app.UIAxes1.Children, 'Tag', 'Points'), 'MarkerSize', event.Value)
-            end
-
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-            checkIfCustomConfigParameter(app)
-
-        end
-
-        % Callback function: not associated with a component
-        function config_xyAxesParameterChanged(app, event)
-
-            switch event.Source
-                case app.config_PersistanceVisibility
-                    hPersistance = findobj(app.UIAxes2.Children, 'Tag', 'Persistance');
-                    hPersistance.Visible = app.config_PersistanceVisibility.Value;
-
-                case app.config_chROIVisibility
-                    hChannelROI = findobj([app.UIAxes2.Children; app.UIAxes3.Children], 'Tag', 'ChannelROI');
-                    set(hChannelROI, 'Visible', app.config_chROIVisibility.Value)
-
-                case {app.config_chROIColor, app.config_chROIEdgeAlpha, app.config_chROIFaceAlpha}                    
-                    hChannelROI = findobj([app.UIAxes2.Children; app.UIAxes3.Children], 'Tag', 'ChannelROI');
-                    set(hChannelROI, 'Color',     app.config_chROIColor.Value,     ...
-                                     'EdgeAlpha', app.config_chROIEdgeAlpha.Value, ...
-                                     'FaceAlpha', app.config_chROIFaceAlpha.Value)
-
-                    app.mainApp.General.Plot.ChannelROI.Color     = app.config_chROIColor.Value;
-                    app.mainApp.General.Plot.ChannelROI.EdgeAlpha = app.config_chROIEdgeAlpha.Value;
-                    app.mainApp.General.Plot.ChannelROI.FaceAlpha = app.config_chROIFaceAlpha.Value;
-
-                case app.config_chPowerVisibility
-                    set(findobj(app.UIAxes4), 'Visible', app.config_chPowerVisibility.Value)
-
-                case {app.config_chPowerColor, app.config_chPowerEdgeAlpha, app.config_chPowerFaceAlpha}
-                    hChannelROI = findobj(app.UIAxes4.Children, 'Tag', 'ChannelPower');
-                    set(hChannelROI, 'EdgeColor', app.config_chPowerColor.Value,     ...
-                                     'FaceColor', app.config_chPowerColor.Value,     ...
-                                     'EdgeAlpha', app.config_chPowerEdgeAlpha.Value, ...
-                                     'FaceAlpha', app.config_chPowerFaceAlpha.Value)
-            end
-
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
-            checkIfCustomConfigParameter(app)
-            
-        end
-
-        % Callback function: not associated with a component
-        function config_BandGuardValueChanged(app, event)
-
-            chBW = app.ChannelBandWidthkHz.Value;
-
-            switch event.Source
-                case app.config_BandGuardType
-                    switch app.config_BandGuardType.Value
-                        case 'Fixed'
-                            app.config_BandGuardValueLabel.Text = 'Span (kHz):';                            
-                            set(app.config_BandGuardFixedValue, 'Visible', 1, 'Value', app.config_BandGuardBWRelatedValue.Value * chBW)
-                            app.config_BandGuardBWRelatedValue.Visible = 0;                            
-
-                        case 'BWRelated'
-                            app.config_BandGuardValueLabel.Text    = 'Multiplicador';
-                            app.config_BandGuardFixedValue.Visible = 0;
-                            set(app.config_BandGuardBWRelatedValue, 'Visible', 1, 'Value', app.config_BandGuardFixedValue.Value / chBW)
-                    end
-                    config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
-
-                case {app.config_BandGuardFixedValue, app.config_BandGuardBWRelatedValue}
-                    checkFixedScreenSpanLimits(app)
-
-                    xLim = getFrequencyScreenSpanInMHz(app, 'ScreenLimits');
-                    app.UIAxes2.XLim = xLim;
-                    app.restoreView(2).xLim = xLim;
-                    app.restoreView(3).xLim = xLim;
-            end
-
-            checkIfCustomConfigParameter(app)
-
-        end
-
-        % Callback function: not associated with a component
-        function config_RefreshImageClicked(app, event)
-            
-            % Trava função do Waterfall em "image" para que seja possível
-            % sincronizar os eixos app.UIAxes3.YAxes e app.UIAxes4.XAxis.
-            app.mainApp.General = app.mainApp.General;
-            app.mainApp.General.Plot.Waterfall.Fcn         = 'image';
-
-            % % Eixo geográfico - app.UIAxes1
-            app.config_Colormap.Value              = app.defaultConfigValues.Colormap;            
-            app.config_route_LineStyle.Value       = app.defaultConfigValues.route_LineStyle;
-            app.config_route_Size.Value            = app.defaultConfigValues.route_Size;
-            app.config_route_OutColor.Value        = app.defaultConfigValues.route_OutColor;
-            app.config_route_InColor.Value         = app.defaultConfigValues.route_InColor;
-            app.config_Car_LineStyle.Value         = app.defaultConfigValues.Car_LineStyle;
-            app.config_Car_Color.Value             = app.defaultConfigValues.Car_Color;
-            app.config_Car_Size.Value              = app.defaultConfigValues.Car_Size;
-            app.config_points_LineStyle.Value      = app.defaultConfigValues.points_LineStyle;
-            app.config_points_Color.Value          = app.defaultConfigValues.points_Color;
-            app.config_points_Size.Value           = app.defaultConfigValues.points_Size;
-
-            % % Eixos cartesianos - app.UIAxes2, app.UIAxes3 e app.UIAxes4
-            app.config_PersistanceVisibility.Value = app.defaultConfigValues.persistancePlot;
-            app.config_chROIVisibility.Value       = app.defaultConfigValues.chROIVisibility;
-            app.config_chROIColor.Value            = app.mainApp.General.Plot.ChannelROI.Color;
-            app.config_chROIEdgeAlpha.Value        = app.defaultConfigValues.chROIEdgeAlpha;
-            app.config_chROIFaceAlpha.Value        = app.defaultConfigValues.chROIFaceAlpha;
-            app.config_chPowerVisibility.Value     = app.defaultConfigValues.chPowerVisibility;
-            app.config_chPowerColor.Value          = app.UIAxes3.Colormap(end,:);
-            app.config_chPowerEdgeAlpha.Value      = app.defaultConfigValues.chPowerEdgeAlpha;
-            app.config_chPowerFaceAlpha.Value      = app.defaultConfigValues.chPowerFaceAlpha;
-            
-            % % Atualiza o plot...
-            operationType = 'RefreshPlotParameters';
-            [idxThread, idxEmission] = specDataIndex(app, operationType);
-
-            prePlot_Startup(app, idxThread, idxEmission, operationType)
-            
-            % Chama callbacks relacionados a parâmetros que não serão afetados 
-            % pelo novo plot e, por isso, demandam uma atualização direta.
-            config_geoAxesOthersParametersChanged(app, struct('Source', app.config_Colormap, 'Value', app.config_Colormap.Value))
-
-            config_xyAxesParameterChanged(app, struct('Source', app.config_PersistanceVisibility))
-            config_xyAxesParameterChanged(app, struct('Source', app.config_chROIVisibility))
-            config_xyAxesParameterChanged(app, struct('Source', app.config_chROIColor))
-            config_xyAxesParameterChanged(app, struct('Source', app.config_chPowerVisibility))
-
-            if app.config_BandGuardType.Value ~= "BWRelated"
-                app.config_BandGuardType.Value = 'BWRelated';
-                config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardType))
-            end
-
-            if app.config_BandGuardBWRelatedValue.Value ~= 6
-                app.config_BandGuardBWRelatedValue.Value = 6;
-                config_BandGuardValueChanged(app, struct('Source', app.config_BandGuardBWRelatedValue))
-            end
-
-            checkIfCustomConfigParameter(app)
-
-        end
-
-        % Callback function: not associated with a component
-        function filter_RadioGroupSelectionChanged(app, event)
-            
-            switch app.filter_RadioGroup.SelectedObject
-                case app.filter_THR
-                    app.SubGrid2.RowHeight{2} = 96;
-                    app.filter_THR.Position(2) = 46;
-                    app.filter_Geographic.Position(2) = 8;
-
-                    app.filter_GeographicTypeLabel.Visible = 0;
-                    app.filter_GeographicType.Visible      = 0;
-                    set(findobj(app.filter_RadioGroup.Children, 'Tag', 'KML'), 'Visible', 0)
-
-                case app.filter_Geographic
-                    app.filter_GeographicTypeLabel.Visible = 1;
-                    app.filter_GeographicType.Visible      = 1;
-                    
-                    filter_GeographicTypeValueChanged(app)
-            end
-            
-        end
-
-        % Callback function: not associated with a component
-        function filter_GeographicTypeValueChanged(app, event)
-            
-            switch app.filter_GeographicType.Value
-                case 'Arquivo externo KML/KMZ'
-                    app.SubGrid2.RowHeight{2} = 208;
-
-                    app.filter_THR.Position(2)                 = 158;
-                    app.filter_Geographic.Position(2)          = 120;
-                    app.filter_GeographicTypeLabel.Position(2) = 104;
-                    app.filter_GeographicType.Position(2)      = 80;
-                    app.filter_KMLFilenameLabel.Position(2)    = 61;
-                    app.filter_KMLFilename.Position(2)         = 38;
-                    app.filter_KMLOpenFile.Position(2)         = 40;
-                    app.filter_KMLFileLayer.Position(2)        = 11;
-
-                    set(findobj(app.filter_RadioGroup.Children, 'Tag', 'KML'), 'Visible', 1)
-
-                otherwise
-                    app.SubGrid2.RowHeight{2} = 140;
-
-                    app.filter_THR.Position(2)                 = 90;
-                    app.filter_Geographic.Position(2)          = 52;
-                    app.filter_GeographicTypeLabel.Position(2) = 36;
-                    app.filter_GeographicType.Position(2)      = 12;
-                    
-                    set(findobj(app.filter_RadioGroup.Children, 'Tag', 'KML'), 'Visible', 0)
-            end
-            
-        end
-
-        % Callback function: not associated with a component
-        function filter_KMLOpenFileClicked(app, event)
-            
-            [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.kml;*.kmz', '(*.kml, *.kmz)'}, app.mainApp.General.fileFolder.lastVisited);
-
-            if ~isempty(fileName)
-                app.progressDialog.Visible = 'visible';
-
-                misc_updateLastVisitedFolder(app.mainApp, filePath)
-                app.mainApp.General.fileFolder.lastVisited = filePath;
-
-                try
-                    if ~isempty(app.kmlObj)
-                        delete(app.kmlObj)
-                    end
-
-                    app.kmlObj = RF.KML(fullfile(filePath, fileName));
-
-                    [~, fileName, fileExt] = fileparts(app.kmlObj.File);
-                    app.filter_KMLFilename.Value  = [fileName fileExt];
-                    app.filter_KMLFileLayer.Items = app.kmlObj.LayerNames;
-
-                catch ME
-                    app.kmlObj = [];
-                    app.filter_KMLFilename.Value  = '';
-                    app.filter_KMLFileLayer.Items = {};
-
-                    ui.Dialog(app.UIFigure, 'error', ME.message);
-                end
-
-                app.progressDialog.Visible = 'hidden';
-            end            
-
-        end
-
-        % Callback function: not associated with a component
-        function filter_AddFilterImageClicked(app, event)
-            
-            focus(app.FilterTree)
-
-            switch app.filter_RadioGroup.SelectedObject
-                case app.filter_THR
-                    if ismember('Level', app.filterTable.type)
-                        msgWarning = ['Já foi incluído o filtro de nível, cujo <i>threshold</i> pode ser ajustado ' ...
-                                      'diretamente no eixo que apresenta a potência do canal sob análise.'];
-                        ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                        return
-                    end
-
-                    FilterType = 'Level';
-                    FilterSubtype = 'Threshold';
-                    Threshold = min(app.emissionPointsTable.ChannelPower);
-
-                    hROI = plot_FilterROIObject(app, 'DrawInRealTime', FilterSubtype, app.UIAxes4);
-                    hROI.Position = [height(app.emissionFilteredPointsTable) Threshold; 1 Threshold];
-
-                    app.filterTable(end+1,:) = {FilterType, FilterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-
-                case app.filter_Geographic
-                    FilterType = 'Geographic ROI';
-
-                    switch app.filter_GeographicType.Value
-                        case 'Arquivo externo KML/KMZ'
-                            if isempty(app.filter_KMLFilename.Value)
-                                msgWarning = 'É preciso escolher um arquivo KML/KMZ antes de adicioná-lo como filtro geográfico.';
-                                ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                                return
-                            end
-                            
-                            FilterSubtype = 'PolygonKML';
-
-                            try
-                                readgeotable(app.kmlObj, app.filter_KMLFileLayer.Value)
-                                for ii = 1:height(app.kmlObj.GeoTable)
-                                    shapeObj = app.kmlObj.GeoTable.Shape(ii);
-
-                                    if isa(shapeObj, 'geopolyshape')
-                                        hROI = plot_FilterROIObject(app, 'DrawInRealTime', FilterSubtype, app.UIAxes1, shapeObj);
-                                        app.filterTable(end+1,:) = {FilterType, FilterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-                                    end
-                                end
-
-                                if ~exist('hROI', 'var')
-                                    error(['A pasta "%s", do arquivo "%s", possui apenas objetos do tipo "%s". Um filtro '  ...
-                                           'geográfico, contudo, precisa ser um polígono.'], app.filter_KMLFileLayer.Value, ...
-                                                                                             app.kmlObj.File,               ...
-                                                                                             textFormatGUI.cellstr2ListWithQuotes(unique(arrayfun(@(x) class(x), app.kmlObj.GeoTable.Shape, "UniformOutput", false))))
-                                end
-
-                            catch ME
-                                ui.Dialog(app.UIFigure, 'error', ME.message);
-                                return
-                            end
-
-                        otherwise
-                            switch app.filter_GeographicType.Value
-                                case 'ROI:Círculo'
-                                    FilterSubtype = 'Circle';
-                                case 'ROI:Retângulo'
-                                    FilterSubtype = 'Rectangle';
-                                case 'ROI:Polígono'
-                                    FilterSubtype = 'Polygon';
-                            end
-
-                            hROI = plot_FilterROIObject(app, 'DrawInRealTime', FilterSubtype, app.UIAxes1);
-
-                            if isempty(hROI.Position)
-                                delete(hROI)                
-                                return
-                            end
-
-                            app.filterTable(end+1,:) = {FilterType, FilterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-                    end
-                    
-                    if isprop(hROI, 'DisplayName')
-                        hROI.DisplayName = 'Contorno';
-                    end
-            end
-            
-            % Insere filtro à tabela app.filterTable, redesenhando a árvore
-            % de fitros.
-            filter_TreeBuilding(app)
-
-            % Atualiza o plot...
-            filter_UpdatePlot(app)
-
-        end
-
-        % Menu selected function: filter_delAllButton, filter_delButton
-        function filter_delFilter(app, event)
-            
-            if isempty(app.filterTable)
+            if isempty(referenceTable)
                 return
             end
 
             switch event.Source
-                case app.filter_delButton
-                    if isempty(app.FilterTree.SelectedNodes)
+                case app.DeleteSelectedItem
+                    if isempty(event.ContextObject.SelectedNodes)
                         return
                     end
-                    idx = arrayfun(@(x) x.NodeData, app.FilterTree.SelectedNodes);
+                    idx = arrayfun(@(x) x.NodeData, event.ContextObject.SelectedNodes);
 
-                case app.filter_delAllButton
-                    idx = 1:height(app.filterTable);
+                case app.DeleteAllEntries
+                    idx = 1:height(referenceTable);
             end 
     
             if ~isempty(idx)
                 arrayfun(@(x) delete(x), [app.filterTable.roi(idx).handle]); 
-                app.filterTable(idx,:) = [];
+                app.referenceTable(idx,:) = [];
 
-                filter_TreeBuilding(app)
-                filter_UpdatePlot(app)
+                buildTreeFcn(app)
             end
 
         end
@@ -2558,129 +2065,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: not associated with a component
-        function points_RadioGroupSelectionChanged(app, event)
-            
-            switch app.points_RadioGroup.SelectedObject
-                case app.points_AddRFDataHub
-                    app.points_AddValueGrid.RowHeight = {17,22,22,22,0,0,0,0};
-                case app.points_AddFindPeaks
-                    app.points_AddValueGrid.RowHeight = {0,0,0,0,17,22,22,22};
-            end
-            
-        end
-
-        % Callback function: not associated with a component
-        function points_AddPointImageClicked(app, event)
-            
-            focus(app.PointsTree)
-
-            try
-                switch app.points_RadioGroup.SelectedObject
-                    %-----------------------------------------------------%
-                    case app.points_AddRFDataHub            
-                        if isempty(app.points_Subtype1Value.Value)
-                            return
-                        end
-                        global RFDataHub
-
-                        entryText = app.points_Subtype1Value.Value;
-
-                        % Inicialmente, identificam-se os valores da lista
-                        % de entrada.            
-                        switch app.points_Subtype1DropDown.Value
-                            case 'Índices de registros do RFDataHub'
-                                idxRawPoints = regexp(entryText, '#(\d+)', 'tokens');
-                                if isempty(idxRawPoints)
-                                    msgWarning = 'Valor inválido! Deve ser inserida lista de IDs dos registros do RFDataHub. Por exemplos: #1000 #1500 #2000';
-                                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                                    return
-                                end
-                                idxRawPoints = str2double([idxRawPoints{:}]);
-            
-                            case 'Lista de frequências (MHz)'
-                                freqList = regexp(entryText, '(\d+.\d+)', 'tokens');
-                                if isempty(freqList)
-                                    msgWarning = 'Valor inválido! Deve ser inserida lista de frequências em MHz. Por exemplos: 101.1, 101.3, 101.5';
-                                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                                    return
-                                end
-                                freqList = cellfun(@(x) str2double(x), [freqList{:}]);
-            
-                                filterTempTable = table('Size',          [0, 9],                                                                      ...
-                                                        'VariableTypes', {'cell', 'int8', 'int8', 'cell', 'cell', 'int8', 'cell', 'logical', 'cell'}, ...
-                                                        'VariableNames', {'Order', 'ID', 'RelatedID', 'Type', 'Operation', 'Column', 'Value', 'Enable', 'uuid'});
-            
-                                for ii = 1:numel(freqList)
-                                    if ii == 1; Order = 'Node';  RelatedID = -1;
-                                    else;       Order = 'Child'; RelatedID = 1;
-                                    end
-                                    filterTempTable(ii,:) = {Order, ii, RelatedID, 'Frequência', '=', 1, {freqList(ii)}, true, ''};
-                                end            
-                                idxRawPoints = find(util.TableFiltering(RFDataHub, filterTempTable));
-                        end
-
-                        % Posteriormente, avalia-se quais desses registros 
-                        % estão no entorno do local da monitoração.        
-                        if ~isempty(idxRawPoints)
-                            nRawPoints = numel(idxRawPoints);
-
-                            idxThread = specDataIndex(app, 'EmissionShowed');
-                            distanceArray = deg2km(distance(RFDataHub.Latitude(idxRawPoints),   RFDataHub.Longitude(idxRawPoints),  ...
-                                                            app.specData(idxThread).GPS.Latitude, app.specData(idxThread).GPS.Longitude));
-
-                            idxNewPoints = idxRawPoints(distanceArray <= app.points_Subtype1Distance.Value);
-                            
-                            
-                            nNewPoints = numel(idxNewPoints);
-                            if ~nNewPoints
-                                error('Não identificada estação de telecomunicações que atenda ao critério.')
-                            end
-                            
-                            newRow = {'RFDataHub',                                                                                                            ...
-                                      struct('Source', app.points_Subtype1DropDown.Value, 'idxData', idxNewPoints, 'Data', RFDataHub(idxNewPoints,:)), ...
-                                      true};
-                            points_AddNewPoint2Table(app, newRow)
-        
-                            msgLOG = sprintf('Identificada(s) %d estação(ões) de telecomunicações que atende(m) ao critério.', nRawPoints);
-                            if nNewPoints ~= nRawPoints
-                                msgLOG = sprintf('%s Contudo, apenas %d atende(m) à distância máxima especificada.', msgLOG, nNewPoints);
-                            end
-
-                        else
-                            error('Não identificada estação de telecomunicações que atenda ao critério.')
-                        end
-                        ui.Dialog(app.UIFigure, 'warning', msgLOG);
-    
-                    %---------------------------------------------------------%
-                    case app.points_AddFindPeaks
-                        [idxRawPoints, Coordinates] = points_FindPeaks(app, app.points_Subtype2DropDown.Value, app.points_Subtype2NPeaks.Value, app.points_Subtype2Distance.Value/1000);
-                        newRow = {'FindPeaks',                                                                                       ...
-                                  struct('Source', app.points_Subtype2DropDown.Value, 'idxData', idxRawPoints, 'Data', Coordinates), ...
-                                  true};
-                        points_AddNewPoint2Table(app, newRow)
-
-                        msgLOG = sprintf('Identificado(s) %d ponto(s) que atende(m) ao critério.', numel(idxRawPoints));
-                        ui.Dialog(app.UIFigure, 'warning', msgLOG);
-                end
-
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
-                return
-            end
-
-            points_TreeBuilding(app)
-            plot_PointsController(app)
-
-        end
-
-        % Callback function: not associated with a component
-        function points_Subtype1ValueValueChanged2(app, event)
-
-            app.points_Subtype1Value.Value = strtrim(app.points_Subtype1Value.Value);
-            
-        end
-
         % Callback function: PointsTree
         function PointsTreeCheckedNodesChanged(app, event)
             
@@ -2694,22 +2078,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Menu selected function: points_delButton
-        function points_delButtonMenuSelected(app, event)
+        % Image clicked function: FilterTreeButton
+        function FilterTreeButtonImageClicked(app, event)
             
-            if isempty(app.pointsTable) || isempty(app.PointsTree.SelectedNodes)
-                return
-            end
+        end
 
-            idx = arrayfun(@(x) x.NodeData, app.PointsTree.SelectedNodes);
-    
-            if ~isempty(idx)
-                app.pointsTable(idx,:) = [];
-
-                points_TreeBuilding(app)
-                plot_PointsController(app)
-            end
-
+        % Image clicked function: PointsTreeButton
+        function PointsTreeButtonImageClicked(app, event)
+            
         end
     end
 
@@ -2770,7 +2146,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create tool_LayoutLeft
             app.tool_LayoutLeft = uiimage(app.Toolbar);
             app.tool_LayoutLeft.ScaleMethod = 'none';
-            app.tool_LayoutLeft.ImageClickedFcn = createCallbackFcn(app, @Toolbar_LeftPanelVisibilityImageClicked, true);
+            app.tool_LayoutLeft.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
             app.tool_LayoutLeft.Layout.Row = [1 3];
             app.tool_LayoutLeft.Layout.Column = 1;
             app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
@@ -2850,23 +2226,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
             app.tool_LayoutRight.ScaleMethod = 'none';
+            app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
             app.tool_LayoutRight.Layout.Row = [1 3];
             app.tool_LayoutRight.Layout.Column = 11;
-            app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
+            app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
 
-            % Create GridLayout2
-            app.GridLayout2 = uigridlayout(app.GridLayout);
-            app.GridLayout2.ColumnWidth = {320, 10, 5, 271, '1x', 10, 232};
-            app.GridLayout2.RowHeight = {24, '1x'};
-            app.GridLayout2.ColumnSpacing = 0;
-            app.GridLayout2.RowSpacing = 0;
-            app.GridLayout2.Padding = [0 0 0 0];
-            app.GridLayout2.Layout.Row = [3 4];
-            app.GridLayout2.Layout.Column = [2 3];
-            app.GridLayout2.BackgroundColor = [1 1 1];
+            % Create Document
+            app.Document = uigridlayout(app.GridLayout);
+            app.Document.ColumnWidth = {320, 10, 5, 322, '1x', 0, 0};
+            app.Document.RowHeight = {24, '1x'};
+            app.Document.ColumnSpacing = 0;
+            app.Document.RowSpacing = 0;
+            app.Document.Padding = [0 0 0 0];
+            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Column = [2 3];
+            app.Document.BackgroundColor = [1 1 1];
 
             % Create LeftPanel
-            app.LeftPanel = uigridlayout(app.GridLayout2);
+            app.LeftPanel = uigridlayout(app.Document);
             app.LeftPanel.ColumnWidth = {'1x', 18, 10, 18};
             app.LeftPanel.RowHeight = {44, 22, 30, '1x'};
             app.LeftPanel.ColumnSpacing = 5;
@@ -2879,6 +2256,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create SpectrumFlowList
             app.SpectrumFlowList = uidropdown(app.LeftPanel);
             app.SpectrumFlowList.Items = {};
+            app.SpectrumFlowList.ValueChangedFcn = createCallbackFcn(app, @onFlowDropDownValueChanged, true);
             app.SpectrumFlowList.FontSize = 11;
             app.SpectrumFlowList.FontColor = [1 1 1];
             app.SpectrumFlowList.BackgroundColor = [0.7176 0.1922 0.1725];
@@ -2886,159 +2264,181 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.SpectrumFlowList.Layout.Column = [1 4];
             app.SpectrumFlowList.Value = {};
 
-            % Create FlowPanelLabel
-            app.FlowPanelLabel = uilabel(app.LeftPanel);
-            app.FlowPanelLabel.FontSize = 10;
-            app.FlowPanelLabel.Layout.Row = 3;
-            app.FlowPanelLabel.Layout.Column = 1;
-            app.FlowPanelLabel.Interpreter = 'html';
-            app.FlowPanelLabel.Text = 'ATRIBUTOS DA EMISSÃO<br><font style="font-size: 11px;"><i>Metadados</i></font>';
+            % Create EmissionPanelLabel
+            app.EmissionPanelLabel = uilabel(app.LeftPanel);
+            app.EmissionPanelLabel.FontSize = 10;
+            app.EmissionPanelLabel.Layout.Row = 3;
+            app.EmissionPanelLabel.Layout.Column = 1;
+            app.EmissionPanelLabel.Interpreter = 'html';
+            app.EmissionPanelLabel.Text = 'ATRIBUTOS DA EMISSÃO<br><font style="font-size: 11px;"><i>Metadados</i></font>';
 
-            % Create FlowAttributesPanelVisibleIdx
-            app.FlowAttributesPanelVisibleIdx = uilabel(app.LeftPanel);
-            app.FlowAttributesPanelVisibleIdx.HorizontalAlignment = 'center';
-            app.FlowAttributesPanelVisibleIdx.FontSize = 10;
-            app.FlowAttributesPanelVisibleIdx.FontColor = [0.502 0.502 0.502];
-            app.FlowAttributesPanelVisibleIdx.Layout.Row = 3;
-            app.FlowAttributesPanelVisibleIdx.Layout.Column = [2 4];
-            app.FlowAttributesPanelVisibleIdx.Text = '1/4';
+            % Create EmissionAttributesPanelVisibleIdx
+            app.EmissionAttributesPanelVisibleIdx = uilabel(app.LeftPanel);
+            app.EmissionAttributesPanelVisibleIdx.HorizontalAlignment = 'center';
+            app.EmissionAttributesPanelVisibleIdx.FontSize = 10;
+            app.EmissionAttributesPanelVisibleIdx.FontColor = [0.502 0.502 0.502];
+            app.EmissionAttributesPanelVisibleIdx.Layout.Row = 3;
+            app.EmissionAttributesPanelVisibleIdx.Layout.Column = [2 4];
+            app.EmissionAttributesPanelVisibleIdx.Text = '1/4';
 
-            % Create FlowAttributesPanelLeftBtn
-            app.FlowAttributesPanelLeftBtn = uiimage(app.LeftPanel);
-            app.FlowAttributesPanelLeftBtn.Enable = 'off';
-            app.FlowAttributesPanelLeftBtn.Layout.Row = 3;
-            app.FlowAttributesPanelLeftBtn.Layout.Column = 2;
-            app.FlowAttributesPanelLeftBtn.ImageSource = 'triangle-left.svg';
+            % Create EmissionAttributesPanelLeftBtn
+            app.EmissionAttributesPanelLeftBtn = uiimage(app.LeftPanel);
+            app.EmissionAttributesPanelLeftBtn.ImageClickedFcn = createCallbackFcn(app, @onEmissionPanelViewChanged, true);
+            app.EmissionAttributesPanelLeftBtn.Enable = 'off';
+            app.EmissionAttributesPanelLeftBtn.Layout.Row = 3;
+            app.EmissionAttributesPanelLeftBtn.Layout.Column = 2;
+            app.EmissionAttributesPanelLeftBtn.ImageSource = 'triangle-left.svg';
 
-            % Create FlowAttributesPanelRightBtn
-            app.FlowAttributesPanelRightBtn = uiimage(app.LeftPanel);
-            app.FlowAttributesPanelRightBtn.Layout.Row = 3;
-            app.FlowAttributesPanelRightBtn.Layout.Column = 4;
-            app.FlowAttributesPanelRightBtn.ImageSource = 'triangle-right.svg';
+            % Create EmissionAttributesPanelRightBtn
+            app.EmissionAttributesPanelRightBtn = uiimage(app.LeftPanel);
+            app.EmissionAttributesPanelRightBtn.ImageClickedFcn = createCallbackFcn(app, @onEmissionPanelViewChanged, true);
+            app.EmissionAttributesPanelRightBtn.Layout.Row = 3;
+            app.EmissionAttributesPanelRightBtn.Layout.Column = 4;
+            app.EmissionAttributesPanelRightBtn.ImageSource = 'triangle-right.svg';
 
-            % Create FlowPanel
-            app.FlowPanel = uipanel(app.LeftPanel);
-            app.FlowPanel.AutoResizeChildren = 'off';
-            app.FlowPanel.Layout.Row = 4;
-            app.FlowPanel.Layout.Column = [1 4];
+            % Create EmissionPanel
+            app.EmissionPanel = uipanel(app.LeftPanel);
+            app.EmissionPanel.AutoResizeChildren = 'off';
+            app.EmissionPanel.Layout.Row = 4;
+            app.EmissionPanel.Layout.Column = [1 4];
 
-            % Create FlowPanelGrid
-            app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 10, '1x', 18, 10, '1x', 18, 10};
-            app.FlowPanelGrid.RowHeight = {10, 22, 22, 5, 78, 10, 22, 22, 5, '1x', 10};
-            app.FlowPanelGrid.ColumnSpacing = 0;
-            app.FlowPanelGrid.RowSpacing = 0;
-            app.FlowPanelGrid.Padding = [0 0 0 0];
-            app.FlowPanelGrid.BackgroundColor = [1 1 1];
+            % Create EmissionPanelGrid
+            app.EmissionPanelGrid = uigridlayout(app.EmissionPanel);
+            app.EmissionPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0};
+            app.EmissionPanelGrid.RowHeight = {10, 22, 22, 5, 78, 10, 22, 22, 5, '1x', 10};
+            app.EmissionPanelGrid.ColumnSpacing = 0;
+            app.EmissionPanelGrid.RowSpacing = 0;
+            app.EmissionPanelGrid.Padding = [0 0 0 0];
+            app.EmissionPanelGrid.BackgroundColor = [1 1 1];
 
-            % Create FlowMetadata
-            app.FlowMetadata = uilabel(app.FlowPanelGrid);
-            app.FlowMetadata.VerticalAlignment = 'top';
-            app.FlowMetadata.WordWrap = 'on';
-            app.FlowMetadata.FontSize = 11;
-            app.FlowMetadata.Layout.Row = [1 11];
-            app.FlowMetadata.Layout.Column = 1;
-            app.FlowMetadata.Interpreter = 'html';
-            app.FlowMetadata.Text = '';
+            % Create EmissionMetadata
+            app.EmissionMetadata = uilabel(app.EmissionPanelGrid);
+            app.EmissionMetadata.VerticalAlignment = 'top';
+            app.EmissionMetadata.WordWrap = 'on';
+            app.EmissionMetadata.FontSize = 11;
+            app.EmissionMetadata.Layout.Row = [1 11];
+            app.EmissionMetadata.Layout.Column = 1;
+            app.EmissionMetadata.Interpreter = 'html';
+            app.EmissionMetadata.Text = '';
 
-            % Create filter_DataBinningPanel
-            app.filter_DataBinningPanel = uipanel(app.FlowPanelGrid);
-            app.filter_DataBinningPanel.AutoResizeChildren = 'off';
-            app.filter_DataBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_DataBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.filter_DataBinningPanel.Layout.Row = 5;
-            app.filter_DataBinningPanel.Layout.Column = [3 4];
+            % Create DataBinningLabel
+            app.DataBinningLabel = uilabel(app.EmissionPanelGrid);
+            app.DataBinningLabel.VerticalAlignment = 'top';
+            app.DataBinningLabel.WordWrap = 'on';
+            app.DataBinningLabel.FontSize = 10;
+            app.DataBinningLabel.Layout.Row = [2 3];
+            app.DataBinningLabel.Layout.Column = [3 4];
+            app.DataBinningLabel.Interpreter = 'html';
+            app.DataBinningLabel.Text = {'DATA-BINNING'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Agrupa medições em quadrículas, sumarizando-as por meio de função estatística.</p>'};
 
-            % Create filter_DataBinningGrid
-            app.filter_DataBinningGrid = uigridlayout(app.filter_DataBinningPanel);
-            app.filter_DataBinningGrid.ColumnWidth = {110, '1x'};
-            app.filter_DataBinningGrid.RowHeight = {'1x', 22};
-            app.filter_DataBinningGrid.RowSpacing = 5;
-            app.filter_DataBinningGrid.BackgroundColor = [1 1 1];
+            % Create DataBinningPanel
+            app.DataBinningPanel = uipanel(app.EmissionPanelGrid);
+            app.DataBinningPanel.AutoResizeChildren = 'off';
+            app.DataBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.DataBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.DataBinningPanel.Layout.Row = 5;
+            app.DataBinningPanel.Layout.Column = [3 4];
 
-            % Create filter_DataBinningLengthLabel
-            app.filter_DataBinningLengthLabel = uilabel(app.filter_DataBinningGrid);
-            app.filter_DataBinningLengthLabel.VerticalAlignment = 'bottom';
-            app.filter_DataBinningLengthLabel.WordWrap = 'on';
-            app.filter_DataBinningLengthLabel.FontSize = 11;
-            app.filter_DataBinningLengthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_DataBinningLengthLabel.Layout.Row = 1;
-            app.filter_DataBinningLengthLabel.Layout.Column = 1;
-            app.filter_DataBinningLengthLabel.Interpreter = 'html';
-            app.filter_DataBinningLengthLabel.Text = {'Comprimento '; 'quadrícula (metros):'};
+            % Create DataBinningGrid
+            app.DataBinningGrid = uigridlayout(app.DataBinningPanel);
+            app.DataBinningGrid.ColumnWidth = {110, '1x'};
+            app.DataBinningGrid.RowHeight = {'1x', 22};
+            app.DataBinningGrid.RowSpacing = 5;
+            app.DataBinningGrid.BackgroundColor = [1 1 1];
 
-            % Create filter_DataBinningLength
-            app.filter_DataBinningLength = uispinner(app.filter_DataBinningGrid);
-            app.filter_DataBinningLength.Step = 50;
-            app.filter_DataBinningLength.Limits = [50 1500];
-            app.filter_DataBinningLength.RoundFractionalValues = 'on';
-            app.filter_DataBinningLength.ValueDisplayFormat = '%.0f';
-            app.filter_DataBinningLength.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
-            app.filter_DataBinningLength.FontSize = 11;
-            app.filter_DataBinningLength.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_DataBinningLength.Layout.Row = 2;
-            app.filter_DataBinningLength.Layout.Column = 1;
-            app.filter_DataBinningLength.Value = 100;
+            % Create DataBinningLengthLabel
+            app.DataBinningLengthLabel = uilabel(app.DataBinningGrid);
+            app.DataBinningLengthLabel.VerticalAlignment = 'bottom';
+            app.DataBinningLengthLabel.WordWrap = 'on';
+            app.DataBinningLengthLabel.FontSize = 11;
+            app.DataBinningLengthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.DataBinningLengthLabel.Layout.Row = 1;
+            app.DataBinningLengthLabel.Layout.Column = 1;
+            app.DataBinningLengthLabel.Interpreter = 'html';
+            app.DataBinningLengthLabel.Text = {'Comprimento '; 'quadrícula (metros):'};
 
-            % Create filter_DataBinningFcnLabel
-            app.filter_DataBinningFcnLabel = uilabel(app.filter_DataBinningGrid);
-            app.filter_DataBinningFcnLabel.VerticalAlignment = 'bottom';
-            app.filter_DataBinningFcnLabel.WordWrap = 'on';
-            app.filter_DataBinningFcnLabel.FontSize = 11;
-            app.filter_DataBinningFcnLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_DataBinningFcnLabel.Layout.Row = 1;
-            app.filter_DataBinningFcnLabel.Layout.Column = 2;
-            app.filter_DataBinningFcnLabel.Text = {'Função'; 'estatística:'};
+            % Create DataBinningLength
+            app.DataBinningLength = uispinner(app.DataBinningGrid);
+            app.DataBinningLength.Step = 50;
+            app.DataBinningLength.Limits = [50 1500];
+            app.DataBinningLength.RoundFractionalValues = 'on';
+            app.DataBinningLength.ValueDisplayFormat = '%.0f';
+            app.DataBinningLength.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
+            app.DataBinningLength.FontSize = 11;
+            app.DataBinningLength.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.DataBinningLength.Layout.Row = 2;
+            app.DataBinningLength.Layout.Column = 1;
+            app.DataBinningLength.Value = 100;
 
-            % Create filter_DataBinningFcn
-            app.filter_DataBinningFcn = uidropdown(app.filter_DataBinningGrid);
-            app.filter_DataBinningFcn.Items = {'min', 'mean', 'median', 'rms', 'max'};
-            app.filter_DataBinningFcn.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
-            app.filter_DataBinningFcn.FontSize = 11;
-            app.filter_DataBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_DataBinningFcn.BackgroundColor = [1 1 1];
-            app.filter_DataBinningFcn.Layout.Row = 2;
-            app.filter_DataBinningFcn.Layout.Column = 2;
-            app.filter_DataBinningFcn.Value = 'rms';
+            % Create DataBinningFcnLabel
+            app.DataBinningFcnLabel = uilabel(app.DataBinningGrid);
+            app.DataBinningFcnLabel.VerticalAlignment = 'bottom';
+            app.DataBinningFcnLabel.WordWrap = 'on';
+            app.DataBinningFcnLabel.FontSize = 11;
+            app.DataBinningFcnLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.DataBinningFcnLabel.Layout.Row = 1;
+            app.DataBinningFcnLabel.Layout.Column = 2;
+            app.DataBinningFcnLabel.Text = {'Função'; 'estatística:'};
+
+            % Create DataBinningFcn
+            app.DataBinningFcn = uidropdown(app.DataBinningGrid);
+            app.DataBinningFcn.Items = {'min', 'mean', 'median', 'rms', 'max'};
+            app.DataBinningFcn.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
+            app.DataBinningFcn.FontSize = 11;
+            app.DataBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.DataBinningFcn.BackgroundColor = [1 1 1];
+            app.DataBinningFcn.Layout.Row = 2;
+            app.DataBinningFcn.Layout.Column = 2;
+            app.DataBinningFcn.Value = 'rms';
+
+            % Create FilterTreeLabel
+            app.FilterTreeLabel = uilabel(app.EmissionPanelGrid);
+            app.FilterTreeLabel.VerticalAlignment = 'top';
+            app.FilterTreeLabel.WordWrap = 'on';
+            app.FilterTreeLabel.FontSize = 10;
+            app.FilterTreeLabel.Layout.Row = [7 9];
+            app.FilterTreeLabel.Layout.Column = [3 4];
+            app.FilterTreeLabel.Interpreter = 'html';
+            app.FilterTreeLabel.Text = {'FILTRAGEM DE DADOS'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Remove medições com base em critérios de nível de sinal e localização geográfica.</p>'};
+
+            % Create FilterTreeButton
+            app.FilterTreeButton = uiimage(app.EmissionPanelGrid);
+            app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @FilterTreeButtonImageClicked, true);
+            app.FilterTreeButton.Enable = 'off';
+            app.FilterTreeButton.Layout.Row = 8;
+            app.FilterTreeButton.Layout.Column = 4;
+            app.FilterTreeButton.VerticalAlignment = 'bottom';
+            app.FilterTreeButton.ImageSource = 'Edit_32.png';
 
             % Create FilterTree
-            app.FilterTree = uitree(app.FlowPanelGrid);
+            app.FilterTree = uitree(app.EmissionPanelGrid);
             app.FilterTree.SelectionChangedFcn = createCallbackFcn(app, @FilterTreeSelectionChanged, true);
             app.FilterTree.FontSize = 10.5;
             app.FilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FilterTree.Layout.Row = 10;
             app.FilterTree.Layout.Column = [3 4];
 
-            % Create filter_DataBinningLabel
-            app.filter_DataBinningLabel = uilabel(app.FlowPanelGrid);
-            app.filter_DataBinningLabel.VerticalAlignment = 'top';
-            app.filter_DataBinningLabel.WordWrap = 'on';
-            app.filter_DataBinningLabel.FontSize = 10;
-            app.filter_DataBinningLabel.Layout.Row = [2 3];
-            app.filter_DataBinningLabel.Layout.Column = [3 4];
-            app.filter_DataBinningLabel.Interpreter = 'html';
-            app.filter_DataBinningLabel.Text = {'DATA-BINNING'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Agrupa medições em quadrículas, sumarizando-as por meio de função estatística.</p>'};
+            % Create PointsTreeLabel
+            app.PointsTreeLabel = uilabel(app.EmissionPanelGrid);
+            app.PointsTreeLabel.VerticalAlignment = 'top';
+            app.PointsTreeLabel.WordWrap = 'on';
+            app.PointsTreeLabel.FontSize = 10;
+            app.PointsTreeLabel.Layout.Row = [2 3];
+            app.PointsTreeLabel.Layout.Column = [6 7];
+            app.PointsTreeLabel.Interpreter = 'html';
+            app.PointsTreeLabel.Text = {'PONTOS DE INTERESSE'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Destaca locais relevantes, como máximos de potência e estações de telecomunicações.</p>'};
 
-            % Create filter_DataBinningLabel_2
-            app.filter_DataBinningLabel_2 = uilabel(app.FlowPanelGrid);
-            app.filter_DataBinningLabel_2.VerticalAlignment = 'top';
-            app.filter_DataBinningLabel_2.WordWrap = 'on';
-            app.filter_DataBinningLabel_2.FontSize = 10;
-            app.filter_DataBinningLabel_2.Layout.Row = [7 9];
-            app.filter_DataBinningLabel_2.Layout.Column = [3 4];
-            app.filter_DataBinningLabel_2.Interpreter = 'html';
-            app.filter_DataBinningLabel_2.Text = {'FILTRAGEM DE DADOS'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Remove medições com base em critérios de nível de sinal e localização geográfica.</p>'};
-
-            % Create FlowChannelEdit
-            app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
-            app.FlowChannelEdit.Enable = 'off';
-            app.FlowChannelEdit.Layout.Row = 8;
-            app.FlowChannelEdit.Layout.Column = 4;
-            app.FlowChannelEdit.VerticalAlignment = 'bottom';
-            app.FlowChannelEdit.ImageSource = 'Edit_32.png';
+            % Create PointsTreeButton
+            app.PointsTreeButton = uiimage(app.EmissionPanelGrid);
+            app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @PointsTreeButtonImageClicked, true);
+            app.PointsTreeButton.Enable = 'off';
+            app.PointsTreeButton.Layout.Row = 3;
+            app.PointsTreeButton.Layout.Column = 7;
+            app.PointsTreeButton.VerticalAlignment = 'bottom';
+            app.PointsTreeButton.ImageSource = 'Edit_32.png';
 
             % Create PointsTree
-            app.PointsTree = uitree(app.FlowPanelGrid, 'checkbox');
+            app.PointsTree = uitree(app.EmissionPanelGrid, 'checkbox');
             app.PointsTree.FontSize = 10.5;
             app.PointsTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.PointsTree.Layout.Row = [5 10];
@@ -3047,28 +2447,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Assign Checked Nodes
             app.PointsTree.CheckedNodesChangedFcn = createCallbackFcn(app, @PointsTreeCheckedNodesChanged, true);
 
-            % Create filter_DataBinningLabel_3
-            app.filter_DataBinningLabel_3 = uilabel(app.FlowPanelGrid);
-            app.filter_DataBinningLabel_3.VerticalAlignment = 'top';
-            app.filter_DataBinningLabel_3.WordWrap = 'on';
-            app.filter_DataBinningLabel_3.FontSize = 10;
-            app.filter_DataBinningLabel_3.Layout.Row = [2 3];
-            app.filter_DataBinningLabel_3.Layout.Column = [6 7];
-            app.filter_DataBinningLabel_3.Interpreter = 'html';
-            app.filter_DataBinningLabel_3.Text = {'PONTOS DE INTERESSE'; '<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Destaca locais relevantes, como máximos de potência e estações de telecomunicações.</p>'};
-
-            % Create FlowChannelEdit_2
-            app.FlowChannelEdit_2 = uiimage(app.FlowPanelGrid);
-            app.FlowChannelEdit_2.Enable = 'off';
-            app.FlowChannelEdit_2.Layout.Row = 3;
-            app.FlowChannelEdit_2.Layout.Column = 7;
-            app.FlowChannelEdit_2.VerticalAlignment = 'bottom';
-            app.FlowChannelEdit_2.ImageSource = 'Edit_32.png';
-
             % Create EmissionList
             app.EmissionList = uidropdown(app.LeftPanel);
             app.EmissionList.Items = {};
-            app.EmissionList.ValueChangedFcn = createCallbackFcn(app, @general_EmissionChanged, true);
+            app.EmissionList.ValueChangedFcn = createCallbackFcn(app, @onEmissionDropDownValueChanged, true);
             app.EmissionList.FontSize = 11;
             app.EmissionList.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.EmissionList.BackgroundColor = [1 1 1];
@@ -3076,18 +2458,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.EmissionList.Layout.Column = [1 4];
             app.EmissionList.Value = {};
 
-            % Create Document
-            app.Document = uipanel(app.GridLayout2);
-            app.Document.AutoResizeChildren = 'off';
-            app.Document.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.Document.BorderType = 'none';
-            app.Document.BackgroundColor = [0 0 0];
-            app.Document.Layout.Row = [1 2];
-            app.Document.Layout.Column = [3 5];
+            % Create AxesContainer
+            app.AxesContainer = uipanel(app.Document);
+            app.AxesContainer.AutoResizeChildren = 'off';
+            app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.AxesContainer.BorderType = 'none';
+            app.AxesContainer.BackgroundColor = [0 0 0];
+            app.AxesContainer.Layout.Row = [1 2];
+            app.AxesContainer.Layout.Column = [3 5];
 
             % Create AxesToolbar
-            app.AxesToolbar = uigridlayout(app.GridLayout2);
-            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, '1x', 5, 22, 22, 5, '1x'};
+            app.AxesToolbar = uigridlayout(app.Document);
+            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, '1x', 5, 22, 22, 5, 54, 22, 5};
             app.AxesToolbar.RowHeight = {22};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -3154,10 +2536,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_PlotSize.Layout.Column = 10;
             app.axesTool_PlotSize.Value = 1;
 
+            % Create axesTool_DensityPlot_2
+            app.axesTool_DensityPlot_2 = uiimage(app.AxesToolbar);
+            app.axesTool_DensityPlot_2.ScaleMethod = 'none';
+            app.axesTool_DensityPlot_2.Enable = 'off';
+            app.axesTool_DensityPlot_2.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
+            app.axesTool_DensityPlot_2.Layout.Row = 1;
+            app.axesTool_DensityPlot_2.Layout.Column = 11;
+            app.axesTool_DensityPlot_2.ImageSource = 'target.svg';
+
             % Create RightPanel
-            app.RightPanel = uigridlayout(app.GridLayout2);
-            app.RightPanel.ColumnWidth = {18, '1x'};
-            app.RightPanel.RowHeight = {5, 17, 5, 124, 5, 5, 17, 5, 168, 5, 5, 17, 5, '1x'};
+            app.RightPanel = uigridlayout(app.Document);
+            app.RightPanel.ColumnWidth = {18, '1x', 18};
+            app.RightPanel.RowHeight = {5, 17, 5, 208, 5, 5, 17, 5, '1x'};
             app.RightPanel.ColumnSpacing = 5;
             app.RightPanel.RowSpacing = 0;
             app.RightPanel.Padding = [0 0 0 0];
@@ -3165,432 +2556,403 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.RightPanel.Layout.Column = 7;
             app.RightPanel.BackgroundColor = [1 1 1];
 
-            % Create GeneralPanelIcon
-            app.GeneralPanelIcon = uiimage(app.RightPanel);
-            app.GeneralPanelIcon.Layout.Row = [1 3];
-            app.GeneralPanelIcon.Layout.Column = 1;
-            app.GeneralPanelIcon.ImageSource = 'DriveTestDensity_32.png';
+            % Create GeographicAxesPanelIcon
+            app.GeographicAxesPanelIcon = uiimage(app.RightPanel);
+            app.GeographicAxesPanelIcon.Layout.Row = [1 3];
+            app.GeographicAxesPanelIcon.Layout.Column = 1;
+            app.GeographicAxesPanelIcon.ImageSource = 'DriveTestDensity_32.png';
 
-            % Create GeneralPanelLabel
-            app.GeneralPanelLabel = uilabel(app.RightPanel);
-            app.GeneralPanelLabel.VerticalAlignment = 'bottom';
-            app.GeneralPanelLabel.FontSize = 10;
-            app.GeneralPanelLabel.Layout.Row = 2;
-            app.GeneralPanelLabel.Layout.Column = 2;
-            app.GeneralPanelLabel.Text = 'EIXOS GRÁFICOS';
+            % Create GeographicAxesPanelLabel
+            app.GeographicAxesPanelLabel = uilabel(app.RightPanel);
+            app.GeographicAxesPanelLabel.VerticalAlignment = 'bottom';
+            app.GeographicAxesPanelLabel.FontSize = 10;
+            app.GeographicAxesPanelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.GeographicAxesPanelLabel.Layout.Row = 2;
+            app.GeographicAxesPanelLabel.Layout.Column = 2;
+            app.GeographicAxesPanelLabel.Text = 'EIXO GEOGRÁFICO';
 
-            % Create GeneralPanel
-            app.GeneralPanel = uipanel(app.RightPanel);
-            app.GeneralPanel.AutoResizeChildren = 'off';
-            app.GeneralPanel.BackgroundColor = [1 1 1];
-            app.GeneralPanel.Layout.Row = 4;
-            app.GeneralPanel.Layout.Column = [1 2];
+            % Create GeographicAxesPanel
+            app.GeographicAxesPanel = uipanel(app.RightPanel);
+            app.GeographicAxesPanel.AutoResizeChildren = 'off';
+            app.GeographicAxesPanel.BackgroundColor = [1 1 1];
+            app.GeographicAxesPanel.Layout.Row = 4;
+            app.GeographicAxesPanel.Layout.Column = [1 3];
 
-            % Create GeneralPanelGrid
-            app.GeneralPanelGrid = uigridlayout(app.GeneralPanel);
-            app.GeneralPanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.GeneralPanelGrid.RowHeight = {22, 20, 22, 22};
-            app.GeneralPanelGrid.RowSpacing = 5;
-            app.GeneralPanelGrid.BackgroundColor = [1 1 1];
+            % Create GeographicAxesPanelGrid
+            app.GeographicAxesPanelGrid = uigridlayout(app.GeographicAxesPanel);
+            app.GeographicAxesPanelGrid.ColumnWidth = {'1x', 36, 36, 54};
+            app.GeographicAxesPanelGrid.RowHeight = {17, 22, 17, 22, 17, 22, 17, 22};
+            app.GeographicAxesPanelGrid.RowSpacing = 5;
+            app.GeographicAxesPanelGrid.Padding = [10 10 10 5];
+            app.GeographicAxesPanelGrid.BackgroundColor = [1 1 1];
 
-            % Create LayoutRatioLabel
-            app.LayoutRatioLabel = uilabel(app.GeneralPanelGrid);
-            app.LayoutRatioLabel.FontSize = 11;
-            app.LayoutRatioLabel.Layout.Row = 1;
-            app.LayoutRatioLabel.Layout.Column = [1 3];
-            app.LayoutRatioLabel.Text = 'Razão de aspecto:';
+            % Create config_route_Size
+            app.config_route_Size = uislider(app.GeographicAxesPanelGrid);
+            app.config_route_Size.Limits = [1 9];
+            app.config_route_Size.MajorTicks = [];
+            app.config_route_Size.MinorTicks = [1 2.6 4.2 5.8 7.4 9];
+            app.config_route_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_route_Size.Tooltip = {'Tamanho do marcador'};
+            app.config_route_Size.Layout.Row = 4;
+            app.config_route_Size.Layout.Column = 4;
+            app.config_route_Size.Value = 1;
 
-            % Create LayoutRatio
-            app.LayoutRatio = uidropdown(app.GeneralPanelGrid);
-            app.LayoutRatio.Items = {'1:0:0'};
-            app.LayoutRatio.Tag = 'layoutRatio';
-            app.LayoutRatio.FontSize = 11;
-            app.LayoutRatio.BackgroundColor = [1 1 1];
-            app.LayoutRatio.Layout.Row = 1;
-            app.LayoutRatio.Layout.Column = [4 5];
-            app.LayoutRatio.Value = '1:0:0';
+            % Create config_route_InColor
+            app.config_route_InColor = uicolorpicker(app.GeographicAxesPanelGrid);
+            app.config_route_InColor.Value = [0.8706 0.5412 0.5412];
+            app.config_route_InColor.Layout.Row = 4;
+            app.config_route_InColor.Layout.Column = 3;
+            app.config_route_InColor.BackgroundColor = [1 1 1];
 
-            % Create LimitsPanelLabel
-            app.LimitsPanelLabel = uilabel(app.GeneralPanelGrid);
-            app.LimitsPanelLabel.VerticalAlignment = 'bottom';
-            app.LimitsPanelLabel.FontSize = 11;
-            app.LimitsPanelLabel.Layout.Row = 2;
-            app.LimitsPanelLabel.Layout.Column = [1 4];
-            app.LimitsPanelLabel.Text = 'Limites de frequência e nível:';
+            % Create config_route_OutColor
+            app.config_route_OutColor = uicolorpicker(app.GeographicAxesPanelGrid);
+            app.config_route_OutColor.Value = [0.502 0.502 0.502];
+            app.config_route_OutColor.Layout.Row = 4;
+            app.config_route_OutColor.Layout.Column = 2;
+            app.config_route_OutColor.BackgroundColor = [1 1 1];
 
-            % Create LimitsRefresh
-            app.LimitsRefresh = uiimage(app.GeneralPanelGrid);
-            app.LimitsRefresh.ScaleMethod = 'none';
-            app.LimitsRefresh.Tag = 'limitsXYRefresh';
-            app.LimitsRefresh.Visible = 'off';
-            app.LimitsRefresh.Layout.Row = 2;
-            app.LimitsRefresh.Layout.Column = 5;
-            app.LimitsRefresh.ImageSource = 'Refresh_18.png';
+            % Create config_route_LineStyle
+            app.config_route_LineStyle = uidropdown(app.GeographicAxesPanelGrid);
+            app.config_route_LineStyle.Items = {'none', ':', '-'};
+            app.config_route_LineStyle.FontSize = 11;
+            app.config_route_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_route_LineStyle.BackgroundColor = [1 1 1];
+            app.config_route_LineStyle.Layout.Row = 4;
+            app.config_route_LineStyle.Layout.Column = 1;
+            app.config_route_LineStyle.Value = 'none';
 
-            % Create LimitsXLimLabel
-            app.LimitsXLimLabel = uilabel(app.GeneralPanelGrid);
-            app.LimitsXLimLabel.HorizontalAlignment = 'center';
-            app.LimitsXLimLabel.FontSize = 10;
-            app.LimitsXLimLabel.Layout.Row = 3;
-            app.LimitsXLimLabel.Layout.Column = [1 5];
-            app.LimitsXLimLabel.Text = 'MHz  ';
+            % Create config_route_Label
+            app.config_route_Label = uilabel(app.GeographicAxesPanelGrid);
+            app.config_route_Label.VerticalAlignment = 'bottom';
+            app.config_route_Label.FontSize = 11;
+            app.config_route_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_route_Label.Layout.Row = 3;
+            app.config_route_Label.Layout.Column = [1 2];
+            app.config_route_Label.Text = 'Rota:';
 
-            % Create LimitsXLim1
-            app.LimitsXLim1 = uispinner(app.GeneralPanelGrid);
-            app.LimitsXLim1.ValueDisplayFormat = '%.3f';
-            app.LimitsXLim1.Tag = 'limitsX';
-            app.LimitsXLim1.FontSize = 11;
-            app.LimitsXLim1.Layout.Row = 3;
-            app.LimitsXLim1.Layout.Column = 1;
+            % Create config_Car_Label
+            app.config_Car_Label = uilabel(app.GeographicAxesPanelGrid);
+            app.config_Car_Label.VerticalAlignment = 'bottom';
+            app.config_Car_Label.FontSize = 11;
+            app.config_Car_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_Car_Label.Layout.Row = 5;
+            app.config_Car_Label.Layout.Column = [1 2];
+            app.config_Car_Label.Text = 'Veículo:';
 
-            % Create LimitsXLim2
-            app.LimitsXLim2 = uispinner(app.GeneralPanelGrid);
-            app.LimitsXLim2.ValueDisplayFormat = '%.3f';
-            app.LimitsXLim2.Tag = 'limitsX';
-            app.LimitsXLim2.FontSize = 11;
-            app.LimitsXLim2.Layout.Row = 3;
-            app.LimitsXLim2.Layout.Column = [4 5];
-            app.LimitsXLim2.Value = 1;
+            % Create config_Car_LineStyle
+            app.config_Car_LineStyle = uidropdown(app.GeographicAxesPanelGrid);
+            app.config_Car_LineStyle.Items = {'none', 'o', 'square', '^'};
+            app.config_Car_LineStyle.FontSize = 11;
+            app.config_Car_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_Car_LineStyle.BackgroundColor = [1 1 1];
+            app.config_Car_LineStyle.Layout.Row = 6;
+            app.config_Car_LineStyle.Layout.Column = [1 2];
+            app.config_Car_LineStyle.Value = 'none';
 
-            % Create LimitsYLimLabel
-            app.LimitsYLimLabel = uilabel(app.GeneralPanelGrid);
-            app.LimitsYLimLabel.HorizontalAlignment = 'center';
-            app.LimitsYLimLabel.FontSize = 10;
-            app.LimitsYLimLabel.Layout.Row = 4;
-            app.LimitsYLimLabel.Layout.Column = [1 5];
-            app.LimitsYLimLabel.Text = 'dB  ';
+            % Create config_Car_Color
+            app.config_Car_Color = uicolorpicker(app.GeographicAxesPanelGrid);
+            app.config_Car_Color.Layout.Row = 6;
+            app.config_Car_Color.Layout.Column = 3;
+            app.config_Car_Color.BackgroundColor = [1 1 1];
 
-            % Create LimitsYLim1
-            app.LimitsYLim1 = uispinner(app.GeneralPanelGrid);
-            app.LimitsYLim1.Step = 5;
-            app.LimitsYLim1.ValueDisplayFormat = '%.1f';
-            app.LimitsYLim1.Tag = 'limitsY';
-            app.LimitsYLim1.FontSize = 11;
-            app.LimitsYLim1.Layout.Row = 4;
-            app.LimitsYLim1.Layout.Column = 1;
+            % Create config_Car_Size
+            app.config_Car_Size = uislider(app.GeographicAxesPanelGrid);
+            app.config_Car_Size.Limits = [1 19];
+            app.config_Car_Size.MajorTicks = [];
+            app.config_Car_Size.MinorTicks = [1 4.6 8.2 11.8 15.4 19];
+            app.config_Car_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_Car_Size.Tooltip = {'Tamanho do marcador'};
+            app.config_Car_Size.Layout.Row = 6;
+            app.config_Car_Size.Layout.Column = 4;
+            app.config_Car_Size.Value = 10;
 
-            % Create LimitsYLim2
-            app.LimitsYLim2 = uispinner(app.GeneralPanelGrid);
-            app.LimitsYLim2.Step = 5;
-            app.LimitsYLim2.ValueDisplayFormat = '%.1f';
-            app.LimitsYLim2.Tag = 'limitsY';
-            app.LimitsYLim2.FontSize = 11;
-            app.LimitsYLim2.Layout.Row = 4;
-            app.LimitsYLim2.Layout.Column = [4 5];
-            app.LimitsYLim2.Value = 1;
+            % Create config_points_Label
+            app.config_points_Label = uilabel(app.GeographicAxesPanelGrid);
+            app.config_points_Label.VerticalAlignment = 'bottom';
+            app.config_points_Label.FontSize = 11;
+            app.config_points_Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_points_Label.Layout.Row = 7;
+            app.config_points_Label.Layout.Column = [1 3];
+            app.config_points_Label.Text = 'Pontos de interesse:';
 
-            % Create PersistencePanelIcon
-            app.PersistencePanelIcon = uiimage(app.RightPanel);
-            app.PersistencePanelIcon.Layout.Row = [6 8];
-            app.PersistencePanelIcon.Layout.Column = 1;
-            app.PersistencePanelIcon.ImageSource = 'persistence-36px.png';
+            % Create config_points_LineStyle
+            app.config_points_LineStyle = uidropdown(app.GeographicAxesPanelGrid);
+            app.config_points_LineStyle.Items = {'none', 'o', 'square', '^'};
+            app.config_points_LineStyle.FontSize = 11;
+            app.config_points_LineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_points_LineStyle.BackgroundColor = [1 1 1];
+            app.config_points_LineStyle.Layout.Row = 8;
+            app.config_points_LineStyle.Layout.Column = [1 2];
+            app.config_points_LineStyle.Value = 'none';
 
-            % Create PersistencePanelLabel
-            app.PersistencePanelLabel = uilabel(app.RightPanel);
-            app.PersistencePanelLabel.VerticalAlignment = 'bottom';
-            app.PersistencePanelLabel.FontSize = 10;
-            app.PersistencePanelLabel.Layout.Row = 7;
-            app.PersistencePanelLabel.Layout.Column = 2;
-            app.PersistencePanelLabel.Text = 'PERSISTÊNCIA';
+            % Create config_points_Color
+            app.config_points_Color = uicolorpicker(app.GeographicAxesPanelGrid);
+            app.config_points_Color.Value = [0 0 0];
+            app.config_points_Color.Layout.Row = 8;
+            app.config_points_Color.Layout.Column = 3;
+            app.config_points_Color.BackgroundColor = [1 1 1];
 
-            % Create PersistencePanel
-            app.PersistencePanel = uipanel(app.RightPanel);
-            app.PersistencePanel.AutoResizeChildren = 'off';
-            app.PersistencePanel.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.PersistencePanel.Layout.Row = 9;
-            app.PersistencePanel.Layout.Column = [1 2];
+            % Create config_points_Size
+            app.config_points_Size = uislider(app.GeographicAxesPanelGrid);
+            app.config_points_Size.Limits = [6 12];
+            app.config_points_Size.MajorTicks = [];
+            app.config_points_Size.MinorTicks = [6 7 8 9 10 11 12];
+            app.config_points_Size.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_points_Size.Tooltip = {'Tamanho do marcador'};
+            app.config_points_Size.Layout.Row = 8;
+            app.config_points_Size.Layout.Column = 4;
+            app.config_points_Size.Value = 9;
 
-            % Create PersistencePanelGrid
-            app.PersistencePanelGrid = uigridlayout(app.PersistencePanel);
-            app.PersistencePanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.PersistencePanelGrid.RowHeight = {18, 22, 20, 22, 20, 22};
-            app.PersistencePanelGrid.RowSpacing = 5;
-            app.PersistencePanelGrid.Padding = [10 10 10 5];
-            app.PersistencePanelGrid.BackgroundColor = [1 1 1];
+            % Create config_BasemapLabel
+            app.config_BasemapLabel = uilabel(app.GeographicAxesPanelGrid);
+            app.config_BasemapLabel.VerticalAlignment = 'bottom';
+            app.config_BasemapLabel.FontSize = 11;
+            app.config_BasemapLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BasemapLabel.Layout.Row = 1;
+            app.config_BasemapLabel.Layout.Column = [3 4];
+            app.config_BasemapLabel.Text = 'Mapa base:';
 
-            % Create PersistenceInterpolationLabel
-            app.PersistenceInterpolationLabel = uilabel(app.PersistencePanelGrid);
-            app.PersistenceInterpolationLabel.VerticalAlignment = 'bottom';
-            app.PersistenceInterpolationLabel.FontSize = 11;
-            app.PersistenceInterpolationLabel.Layout.Row = 1;
-            app.PersistenceInterpolationLabel.Layout.Column = [1 3];
-            app.PersistenceInterpolationLabel.Text = 'Interpolação:';
+            % Create config_Basemap
+            app.config_Basemap = uidropdown(app.GeographicAxesPanelGrid);
+            app.config_Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
+            app.config_Basemap.FontSize = 11;
+            app.config_Basemap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_Basemap.BackgroundColor = [1 1 1];
+            app.config_Basemap.Layout.Row = 2;
+            app.config_Basemap.Layout.Column = [3 4];
+            app.config_Basemap.Value = 'none';
 
-            % Create PersistenceInterpolation
-            app.PersistenceInterpolation = uidropdown(app.PersistencePanelGrid);
-            app.PersistenceInterpolation.Items = {'nearest', 'bilinear'};
-            app.PersistenceInterpolation.Tag = 'persistenceInterpolation';
-            app.PersistenceInterpolation.Enable = 'off';
-            app.PersistenceInterpolation.FontSize = 11;
-            app.PersistenceInterpolation.BackgroundColor = [1 1 1];
-            app.PersistenceInterpolation.Layout.Row = 2;
-            app.PersistenceInterpolation.Layout.Column = [1 2];
-            app.PersistenceInterpolation.Value = 'nearest';
+            % Create config_ColormapLabel
+            app.config_ColormapLabel = uilabel(app.GeographicAxesPanelGrid);
+            app.config_ColormapLabel.VerticalAlignment = 'bottom';
+            app.config_ColormapLabel.FontSize = 11;
+            app.config_ColormapLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_ColormapLabel.Layout.Row = 1;
+            app.config_ColormapLabel.Layout.Column = [1 2];
+            app.config_ColormapLabel.Text = 'Mapa de cor:';
 
-            % Create PersistenceWindowSizeLabel
-            app.PersistenceWindowSizeLabel = uilabel(app.PersistencePanelGrid);
-            app.PersistenceWindowSizeLabel.VerticalAlignment = 'bottom';
-            app.PersistenceWindowSizeLabel.FontSize = 11;
-            app.PersistenceWindowSizeLabel.Layout.Row = 1;
-            app.PersistenceWindowSizeLabel.Layout.Column = [3 5];
-            app.PersistenceWindowSizeLabel.Text = 'Tamanho janela:';
+            % Create config_Colormap
+            app.config_Colormap = uidropdown(app.GeographicAxesPanelGrid);
+            app.config_Colormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
+            app.config_Colormap.FontSize = 11;
+            app.config_Colormap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_Colormap.BackgroundColor = [1 1 1];
+            app.config_Colormap.Layout.Row = 2;
+            app.config_Colormap.Layout.Column = [1 2];
+            app.config_Colormap.Value = 'winter';
 
-            % Create PersistenceWindowSizeValue
-            app.PersistenceWindowSizeValue = uilabel(app.PersistencePanelGrid);
-            app.PersistenceWindowSizeValue.HorizontalAlignment = 'right';
-            app.PersistenceWindowSizeValue.VerticalAlignment = 'bottom';
-            app.PersistenceWindowSizeValue.FontSize = 11;
-            app.PersistenceWindowSizeValue.FontColor = [0.8 0.8 0.8];
-            app.PersistenceWindowSizeValue.Layout.Row = 1;
-            app.PersistenceWindowSizeValue.Layout.Column = [3 5];
-            app.PersistenceWindowSizeValue.Text = 'full';
+            % Create CartesianAxesPanelIcon
+            app.CartesianAxesPanelIcon = uiimage(app.RightPanel);
+            app.CartesianAxesPanelIcon.Layout.Row = [6 8];
+            app.CartesianAxesPanelIcon.Layout.Column = 1;
+            app.CartesianAxesPanelIcon.ImageSource = 'DriveTestRouteOFF_32.png';
 
-            % Create PersistenceWindowSize
-            app.PersistenceWindowSize = uidropdown(app.PersistencePanelGrid);
-            app.PersistenceWindowSize.Items = {'128', '256', '512', 'full'};
-            app.PersistenceWindowSize.Tag = 'persistenceWindowSize';
-            app.PersistenceWindowSize.Enable = 'off';
-            app.PersistenceWindowSize.FontSize = 11;
-            app.PersistenceWindowSize.BackgroundColor = [1 1 1];
-            app.PersistenceWindowSize.Layout.Row = 2;
-            app.PersistenceWindowSize.Layout.Column = [3 5];
-            app.PersistenceWindowSize.Value = '128';
+            % Create CartesianAxesPanelLabel
+            app.CartesianAxesPanelLabel = uilabel(app.RightPanel);
+            app.CartesianAxesPanelLabel.VerticalAlignment = 'bottom';
+            app.CartesianAxesPanelLabel.FontSize = 10;
+            app.CartesianAxesPanelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.CartesianAxesPanelLabel.Layout.Row = 7;
+            app.CartesianAxesPanelLabel.Layout.Column = 2;
+            app.CartesianAxesPanelLabel.Text = 'EIXOS CARTESIANOS';
 
-            % Create PersistenceColormapLabel
-            app.PersistenceColormapLabel = uilabel(app.PersistencePanelGrid);
-            app.PersistenceColormapLabel.VerticalAlignment = 'bottom';
-            app.PersistenceColormapLabel.FontSize = 11;
-            app.PersistenceColormapLabel.Layout.Row = 3;
-            app.PersistenceColormapLabel.Layout.Column = [1 2];
-            app.PersistenceColormapLabel.Text = 'Mapa de cores:';
+            % Create CartesianAxesPanel
+            app.CartesianAxesPanel = uipanel(app.RightPanel);
+            app.CartesianAxesPanel.AutoResizeChildren = 'off';
+            app.CartesianAxesPanel.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.CartesianAxesPanel.Layout.Row = 9;
+            app.CartesianAxesPanel.Layout.Column = [1 3];
 
-            % Create PersistenceColormap
-            app.PersistenceColormap = uidropdown(app.PersistencePanelGrid);
-            app.PersistenceColormap.Items = {'winter', 'parula', 'turbo'};
-            app.PersistenceColormap.Tag = 'persistenceColormap';
-            app.PersistenceColormap.Enable = 'off';
-            app.PersistenceColormap.FontSize = 11;
-            app.PersistenceColormap.BackgroundColor = [1 1 1];
-            app.PersistenceColormap.Layout.Row = 4;
-            app.PersistenceColormap.Layout.Column = [1 2];
-            app.PersistenceColormap.Value = 'winter';
+            % Create CartesianAxesGrid
+            app.CartesianAxesGrid = uigridlayout(app.CartesianAxesPanel);
+            app.CartesianAxesGrid.ColumnWidth = {'1x', 36, 48, 48};
+            app.CartesianAxesGrid.RowHeight = {18, 22, 36, 22, 36, 22, 22, 22};
+            app.CartesianAxesGrid.RowSpacing = 5;
+            app.CartesianAxesGrid.Padding = [10 10 10 5];
+            app.CartesianAxesGrid.BackgroundColor = [1 1 1];
 
-            % Create PersistenceTransparencyLabel
-            app.PersistenceTransparencyLabel = uilabel(app.PersistencePanelGrid);
-            app.PersistenceTransparencyLabel.VerticalAlignment = 'bottom';
-            app.PersistenceTransparencyLabel.WordWrap = 'on';
-            app.PersistenceTransparencyLabel.FontSize = 11;
-            app.PersistenceTransparencyLabel.Layout.Row = 3;
-            app.PersistenceTransparencyLabel.Layout.Column = [3 5];
-            app.PersistenceTransparencyLabel.Text = 'Transparência:';
+            % Create config_PersistanceLabel
+            app.config_PersistanceLabel = uilabel(app.CartesianAxesGrid);
+            app.config_PersistanceLabel.VerticalAlignment = 'bottom';
+            app.config_PersistanceLabel.FontSize = 11;
+            app.config_PersistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_PersistanceLabel.Layout.Row = 1;
+            app.config_PersistanceLabel.Layout.Column = [1 3];
+            app.config_PersistanceLabel.Text = 'Persistência:';
 
-            % Create PersistenceTransparency
-            app.PersistenceTransparency = uispinner(app.PersistencePanelGrid);
-            app.PersistenceTransparency.Step = 0.05;
-            app.PersistenceTransparency.Limits = [0.2 1];
-            app.PersistenceTransparency.ValueDisplayFormat = '%.2f';
-            app.PersistenceTransparency.Tag = 'persistenceTransparency';
-            app.PersistenceTransparency.FontSize = 11;
-            app.PersistenceTransparency.Enable = 'off';
-            app.PersistenceTransparency.Layout.Row = 4;
-            app.PersistenceTransparency.Layout.Column = [3 5];
-            app.PersistenceTransparency.Value = 1;
+            % Create config_PersistanceVisibility
+            app.config_PersistanceVisibility = uidropdown(app.CartesianAxesGrid);
+            app.config_PersistanceVisibility.Items = {'on', 'off'};
+            app.config_PersistanceVisibility.Tooltip = {''};
+            app.config_PersistanceVisibility.FontSize = 11;
+            app.config_PersistanceVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_PersistanceVisibility.BackgroundColor = [1 1 1];
+            app.config_PersistanceVisibility.Layout.Row = 2;
+            app.config_PersistanceVisibility.Layout.Column = 1;
+            app.config_PersistanceVisibility.Value = 'on';
 
-            % Create PersistenceCLim_Label
-            app.PersistenceCLim_Label = uilabel(app.PersistencePanelGrid);
-            app.PersistenceCLim_Label.VerticalAlignment = 'bottom';
-            app.PersistenceCLim_Label.FontSize = 11;
-            app.PersistenceCLim_Label.Layout.Row = 5;
-            app.PersistenceCLim_Label.Layout.Column = [1 4];
-            app.PersistenceCLim_Label.Text = 'Limites de intensidade (%):';
+            % Create config_chROILabel
+            app.config_chROILabel = uilabel(app.CartesianAxesGrid);
+            app.config_chROILabel.VerticalAlignment = 'bottom';
+            app.config_chROILabel.FontSize = 11;
+            app.config_chROILabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chROILabel.Layout.Row = 3;
+            app.config_chROILabel.Layout.Column = [1 4];
+            app.config_chROILabel.Interpreter = 'html';
+            app.config_chROILabel.Text = 'Canal:<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Visibilidade e estilo de exibição.</p>';
 
-            % Create PersistenceCLimRefresh
-            app.PersistenceCLimRefresh = uiimage(app.PersistencePanelGrid);
-            app.PersistenceCLimRefresh.ScaleMethod = 'none';
-            app.PersistenceCLimRefresh.Tag = 'limitsPersistenceRefresh';
-            app.PersistenceCLimRefresh.Visible = 'off';
-            app.PersistenceCLimRefresh.Layout.Row = 5;
-            app.PersistenceCLimRefresh.Layout.Column = 5;
-            app.PersistenceCLimRefresh.ImageSource = 'Refresh_18.png';
+            % Create config_chROIVisibility
+            app.config_chROIVisibility = uidropdown(app.CartesianAxesGrid);
+            app.config_chROIVisibility.Items = {'on', 'off'};
+            app.config_chROIVisibility.Tooltip = {''};
+            app.config_chROIVisibility.FontSize = 11;
+            app.config_chROIVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chROIVisibility.BackgroundColor = [1 1 1];
+            app.config_chROIVisibility.Layout.Row = 4;
+            app.config_chROIVisibility.Layout.Column = 1;
+            app.config_chROIVisibility.Value = 'on';
 
-            % Create PersistenceCLim1
-            app.PersistenceCLim1 = uispinner(app.PersistencePanelGrid);
-            app.PersistenceCLim1.Step = 0.1;
-            app.PersistenceCLim1.Limits = [0 Inf];
-            app.PersistenceCLim1.ValueDisplayFormat = '%.3f';
-            app.PersistenceCLim1.Tag = 'limitsPersistence';
-            app.PersistenceCLim1.FontSize = 11;
-            app.PersistenceCLim1.Enable = 'off';
-            app.PersistenceCLim1.Layout.Row = 6;
-            app.PersistenceCLim1.Layout.Column = [1 2];
-            app.PersistenceCLim1.Value = 0.1;
+            % Create config_chROIColor
+            app.config_chROIColor = uicolorpicker(app.CartesianAxesGrid);
+            app.config_chROIColor.Value = [0.7216 0.2706 1];
+            app.config_chROIColor.Tooltip = {''};
+            app.config_chROIColor.Layout.Row = 4;
+            app.config_chROIColor.Layout.Column = 2;
+            app.config_chROIColor.BackgroundColor = [1 1 1];
 
-            % Create PersistenceCLim2
-            app.PersistenceCLim2 = uispinner(app.PersistencePanelGrid);
-            app.PersistenceCLim2.Limits = [0 Inf];
-            app.PersistenceCLim2.ValueDisplayFormat = '%.3f';
-            app.PersistenceCLim2.Tag = 'limitsPersistence';
-            app.PersistenceCLim2.FontSize = 11;
-            app.PersistenceCLim2.Enable = 'off';
-            app.PersistenceCLim2.Layout.Row = 6;
-            app.PersistenceCLim2.Layout.Column = [3 5];
-            app.PersistenceCLim2.Value = 1;
+            % Create config_chROIEdgeAlpha
+            app.config_chROIEdgeAlpha = uispinner(app.CartesianAxesGrid);
+            app.config_chROIEdgeAlpha.Step = 0.1;
+            app.config_chROIEdgeAlpha.Limits = [0 1];
+            app.config_chROIEdgeAlpha.ValueDisplayFormat = '%.1f';
+            app.config_chROIEdgeAlpha.FontSize = 11;
+            app.config_chROIEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chROIEdgeAlpha.Tooltip = {'Transparência da margem'};
+            app.config_chROIEdgeAlpha.Layout.Row = 4;
+            app.config_chROIEdgeAlpha.Layout.Column = 3;
 
-            % Create WaterfallPanelIcon
-            app.WaterfallPanelIcon = uiimage(app.RightPanel);
-            app.WaterfallPanelIcon.ScaleMethod = 'none';
-            app.WaterfallPanelIcon.Layout.Row = [11 13];
-            app.WaterfallPanelIcon.Layout.Column = 1;
-            app.WaterfallPanelIcon.ImageSource = 'waterfall-22px.png';
+            % Create config_chROIFaceAlpha
+            app.config_chROIFaceAlpha = uispinner(app.CartesianAxesGrid);
+            app.config_chROIFaceAlpha.Step = 0.1;
+            app.config_chROIFaceAlpha.Limits = [0 1];
+            app.config_chROIFaceAlpha.ValueDisplayFormat = '%.1f';
+            app.config_chROIFaceAlpha.FontSize = 11;
+            app.config_chROIFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chROIFaceAlpha.Tooltip = {'Transparência da face'};
+            app.config_chROIFaceAlpha.Layout.Row = 4;
+            app.config_chROIFaceAlpha.Layout.Column = 4;
+            app.config_chROIFaceAlpha.Value = 0.4;
 
-            % Create WaterfallPanelLabel
-            app.WaterfallPanelLabel = uilabel(app.RightPanel);
-            app.WaterfallPanelLabel.VerticalAlignment = 'bottom';
-            app.WaterfallPanelLabel.FontSize = 10;
-            app.WaterfallPanelLabel.Layout.Row = 12;
-            app.WaterfallPanelLabel.Layout.Column = 2;
-            app.WaterfallPanelLabel.Text = 'WATERFALL';
+            % Create config_chPowerLabel
+            app.config_chPowerLabel = uilabel(app.CartesianAxesGrid);
+            app.config_chPowerLabel.VerticalAlignment = 'bottom';
+            app.config_chPowerLabel.FontSize = 11;
+            app.config_chPowerLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chPowerLabel.Layout.Row = 5;
+            app.config_chPowerLabel.Layout.Column = [1 4];
+            app.config_chPowerLabel.Interpreter = 'html';
+            app.config_chPowerLabel.Text = 'Potência do canal:<p style="font-size: 10px; color: gray; text-align: justify; padding-right: 2px;">Visibilidade e estilo de exibição.</p>';
 
-            % Create WaterfallPanel
-            app.WaterfallPanel = uipanel(app.RightPanel);
-            app.WaterfallPanel.AutoResizeChildren = 'off';
-            app.WaterfallPanel.Layout.Row = 14;
-            app.WaterfallPanel.Layout.Column = [1 2];
+            % Create config_chPowerVisibility
+            app.config_chPowerVisibility = uidropdown(app.CartesianAxesGrid);
+            app.config_chPowerVisibility.Items = {'on', 'off'};
+            app.config_chPowerVisibility.Tooltip = {''};
+            app.config_chPowerVisibility.FontSize = 11;
+            app.config_chPowerVisibility.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chPowerVisibility.BackgroundColor = [1 1 1];
+            app.config_chPowerVisibility.Layout.Row = 6;
+            app.config_chPowerVisibility.Layout.Column = 1;
+            app.config_chPowerVisibility.Value = 'on';
 
-            % Create WaterfallPanelGrid
-            app.WaterfallPanelGrid = uigridlayout(app.WaterfallPanel);
-            app.WaterfallPanelGrid.ColumnWidth = {87, '1x', '1x', 64, 18};
-            app.WaterfallPanelGrid.RowHeight = {18, 22, 20, 22, 20, 22};
-            app.WaterfallPanelGrid.RowSpacing = 5;
-            app.WaterfallPanelGrid.Padding = [10 10 10 5];
-            app.WaterfallPanelGrid.BackgroundColor = [1 1 1];
+            % Create config_chPowerColor
+            app.config_chPowerColor = uicolorpicker(app.CartesianAxesGrid);
+            app.config_chPowerColor.Value = [0.5686 1 0];
+            app.config_chPowerColor.Tooltip = {''};
+            app.config_chPowerColor.Layout.Row = 6;
+            app.config_chPowerColor.Layout.Column = 2;
+            app.config_chPowerColor.BackgroundColor = [1 1 1];
 
-            % Create WaterfallFunctionLabel
-            app.WaterfallFunctionLabel = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallFunctionLabel.VerticalAlignment = 'bottom';
-            app.WaterfallFunctionLabel.WordWrap = 'on';
-            app.WaterfallFunctionLabel.FontSize = 11;
-            app.WaterfallFunctionLabel.Layout.Row = 1;
-            app.WaterfallFunctionLabel.Layout.Column = [1 3];
-            app.WaterfallFunctionLabel.Text = 'Renderização:';
+            % Create config_chPowerEdgeAlpha
+            app.config_chPowerEdgeAlpha = uispinner(app.CartesianAxesGrid);
+            app.config_chPowerEdgeAlpha.Step = 0.1;
+            app.config_chPowerEdgeAlpha.Limits = [0 1];
+            app.config_chPowerEdgeAlpha.ValueDisplayFormat = '%.1f';
+            app.config_chPowerEdgeAlpha.FontSize = 11;
+            app.config_chPowerEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chPowerEdgeAlpha.Tooltip = {'Transparência da margem'};
+            app.config_chPowerEdgeAlpha.Layout.Row = 6;
+            app.config_chPowerEdgeAlpha.Layout.Column = 3;
+            app.config_chPowerEdgeAlpha.Value = 1;
 
-            % Create WaterfallFunction
-            app.WaterfallFunction = uidropdown(app.WaterfallPanelGrid);
-            app.WaterfallFunction.Items = {'image', 'mesh'};
-            app.WaterfallFunction.Tag = 'waterfallFunction';
-            app.WaterfallFunction.Enable = 'off';
-            app.WaterfallFunction.FontSize = 11;
-            app.WaterfallFunction.BackgroundColor = [1 1 1];
-            app.WaterfallFunction.Layout.Row = 2;
-            app.WaterfallFunction.Layout.Column = [1 2];
-            app.WaterfallFunction.Value = 'image';
+            % Create config_chPowerFaceAlpha
+            app.config_chPowerFaceAlpha = uispinner(app.CartesianAxesGrid);
+            app.config_chPowerFaceAlpha.Step = 0.1;
+            app.config_chPowerFaceAlpha.Limits = [0 1];
+            app.config_chPowerFaceAlpha.ValueDisplayFormat = '%.1f';
+            app.config_chPowerFaceAlpha.FontSize = 11;
+            app.config_chPowerFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_chPowerFaceAlpha.Tooltip = {'Transparência da face'};
+            app.config_chPowerFaceAlpha.Layout.Row = 6;
+            app.config_chPowerFaceAlpha.Layout.Column = 4;
+            app.config_chPowerFaceAlpha.Value = 0.4;
 
-            % Create WaterfallDecimationLabel
-            app.WaterfallDecimationLabel = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallDecimationLabel.VerticalAlignment = 'bottom';
-            app.WaterfallDecimationLabel.FontSize = 11;
-            app.WaterfallDecimationLabel.Layout.Row = 1;
-            app.WaterfallDecimationLabel.Layout.Column = [3 4];
-            app.WaterfallDecimationLabel.Text = 'Decimação:';
+            % Create config_BandGuardTypeLabel
+            app.config_BandGuardTypeLabel = uilabel(app.CartesianAxesGrid);
+            app.config_BandGuardTypeLabel.VerticalAlignment = 'bottom';
+            app.config_BandGuardTypeLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardTypeLabel.Layout.Row = 7;
+            app.config_BandGuardTypeLabel.Layout.Column = [1 4];
+            app.config_BandGuardTypeLabel.Text = 'Escala frequência:';
 
-            % Create WaterfallDecimationValue
-            app.WaterfallDecimationValue = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallDecimationValue.HorizontalAlignment = 'right';
-            app.WaterfallDecimationValue.VerticalAlignment = 'bottom';
-            app.WaterfallDecimationValue.FontSize = 11;
-            app.WaterfallDecimationValue.FontColor = [0.8 0.8 0.8];
-            app.WaterfallDecimationValue.Layout.Row = 1;
-            app.WaterfallDecimationValue.Layout.Column = [3 5];
-            app.WaterfallDecimationValue.Text = 'auto';
+            % Create config_BandGuardValueLabel
+            app.config_BandGuardValueLabel = uilabel(app.CartesianAxesGrid);
+            app.config_BandGuardValueLabel.VerticalAlignment = 'bottom';
+            app.config_BandGuardValueLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardValueLabel.Layout.Row = 7;
+            app.config_BandGuardValueLabel.Layout.Column = [3 4];
+            app.config_BandGuardValueLabel.Text = 'Fator:';
 
-            % Create WaterfallDecimation
-            app.WaterfallDecimation = uidropdown(app.WaterfallPanelGrid);
-            app.WaterfallDecimation.Items = {'auto', '1', '2', '4', '8', '16', '32', '64', '128', '256'};
-            app.WaterfallDecimation.Tag = 'waterfallDecimation';
-            app.WaterfallDecimation.Enable = 'off';
-            app.WaterfallDecimation.FontSize = 11;
-            app.WaterfallDecimation.BackgroundColor = [1 1 1];
-            app.WaterfallDecimation.Layout.Row = 2;
-            app.WaterfallDecimation.Layout.Column = [3 5];
-            app.WaterfallDecimation.Value = 'auto';
+            % Create config_BandGuardType
+            app.config_BandGuardType = uidropdown(app.CartesianAxesGrid);
+            app.config_BandGuardType.Items = {'Fixed', 'BWRelated'};
+            app.config_BandGuardType.FontSize = 11;
+            app.config_BandGuardType.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardType.BackgroundColor = [1 1 1];
+            app.config_BandGuardType.Layout.Row = 8;
+            app.config_BandGuardType.Layout.Column = [1 2];
+            app.config_BandGuardType.Value = 'Fixed';
 
-            % Create WaterfallColormapLabel
-            app.WaterfallColormapLabel = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallColormapLabel.VerticalAlignment = 'bottom';
-            app.WaterfallColormapLabel.FontSize = 11;
-            app.WaterfallColormapLabel.Layout.Row = 3;
-            app.WaterfallColormapLabel.Layout.Column = [1 3];
-            app.WaterfallColormapLabel.Text = 'Mapa de cores:';
+            % Create config_BandGuardFixedValue
+            app.config_BandGuardFixedValue = uieditfield(app.CartesianAxesGrid, 'numeric');
+            app.config_BandGuardFixedValue.Limits = [0 Inf];
+            app.config_BandGuardFixedValue.ValueDisplayFormat = '%.1f';
+            app.config_BandGuardFixedValue.FontSize = 11;
+            app.config_BandGuardFixedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardFixedValue.Visible = 'off';
+            app.config_BandGuardFixedValue.Layout.Row = 8;
+            app.config_BandGuardFixedValue.Layout.Column = [3 4];
+            app.config_BandGuardFixedValue.Value = 1000;
 
-            % Create WaterfallColormap
-            app.WaterfallColormap = uidropdown(app.WaterfallPanelGrid);
-            app.WaterfallColormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
-            app.WaterfallColormap.Tag = 'waterfallColormap';
-            app.WaterfallColormap.Enable = 'off';
-            app.WaterfallColormap.FontSize = 11;
-            app.WaterfallColormap.BackgroundColor = [1 1 1];
-            app.WaterfallColormap.Layout.Row = 4;
-            app.WaterfallColormap.Layout.Column = [1 2];
-            app.WaterfallColormap.Value = 'winter';
+            % Create config_BandGuardBWRelatedValue
+            app.config_BandGuardBWRelatedValue = uispinner(app.CartesianAxesGrid);
+            app.config_BandGuardBWRelatedValue.Limits = [1 10];
+            app.config_BandGuardBWRelatedValue.RoundFractionalValues = 'on';
+            app.config_BandGuardBWRelatedValue.ValueDisplayFormat = '%.0f';
+            app.config_BandGuardBWRelatedValue.FontSize = 11;
+            app.config_BandGuardBWRelatedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.config_BandGuardBWRelatedValue.Layout.Row = 8;
+            app.config_BandGuardBWRelatedValue.Layout.Column = [3 4];
+            app.config_BandGuardBWRelatedValue.Value = 6;
 
-            % Create WaterfallMeshStyleLabel
-            app.WaterfallMeshStyleLabel = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallMeshStyleLabel.VerticalAlignment = 'bottom';
-            app.WaterfallMeshStyleLabel.FontSize = 11;
-            app.WaterfallMeshStyleLabel.Layout.Row = 3;
-            app.WaterfallMeshStyleLabel.Layout.Column = [3 5];
-            app.WaterfallMeshStyleLabel.Text = 'Linhas da superfície:';
-
-            % Create WaterfallMeshStyle
-            app.WaterfallMeshStyle = uidropdown(app.WaterfallPanelGrid);
-            app.WaterfallMeshStyle.Items = {'row', 'both'};
-            app.WaterfallMeshStyle.Tag = 'waterfallMeshStyle';
-            app.WaterfallMeshStyle.Enable = 'off';
-            app.WaterfallMeshStyle.FontSize = 11;
-            app.WaterfallMeshStyle.BackgroundColor = [1 1 1];
-            app.WaterfallMeshStyle.Layout.Row = 4;
-            app.WaterfallMeshStyle.Layout.Column = [3 5];
-            app.WaterfallMeshStyle.Value = 'row';
-
-            % Create WaterfallCLimLabel
-            app.WaterfallCLimLabel = uilabel(app.WaterfallPanelGrid);
-            app.WaterfallCLimLabel.VerticalAlignment = 'bottom';
-            app.WaterfallCLimLabel.FontSize = 11;
-            app.WaterfallCLimLabel.Layout.Row = 5;
-            app.WaterfallCLimLabel.Layout.Column = [1 4];
-            app.WaterfallCLimLabel.Text = 'Limites de nível (dB):';
-
-            % Create WaterfallCLimRefresh
-            app.WaterfallCLimRefresh = uiimage(app.WaterfallPanelGrid);
-            app.WaterfallCLimRefresh.ScaleMethod = 'none';
-            app.WaterfallCLimRefresh.Tag = 'limitsWaterfallRefresh';
-            app.WaterfallCLimRefresh.Visible = 'off';
-            app.WaterfallCLimRefresh.Layout.Row = 5;
-            app.WaterfallCLimRefresh.Layout.Column = 5;
-            app.WaterfallCLimRefresh.ImageSource = 'Refresh_18.png';
-
-            % Create WaterfallCLim1
-            app.WaterfallCLim1 = uispinner(app.WaterfallPanelGrid);
-            app.WaterfallCLim1.Step = 5;
-            app.WaterfallCLim1.RoundFractionalValues = 'on';
-            app.WaterfallCLim1.ValueDisplayFormat = '%.0f';
-            app.WaterfallCLim1.Tag = 'limitsWaterfall';
-            app.WaterfallCLim1.FontSize = 11;
-            app.WaterfallCLim1.Enable = 'off';
-            app.WaterfallCLim1.Layout.Row = 6;
-            app.WaterfallCLim1.Layout.Column = [1 2];
-
-            % Create WaterfallCLim2
-            app.WaterfallCLim2 = uispinner(app.WaterfallPanelGrid);
-            app.WaterfallCLim2.Step = 5;
-            app.WaterfallCLim2.RoundFractionalValues = 'on';
-            app.WaterfallCLim2.ValueDisplayFormat = '%.0f';
-            app.WaterfallCLim2.Tag = 'limitsWaterfall';
-            app.WaterfallCLim2.FontSize = 11;
-            app.WaterfallCLim2.Enable = 'off';
-            app.WaterfallCLim2.Layout.Row = 6;
-            app.WaterfallCLim2.Layout.Column = [3 5];
-            app.WaterfallCLim2.Value = 1;
+            % Create config_Refresh
+            app.config_Refresh = uiimage(app.RightPanel);
+            app.config_Refresh.ScaleMethod = 'none';
+            app.config_Refresh.Visible = 'off';
+            app.config_Refresh.Tooltip = {'Volta à configuração inicial'};
+            app.config_Refresh.Layout.Row = [6 7];
+            app.config_Refresh.Layout.Column = 3;
+            app.config_Refresh.VerticalAlignment = 'bottom';
+            app.config_Refresh.ImageSource = 'Refresh_18.png';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
@@ -3619,31 +2981,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
-            % Create ContextMenu2
-            app.ContextMenu2 = uicontextmenu(app.UIFigure);
-            app.ContextMenu2.Tag = 'auxApp.winDriveTest';
+            % Create ContextMenu
+            app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'auxApp.winDriveTest';
 
-            % Create filter_delButton
-            app.filter_delButton = uimenu(app.ContextMenu2);
-            app.filter_delButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.filter_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delButton.Text = 'Excluir';
+            % Create DeleteSelectedItem
+            app.DeleteSelectedItem = uimenu(app.ContextMenu);
+            app.DeleteSelectedItem.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuItemClicked, true);
+            app.DeleteSelectedItem.Text = '❌ Excluir';
 
-            % Create filter_delAllButton
-            app.filter_delAllButton = uimenu(app.ContextMenu2);
-            app.filter_delAllButton.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.filter_delAllButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_delAllButton.Text = 'Excluir todos';
-
-            % Create ContextMenu1
-            app.ContextMenu1 = uicontextmenu(app.UIFigure);
-            app.ContextMenu1.Tag = 'auxApp.winDriveTest';
-
-            % Create points_delButton
-            app.points_delButton = uimenu(app.ContextMenu1);
-            app.points_delButton.MenuSelectedFcn = createCallbackFcn(app, @points_delButtonMenuSelected, true);
-            app.points_delButton.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_delButton.Text = 'Excluir';
+            % Create DeleteAllEntries
+            app.DeleteAllEntries = uimenu(app.ContextMenu);
+            app.DeleteAllEntries.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuItemClicked, true);
+            app.DeleteAllEntries.Text = '🚫 Excluir todos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

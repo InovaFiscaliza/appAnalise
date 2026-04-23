@@ -78,7 +78,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowAttributesPanelVisibleIdx  matlab.ui.control.Label
         FlowPanelLabel                 matlab.ui.control.Label
         SpectrumFlowList               matlab.ui.control.DropDown
-        AxesAnnotation                 matlab.ui.control.Label
         AxesToolbar                    matlab.ui.container.GridLayout
         axesTool_FlowInfo              matlab.ui.control.Image
         axesTool_Separator4            matlab.ui.control.Image
@@ -95,6 +94,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         axesTool_Separator1            matlab.ui.control.Image
         axesTool_Pan                   matlab.ui.control.Image
         axesTool_RestoreView           matlab.ui.control.Image
+        AxesAnnotation                 matlab.ui.control.Label
         AxesContainer                  matlab.ui.container.Panel
         Toolbar                        matlab.ui.container.GridLayout
         tool_LayoutRight               matlab.ui.control.Image
@@ -111,8 +111,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
         ContextMenu                    matlab.ui.container.ContextMenu
-        ClassificaoMenu                matlab.ui.container.Menu
-        ExcluirMenu                    matlab.ui.container.Menu
+        ContextMenuClassificationOption  matlab.ui.container.Menu
+        ContextMenuRemoveOption        matlab.ui.container.Menu
     end
 
     
@@ -265,7 +265,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,             'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,        'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', 'rgba(183, 49, 44, 0.75)'), ...
+                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,        'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
                             struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id,          'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,               'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
@@ -1859,11 +1859,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
             app.tool_LayoutRight.Layout.Row = [1 3];
             app.tool_LayoutRight.Layout.Column = 13;
-            app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
+            app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 271, '1x', 5, 10, 232};
+            app.Document.ColumnWidth = {320, 10, 5, 271, '1x', 5, 0, 0};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1879,6 +1879,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [1 3];
             app.AxesContainer.Layout.Column = [3 6];
+
+            % Create AxesAnnotation
+            app.AxesAnnotation = uilabel(app.Document);
+            app.AxesAnnotation.HorizontalAlignment = 'right';
+            app.AxesAnnotation.FontSize = 10;
+            app.AxesAnnotation.FontColor = [0.8 0.8 0.8];
+            app.AxesAnnotation.Layout.Row = [1 2];
+            app.AxesAnnotation.Layout.Column = 5;
+            app.AxesAnnotation.Text = '';
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
@@ -2019,15 +2028,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_FlowInfo.Layout.Row = 1;
             app.axesTool_FlowInfo.Layout.Column = 16;
             app.axesTool_FlowInfo.ImageSource = 'Info_32.png';
-
-            % Create AxesAnnotation
-            app.AxesAnnotation = uilabel(app.Document);
-            app.AxesAnnotation.HorizontalAlignment = 'right';
-            app.AxesAnnotation.FontSize = 10;
-            app.AxesAnnotation.FontColor = [0.8 0.8 0.8];
-            app.AxesAnnotation.Layout.Row = [1 2];
-            app.AxesAnnotation.Layout.Column = 5;
-            app.AxesAnnotation.Text = '';
 
             % Create LeftPanel
             app.LeftPanel = uigridlayout(app.Document);
@@ -2705,16 +2705,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
 
-            % Create ClassificaoMenu
-            app.ClassificaoMenu = uimenu(app.ContextMenu);
-            app.ClassificaoMenu.Enable = 'off';
-            app.ClassificaoMenu.Text = '🏷️ Classificação';
+            % Create ContextMenuClassificationOption
+            app.ContextMenuClassificationOption = uimenu(app.ContextMenu);
+            app.ContextMenuClassificationOption.Enable = 'off';
+            app.ContextMenuClassificationOption.Text = '🏷️ Classificação';
 
-            % Create ExcluirMenu
-            app.ExcluirMenu = uimenu(app.ContextMenu);
-            app.ExcluirMenu.Enable = 'off';
-            app.ExcluirMenu.Separator = 'on';
-            app.ExcluirMenu.Text = '❌ Excluir';
+            % Create ContextMenuRemoveOption
+            app.ContextMenuRemoveOption = uimenu(app.ContextMenu);
+            app.ContextMenuRemoveOption.Enable = 'off';
+            app.ContextMenuRemoveOption.Separator = 'on';
+            app.ContextMenuRemoveOption.Text = '❌ Excluir';
             
             % Assign app.ContextMenu
             app.FlowEmissions.ContextMenu = app.ContextMenu;
