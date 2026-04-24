@@ -96,7 +96,8 @@ classdef (Abstract) HtmlTextGenerator
                                     'value', struct('File',   metaData(fileIdx).File, ...
                                                     'Type',   metaData(fileIdx).Type, ...
                                                     'nData',  numel(flowIdxs), ...
-                                                    'Memory', textFormatGUI.bytes2human(computeEstimatedMemory(specData))));
+                                                    'Memory', textFormatGUI.bytes2human(computeEstimatedMemory(specData))), ...
+                                    'link', '');
                 
                 if isscalar(specData)
                     [~, dataTempStruct, initialText] = util.HtmlTextGenerator.ThreadMetaData(specData);
@@ -145,12 +146,17 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData)
+        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData, appHandleNameInBase)
+            arguments
+                specData
+                appHandleNameInBase = ''
+            end
+
             threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
             observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
             description = sprintf('"%s"', specData.RelatedFiles.Description{1});
             
-            dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}));
+            dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}), 'link', '');
             
             dataStruct.value.FreqStart = sprintf('%d Hz', dataStruct.value.FreqStart);
             dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);
@@ -181,13 +187,16 @@ classdef (Abstract) HtmlTextGenerator
                 'Location', sprintf('%s (Fonte: %s)', specData.GPS.Location, specData.GPS.LocationSource) ...
             );
     
-            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui);
-
-            if ~isempty(specData.Hash)
-                dataStruct(end+1) = struct('group', 'HASH', 'value', specData.Hash);
+            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui, 'link', '');
+            if ~isempty(appHandleNameInBase)
+                dataStruct(2).link = sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onLocationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase);
             end
 
-            dataStruct(end+1) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('NumFiles', height(specData.RelatedFiles), 'NumSweeps', sum(specData.RelatedFiles.NumSweeps)));
+            if ~isempty(specData.Hash)
+                dataStruct(end+1) = struct('group', 'HASH', 'value', specData.Hash, 'link', '');
+            end
+
+            dataStruct(end+1) = struct('group', 'FONTE DA INFORMAÇÃO', 'value', struct('NumFiles', height(specData.RelatedFiles), 'NumSweeps', sum(specData.RelatedFiles.NumSweeps)), 'link', '');
     
             for ii = 1:height(specData.RelatedFiles)
                 beginTime = datestr(specData.RelatedFiles.BeginTime(ii), 'dd/mm/yyyy HH:MM:SS');
@@ -199,11 +208,12 @@ classdef (Abstract) HtmlTextGenerator
                                                            'Description',     sprintf('"%s"', specData.RelatedFiles.Description{ii}), ...
                                                            'ObservationTime', sprintf('%s – %s', beginTime, endTime), ...
                                                            'NumSweeps',       specData.RelatedFiles.NumSweeps(ii), ...
-                                                           'RevisitTime',     sprintf('%.3f segundos', specData.RelatedFiles.RevisitTime(ii))));
+                                                           'RevisitTime',     sprintf('%.3f segundos', specData.RelatedFiles.RevisitTime(ii))), ...
+                                           'link', '');
             end
     
             if isprop(specData, 'UserData') && ~isempty(specData.UserData) && isstruct(specData.UserData) && isfield(specData.UserData, 'LOG') && ~isempty(specData.UserData.LOG)
-                dataStruct(end+1) = struct('group', 'LOG', 'value', textFormatGUI.cellstr2Bullets(specData.UserData.LOG));
+                dataStruct(end+1) = struct('group', 'LOG', 'value', textFormatGUI.cellstr2Bullets(specData.UserData.LOG), 'link', '');
             end
             
             initialText = [ ...

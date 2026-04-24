@@ -342,11 +342,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                   'auxApp.dockLocation',        'auxApp.dockAddKFactor_exported',      ...
                                   'auxApp.dockMiscellaneous',   'auxApp.dockLevelFiltering_exported',  ...
                                   'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ...
-                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported'}
+                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ...
+                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}
 
                                 switch eventName
                                     case 'onEmissionAdded'
                                         notifySecondaryApps(app, eventName)
+
+                                    case 'NomeEventoEspecifico'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName)
+
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -388,8 +393,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib'})}
-                context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'CONFIG'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
+                context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
             arguments (Repeating)
@@ -430,6 +435,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'ReportLib'
                     screenWidth  = 460;
                     screenHeight = 602;
+                case 'RepoFiles'
+                    screenWidth  = 640;
+                    screenHeight = 480;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')

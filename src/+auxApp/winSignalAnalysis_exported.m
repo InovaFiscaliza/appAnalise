@@ -1080,7 +1080,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 13, 5, 32, '1x', '1x', 18, 3};
+            app.Document.ColumnWidth = {5, 13, 5, 44, '1x', '1x', 18, 3};
             app.Document.RowHeight = {22, 5, '1x', 14, 24, 216};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1129,7 +1129,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {'1x', 22, 22, '1x'};
+            app.AxesToolbar.ColumnWidth = {5, 25, 25, 5};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;

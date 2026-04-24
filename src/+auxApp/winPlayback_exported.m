@@ -120,6 +120,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         Role = 'secondaryApp'
         Context = 'PLAYBACK'
+        AppHandleNameInBase
     end
 
 
@@ -182,6 +183,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 switch event.HTMLEventName
                     case 'renderer'
                         appEngine.activate(app, app.Role)
+
+                    case 'onLocationEditRequested'
+                        uialert(app.UIFigure, 'onLocationEditRequested', '')
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -623,7 +627,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
             hasEmissions = isSpectralData && ~isempty(specData.UserData.Emissions);
 
             if hasData
-                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData);
+                % Verifica se o handle para o app continua ativo no workspace
+                % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
+                % capturados corretamente.
+                appHandleNameInBase = app.AppHandleNameInBase;
+                if isempty(appHandleNameInBase) || ~evalin('base', sprintf('exist("%s", "var") && isa(%s, "%s") && isvalid(%s)', appHandleNameInBase, appHandleNameInBase, class(app), appHandleNameInBase))
+                    app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
+                end
+
+                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase);
+
             else
                 app.FlowMetadata.Text = '';
             end
@@ -1958,6 +1971,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.VerticalAlignment = 'top';
             app.FlowMetadata.WordWrap = 'on';
             app.FlowMetadata.FontSize = 11;
+            app.FlowMetadata.FontColor = [1 1 1];
             app.FlowMetadata.Layout.Row = [1 9];
             app.FlowMetadata.Layout.Column = 1;
             app.FlowMetadata.Interpreter = 'html';
