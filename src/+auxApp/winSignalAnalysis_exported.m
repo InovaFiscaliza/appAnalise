@@ -199,11 +199,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     end
 
                     try
-                        ui.TextView.startup(app.jsBackDoor, app.EmissionTitle, appName, struct('class', {{'textview--borderless', 'textview--no-scroll'}}));
-                    catch
-                    end
-
-                    try
                         ui.TextView.startup(app.jsBackDoor, app.LOG, appName, struct('class', {{'textview--wordbreak'}}));
                     catch
                     end

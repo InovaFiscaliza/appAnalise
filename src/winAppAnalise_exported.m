@@ -19,7 +19,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         ButtonsSeparator1           matlab.ui.control.Image
         Tab1Button                  matlab.ui.control.StateButton
         AppName                     matlab.ui.control.Label
-        AppIcon                     matlab.ui.control.Image
         TabGroup                    matlab.ui.container.TabGroup
         Tab1_File                   matlab.ui.container.Tab
         Tab1Grid                    matlab.ui.container.GridLayout
@@ -304,6 +303,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % auxApp.winDriveTest (DRIVETEST)
                             case {'auxApp.winDriveTest', 'auxApp.winDriveTest_exported'}
                                 switch eventName
+                                    case 'onPlaybackStarted'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
+
                                     case {'ChannelParameterChanged', 'ChannelDefault'}
                                         % ...
 
@@ -1723,7 +1725,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create NavBar
             app.NavBar = uigridlayout(app.GridLayout);
-            app.NavBar.ColumnWidth = {22, 74, '1x', 34, 5, 34, 34, 34, 5, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
+            app.NavBar.ColumnWidth = {106, '1x', 34, 5, 34, 34, 34, 5, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
             app.NavBar.RowHeight = {5, 7, 20, 7, 5};
             app.NavBar.ColumnSpacing = 5;
             app.NavBar.RowSpacing = 0;
@@ -1733,19 +1735,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.NavBar.Layout.Column = 1;
             app.NavBar.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create AppIcon
-            app.AppIcon = uiimage(app.NavBar);
-            app.AppIcon.Layout.Row = [1 5];
-            app.AppIcon.Layout.Column = 1;
-            app.AppIcon.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'Connect_36White.png');
-
             % Create AppName
             app.AppName = uilabel(app.NavBar);
-            app.AppName.WordWrap = 'on';
             app.AppName.FontSize = 11;
             app.AppName.FontColor = [1 1 1];
             app.AppName.Layout.Row = [1 5];
-            app.AppName.Layout.Column = [2 3];
+            app.AppName.Layout.Column = [1 2];
             app.AppName.Interpreter = 'html';
             app.AppName.Text = {'appAnalise v. 2.00.0'; '<font style="font-size: 9px;">R2024a</font>'};
 
@@ -1760,7 +1755,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab1Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab1Button.FontSize = 11;
             app.Tab1Button.Layout.Row = [2 4];
-            app.Tab1Button.Layout.Column = 4;
+            app.Tab1Button.Layout.Column = 3;
             app.Tab1Button.Value = true;
 
             % Create ButtonsSeparator1
@@ -1768,7 +1763,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.ButtonsSeparator1.ScaleMethod = 'none';
             app.ButtonsSeparator1.Enable = 'off';
             app.ButtonsSeparator1.Layout.Row = [2 4];
-            app.ButtonsSeparator1.Layout.Column = 5;
+            app.ButtonsSeparator1.Layout.Column = 4;
             app.ButtonsSeparator1.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'LineV_White.svg');
 
             % Create Tab2Button
@@ -1782,7 +1777,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab2Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab2Button.FontSize = 11;
             app.Tab2Button.Layout.Row = [2 4];
-            app.Tab2Button.Layout.Column = 6;
+            app.Tab2Button.Layout.Column = 5;
 
             % Create Tab3Button
             app.Tab3Button = uibutton(app.NavBar, 'state');
@@ -1795,7 +1790,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab3Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab3Button.FontSize = 11;
             app.Tab3Button.Layout.Row = [2 4];
-            app.Tab3Button.Layout.Column = 7;
+            app.Tab3Button.Layout.Column = 6;
 
             % Create Tab4Button
             app.Tab4Button = uibutton(app.NavBar, 'state');
@@ -1808,14 +1803,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab4Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab4Button.FontSize = 11;
             app.Tab4Button.Layout.Row = [2 4];
-            app.Tab4Button.Layout.Column = 8;
+            app.Tab4Button.Layout.Column = 7;
 
             % Create ButtonsSeparator2
             app.ButtonsSeparator2 = uiimage(app.NavBar);
             app.ButtonsSeparator2.ScaleMethod = 'none';
             app.ButtonsSeparator2.Enable = 'off';
             app.ButtonsSeparator2.Layout.Row = [2 4];
-            app.ButtonsSeparator2.Layout.Column = 9;
+            app.ButtonsSeparator2.Layout.Column = 8;
             app.ButtonsSeparator2.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'LineV_White.svg');
 
             % Create Tab5Button
@@ -1829,7 +1824,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab5Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab5Button.FontSize = 11;
             app.Tab5Button.Layout.Row = [2 4];
-            app.Tab5Button.Layout.Column = 10;
+            app.Tab5Button.Layout.Column = 9;
 
             % Create Tab6Button
             app.Tab6Button = uibutton(app.NavBar, 'state');
@@ -1842,7 +1837,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab6Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab6Button.FontSize = 11;
             app.Tab6Button.Layout.Row = [2 4];
-            app.Tab6Button.Layout.Column = 11;
+            app.Tab6Button.Layout.Column = 10;
 
             % Create Tab7Button
             app.Tab7Button = uibutton(app.NavBar, 'state');
@@ -1855,19 +1850,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab7Button.BackgroundColor = [0.2 0.2 0.2];
             app.Tab7Button.FontSize = 11;
             app.Tab7Button.Layout.Row = [2 4];
-            app.Tab7Button.Layout.Column = 12;
+            app.Tab7Button.Layout.Column = 11;
 
             % Create jsBackDoor
             app.jsBackDoor = uihtml(app.NavBar);
             app.jsBackDoor.Layout.Row = [2 5];
-            app.jsBackDoor.Layout.Column = 14;
+            app.jsBackDoor.Layout.Column = 13;
 
             % Create DataHubLamp
             app.DataHubLamp = uiimage(app.NavBar);
             app.DataHubLamp.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.DataHubLamp.Visible = 'off';
             app.DataHubLamp.Layout.Row = 3;
-            app.DataHubLamp.Layout.Column = 15;
+            app.DataHubLamp.Layout.Column = 14;
             app.DataHubLamp.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'red-circle-blink.gif');
 
             % Create FigurePosition
@@ -1876,7 +1871,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FigurePosition.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.FigurePosition.Visible = 'off';
             app.FigurePosition.Layout.Row = 3;
-            app.FigurePosition.Layout.Column = 17;
+            app.FigurePosition.Layout.Column = 16;
             app.FigurePosition.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'screen-normal-24px-white.svg');
 
             % Create AppInfo
@@ -1884,7 +1879,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppInfo.ScaleMethod = 'none';
             app.AppInfo.ImageClickedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.AppInfo.Layout.Row = 3;
-            app.AppInfo.Layout.Column = 18;
+            app.AppInfo.Layout.Column = 17;
             app.AppInfo.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'kebab-vertical-24px-white.svg');
 
             % Create FileTreeContextMenu

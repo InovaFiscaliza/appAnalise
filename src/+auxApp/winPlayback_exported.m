@@ -8,6 +8,24 @@ classdef winPlayback_exported < matlab.apps.AppBase
         dockModule_Close               matlab.ui.control.Image
         dockModule_Undock              matlab.ui.control.Image
         Document                       matlab.ui.container.GridLayout
+        AxesToolbar                    matlab.ui.container.GridLayout
+        axesTool_FlowInfo              matlab.ui.control.Image
+        axesTool_Separator4            matlab.ui.control.Image
+        axesTool_DataTip               matlab.ui.control.Image
+        axesTool_waterfall             matlab.ui.control.Image
+        axesTool_Separator3            matlab.ui.control.Image
+        axesTool_occupancy             matlab.ui.control.Image
+        axesTool_Separator2            matlab.ui.control.Image
+        axesTool_persistence           matlab.ui.control.Image
+        axesTool_maxHold               matlab.ui.control.Image
+        axesTool_average               matlab.ui.control.Image
+        axesTool_minHold               matlab.ui.control.Image
+        axesTool_crearWrite            matlab.ui.control.Image
+        axesTool_Separator1            matlab.ui.control.Image
+        axesTool_Pan                   matlab.ui.control.Image
+        axesTool_RestoreView           matlab.ui.control.Image
+        AxesAnnotation                 matlab.ui.control.Label
+        AxesContainer                  matlab.ui.container.Panel
         RightPanel                     matlab.ui.container.GridLayout
         WaterfallPanel                 matlab.ui.container.Panel
         WaterfallPanelGrid             matlab.ui.container.GridLayout
@@ -78,24 +96,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowAttributesPanelVisibleIdx  matlab.ui.control.Label
         FlowPanelLabel                 matlab.ui.control.Label
         SpectrumFlowList               matlab.ui.control.DropDown
-        AxesToolbar                    matlab.ui.container.GridLayout
-        axesTool_FlowInfo              matlab.ui.control.Image
-        axesTool_Separator4            matlab.ui.control.Image
-        axesTool_DataTip               matlab.ui.control.Image
-        axesTool_waterfall             matlab.ui.control.Image
-        axesTool_Separator3            matlab.ui.control.Image
-        axesTool_occupancy             matlab.ui.control.Image
-        axesTool_Separator2            matlab.ui.control.Image
-        axesTool_persistence           matlab.ui.control.Image
-        axesTool_maxHold               matlab.ui.control.Image
-        axesTool_average               matlab.ui.control.Image
-        axesTool_minHold               matlab.ui.control.Image
-        axesTool_crearWrite            matlab.ui.control.Image
-        axesTool_Separator1            matlab.ui.control.Image
-        axesTool_Pan                   matlab.ui.control.Image
-        axesTool_RestoreView           matlab.ui.control.Image
-        AxesAnnotation                 matlab.ui.control.Label
-        AxesContainer                  matlab.ui.container.Panel
         Toolbar                        matlab.ui.container.GridLayout
         tool_LayoutRight               matlab.ui.control.Image
         tool_Separator3                matlab.ui.control.Image
@@ -213,7 +213,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 updateUIPanelContent(app)
                                 updateEmissionsPlot(app)
             
-                            case 'onTabNavigatorButtonPushed'
+                            case {'onTabNavigatorButtonPushed', 'onPlaybackStarted'}
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
                                 end
@@ -315,6 +315,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.UserData.status = false;
             app.axesTool_occupancy.UserData.status = false;
             app.axesTool_waterfall.UserData.status = false;
+            app.tool_LayoutLeft.UserData.status = true;
+            app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
 
             initializeAxes(app)
@@ -800,7 +802,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             if ~isempty(specData)
                 app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1));
-                app.AxesAnnotation.Text = sprintf('%s \n%.3f – %.3f MHz ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
+                app.AxesAnnotation.Text = sprintf('%s    \n%.3f – %.3f MHz    ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
 
             else
                 app.tool_TimestampLabel.Text = '';
@@ -1542,23 +1544,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Image clicked function: tool_LayoutLeft, tool_LayoutRight
         function tool_PanelVisibilityButtonPushed(app, event)
             
+            event.Source.UserData.status = ~event.Source.UserData.status;
+
             switch event.Source
                 case app.tool_LayoutLeft
-                    if app.Document.ColumnWidth{1}
-                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left-off.svg';
-                        app.Document.ColumnWidth(1:2)       = {0,0};
+                    if event.Source.UserData.status
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.AxesContainer.Layout.Column(1) = 4;
+                        app.AxesToolbar.Layout.Column      = 5;
+                        app.LeftPanel.Visible              = 'on';
                     else
-                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left.svg';
-                        app.Document.ColumnWidth(1:2)       = {320,10};
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.AxesContainer.Layout.Column(1) = 1;
+                        app.AxesToolbar.Layout.Column      = 2;
+                        app.LeftPanel.Visible              = 'off';
                     end
 
                 case app.tool_LayoutRight
-                    if app.Document.ColumnWidth{end}
-                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right-off.svg';
-                        app.Document.ColumnWidth(end-1:end) = {0,0};
+                    if event.Source.UserData.status
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.AxesContainer.Layout.Column(2) = 6;
+                        app.AxesAnnotation.Layout.Column   = 6;
+                        app.RightPanel.Visible             = 'on';
                     else
-                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right.svg';
-                        app.Document.ColumnWidth(end-1:end) = {10,232};
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.AxesContainer.Layout.Column(2) = 8;
+                        app.AxesAnnotation.Layout.Column   = [6 8];
+                        app.RightPanel.Visible             = 'off';
                     end
             end
 
@@ -1863,7 +1875,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 271, '1x', 5, 0, 0};
+            app.Document.ColumnWidth = {5, 315, 10, 5, 315, '1x', 10, 232};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -1871,163 +1883,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.Document.Layout.Row = [3 4];
             app.Document.Layout.Column = [2 3];
             app.Document.BackgroundColor = [1 1 1];
-
-            % Create AxesContainer
-            app.AxesContainer = uipanel(app.Document);
-            app.AxesContainer.AutoResizeChildren = 'off';
-            app.AxesContainer.BorderType = 'none';
-            app.AxesContainer.BackgroundColor = [0 0 0];
-            app.AxesContainer.Layout.Row = [1 3];
-            app.AxesContainer.Layout.Column = [3 6];
-
-            % Create AxesAnnotation
-            app.AxesAnnotation = uilabel(app.Document);
-            app.AxesAnnotation.HorizontalAlignment = 'right';
-            app.AxesAnnotation.FontSize = 10;
-            app.AxesAnnotation.FontColor = [0.8 0.8 0.8];
-            app.AxesAnnotation.Layout.Row = [1 2];
-            app.AxesAnnotation.Layout.Column = 5;
-            app.AxesAnnotation.Text = '';
-
-            % Create AxesToolbar
-            app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, 22, 22, 22, 22, 22, 5, 22, 5, 22, 22, 5, 22, '1x'};
-            app.AxesToolbar.RowHeight = {'1x'};
-            app.AxesToolbar.ColumnSpacing = 0;
-            app.AxesToolbar.RowSpacing = 0;
-            app.AxesToolbar.Padding = [0 2 0 1];
-            app.AxesToolbar.Layout.Row = 1;
-            app.AxesToolbar.Layout.Column = 4;
-            app.AxesToolbar.BackgroundColor = [1 1 1];
-
-            % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
-            app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 2;
-            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
-
-            % Create axesTool_Pan
-            app.axesTool_Pan = uiimage(app.AxesToolbar);
-            app.axesTool_Pan.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_Pan.Layout.Row = 1;
-            app.axesTool_Pan.Layout.Column = 3;
-            app.axesTool_Pan.ImageSource = 'pan-32px.png';
-
-            % Create axesTool_Separator1
-            app.axesTool_Separator1 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator1.ScaleMethod = 'none';
-            app.axesTool_Separator1.Enable = 'off';
-            app.axesTool_Separator1.Layout.Row = 1;
-            app.axesTool_Separator1.Layout.Column = 4;
-            app.axesTool_Separator1.ImageSource = 'LineV.svg';
-
-            % Create axesTool_crearWrite
-            app.axesTool_crearWrite = uiimage(app.AxesToolbar);
-            app.axesTool_crearWrite.ScaleMethod = 'none';
-            app.axesTool_crearWrite.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_crearWrite.Tag = 'minHold';
-            app.axesTool_crearWrite.Enable = 'off';
-            app.axesTool_crearWrite.Layout.Row = 1;
-            app.axesTool_crearWrite.Layout.Column = 5;
-            app.axesTool_crearWrite.ImageSource = 'eye-closed-16px.svg';
-
-            % Create axesTool_minHold
-            app.axesTool_minHold = uiimage(app.AxesToolbar);
-            app.axesTool_minHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_minHold.Tag = 'minHold';
-            app.axesTool_minHold.Enable = 'off';
-            app.axesTool_minHold.Layout.Row = 1;
-            app.axesTool_minHold.Layout.Column = 6;
-            app.axesTool_minHold.ImageSource = 'MinHold_32.png';
-
-            % Create axesTool_average
-            app.axesTool_average = uiimage(app.AxesToolbar);
-            app.axesTool_average.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_average.Tag = 'average';
-            app.axesTool_average.Enable = 'off';
-            app.axesTool_average.Layout.Row = 1;
-            app.axesTool_average.Layout.Column = 7;
-            app.axesTool_average.ImageSource = 'Average_32.png';
-
-            % Create axesTool_maxHold
-            app.axesTool_maxHold = uiimage(app.AxesToolbar);
-            app.axesTool_maxHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_maxHold.Tag = 'maxHold';
-            app.axesTool_maxHold.Enable = 'off';
-            app.axesTool_maxHold.Layout.Row = 1;
-            app.axesTool_maxHold.Layout.Column = 8;
-            app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
-
-            % Create axesTool_persistence
-            app.axesTool_persistence = uiimage(app.AxesToolbar);
-            app.axesTool_persistence.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_persistence.Tag = 'persistence';
-            app.axesTool_persistence.Enable = 'off';
-            app.axesTool_persistence.Layout.Row = 1;
-            app.axesTool_persistence.Layout.Column = 9;
-            app.axesTool_persistence.ImageSource = 'persistence-36px.png';
-
-            % Create axesTool_Separator2
-            app.axesTool_Separator2 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator2.ScaleMethod = 'none';
-            app.axesTool_Separator2.Enable = 'off';
-            app.axesTool_Separator2.Layout.Row = 1;
-            app.axesTool_Separator2.Layout.Column = 10;
-            app.axesTool_Separator2.ImageSource = 'LineV.svg';
-
-            % Create axesTool_occupancy
-            app.axesTool_occupancy = uiimage(app.AxesToolbar);
-            app.axesTool_occupancy.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_occupancy.Tag = 'occupancy';
-            app.axesTool_occupancy.Enable = 'off';
-            app.axesTool_occupancy.Layout.Row = 1;
-            app.axesTool_occupancy.Layout.Column = 11;
-            app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
-
-            % Create axesTool_Separator3
-            app.axesTool_Separator3 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator3.ScaleMethod = 'none';
-            app.axesTool_Separator3.Enable = 'off';
-            app.axesTool_Separator3.Layout.Row = 1;
-            app.axesTool_Separator3.Layout.Column = 12;
-            app.axesTool_Separator3.ImageSource = 'LineV.svg';
-
-            % Create axesTool_waterfall
-            app.axesTool_waterfall = uiimage(app.AxesToolbar);
-            app.axesTool_waterfall.ScaleMethod = 'none';
-            app.axesTool_waterfall.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_waterfall.Tag = 'waterfall';
-            app.axesTool_waterfall.Enable = 'off';
-            app.axesTool_waterfall.Layout.Row = 1;
-            app.axesTool_waterfall.Layout.Column = 13;
-            app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
-
-            % Create axesTool_DataTip
-            app.axesTool_DataTip = uiimage(app.AxesToolbar);
-            app.axesTool_DataTip.ScaleMethod = 'none';
-            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_DataTip.Enable = 'off';
-            app.axesTool_DataTip.Layout.Row = 1;
-            app.axesTool_DataTip.Layout.Column = 14;
-            app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
-
-            % Create axesTool_Separator4
-            app.axesTool_Separator4 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator4.ScaleMethod = 'none';
-            app.axesTool_Separator4.Enable = 'off';
-            app.axesTool_Separator4.Layout.Row = 1;
-            app.axesTool_Separator4.Layout.Column = 15;
-            app.axesTool_Separator4.ImageSource = 'LineV.svg';
-
-            % Create axesTool_FlowInfo
-            app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
-            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @axesTool_FlowInfoImageClicked, true);
-            app.axesTool_FlowInfo.Enable = 'off';
-            app.axesTool_FlowInfo.Layout.Row = 1;
-            app.axesTool_FlowInfo.Layout.Column = 16;
-            app.axesTool_FlowInfo.ImageSource = 'Info_32.png';
 
             % Create LeftPanel
             app.LeftPanel = uigridlayout(app.Document);
@@ -2037,7 +1892,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.LeftPanel.RowSpacing = 5;
             app.LeftPanel.Padding = [0 0 0 0];
             app.LeftPanel.Layout.Row = [1 3];
-            app.LeftPanel.Layout.Column = 1;
+            app.LeftPanel.Layout.Column = [1 2];
             app.LeftPanel.BackgroundColor = [1 1 1];
 
             % Create SpectrumFlowList
@@ -2224,6 +2079,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.RightPanel.ColumnSpacing = 5;
             app.RightPanel.RowSpacing = 0;
             app.RightPanel.Padding = [0 0 0 0];
+            app.RightPanel.Visible = 'off';
             app.RightPanel.Layout.Row = [1 3];
             app.RightPanel.Layout.Column = 8;
             app.RightPanel.BackgroundColor = [1 1 1];
@@ -2674,6 +2530,163 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.WaterfallCLim2.Layout.Row = 6;
             app.WaterfallCLim2.Layout.Column = [3 5];
             app.WaterfallCLim2.Value = 1;
+
+            % Create AxesContainer
+            app.AxesContainer = uipanel(app.Document);
+            app.AxesContainer.AutoResizeChildren = 'off';
+            app.AxesContainer.BorderType = 'none';
+            app.AxesContainer.BackgroundColor = [0 0 0];
+            app.AxesContainer.Layout.Row = [1 3];
+            app.AxesContainer.Layout.Column = [4 8];
+
+            % Create AxesAnnotation
+            app.AxesAnnotation = uilabel(app.Document);
+            app.AxesAnnotation.HorizontalAlignment = 'right';
+            app.AxesAnnotation.FontSize = 10;
+            app.AxesAnnotation.FontColor = [0.8 0.8 0.8];
+            app.AxesAnnotation.Layout.Row = [1 2];
+            app.AxesAnnotation.Layout.Column = [6 8];
+            app.AxesAnnotation.Text = '';
+
+            % Create AxesToolbar
+            app.AxesToolbar = uigridlayout(app.Document);
+            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, 25, 25, 25, 25, 25, 5, 25, 5, 25, 25, 5, 25, 10};
+            app.AxesToolbar.RowHeight = {'1x'};
+            app.AxesToolbar.ColumnSpacing = 0;
+            app.AxesToolbar.RowSpacing = 0;
+            app.AxesToolbar.Padding = [0 2 0 1];
+            app.AxesToolbar.Layout.Row = 1;
+            app.AxesToolbar.Layout.Column = 5;
+            app.AxesToolbar.BackgroundColor = [1 1 1];
+
+            % Create axesTool_RestoreView
+            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
+            app.axesTool_RestoreView.ScaleMethod = 'none';
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_RestoreView.Layout.Row = 1;
+            app.axesTool_RestoreView.Layout.Column = 2;
+            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
+
+            % Create axesTool_Pan
+            app.axesTool_Pan = uiimage(app.AxesToolbar);
+            app.axesTool_Pan.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_Pan.Layout.Row = 1;
+            app.axesTool_Pan.Layout.Column = 3;
+            app.axesTool_Pan.ImageSource = 'pan-32px.png';
+
+            % Create axesTool_Separator1
+            app.axesTool_Separator1 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator1.ScaleMethod = 'none';
+            app.axesTool_Separator1.Enable = 'off';
+            app.axesTool_Separator1.Layout.Row = 1;
+            app.axesTool_Separator1.Layout.Column = 4;
+            app.axesTool_Separator1.ImageSource = 'LineV.svg';
+
+            % Create axesTool_crearWrite
+            app.axesTool_crearWrite = uiimage(app.AxesToolbar);
+            app.axesTool_crearWrite.ScaleMethod = 'none';
+            app.axesTool_crearWrite.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_crearWrite.Tag = 'minHold';
+            app.axesTool_crearWrite.Enable = 'off';
+            app.axesTool_crearWrite.Layout.Row = 1;
+            app.axesTool_crearWrite.Layout.Column = 5;
+            app.axesTool_crearWrite.ImageSource = 'eye-closed-16px.svg';
+
+            % Create axesTool_minHold
+            app.axesTool_minHold = uiimage(app.AxesToolbar);
+            app.axesTool_minHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_minHold.Tag = 'minHold';
+            app.axesTool_minHold.Enable = 'off';
+            app.axesTool_minHold.Layout.Row = 1;
+            app.axesTool_minHold.Layout.Column = 6;
+            app.axesTool_minHold.ImageSource = 'MinHold_32.png';
+
+            % Create axesTool_average
+            app.axesTool_average = uiimage(app.AxesToolbar);
+            app.axesTool_average.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_average.Tag = 'average';
+            app.axesTool_average.Enable = 'off';
+            app.axesTool_average.Layout.Row = 1;
+            app.axesTool_average.Layout.Column = 7;
+            app.axesTool_average.ImageSource = 'Average_32.png';
+
+            % Create axesTool_maxHold
+            app.axesTool_maxHold = uiimage(app.AxesToolbar);
+            app.axesTool_maxHold.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_maxHold.Tag = 'maxHold';
+            app.axesTool_maxHold.Enable = 'off';
+            app.axesTool_maxHold.Layout.Row = 1;
+            app.axesTool_maxHold.Layout.Column = 8;
+            app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
+
+            % Create axesTool_persistence
+            app.axesTool_persistence = uiimage(app.AxesToolbar);
+            app.axesTool_persistence.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_persistence.Tag = 'persistence';
+            app.axesTool_persistence.Enable = 'off';
+            app.axesTool_persistence.Layout.Row = 1;
+            app.axesTool_persistence.Layout.Column = 9;
+            app.axesTool_persistence.ImageSource = 'persistence-36px.png';
+
+            % Create axesTool_Separator2
+            app.axesTool_Separator2 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator2.ScaleMethod = 'none';
+            app.axesTool_Separator2.Enable = 'off';
+            app.axesTool_Separator2.Layout.Row = 1;
+            app.axesTool_Separator2.Layout.Column = 10;
+            app.axesTool_Separator2.ImageSource = 'LineV.svg';
+
+            % Create axesTool_occupancy
+            app.axesTool_occupancy = uiimage(app.AxesToolbar);
+            app.axesTool_occupancy.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_occupancy.Tag = 'occupancy';
+            app.axesTool_occupancy.Enable = 'off';
+            app.axesTool_occupancy.Layout.Row = 1;
+            app.axesTool_occupancy.Layout.Column = 11;
+            app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
+
+            % Create axesTool_Separator3
+            app.axesTool_Separator3 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator3.ScaleMethod = 'none';
+            app.axesTool_Separator3.Enable = 'off';
+            app.axesTool_Separator3.Layout.Row = 1;
+            app.axesTool_Separator3.Layout.Column = 12;
+            app.axesTool_Separator3.ImageSource = 'LineV.svg';
+
+            % Create axesTool_waterfall
+            app.axesTool_waterfall = uiimage(app.AxesToolbar);
+            app.axesTool_waterfall.ScaleMethod = 'none';
+            app.axesTool_waterfall.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_waterfall.Tag = 'waterfall';
+            app.axesTool_waterfall.Enable = 'off';
+            app.axesTool_waterfall.Layout.Row = 1;
+            app.axesTool_waterfall.Layout.Column = 13;
+            app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
+
+            % Create axesTool_DataTip
+            app.axesTool_DataTip = uiimage(app.AxesToolbar);
+            app.axesTool_DataTip.ScaleMethod = 'none';
+            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_DataTip.Enable = 'off';
+            app.axesTool_DataTip.Layout.Row = 1;
+            app.axesTool_DataTip.Layout.Column = 14;
+            app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
+
+            % Create axesTool_Separator4
+            app.axesTool_Separator4 = uiimage(app.AxesToolbar);
+            app.axesTool_Separator4.ScaleMethod = 'none';
+            app.axesTool_Separator4.Enable = 'off';
+            app.axesTool_Separator4.Layout.Row = 1;
+            app.axesTool_Separator4.Layout.Column = 15;
+            app.axesTool_Separator4.ImageSource = 'LineV.svg';
+
+            % Create axesTool_FlowInfo
+            app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
+            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @axesTool_FlowInfoImageClicked, true);
+            app.axesTool_FlowInfo.Enable = 'off';
+            app.axesTool_FlowInfo.Layout.Row = 1;
+            app.axesTool_FlowInfo.Layout.Column = 16;
+            app.axesTool_FlowInfo.ImageSource = 'Info_32.png';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);

@@ -8,6 +8,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         dockModule_Close                matlab.ui.control.Image
         dockModule_Undock               matlab.ui.control.Image
         Document                        matlab.ui.container.GridLayout
+        AxesToolbar                     matlab.ui.container.GridLayout
+        axesTool_DensityPlot_2          matlab.ui.control.Image
+        axesTool_PlotSize               matlab.ui.control.Slider
+        axesTool_DensityPlot            matlab.ui.control.Image
+        axesTool_DistortionPlot         matlab.ui.control.Image
+        axesTool_DataSourceDropDown     matlab.ui.control.DropDown
+        axesTool_RegionZoom             matlab.ui.control.Image
+        axesTool_RestoreView            matlab.ui.control.Image
+        AxesContainer                   matlab.ui.container.Panel
         RightPanel                      matlab.ui.container.GridLayout
         config_Refresh                  matlab.ui.control.Image
         CartesianAxesPanel              matlab.ui.container.Panel
@@ -52,15 +61,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         config_route_Size               matlab.ui.control.Slider
         GeographicAxesPanelLabel        matlab.ui.control.Label
         GeographicAxesPanelIcon         matlab.ui.control.Image
-        AxesToolbar                     matlab.ui.container.GridLayout
-        axesTool_DensityPlot_2          matlab.ui.control.Image
-        axesTool_PlotSize               matlab.ui.control.Slider
-        axesTool_DensityPlot            matlab.ui.control.Image
-        axesTool_DistortionPlot         matlab.ui.control.Image
-        axesTool_DataSourceDropDown     matlab.ui.control.DropDown
-        axesTool_RegionZoom             matlab.ui.control.Image
-        axesTool_RestoreView            matlab.ui.control.Image
-        AxesContainer                   matlab.ui.container.Panel
         LeftPanel                       matlab.ui.container.GridLayout
         EmissionList                    matlab.ui.control.DropDown
         EmissionPanel                   matlab.ui.container.Panel
@@ -176,6 +176,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     case 'renderer'
                         appEngine.activate(app, app.Role)
 
+                    case 'onChannelEditRequested'
+                        uialert(app.UIFigure, 'onChannelEditRequested', '')
+
+                    case 'onClassificationEditRequested'
+                        uialert(app.UIFigure, 'onClassificationEditRequested', '')
+
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
                 end
@@ -207,7 +213,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                     onFlowDropDownValueChanged(app)
                                 end
             
-                            case 'onTabNavigatorButtonPushed'
+                            case {'onTabNavigatorButtonPushed', 'onPlaybackStarted'}
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
                                 end
@@ -277,7 +283,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     end
 
                     try
-                        ui.TextView.startup(app.jsBackDoor, app.EmissionMetadata,  appName, struct('class', {{'textview--borderless'}}));
+                        ui.TextView.startup(app.jsBackDoor, app.EmissionMetadata,  appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
                     catch
                     end
 
@@ -320,6 +326,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             end
 
             app.EmissionAttributesPanelVisibleIdx.UserData.index = 1;
+            app.tool_LayoutLeft.UserData.status = true;
+            app.tool_LayoutRight.UserData.status = false;
 
             initializeAxes(app)
 
@@ -333,12 +341,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function applyInitialLayout(app)
             updateFlowDropDown(app)
             onFlowDropDownValueChanged(app)
-        end
-
-        %-----------------------------------------------------------------%
-        function chamandoDoTextView(app)
-            'Opa... chegou aqui! :)'
-            % MIGRAR para o ipcJS
         end
     end
 
@@ -1739,23 +1741,31 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: tool_LayoutLeft, tool_LayoutRight
         function tool_PanelVisibilityButtonPushed(app, event)
 
+            event.Source.UserData.status = ~event.Source.UserData.status;
+
             switch event.Source
                 case app.tool_LayoutLeft
-                    if app.Document.ColumnWidth{1}
-                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left-off.svg';
-                        app.Document.ColumnWidth(1:2)       = {0,0};
+                    if event.Source.UserData.status
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.AxesContainer.Layout.Column(1) = 4;
+                        app.AxesToolbar.Layout.Column      = 5;
+                        app.LeftPanel.Visible              = 'on';
                     else
-                        app.tool_LayoutLeft.ImageSource     = 'layout-sidebar-left.svg';
-                        app.Document.ColumnWidth(1:2)       = {320,10};
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.AxesContainer.Layout.Column(1) = 1;
+                        app.AxesToolbar.Layout.Column      = 2;
+                        app.LeftPanel.Visible              = 'off';
                     end
 
                 case app.tool_LayoutRight
-                    if app.Document.ColumnWidth{end}
-                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right-off.svg';
-                        app.Document.ColumnWidth(end-1:end) = {0,0};
+                    if event.Source.UserData.status
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.AxesContainer.Layout.Column(2) = 6;
+                        app.RightPanel.Visible             = 'on';
                     else
-                        app.tool_LayoutRight.ImageSource    = 'layout-sidebar-right.svg';
-                        app.Document.ColumnWidth(end-1:end) = {10,232};
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.AxesContainer.Layout.Column(2) = 8;
+                        app.RightPanel.Visible             = 'off';
                     end
             end
 
@@ -2233,7 +2243,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {320, 10, 5, 322, '1x', 0, 0};
+            app.Document.ColumnWidth = {5, 315, 10, 5, 315, '1x', 10, 232};
             app.Document.RowHeight = {24, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -2245,12 +2255,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create LeftPanel
             app.LeftPanel = uigridlayout(app.Document);
             app.LeftPanel.ColumnWidth = {'1x', 18, 10, 18};
-            app.LeftPanel.RowHeight = {44, 22, 30, '1x'};
+            app.LeftPanel.RowHeight = {44, 30, 30, '1x'};
             app.LeftPanel.ColumnSpacing = 5;
             app.LeftPanel.RowSpacing = 5;
             app.LeftPanel.Padding = [0 0 0 0];
             app.LeftPanel.Layout.Row = [1 2];
-            app.LeftPanel.Layout.Column = 1;
+            app.LeftPanel.Layout.Column = [1 2];
             app.LeftPanel.BackgroundColor = [1 1 1];
 
             % Create SpectrumFlowList
@@ -2279,7 +2289,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.EmissionAttributesPanelVisibleIdx.FontColor = [0.502 0.502 0.502];
             app.EmissionAttributesPanelVisibleIdx.Layout.Row = 3;
             app.EmissionAttributesPanelVisibleIdx.Layout.Column = [2 4];
-            app.EmissionAttributesPanelVisibleIdx.Text = '1/4';
+            app.EmissionAttributesPanelVisibleIdx.Text = '1/3';
 
             % Create EmissionAttributesPanelLeftBtn
             app.EmissionAttributesPanelLeftBtn = uiimage(app.LeftPanel);
@@ -2452,98 +2462,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.EmissionList.Items = {};
             app.EmissionList.ValueChangedFcn = createCallbackFcn(app, @onEmissionDropDownValueChanged, true);
             app.EmissionList.FontSize = 11;
-            app.EmissionList.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.EmissionList.BackgroundColor = [1 1 1];
+            app.EmissionList.FontColor = [1 1 1];
+            app.EmissionList.BackgroundColor = [0.2 0.2 0.2];
             app.EmissionList.Layout.Row = 2;
             app.EmissionList.Layout.Column = [1 4];
             app.EmissionList.Value = {};
-
-            % Create AxesContainer
-            app.AxesContainer = uipanel(app.Document);
-            app.AxesContainer.AutoResizeChildren = 'off';
-            app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.AxesContainer.BorderType = 'none';
-            app.AxesContainer.BackgroundColor = [0 0 0];
-            app.AxesContainer.Layout.Row = [1 2];
-            app.AxesContainer.Layout.Column = [3 5];
-
-            % Create AxesToolbar
-            app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {5, 22, 22, 5, '1x', 5, 22, 22, 5, 54, 22, 5};
-            app.AxesToolbar.RowHeight = {22};
-            app.AxesToolbar.ColumnSpacing = 0;
-            app.AxesToolbar.RowSpacing = 0;
-            app.AxesToolbar.Padding = [0 2 0 1];
-            app.AxesToolbar.Layout.Row = 1;
-            app.AxesToolbar.Layout.Column = 4;
-            app.AxesToolbar.BackgroundColor = [1 1 1];
-
-            % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
-            app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
-            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
-            app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 2;
-            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
-
-            % Create axesTool_RegionZoom
-            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
-            app.axesTool_RegionZoom.ScaleMethod = 'none';
-            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
-            app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
-            app.axesTool_RegionZoom.Layout.Row = 1;
-            app.axesTool_RegionZoom.Layout.Column = 3;
-            app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
-
-            % Create axesTool_DataSourceDropDown
-            app.axesTool_DataSourceDropDown = uidropdown(app.AxesToolbar);
-            app.axesTool_DataSourceDropDown.Items = {'Dados brutos', 'Dados processados'};
-            app.axesTool_DataSourceDropDown.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
-            app.axesTool_DataSourceDropDown.FontSize = 11;
-            app.axesTool_DataSourceDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.axesTool_DataSourceDropDown.BackgroundColor = [1 1 1];
-            app.axesTool_DataSourceDropDown.Layout.Row = 1;
-            app.axesTool_DataSourceDropDown.Layout.Column = 5;
-            app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
-
-            % Create axesTool_DistortionPlot
-            app.axesTool_DistortionPlot = uiimage(app.AxesToolbar);
-            app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
-            app.axesTool_DistortionPlot.Tooltip = {'Distortion'};
-            app.axesTool_DistortionPlot.Layout.Row = 1;
-            app.axesTool_DistortionPlot.Layout.Column = 7;
-            app.axesTool_DistortionPlot.ImageSource = 'DriveTestDistortion_32.png';
-
-            % Create axesTool_DensityPlot
-            app.axesTool_DensityPlot = uiimage(app.AxesToolbar);
-            app.axesTool_DensityPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
-            app.axesTool_DensityPlot.Enable = 'off';
-            app.axesTool_DensityPlot.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
-            app.axesTool_DensityPlot.Layout.Row = 1;
-            app.axesTool_DensityPlot.Layout.Column = 8;
-            app.axesTool_DensityPlot.ImageSource = 'DriveTestDensity_32.png';
-
-            % Create axesTool_PlotSize
-            app.axesTool_PlotSize = uislider(app.AxesToolbar);
-            app.axesTool_PlotSize.Limits = [1 19];
-            app.axesTool_PlotSize.MajorTicks = [1 10 19];
-            app.axesTool_PlotSize.MajorTickLabels = {''};
-            app.axesTool_PlotSize.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanged, true);
-            app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanging, true);
-            app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.axesTool_PlotSize.Layout.Row = 1;
-            app.axesTool_PlotSize.Layout.Column = 10;
-            app.axesTool_PlotSize.Value = 1;
-
-            % Create axesTool_DensityPlot_2
-            app.axesTool_DensityPlot_2 = uiimage(app.AxesToolbar);
-            app.axesTool_DensityPlot_2.ScaleMethod = 'none';
-            app.axesTool_DensityPlot_2.Enable = 'off';
-            app.axesTool_DensityPlot_2.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
-            app.axesTool_DensityPlot_2.Layout.Row = 1;
-            app.axesTool_DensityPlot_2.Layout.Column = 11;
-            app.axesTool_DensityPlot_2.ImageSource = 'target.svg';
 
             % Create RightPanel
             app.RightPanel = uigridlayout(app.Document);
@@ -2552,8 +2475,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.RightPanel.ColumnSpacing = 5;
             app.RightPanel.RowSpacing = 0;
             app.RightPanel.Padding = [0 0 0 0];
+            app.RightPanel.Visible = 'off';
             app.RightPanel.Layout.Row = [1 2];
-            app.RightPanel.Layout.Column = 7;
+            app.RightPanel.Layout.Column = 8;
             app.RightPanel.BackgroundColor = [1 1 1];
 
             % Create GeographicAxesPanelIcon
@@ -2953,6 +2877,93 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.config_Refresh.Layout.Column = 3;
             app.config_Refresh.VerticalAlignment = 'bottom';
             app.config_Refresh.ImageSource = 'Refresh_18.png';
+
+            % Create AxesContainer
+            app.AxesContainer = uipanel(app.Document);
+            app.AxesContainer.AutoResizeChildren = 'off';
+            app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.AxesContainer.BorderType = 'none';
+            app.AxesContainer.BackgroundColor = [0 0 0];
+            app.AxesContainer.Layout.Row = [1 2];
+            app.AxesContainer.Layout.Column = [4 8];
+
+            % Create AxesToolbar
+            app.AxesToolbar = uigridlayout(app.Document);
+            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, '1x', 5, 25, 25, 5, 54, 25, 10};
+            app.AxesToolbar.RowHeight = {22};
+            app.AxesToolbar.ColumnSpacing = 0;
+            app.AxesToolbar.RowSpacing = 0;
+            app.AxesToolbar.Padding = [0 2 0 1];
+            app.AxesToolbar.Layout.Row = 1;
+            app.AxesToolbar.Layout.Column = 5;
+            app.AxesToolbar.BackgroundColor = [1 1 1];
+
+            % Create axesTool_RestoreView
+            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
+            app.axesTool_RestoreView.ScaleMethod = 'none';
+            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
+            app.axesTool_RestoreView.Tooltip = {'RestoreView'};
+            app.axesTool_RestoreView.Layout.Row = 1;
+            app.axesTool_RestoreView.Layout.Column = 2;
+            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
+
+            % Create axesTool_RegionZoom
+            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
+            app.axesTool_RegionZoom.ScaleMethod = 'none';
+            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_InteractionImageClicked, true);
+            app.axesTool_RegionZoom.Tooltip = {'RegionZoom'};
+            app.axesTool_RegionZoom.Layout.Row = 1;
+            app.axesTool_RegionZoom.Layout.Column = 3;
+            app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
+
+            % Create axesTool_DataSourceDropDown
+            app.axesTool_DataSourceDropDown = uidropdown(app.AxesToolbar);
+            app.axesTool_DataSourceDropDown.Items = {'Dados brutos', 'Processados'};
+            app.axesTool_DataSourceDropDown.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_DataSourceChanged, true);
+            app.axesTool_DataSourceDropDown.FontSize = 11;
+            app.axesTool_DataSourceDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.axesTool_DataSourceDropDown.BackgroundColor = [1 1 1];
+            app.axesTool_DataSourceDropDown.Layout.Row = 1;
+            app.axesTool_DataSourceDropDown.Layout.Column = 5;
+            app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
+
+            % Create axesTool_DistortionPlot
+            app.axesTool_DistortionPlot = uiimage(app.AxesToolbar);
+            app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
+            app.axesTool_DistortionPlot.Tooltip = {'Distortion'};
+            app.axesTool_DistortionPlot.Layout.Row = 1;
+            app.axesTool_DistortionPlot.Layout.Column = 7;
+            app.axesTool_DistortionPlot.ImageSource = 'DriveTestDistortion_32.png';
+
+            % Create axesTool_DensityPlot
+            app.axesTool_DensityPlot = uiimage(app.AxesToolbar);
+            app.axesTool_DensityPlot.ImageClickedFcn = createCallbackFcn(app, @AxesToolbar_PlotTypeValueChanged, true);
+            app.axesTool_DensityPlot.Enable = 'off';
+            app.axesTool_DensityPlot.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
+            app.axesTool_DensityPlot.Layout.Row = 1;
+            app.axesTool_DensityPlot.Layout.Column = 8;
+            app.axesTool_DensityPlot.ImageSource = 'DriveTestDensity_32.png';
+
+            % Create axesTool_PlotSize
+            app.axesTool_PlotSize = uislider(app.AxesToolbar);
+            app.axesTool_PlotSize.Limits = [1 19];
+            app.axesTool_PlotSize.MajorTicks = [1 10 19];
+            app.axesTool_PlotSize.MajorTickLabels = {''};
+            app.axesTool_PlotSize.ValueChangedFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanged, true);
+            app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @AxesToolbar_PlotSizeValueChanging, true);
+            app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.axesTool_PlotSize.Layout.Row = 1;
+            app.axesTool_PlotSize.Layout.Column = 10;
+            app.axesTool_PlotSize.Value = 1;
+
+            % Create axesTool_DensityPlot_2
+            app.axesTool_DensityPlot_2 = uiimage(app.AxesToolbar);
+            app.axesTool_DensityPlot_2.ScaleMethod = 'none';
+            app.axesTool_DensityPlot_2.Enable = 'off';
+            app.axesTool_DensityPlot_2.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
+            app.axesTool_DensityPlot_2.Layout.Row = 1;
+            app.axesTool_DensityPlot_2.Layout.Column = 11;
+            app.axesTool_DensityPlot_2.ImageSource = 'target.svg';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);

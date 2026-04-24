@@ -419,11 +419,18 @@ classdef (Abstract) HtmlTextGenerator
 
         %-----------------------------------------------------------------%
         function initialText = EmissionTitle(specData, emissionIdx)
-            emissionTable = specData.UserData.Emissions(emissionIdx, :);
+            if ~isempty(emissionIdx)
+                emissionTable = specData.UserData.Emissions(emissionIdx, :);
+                freqCenter    = emissionTable.Frequency;
+                bandWidthkHz  = emissionTable.BandWidthkHz;
+            else
+                freqCenter    = (specData.MetaData.FreqStart + specData.MetaData.FreqStop)  / 2e6; % MHz
+                bandWidthkHz  = (specData.MetaData.FreqStop  - specData.MetaData.FreqStart) / 1e3; % kHz
+            end
 
             % TÍTULO
-            threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
-            emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', emissionTable.Frequency, emissionTable.BandWidthkHz);
+            flowTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+            emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', freqCenter, bandWidthkHz);
             observationPeriod = sprintf('%s – %s', datestr(min(specData.RelatedFiles.BeginTime), 'dd/mm/yyyy HH:MM:SS'), datestr(max(specData.RelatedFiles.EndTime), 'dd/mm/yyyy HH:MM:SS'));
 
             monitoringType = gpsLib.classifyMonitoringType(specData.GPS);
@@ -438,7 +445,7 @@ classdef (Abstract) HtmlTextGenerator
 
             initialText = [ ...
                 sprintf('<font style="color: white; background-color: #b7312c; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">%s</font><br><br>', util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, threadTag, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, flowTag, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
             ];
         end
 
@@ -560,15 +567,14 @@ classdef (Abstract) HtmlTextGenerator
                     end
                 end
     
-                dataStruct(1) = struct('group', 'CANAL', 'value', channelInfo);
-                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo);
+                dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onChannelEditRequested''''))'')"> ✏️</a>',        appHandleNameInBase));
+                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onClassificationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase));
 
             else
-                dataStruct(1) = struct('group', 'INFO', 'value', 'EMISSÃO VIRTUAL');
+                dataStruct(1) = struct('group', 'INFO', 'value', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');
             end
 
             initialText = util.HtmlTextGenerator.EmissionTitle(specData, emissionIdx);
-            initialText = [initialText, sprintf('<a href="matlab:evalin(''base'', ''chamandoDoTextView(%s)'')">❌</a>', appHandleNameInBase), '<br><br>'];
             htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', initialText);
 
             function str = formattedValue(field, value)
