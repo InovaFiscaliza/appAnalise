@@ -292,7 +292,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         context = varargin{1};
                                         reportUploadArtifacts(app, context, [], 'uploadDocument')
 
-                                    case {'onEmissionDeleted', 'onEmissionParameterValueChanged'}
+                                    case {'onSpectralDataReadError', 'onEmissionDeleted', 'onEmissionParameterValueChanged'}
                                         context = varargin{1};
                                         notifySecondaryApps(app, eventName, {context})
 
@@ -306,8 +306,30 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onPlaybackStarted'
                                         ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
 
-                                    case {'ChannelParameterChanged', 'ChannelDefault'}
-                                        % ...
+                                    case 'onSpectralDataReadError'
+                                        context = varargin{1};
+                                        notifySecondaryApps(app, eventName, {context})
+
+                                    case 'onClassificationEditRequested'
+                                        if ~app.Tab4Button.Value
+                                            isAppOpen = ~isempty(getAppHandle(app.tabGroupController, 'SIGNALANALYSIS'));
+
+                                            app.Tab4Button.Value = true;
+                                            onTabNavigatorButtonPushed(app, struct('Source', app.Tab4Button, 'PreviousValue', false))
+                                            
+                                            if ~isAppOpen
+                                                pause(1)
+
+                                                hAuxApp = getAppHandle(app.tabGroupController, 'SIGNALANALYSIS');
+                                                if ui.FigureRenderStatus(hAuxApp.UIFigure)
+                                                    pause(1)
+                                                end
+                                            end
+                                        end
+
+                                        flowIdx = varargin{2};
+                                        emissionIdx = varargin{3};
+                                        ipcMainMatlabCallAuxiliarApp(app, 'SIGNALANALYSIS', 'MATLAB', 'onEmissionSelectionChanged', flowIdx, emissionIdx)
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -393,7 +415,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -417,6 +439,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'DetectionLimits'  % auxApp.winPlayback
                     screenWidth  = 292;
                     screenHeight = 360;
+                case 'EmissionChannel'
+                    screenWidth  = 412;
+                    screenHeight = 138;
                 case 'ExternalFiles'
                     screenWidth  = 880; 
                     screenHeight = 480;
@@ -698,7 +723,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
                                                            'onEmissionAdded', ...
-                                                           'onEmissionParameterValueChanged'})}
+                                                           'onEmissionParameterValueChanged', ...
+                                                           'onSpectralDataReadError'})}
                 excludeTags cell = {}
             end
             

@@ -204,7 +204,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         eventName = varargin{1};
 
                         switch eventName
-                            case {'onFileListAdded', 'onFileListRemoved', 'onFileFilterChanged'}
+                            case {'onFileListAdded', 'onFileListRemoved', 'onFileFilterChanged', 'onSpectralDataReadError'}
                                 updateFlowDropDown(app)
 
                                 if app.plotUpdateEvent
@@ -532,6 +532,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     delete(app.mainApp.specData(idx))
                     app.mainApp.specData(idx) = [];
                     updateFlowDropDown(app)
+
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
                     return
                 end
 

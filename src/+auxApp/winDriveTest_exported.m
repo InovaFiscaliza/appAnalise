@@ -177,10 +177,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         appEngine.activate(app, app.Role)
 
                     case 'onChannelEditRequested'
-                        uialert(app.UIFigure, 'onChannelEditRequested', '')
+                        [flowIdx, emissionIdx] = findSpecDataIndex(app);
+                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'EmissionChannel', app.Context, flowIdx, emissionIdx)
 
                     case 'onClassificationEditRequested'
-                        uialert(app.UIFigure, 'onClassificationEditRequested', '')
+                        [flowIdx, emissionIdx] = findSpecDataIndex(app);
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onClassificationEditRequested', app.Context, flowIdx, emissionIdx)
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -207,7 +209,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                   'onFileFilterChanged', ...
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
-                                  'onEmissionDeleted'}
+                                  'onEmissionDeleted', ...
+                                  'onSpectralDataReadError'}
+                                app.emissionSelectedIdxs(:) = [];
                                 updateFlowDropDown(app)
 
                                 if app.plotUpdateEvent
@@ -445,7 +449,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     end
                 end
 
-                currentValue = {};    
+                currentValue = {};
                 if ~isempty(previousValue)
                     if isnumeric(previousValue) && ismember(previousValue, itemsData)
                         currentValue = {'Value', previousValue};
@@ -490,6 +494,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     delete(app.mainApp.specData(flowIdx))
                     app.mainApp.specData(flowIdx) = [];
                     updateFlowDropDown(app)
+
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
                     return
                 end
 
@@ -501,12 +507,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionDropDown(app, emissionIdx)
-            arguments
-                app
-                emissionIdx = []
-            end
-
+        function updateEmissionDropDown(app)
             if isempty(app.mainApp.specData)
                 app.EmissionList.Items = {};
                 return
@@ -518,6 +519,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Cria lista de emissões:
             emissionList = {};
+
             for ii = 0:height(emissions)
                 additionalNote = '';
     
@@ -536,13 +538,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 emissionList{end+1} = sprintf('%d: %.3f MHz ⌂ %.1f kHz%s', ii, freqCenter, bandWidthkHz, additionalNote);
             end
 
-            app.EmissionList.Items = emissionList;
+            previousValue = app.EmissionList.Value;
+            currentValue = {};
+            if ~isempty(previousValue) && ismember(previousValue, emissionList)
+                currentValue = {'Value', previousValue};
+            end
 
-            % Ajusta seleção programaticamente:
-            if ~isempty(emissionIdx)
-                app.EmissionList.Value = app.EmissionList.Items{emissionIdx+1};
-            elseif numel(app.EmissionList.Items) > 1
-                app.EmissionList.Value = app.EmissionList.Items{2};
+            set(app.EmissionList, 'Items', emissionList, currentValue{:})
+
+            if isempty(currentValue) && ~isscalar(emissionList)
+                app.EmissionList.Value = emissionList{2};
             end
         end
 

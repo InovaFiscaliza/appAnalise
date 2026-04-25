@@ -142,6 +142,22 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                                   'onEmissionDeleted'}
                                 applyInitialLayout(app)
 
+                            case 'onEmissionSelectionChanged'
+                                if ~isempty(app.emissionsTable)
+                                    flowIdx = varargin{2};
+                                    emissionIdx = varargin{3};
+    
+                                    previousSelection = app.UITable.Selection;
+                                    currentSelection = find(app.emissionsTable.flowIdx == flowIdx & app.emissionsTable.emissionIdx == emissionIdx, 1);
+                                    
+                                    if ~isempty(currentSelection) && ~isequal(previousSelection, currentSelection)
+                                        app.UITable.Selection = currentSelection;
+                                        scroll(app.UITable, 'row', currentSelection)
+
+                                        onUITableSelectionChanged(app, struct('Selection', currentSelection, 'PreviousSelection', previousSelection))
+                                    end
+                                end
+
                             otherwise
                                 error('auxApp:winSignalAnalysis:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
@@ -618,7 +634,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     end
 
                     specData.UserData.Emissions.Description(emissionIdx) = userDescription;
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
                     
                 case app.TXLocationEditConfirm % Latitude | Longitude | AntennaHeight
                     update(specData, 'UserData:Emissions', 'Edit', 'Latitude+Longitude+AntennaHeight', emissionIdx, app.TXLatitude.Value, app.TXLongitude.Value, app.TXAntennaHeight.Value)
@@ -646,7 +661,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         end
                     end
             end
-
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
             onToolbarCheckBoxValueChanged(app)
         end
 
