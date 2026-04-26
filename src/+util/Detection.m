@@ -290,12 +290,20 @@ classdef (Abstract) Detection
                     end
                 end
 
+                groupIdxRange = [
+                    ceil(mergedRegions.BoundingBox(ii, 1)), ...
+                    fix(sum(mergedRegions.BoundingBox(ii, [1,3]))) ...
+                ];
+
                 groupCount = numel(groupIdxs);
                 groupOccorrences = sum(mergedRegions.GroupCount(groupIdxs));
                 groupOrientation = atan2d(sum(mergedRegions(groupIdxs, :).Area .* sind(mergedRegions(groupIdxs, :).Orientation)), sum(mergedRegions(groupIdxs, :).Area .* cosd(mergedRegions(groupIdxs, :).Orientation)));
                 groupOccupancy = sum(mergedRegions.Occupancy(groupIdxs));
                 
-                if groupOccupancy >= detectionConfig.MaxOccupancyForRegions || (groupOccupancy >= detectionConfig.MinOccupancy && abs(groupOrientation) >= detectionConfig.MinAbsOrientation) || (~isscalar(groupIdxs) && groupOccorrences > 10*groupCount)
+                if diff(groupIdxRange) > 1 && ...
+                   ((groupOccupancy >= detectionConfig.MaxOccupancyForRegions) || ...
+                    (groupOccupancy >= detectionConfig.MinOccupancy && abs(groupOrientation) >= detectionConfig.MinAbsOrientation) || ...
+                    (~isscalar(groupIdxs) && groupOccorrences > 10*groupCount))
                     % Emissões constantes no tempo, caso cercadas por outras
                     % com a mesma características, tendem a criar rais laterais
                     % que impedem a sua individualização via o processo de
@@ -307,11 +315,6 @@ classdef (Abstract) Detection
                         addEmission(mergedRegions.FreqCenter(ii), mergedRegions.BandWidth(ii), groupCount, groupOccorrences, groupOccupancy, groupOrientation);
 
                     else
-                        groupIdxRange = [
-                            ceil(mergedRegions.BoundingBox(ii, 1)), ...
-                            fix(sum(mergedRegions.BoundingBox(ii, [1,3]))) ...
-                        ];
-
                         emissionIdxRange = matlab.findpeaks( ...
                             specData.Data{3}(groupIdxRange(1):groupIdxRange(2), 2), ...
                             'MinPeakProminence', detectionConfig.Offset ...

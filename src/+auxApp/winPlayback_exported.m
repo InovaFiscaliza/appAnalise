@@ -1973,7 +1973,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowMetadata.VerticalAlignment = 'top';
             app.FlowMetadata.WordWrap = 'on';
             app.FlowMetadata.FontSize = 11;
-            app.FlowMetadata.FontColor = [1 1 1];
             app.FlowMetadata.Layout.Row = [1 9];
             app.FlowMetadata.Layout.Column = 1;
             app.FlowMetadata.Interpreter = 'html';
