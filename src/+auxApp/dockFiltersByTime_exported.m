@@ -470,6 +470,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
 
             % Create filterTypePanel
             app.filterTypePanel = uibuttongroup(app.GridLayout);
+            app.filterTypePanel.AutoResizeChildren = 'off';
             app.filterTypePanel.SelectionChangedFcn = createCallbackFcn(app, @filterTypePanelSelectionChanged, true);
             app.filterTypePanel.BackgroundColor = [0.9804 0.9804 0.9804];
             app.filterTypePanel.Layout.Row = 2;
@@ -506,6 +507,7 @@ classdef dockFiltersByTime_exported < matlab.apps.AppBase
 
             % Create filterValuePanel
             app.filterValuePanel = uipanel(app.GridLayout);
+            app.filterValuePanel.AutoResizeChildren = 'off';
             app.filterValuePanel.Layout.Row = 3;
             app.filterValuePanel.Layout.Column = [2 4];
 

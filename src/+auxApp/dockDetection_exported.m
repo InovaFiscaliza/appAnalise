@@ -437,6 +437,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create SearchModePanel
             app.SearchModePanel = uibuttongroup(app.GridLayout);
+            app.SearchModePanel.AutoResizeChildren = 'off';
             app.SearchModePanel.SelectionChangedFcn = createCallbackFcn(app, @SearchModePanelSelectionChanged, true);
             app.SearchModePanel.BackgroundColor = [1 1 1];
             app.SearchModePanel.Layout.Row = 2;
@@ -487,6 +488,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create AlgorithmPanel
             app.AlgorithmPanel = uipanel(app.GridLayout);
+            app.AlgorithmPanel.AutoResizeChildren = 'off';
             app.AlgorithmPanel.Layout.Row = 5;
             app.AlgorithmPanel.Layout.Column = [1 3];
 
@@ -751,6 +753,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create FindPeaksPlusOCCPanel1
             app.FindPeaksPlusOCCPanel1 = uipanel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCPanel1.AutoResizeChildren = 'off';
             app.FindPeaksPlusOCCPanel1.Title = 'MÉDIA';
             app.FindPeaksPlusOCCPanel1.Visible = 'off';
             app.FindPeaksPlusOCCPanel1.Tag = 'FindPeaksPlusOCC';
@@ -788,6 +791,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create FindPeaksPlusOCCPanel2
             app.FindPeaksPlusOCCPanel2 = uipanel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCPanel2.AutoResizeChildren = 'off';
             app.FindPeaksPlusOCCPanel2.Title = 'MAXHOLD';
             app.FindPeaksPlusOCCPanel2.Visible = 'off';
             app.FindPeaksPlusOCCPanel2.Tag = 'FindPeaksPlusOCC';

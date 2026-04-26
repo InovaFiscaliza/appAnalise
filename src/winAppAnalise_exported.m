@@ -1589,6 +1589,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create TabGroup
             app.TabGroup = uitabgroup(app.GridLayout);
+            app.TabGroup.AutoResizeChildren = 'off';
             app.TabGroup.Layout.Row = [1 2];
             app.TabGroup.Layout.Column = 1;
 
@@ -1750,6 +1751,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create Tab7_RepoSFI
             app.Tab7_RepoSFI = uitab(app.TabGroup);
+            app.Tab7_RepoSFI.AutoResizeChildren = 'off';
             app.Tab7_RepoSFI.Title = 'REPOSFI';
 
             % Create Tab8_Config

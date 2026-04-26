@@ -389,6 +389,7 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
             % Create ButtonGroup
             app.ButtonGroup = uibuttongroup(app.Document);
+            app.ButtonGroup.AutoResizeChildren = 'off';
             app.ButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ButtonGroupSelectionChanged, true);
             app.ButtonGroup.BackgroundColor = [1 1 1];
             app.ButtonGroup.Layout.Row = 2;

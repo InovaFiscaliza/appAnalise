@@ -1032,6 +1032,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create SubTab3
             app.SubTab3 = uitab(app.SubTabGroup);
+            app.SubTab3.AutoResizeChildren = 'off';
             app.SubTab3.Title = 'PROJETO';
 
             % Create SubGrid3

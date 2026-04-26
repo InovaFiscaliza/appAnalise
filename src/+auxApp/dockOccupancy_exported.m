@@ -187,6 +187,7 @@ classdef dockOccupancy_exported < matlab.apps.AppBase
 
             % Create RadioButtonPanel
             app.RadioButtonPanel = uibuttongroup(app.GridLayout);
+            app.RadioButtonPanel.AutoResizeChildren = 'off';
             app.RadioButtonPanel.SelectionChangedFcn = createCallbackFcn(app, @RadioButtonPanelSelectionChanged, true);
             app.RadioButtonPanel.BackgroundColor = [1 1 1];
             app.RadioButtonPanel.Layout.Row = 2;
@@ -224,6 +225,7 @@ classdef dockOccupancy_exported < matlab.apps.AppBase
 
             % Create ParametersPanel
             app.ParametersPanel = uipanel(app.GridLayout);
+            app.ParametersPanel.AutoResizeChildren = 'off';
             app.ParametersPanel.Layout.Row = 3;
             app.ParametersPanel.Layout.Column = [1 2];
 

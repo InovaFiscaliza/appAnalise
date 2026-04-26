@@ -235,6 +235,7 @@ classdef dockClassification_exported < matlab.apps.AppBase
 
             % Create SubPanel1
             app.SubPanel1 = uipanel(app.PanelGrid);
+            app.SubPanel1.AutoResizeChildren = 'off';
             app.SubPanel1.Layout.Row = 4;
             app.SubPanel1.Layout.Column = 1;
 
@@ -292,6 +293,7 @@ classdef dockClassification_exported < matlab.apps.AppBase
 
             % Create SubPanel2
             app.SubPanel2 = uipanel(app.PanelGrid);
+            app.SubPanel2.AutoResizeChildren = 'off';
             app.SubPanel2.Layout.Row = 4;
             app.SubPanel2.Layout.Column = [2 3];
 

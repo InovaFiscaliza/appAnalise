@@ -126,6 +126,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create Panel
             app.Panel = uipanel(app.GridLayout);
+            app.Panel.AutoResizeChildren = 'off';
             app.Panel.Layout.Row = [1 2];
             app.Panel.Layout.Column = [1 3];
 
