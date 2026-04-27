@@ -342,6 +342,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         context = varargin{1};
                                         notifySecondaryApps(app, eventName, {context})
 
+                                    case 'onEmissionTruncatedValueChanged'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName)
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -724,6 +727,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onFileFilterChanged', ...
                                                            'onEmissionAdded', ...
                                                            'onEmissionParameterValueChanged', ...
+                                                           'onEmissionDeleted', ...
                                                            'onSpectralDataReadError'})}
                 excludeTags cell = {}
             end

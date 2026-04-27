@@ -58,8 +58,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         UITableIcon                   matlab.ui.control.Image
         ContextMenu                   matlab.ui.container.ContextMenu
         contextmenu_TruncateItem      matlab.ui.container.Menu
-        contextmenu_NonTruncateEmission  matlab.ui.container.Menu
+        contextmenu_ChannelEmission   matlab.ui.container.Menu
         contextmenu_TruncateEmission  matlab.ui.container.Menu
+        contextmenu_NonTruncateEmission  matlab.ui.container.Menu
         contextmenu_DeleteEmission    matlab.ui.container.Menu
     end
 
@@ -264,6 +265,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function initializeAxes(app)
             hParent = tiledlayout(app.AxesContainer, 1, 3, "Padding", "compact", "TileSpacing", "compact");
+            set(hParent.Title, 'Color', [.8,.8,.8], 'FontSize', 7)
             
             app.UIAxes2 = plot.axes.Creation(hParent, 'Cartesian', {'XGrid', 'off', 'XMinorGrid', 'off', 'YGrid', 'off', 'YMinorGrid', 'off', 'YAxisLocation', "right", 'Clipping', 'off'});
             app.UIAxes2.Layout.Tile = 2;
@@ -414,8 +416,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 onAxesToolbarButtonClicked(app, struct('Source', app.AxesRestoreViewButton))
                 
                 ylabel(app.UIAxes1, 'Nível (dB)')
-                ysecondarylabel(app.UIAxes1, [newline, newline])
-                
+                app.UIAxes1.Parent.Title.String = newline;
                 
                 app.RFLinkWarning.Visible = 0;
                 app.ClassificationRefresh.Visible = 0;
@@ -539,7 +540,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             cla(app.UIAxes1)
             ylabel(app.UIAxes1, sprintf('Nível (%s)', app.bandObj.LevelUnit))
             set(app.UIAxes1, 'XLim', app.restoreView(1).xLim, 'YLim', app.restoreView(1).yLim)
-            ysecondarylabel(app.UIAxes1, sprintf('%s\n%.3f - %.3f MHz @ %s\n', specData.Receiver, specData.MetaData.FreqStart/1e6, specData.MetaData.FreqStop/1e6, emissionTag))
+            app.UIAxes1.Parent.Title.String = sprintf('%s\n%.3f – %.3f MHz @ %s', specData.Receiver, specData.MetaData.FreqStart/1e6, specData.MetaData.FreqStop/1e6, emissionTag);
 
             % Plot "minHold", "average" e "maxHold"
             for plotTag = ["minHold", "average", "maxHold"]
@@ -758,8 +759,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             
         end
 
-        % Menu selected function: contextmenu_DeleteEmission, 
-        % ...and 2 other components
+        % Menu selected function: contextmenu_ChannelEmission, 
+        % ...and 3 other components
         function onUITableContextMenuClicked(app, event)
             
             if isempty(app.UITable.Selection)
@@ -774,9 +775,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
 
+                case app.contextmenu_ChannelEmission
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'EmissionChannel', app.Context, flowIdx, emissionIdx)
+
                 otherwise % app.contextmenu_TruncateEmission | app.contextmenu_NonTruncateEmission
                     isTruncated = ~specData.UserData.Emissions.IsTruncated(emissionIdx);
                     update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, isTruncated, app.mainApp.channelObj)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionTruncatedValueChanged', app.Context)
             end
 
             applyInitialLayout(app)
@@ -1559,18 +1564,24 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.contextmenu_TruncateItem.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_TruncateItem.Text = '✏️ Editar';
 
-            % Create contextmenu_NonTruncateEmission
-            app.contextmenu_NonTruncateEmission = uimenu(app.contextmenu_TruncateItem);
-            app.contextmenu_NonTruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
-            app.contextmenu_NonTruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_NonTruncateEmission.Text = 'Não truncar';
+            % Create contextmenu_ChannelEmission
+            app.contextmenu_ChannelEmission = uimenu(app.contextmenu_TruncateItem);
+            app.contextmenu_ChannelEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
+            app.contextmenu_ChannelEmission.Text = 'Canal';
 
             % Create contextmenu_TruncateEmission
             app.contextmenu_TruncateEmission = uimenu(app.contextmenu_TruncateItem);
             app.contextmenu_TruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
             app.contextmenu_TruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_TruncateEmission.Enable = 'off';
+            app.contextmenu_TruncateEmission.Separator = 'on';
             app.contextmenu_TruncateEmission.Text = 'Truncar frequência';
+
+            % Create contextmenu_NonTruncateEmission
+            app.contextmenu_NonTruncateEmission = uimenu(app.contextmenu_TruncateItem);
+            app.contextmenu_NonTruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
+            app.contextmenu_NonTruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.contextmenu_NonTruncateEmission.Text = 'Não truncar';
 
             % Create contextmenu_DeleteEmission
             app.contextmenu_DeleteEmission = uimenu(app.ContextMenu);

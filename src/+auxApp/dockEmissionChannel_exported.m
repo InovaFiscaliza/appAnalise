@@ -50,7 +50,6 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
 
             app.channelFrequency.Value = emission.ChannelAssigned.UserModified.Frequency;
             app.channelBandWidth.Value = emission.ChannelAssigned.UserModified.ChannelBW;
-
             app.channelRefresh.Visible = ~isequal(emission.ChannelAssigned.AutoSuggested, emission.ChannelAssigned.UserModified);
         end
 
@@ -78,23 +77,25 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
                     app.channelFrequency.Editable = 0;
                     app.channelBandWidth.Editable = 0;
 
-                    [idxThread, idxEmission]      = specDataIndex(app, 'ChannelDefault');
-                    app.channelFrequency.Value    = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified.Frequency;
-                    app.channelBandWidth.Value    = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified.ChannelBW;
+                    flowIdx = app.inputArgs.flowIdx;
+                    emissionIdx = app.inputArgs.emissionIdx;
+
+                    app.channelFrequency.Value = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
+                    app.channelBandWidth.Value = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW;
             end
         end
 
         %-----------------------------------------------------------------%
-        function checkChannelAssigned(app, idxThread, idxEmission)            
-            if isempty(idxEmission)
-                chAssigned = util.emissionChannel(app.specData, idxThread, idxEmission, app.mainApp.channelObj);
+        function checkChannelAssigned(app, flowIdx, emissionIdx)
+            if isempty(emissionIdx)
+                chAssigned = util.emissionChannel(app.mainApp.specData, flowIdx, emissionIdx, app.mainApp.channelObj);
                 app.channelRefresh.Visible = 0;
 
             else
-                chAssigned = app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified;
+                chAssigned = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
                 
-                if isequal(app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).autoSuggested, ...
-                           app.specData(idxThread).UserData.Emissions.ChannelAssigned(idxEmission).userModified)
+                if isequal(app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).AutoSuggested, ...
+                           app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified)
                     app.channelRefresh.Visible = 0;
                 else
                     app.channelRefresh.Visible = 1;
@@ -104,26 +105,6 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
             app.channelGrid.UserData   = chAssigned;
             app.channelFrequency.Value = chAssigned.Frequency;
             app.channelBandWidth.Value = chAssigned.ChannelBW;
-
-            checkFixedScreenSpanLimits(app)
-        end
-
-        %-----------------------------------------------------------------%
-        function checkFixedScreenSpanLimits(app)
-            switch app.config_BandGuardType.Value
-                case 'Fixed'
-                    chBW        = app.channelBandWidth.Value; % kHz
-                    chBWLimits = chBW * app.config_BandGuardBWRelatedValue.Limits;
-        
-                    if app.config_BandGuardFixedValue.Value < chBWLimits(1)
-                        app.config_BandGuardFixedValue.Value = chBWLimits(1);
-                    elseif app.config_BandGuardFixedValue.Value > chBWLimits(2)
-                        app.config_BandGuardFixedValue.Value = chBWLimits(2);
-                    end
-
-                otherwise
-                    % ...
-            end
         end
     end
     
@@ -159,27 +140,24 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
             
             switch event.Source
                 case {app.channelRefresh, app.channelEditConfirm}
+                    context = app.inputArgs.context;
+                    flowIdx = app.inputArgs.flowIdx;
+                    emissionIdx = app.inputArgs.emissionIdx;
+
                     switch event.Source
                         case app.channelRefresh
                             operationType = 'ChannelDefault';
-                            [idxThread, idxEmission] = specDataIndex(app, operationType);
-                            updateCustomProperty(app, idxThread, idxEmission, operationType)        
-                            checkChannelAssigned(app, idxThread, idxEmission)
+                            updateCustomProperty(app, flowIdx, emissionIdx, operationType)        
+                            checkChannelAssigned(app, flowIdx, emissionIdx)
+
                         otherwise
                             operationType = 'ChannelParameterChanged';
-                            [idxThread, idxEmission] = specDataIndex(app, operationType);
-                            updateCustomProperty(app, idxThread, idxEmission, operationType)
+                            updateCustomProperty(app, flowIdx, emissionIdx, operationType)
                             app.channelRefresh.Visible = 1;
                     end
 
                     layout_editChannelAssigned(app, 'off')
-
-                    if app.plotFlag
-                        app.plotFlag = 0;
-                        pause(.100)
-                    end
-        
-                    prePlot_Startup(app, idxThread, idxEmission, operationType)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionChannelDeleted', context)
 
                 case app.channelEditMode
                     app.channelEditMode.UserData = ~app.channelEditMode.UserData;
