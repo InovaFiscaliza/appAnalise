@@ -185,7 +185,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         appEngine.activate(app, app.Role)
 
                     case 'onLocationEditRequested'
-                        uialert(app.UIFigure, 'onLocationEditRequested', '')
+                        flowIdx = findSpecDataIndex(app);
+                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Location', app.Context, flowIdx)
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -212,6 +213,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 else
                                     onFlowDropDownValueChanged(app)
                                 end
+
+                            case 'onLocationChanged'
+                                updateUIPanelContent(app)
 
                             case {'onEmissionAdded', 'onEmissionParameterValueChanged', 'onEmissionDeleted'}
                                 updateUIPanelContent(app)

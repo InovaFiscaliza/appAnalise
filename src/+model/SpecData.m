@@ -14,8 +14,7 @@ classdef SpecData < model.SpecDataBase
     %   ├── update ⚠️
     %   ├── hasOccupancyPerBin ⚠️
     %   ├── hasEmissionsInSearchBand ⚠️
-    %   ├── calculateAntennaHeight
-    %   └── FindPeaks ⚠️
+    %   └── calculateAntennaHeight
 
     % PRIVATE
     %   ├── checkIfScalar
@@ -451,14 +450,19 @@ classdef SpecData < model.SpecDataBase
                     switch updateType
                         case 'Refresh'
                             for ii = 1:numel(obj)
-                                gpsData = cell2mat(obj(ii).RelatedFiles.GPS);
-                                obj(ii).GPS = rmfield(gpsLib.summary(gpsData), 'Matrix');
-                            end         
+                                obj(ii).GPS = rmfield(gpsLib.summary(cell2mat(obj(ii).RelatedFiles.GPS)), 'Matrix');
+                            end
 
-                        case 'ManualEdition'
-                            manualGPS = varargin{1};        
+                        case 'CoordinatesChanged'
                             for ii = 1:numel(obj)
-                                obj(ii).GPS = manualGPS;
+                                obj(ii).GPS = varargin{1};
+                            end
+
+                        case 'LocationChanged'
+                            for ii = 1:numel(obj)
+                                obj(ii).GPS.Edited = true;
+                                obj(ii).GPS.Location = varargin{1};
+                                obj(ii).GPS.LocationSource = 'Manual';
                             end
 
                         otherwise 
@@ -688,6 +692,11 @@ classdef SpecData < model.SpecDataBase
                                     obj.UserData.Emissions.AuxAppData(idx).DriveTest = [];
                                     util.Measures(obj, 1, idx, 'Emission', channelObj)
 
+                                case 'Channel'
+                                    obj.UserData.Emissions.ChannelAssigned(idx).UserModified.Frequency = varargin{3};
+                                    obj.UserData.Emissions.ChannelAssigned(idx).UserModified.ChannelBW = varargin{4};
+                                    return
+
                                 case 'IsTruncated'
                                     obj.UserData.Emissions.IsTruncated(idx) = varargin{3};
                                     obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
@@ -709,6 +718,11 @@ classdef SpecData < model.SpecDataBase
                                     obj.UserData.Emissions.Classification(idx).UserModified.Distance = deg2km(distance(obj.GPS.Latitude, obj.GPS.Longitude, lat, lng));
                                     return
                             end
+
+                        case 'Refresh'
+                            idx = varargin{1};
+                            obj.UserData.Emissions.ChannelAssigned(idx).UserModified = obj.UserData.Emissions.ChannelAssigned(idx).AutoSuggested;
+                            return
         
                         case 'Delete'
                             idx = varargin{1};
@@ -759,12 +773,6 @@ classdef SpecData < model.SpecDataBase
         
                             for ii = idxThreads
                                 obj(ii).UserData.ReportInclude = true;
-                                
-                                % Ocupação
-                                hasOccupancyPerBin(obj(ii))
-                
-                                % Detecção de emissões
-                                FindPeaks(obj, ii, channelObj)
                             end
 
                         case 'Delete'
@@ -889,22 +897,6 @@ classdef SpecData < model.SpecDataBase
 
             if isnan(antennaHeight)
                 antennaHeight = referenceValue;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function FindPeaks(obj, idx, channelObj)
-            findPeaks = FindPeaksOfPrimaryBand(channelObj, obj(idx));
-
-            if ~isempty(findPeaks)
-                obj(idx).UserData.ReportAlgorithms.Detection.Parameters = struct( ...
-                    'Distance_kHz', 1000 * findPeaks.Distance, ...          % MHz >> kHz
-                    'BW_kHz',       1000 * findPeaks.BW, ...                % MHz >> kHz
-                    'Prominence1',  findPeaks.Prominence1, ...
-                    'Prominence2',  findPeaks.Prominence2, ...
-                    'meanOCC',      findPeaks.meanOCC, ...
-                    'maxOCC',       findPeaks.maxOCC ...
-                );
             end
         end
     end

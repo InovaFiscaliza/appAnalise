@@ -2,21 +2,21 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure               matlab.ui.Figure
-        GridLayout             matlab.ui.container.GridLayout
-        channelEditGrid        matlab.ui.container.GridLayout
-        channelEditCancel      matlab.ui.control.Image
-        channelEditConfirm     matlab.ui.control.Image
-        channelEditMode        matlab.ui.control.Image
-        channelRefresh         matlab.ui.control.Image
-        channelPanel           matlab.ui.container.Panel
-        channelGrid            matlab.ui.container.GridLayout
-        channelBandWidth       matlab.ui.control.NumericEditField
-        channelBandWidthLabel  matlab.ui.control.Label
-        channelFrequency       matlab.ui.control.NumericEditField
-        channelFrequencyLabel  matlab.ui.control.Label
-        channelLabel           matlab.ui.control.Label
-        PanelIcon              matlab.ui.control.Image
+        UIFigure            matlab.ui.Figure
+        GridLayout          matlab.ui.container.GridLayout
+        ChannelPanel        matlab.ui.container.Panel
+        ChannelGrid         matlab.ui.container.GridLayout
+        BandWidthkHz        matlab.ui.control.NumericEditField
+        BandWidthkHzLabel   matlab.ui.control.Label
+        FreqCenterMHz       matlab.ui.control.NumericEditField
+        FreqCenterMHzLabel  matlab.ui.control.Label
+        Toolbar             matlab.ui.container.GridLayout
+        CancelEdition       matlab.ui.control.Image
+        ConfirmEdition      matlab.ui.control.Image
+        ToggleEditMode      matlab.ui.control.Image
+        Refresh             matlab.ui.control.Image
+        Title               matlab.ui.control.Label
+        Icon                matlab.ui.control.Image
     end
 
     
@@ -44,67 +44,42 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function updatePanelValues(app, flowIdx, emissionIdx)
+        function initialValues(app, flowIdx, emissionIdx)
+            app.ToggleEditMode.UserData.status = false;
+            updatePanel(app, flowIdx, emissionIdx)
+        end
+
+        %-----------------------------------------------------------------%
+        function updatePanel(app, flowIdx, emissionIdx)
             specData = app.mainApp.specData(flowIdx);
             emission = specData.UserData.Emissions(emissionIdx, :);
 
-            app.channelFrequency.Value = emission.ChannelAssigned.UserModified.Frequency;
-            app.channelBandWidth.Value = emission.ChannelAssigned.UserModified.ChannelBW;
-            app.channelRefresh.Visible = ~isequal(emission.ChannelAssigned.AutoSuggested, emission.ChannelAssigned.UserModified);
+            app.FreqCenterMHz.Value = emission.ChannelAssigned.UserModified.Frequency;
+            app.BandWidthkHz.Value = emission.ChannelAssigned.UserModified.ChannelBW;
+            app.Refresh.Visible = ~isequal(emission.ChannelAssigned.AutoSuggested, emission.ChannelAssigned.UserModified);
         end
 
         %-----------------------------------------------------------------%
-        function layout_editChannelAssigned(app, editionStatus)
+        function updateLayout(app, editionStatus)
             arguments
-                app 
+                app
                 editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
-            end            
+            end
 
             switch editionStatus
                 case 'on'
-                    set(app.channelEditMode, 'ImageSource', 'Edit_32Filled.png', 'Tooltip', 'Desabilita edição do canal', 'UserData', true)
-                    app.channelEditGrid.ColumnWidth(end-1:end) = {18, 18};
-                    app.channelEditConfirm.Enable = 1;
-                    app.channelEditCancel.Enable  = 1;
-                    app.channelFrequency.Editable = 1;
-                    app.channelBandWidth.Editable = 1;
+                    app.Toolbar.ColumnWidth(end-1:end) = {18, 18};
+                    app.ToggleEditMode.ImageSource = 'Edit_32Filled.png';
+                    app.ToggleEditMode.UserData.status = true;
 
                 case 'off'
-                    set(app.channelEditMode, 'ImageSource', 'Edit_32.png',       'Tooltip', 'Habilita edição do canal',   'UserData', false)
-                    app.channelEditGrid.ColumnWidth(end-1:end) = {0, 0};
-                    app.channelEditConfirm.Enable = 0;
-                    app.channelEditCancel.Enable  = 0;
-                    app.channelFrequency.Editable = 0;
-                    app.channelBandWidth.Editable = 0;
-
-                    flowIdx = app.inputArgs.flowIdx;
-                    emissionIdx = app.inputArgs.emissionIdx;
-
-                    app.channelFrequency.Value = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
-                    app.channelBandWidth.Value = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW;
+                    app.Toolbar.ColumnWidth(end-1:end) = {0, 0};
+                    app.ToggleEditMode.ImageSource = 'Edit_32.png';
+                    app.ToggleEditMode.UserData.status = false;
             end
-        end
-
-        %-----------------------------------------------------------------%
-        function checkChannelAssigned(app, flowIdx, emissionIdx)
-            if isempty(emissionIdx)
-                chAssigned = util.emissionChannel(app.mainApp.specData, flowIdx, emissionIdx, app.mainApp.channelObj);
-                app.channelRefresh.Visible = 0;
-
-            else
-                chAssigned = app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
-                
-                if isequal(app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).AutoSuggested, ...
-                           app.mainApp.specData(flowIdx).UserData.Emissions.ChannelAssigned(emissionIdx).UserModified)
-                    app.channelRefresh.Visible = 0;
-                else
-                    app.channelRefresh.Visible = 1;
-                end
-            end
-
-            app.channelGrid.UserData   = chAssigned;
-            app.channelFrequency.Value = chAssigned.Frequency;
-            app.channelBandWidth.Value = chAssigned.ChannelBW;
+            
+            set([app.ConfirmEdition, app.CancelEdition], 'Enable',   editionStatus)
+            set([app.FreqCenterMHz,  app.BandWidthkHz],  'Editable', editionStatus)
         end
     end
     
@@ -119,7 +94,7 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
                 appEngine.boot(app, app.Role, mainApp, callingApp)
 
                 app.inputArgs = struct('context', context, 'flowIdx', flowIdx, 'emissionIdx', emissionIdx);
-                updatePanelValues(app, flowIdx, emissionIdx)
+                initialValues(app, flowIdx, emissionIdx)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -134,44 +109,53 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: channelEditCancel, channelEditConfirm, 
-        % ...and 2 other components
-        function channelRefreshImageClicked(app, event)
+        % Image clicked function: CancelEdition, ConfirmEdition, Refresh, 
+        % ...and 1 other component
+        function onButtonClicked(app, event)
             
-            switch event.Source
-                case {app.channelRefresh, app.channelEditConfirm}
-                    context = app.inputArgs.context;
-                    flowIdx = app.inputArgs.flowIdx;
-                    emissionIdx = app.inputArgs.emissionIdx;
+            context = app.inputArgs.context;
+            flowIdx = app.inputArgs.flowIdx;
+            emissionIdx = app.inputArgs.emissionIdx;
 
+            switch event.Source
+                case {app.Refresh, app.ConfirmEdition}
+                    specData = app.mainApp.specData(flowIdx);
+                    
                     switch event.Source
-                        case app.channelRefresh
-                            operationType = 'ChannelDefault';
-                            updateCustomProperty(app, flowIdx, emissionIdx, operationType)        
-                            checkChannelAssigned(app, flowIdx, emissionIdx)
+                        case app.Refresh
+                            update(specData, 'UserData:Emissions', 'Refresh', emissionIdx)
 
                         otherwise
-                            operationType = 'ChannelParameterChanged';
-                            updateCustomProperty(app, flowIdx, emissionIdx, operationType)
-                            app.channelRefresh.Visible = 1;
+                            userModified = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
+                            if all([ ...
+                                    abs(userModified.Frequency - app.FreqCenterMHz.Value) < 1e-3, ...
+                                    abs(userModified.ChannelBW - app.BandWidthkHz.Value)  < 1e-1 ...
+                                ])
+                                onButtonClicked(app, struct('Source', app.CancelEdition))
+                                return
+                            end
+
+                            update(specData, 'UserData:Emissions', 'Edit', 'Channel', emissionIdx, app.FreqCenterMHz.Value, app.BandWidthkHz.Value)
                     end
 
-                    layout_editChannelAssigned(app, 'off')
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionChannelDeleted', context)
+                    updateLayout(app, 'off')
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionChannelChanged', context)
 
-                case app.channelEditMode
-                    app.channelEditMode.UserData = ~app.channelEditMode.UserData;
+                case app.ToggleEditMode
+                    app.ToggleEditMode.UserData.status = ~app.ToggleEditMode.UserData.status;
         
-                    if app.channelEditMode.UserData
-                        layout_editChannelAssigned(app, 'on')
-                        focus(app.channelFrequency)        
+                    if app.ToggleEditMode.UserData.status
+                        updateLayout(app, 'on')
+                        focus(app.FreqCenterMHz)        
                     else
-                        layout_editChannelAssigned(app, 'off')
+                        updateLayout(app, 'off')
                     end
 
-                case app.channelEditCancel
-                    layout_editChannelAssigned(app, 'off')
+                case app.CancelEdition
+                    updateLayout(app, 'off')
             end
+
+            updatePanel(app, flowIdx, emissionIdx)
 
         end
     end
@@ -212,128 +196,119 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {18, '100x', 174};
+            app.GridLayout.ColumnWidth = {18, 244, 100};
             app.GridLayout.RowHeight = {22, 70};
             app.GridLayout.ColumnSpacing = 5;
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create PanelIcon
-            app.PanelIcon = uiimage(app.GridLayout);
-            app.PanelIcon.ScaleMethod = 'none';
-            app.PanelIcon.Layout.Row = 1;
-            app.PanelIcon.Layout.Column = 1;
-            app.PanelIcon.ImageSource = 'Channel_18.png';
+            % Create Icon
+            app.Icon = uiimage(app.GridLayout);
+            app.Icon.ScaleMethod = 'none';
+            app.Icon.Layout.Row = 1;
+            app.Icon.Layout.Column = 1;
+            app.Icon.ImageSource = 'Channel_18.png';
 
-            % Create channelLabel
-            app.channelLabel = uilabel(app.GridLayout);
-            app.channelLabel.VerticalAlignment = 'bottom';
-            app.channelLabel.FontSize = 10;
-            app.channelLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelLabel.Layout.Row = 1;
-            app.channelLabel.Layout.Column = 2;
-            app.channelLabel.Text = 'CANAL SOB ANÁLISE';
+            % Create Title
+            app.Title = uilabel(app.GridLayout);
+            app.Title.FontSize = 10;
+            app.Title.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.Title.Layout.Row = 1;
+            app.Title.Layout.Column = 2;
+            app.Title.Text = 'CANAL SOB ANÁLISE';
 
-            % Create channelPanel
-            app.channelPanel = uipanel(app.GridLayout);
-            app.channelPanel.AutoResizeChildren = 'off';
-            app.channelPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.channelPanel.Layout.Row = 2;
-            app.channelPanel.Layout.Column = [1 3];
+            % Create Toolbar
+            app.Toolbar = uigridlayout(app.GridLayout);
+            app.Toolbar.ColumnWidth = {'1x', 18, 18, 0, 0};
+            app.Toolbar.RowHeight = {'1x'};
+            app.Toolbar.ColumnSpacing = 5;
+            app.Toolbar.Padding = [0 0 0 0];
+            app.Toolbar.Layout.Row = 1;
+            app.Toolbar.Layout.Column = 3;
+            app.Toolbar.BackgroundColor = [1 1 1];
 
-            % Create channelGrid
-            app.channelGrid = uigridlayout(app.channelPanel);
-            app.channelGrid.ColumnWidth = {'1x', 110};
-            app.channelGrid.RowHeight = {22, 22};
-            app.channelGrid.RowSpacing = 5;
-            app.channelGrid.BackgroundColor = [1 1 1];
+            % Create Refresh
+            app.Refresh = uiimage(app.Toolbar);
+            app.Refresh.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
+            app.Refresh.Visible = 'off';
+            app.Refresh.Layout.Row = 1;
+            app.Refresh.Layout.Column = 2;
+            app.Refresh.ImageSource = 'Refresh_18.png';
 
-            % Create channelFrequencyLabel
-            app.channelFrequencyLabel = uilabel(app.channelGrid);
-            app.channelFrequencyLabel.FontSize = 11;
-            app.channelFrequencyLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelFrequencyLabel.Layout.Row = 1;
-            app.channelFrequencyLabel.Layout.Column = 1;
-            app.channelFrequencyLabel.Text = 'Frequência central (MHz):';
+            % Create ToggleEditMode
+            app.ToggleEditMode = uiimage(app.Toolbar);
+            app.ToggleEditMode.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
+            app.ToggleEditMode.Layout.Row = 1;
+            app.ToggleEditMode.Layout.Column = 3;
+            app.ToggleEditMode.ImageSource = 'Edit_32.png';
 
-            % Create channelFrequency
-            app.channelFrequency = uieditfield(app.channelGrid, 'numeric');
-            app.channelFrequency.Limits = [0 Inf];
-            app.channelFrequency.ValueDisplayFormat = '%.3f';
-            app.channelFrequency.Editable = 'off';
-            app.channelFrequency.FontSize = 11;
-            app.channelFrequency.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelFrequency.Layout.Row = 1;
-            app.channelFrequency.Layout.Column = 2;
+            % Create ConfirmEdition
+            app.ConfirmEdition = uiimage(app.Toolbar);
+            app.ConfirmEdition.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
+            app.ConfirmEdition.Enable = 'off';
+            app.ConfirmEdition.Layout.Row = 1;
+            app.ConfirmEdition.Layout.Column = 4;
+            app.ConfirmEdition.ImageSource = 'Ok_32Green.png';
 
-            % Create channelBandWidthLabel
-            app.channelBandWidthLabel = uilabel(app.channelGrid);
-            app.channelBandWidthLabel.FontSize = 11;
-            app.channelBandWidthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelBandWidthLabel.Layout.Row = 2;
-            app.channelBandWidthLabel.Layout.Column = 1;
-            app.channelBandWidthLabel.Text = 'Largura (kHz):';
+            % Create CancelEdition
+            app.CancelEdition = uiimage(app.Toolbar);
+            app.CancelEdition.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
+            app.CancelEdition.Enable = 'off';
+            app.CancelEdition.Layout.Row = 1;
+            app.CancelEdition.Layout.Column = 5;
+            app.CancelEdition.ImageSource = 'Delete_32Red.png';
 
-            % Create channelBandWidth
-            app.channelBandWidth = uieditfield(app.channelGrid, 'numeric');
-            app.channelBandWidth.Limits = [0 Inf];
-            app.channelBandWidth.ValueDisplayFormat = '%.1f';
-            app.channelBandWidth.Editable = 'off';
-            app.channelBandWidth.FontSize = 11;
-            app.channelBandWidth.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelBandWidth.Layout.Row = 2;
-            app.channelBandWidth.Layout.Column = 2;
+            % Create ChannelPanel
+            app.ChannelPanel = uipanel(app.GridLayout);
+            app.ChannelPanel.AutoResizeChildren = 'off';
+            app.ChannelPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.ChannelPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
+            app.ChannelPanel.Layout.Row = 2;
+            app.ChannelPanel.Layout.Column = [1 3];
 
-            % Create channelEditGrid
-            app.channelEditGrid = uigridlayout(app.GridLayout);
-            app.channelEditGrid.ColumnWidth = {'1x', 18, 18, 0, 0};
-            app.channelEditGrid.RowHeight = {'1x'};
-            app.channelEditGrid.ColumnSpacing = 5;
-            app.channelEditGrid.Padding = [0 0 0 0];
-            app.channelEditGrid.Layout.Row = 1;
-            app.channelEditGrid.Layout.Column = 3;
-            app.channelEditGrid.BackgroundColor = [1 1 1];
+            % Create ChannelGrid
+            app.ChannelGrid = uigridlayout(app.ChannelPanel);
+            app.ChannelGrid.ColumnWidth = {'1x', 110};
+            app.ChannelGrid.RowHeight = {22, 22};
+            app.ChannelGrid.RowSpacing = 5;
+            app.ChannelGrid.BackgroundColor = [1 1 1];
 
-            % Create channelRefresh
-            app.channelRefresh = uiimage(app.channelEditGrid);
-            app.channelRefresh.ImageClickedFcn = createCallbackFcn(app, @channelRefreshImageClicked, true);
-            app.channelRefresh.Visible = 'off';
-            app.channelRefresh.Tooltip = {'Volta à configuração inicial'};
-            app.channelRefresh.Layout.Row = 1;
-            app.channelRefresh.Layout.Column = 2;
-            app.channelRefresh.VerticalAlignment = 'bottom';
-            app.channelRefresh.ImageSource = 'Refresh_18.png';
+            % Create FreqCenterMHzLabel
+            app.FreqCenterMHzLabel = uilabel(app.ChannelGrid);
+            app.FreqCenterMHzLabel.FontSize = 11;
+            app.FreqCenterMHzLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FreqCenterMHzLabel.Layout.Row = 1;
+            app.FreqCenterMHzLabel.Layout.Column = 1;
+            app.FreqCenterMHzLabel.Text = 'Frequência central (MHz):';
 
-            % Create channelEditMode
-            app.channelEditMode = uiimage(app.channelEditGrid);
-            app.channelEditMode.ImageClickedFcn = createCallbackFcn(app, @channelRefreshImageClicked, true);
-            app.channelEditMode.Tooltip = {'Possibilita edição dos parâmetros do canal'};
-            app.channelEditMode.Layout.Row = 1;
-            app.channelEditMode.Layout.Column = 3;
-            app.channelEditMode.VerticalAlignment = 'bottom';
-            app.channelEditMode.ImageSource = 'Edit_32.png';
+            % Create FreqCenterMHz
+            app.FreqCenterMHz = uieditfield(app.ChannelGrid, 'numeric');
+            app.FreqCenterMHz.Limits = [0 Inf];
+            app.FreqCenterMHz.ValueDisplayFormat = '%.3f';
+            app.FreqCenterMHz.Editable = 'off';
+            app.FreqCenterMHz.FontSize = 11;
+            app.FreqCenterMHz.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FreqCenterMHz.Layout.Row = 1;
+            app.FreqCenterMHz.Layout.Column = 2;
 
-            % Create channelEditConfirm
-            app.channelEditConfirm = uiimage(app.channelEditGrid);
-            app.channelEditConfirm.ImageClickedFcn = createCallbackFcn(app, @channelRefreshImageClicked, true);
-            app.channelEditConfirm.Enable = 'off';
-            app.channelEditConfirm.Tooltip = {'Confirma edição'};
-            app.channelEditConfirm.Layout.Row = 1;
-            app.channelEditConfirm.Layout.Column = 4;
-            app.channelEditConfirm.VerticalAlignment = 'bottom';
-            app.channelEditConfirm.ImageSource = 'Ok_32Green.png';
+            % Create BandWidthkHzLabel
+            app.BandWidthkHzLabel = uilabel(app.ChannelGrid);
+            app.BandWidthkHzLabel.FontSize = 11;
+            app.BandWidthkHzLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.BandWidthkHzLabel.Layout.Row = 2;
+            app.BandWidthkHzLabel.Layout.Column = 1;
+            app.BandWidthkHzLabel.Text = 'Largura (kHz):';
 
-            % Create channelEditCancel
-            app.channelEditCancel = uiimage(app.channelEditGrid);
-            app.channelEditCancel.ImageClickedFcn = createCallbackFcn(app, @channelRefreshImageClicked, true);
-            app.channelEditCancel.Enable = 'off';
-            app.channelEditCancel.Tooltip = {'Cancela edição'};
-            app.channelEditCancel.Layout.Row = 1;
-            app.channelEditCancel.Layout.Column = 5;
-            app.channelEditCancel.VerticalAlignment = 'bottom';
-            app.channelEditCancel.ImageSource = 'Delete_32Red.png';
+            % Create BandWidthkHz
+            app.BandWidthkHz = uieditfield(app.ChannelGrid, 'numeric');
+            app.BandWidthkHz.Limits = [0 Inf];
+            app.BandWidthkHz.ValueDisplayFormat = '%.1f';
+            app.BandWidthkHz.Editable = 'off';
+            app.BandWidthkHz.FontSize = 11;
+            app.BandWidthkHz.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.BandWidthkHz.Layout.Row = 2;
+            app.BandWidthkHz.Layout.Column = 2;
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
