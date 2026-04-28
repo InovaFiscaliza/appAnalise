@@ -293,8 +293,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         reportUploadArtifacts(app, context, [], 'uploadDocument')
 
                                     case {'onSpectralDataReadError', 'onEmissionDeleted', 'onEmissionParameterValueChanged'}
-                                        context = varargin{1};
-                                        notifySecondaryApps(app, eventName, {context})
+                                        notifySecondaryApps(app, eventName)
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)

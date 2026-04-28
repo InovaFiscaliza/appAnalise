@@ -256,6 +256,7 @@ classdef Band < handle
                     emissionIdx = varargin{1};
 
                     if isempty(emissionIdx)
+                        bandGuard.Parameters.Value = 1;
                         channelFreqCenter = (specData.MetaData.FreqStart + specData.MetaData.FreqStop) / 2e+6; % MHz
                         channelBandWidth  = (specData.MetaData.FreqStop - specData.MetaData.FreqStart) / 1e+6; % MHz
                     else

@@ -343,7 +343,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function initializeAxes(app)
             hParent = tiledlayout(app.AxesContainer, 4, 1, "Padding", "compact", "TileSpacing", "compact");
 
-            app.UIAxes1 = plot.axes.Creation(hParent, 'Cartesian', {'TitleHorizontalAlignment', 'right', 'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
+            app.UIAxes1 = plot.axes.Creation(hParent, 'Cartesian', {'XGrid', 'off', 'XMinorGrid', 'off', 'YGrid', 'off', 'YMinorGrid', 'off', 'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
             app.UIAxes1.Layout.Tile = 1;
             app.UIAxes1.Layout.TileSpan = [2 1];
             
@@ -564,8 +564,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function idx = findSpecDataIndex(app)
-            idx = app.SpectrumFlowList.Value;
+        function [flowIdx, emissionIdx] = findSpecDataIndex(app)
+            flowIdx = app.SpectrumFlowList.Value;
+            emissionIdx = app.FlowEmissions.Selection;
         end
 
         %-----------------------------------------------------------------%
@@ -1150,7 +1151,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
-        function runPlaybackLoop(app, idx, nSweeps)
+        function runPlaybackLoop(app, flowIdx, nSweeps)
             app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
 
             if ~app.plotHandles.clearWrite.Visible
@@ -1162,14 +1163,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     case -1
                         app.plotUpdateEvent = 1;
 
-                        idx = findSpecDataIndex(app);
-                        updateFlowView(app, idx)
+                        flowIdx = findSpecDataIndex(app);
+                        updateFlowView(app, flowIdx)
 
-                        if isempty(idx)
+                        if isempty(flowIdx)
                             break
                         end
                         
-                        nSweeps = numel(app.mainApp.specData(idx).Data{1});
+                        nSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
 
                     case  0
                         break
@@ -1178,7 +1179,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 sweepTic = tic;
                 
                 updatePlot(app)
-                app.tool_TimestampLabel.Text   = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.mainApp.specData(idx).Data{1}(app.sweepTimeIdx));
+                app.tool_TimestampLabel.Text   = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx));
                 app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
                 
                 pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
@@ -1228,7 +1229,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: dockModule_Close, dockModule_Undock
-        function DockModuleGroup_ButtonPushed(app, event)
+        function onDockModuleGroupButtonClicked(app, event)
             
             if app.plotUpdateEvent
                 app.plotUpdateEvent = 0;
@@ -1253,6 +1254,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case app.dockModule_Close
                     closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General)
             end
+
+        end
+
+        % Image clicked function: FlowChannelEdit, 
+        % ...and 5 other components
+        function onOpenPopupApp(app, event)
+            
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = 0;
+            end
+
+            switch event.Source
+                case app.FlowDetectionLimitsEdit
+                    dockAppTag = 'DetectionLimits';
+                case app.FlowEmissionsAdd
+                    dockAppTag = 'Detection';
+                case app.FlowChannelEdit
+                    dockAppTag = 'Channels';
+                case app.FlowOccupancyEdit
+                    dockAppTag = 'Occupancy';
+                case app.tool_OpenPopupMisc
+                    dockAppTag = 'Miscellaneous';
+                case app.tool_OpenPopupProject
+                    dockAppTag = 'ReportLib';
+            end
+
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context)
 
         end
 
@@ -1313,8 +1341,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: axesTool_DataTip, axesTool_Pan, 
-        % ...and 8 other components
+        % Image clicked function: axesTool_DataTip, axesTool_FlowInfo, 
+        % ...and 9 other components
         function onAxesToolbarButtonClicked(app, event)
             
             specData = app.bandObj.SpecData;
@@ -1419,63 +1447,106 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
 
                     plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
+
+                case app.axesTool_FlowInfo
+                    if ~isempty(specData)
+                        flowAnalysis = util.HtmlTextGenerator.ThreadAnalysis(specData);
+                        ui.Dialog(app.UIFigure, 'info', flowAnalysis);
+                    end
             end
             drawnow
 
         end
 
-        % Value changed function: LayoutRatio, PersistenceColormap, 
-        % ...and 7 other components
-        function onDisplayPlotConfigChanged(app, event)
+        % Image clicked function: tool_LayoutLeft, tool_LayoutRight
+        function onToolbarPanelVisibilityChanged(app, event)
             
-            specData = app.bandObj.SpecData;
-            update(specData, 'UserData:PlotDisplayConfig', event.Source.Tag, event.Value)
+            event.Source.UserData.status = ~event.Source.UserData.status;
 
             switch event.Source
-                case app.LayoutRatio  
-                    plot.axes.Layout.Visibility([app.UIAxes1, app.UIAxes2, app.UIAxes3], event.Value, app.bandObj.Context)
+                case app.tool_LayoutLeft
+                    if event.Source.UserData.status
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.AxesContainer.Layout.Column(1) = 4;
+                        app.AxesToolbar.Layout.Column      = 5;
+                        app.LeftPanel.Visible              = 'on';
+                    else
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.AxesContainer.Layout.Column(1) = 1;
+                        app.AxesToolbar.Layout.Column      = 2;
+                        app.LeftPanel.Visible              = 'off';
+                    end
 
-                case app.PersistenceInterpolation
-                    app.plotHandles.persistence.handle.Interpolation = event.Value;
+                case app.tool_LayoutRight
+                    if event.Source.UserData.status
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.AxesContainer.Layout.Column(2) = 6;
+                        app.AxesAnnotation.Layout.Column   = 6;
+                        app.RightPanel.Visible             = 'on';
+                    else
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.AxesContainer.Layout.Column(2) = 8;
+                        app.AxesAnnotation.Layout.Column   = [6 8];
+                        app.RightPanel.Visible             = 'off';
+                    end
+            end
 
-                case app.PersistenceWindowSize
-                    updatePersistencePlot(app, 'Delete')
-                    updatePersistencePlot(app, 'Creation')
+        end
 
-                case app.PersistenceColormap
-                    plot.axes.Colormap(app.UIAxes1, event.Value)
+        % Image clicked function: tool_LoopControl, tool_Play
+        function onToolbarPlaybackControlChanged(app, event)
+            
+            switch event.Source
+                case app.tool_Play
+                    idx = findSpecDataIndex(app);
 
-                case app.PersistenceTransparency
-                    app.plotHandles.persistence.handle.CData(isnan(app.plotHandles.persistence.handle.CData)) = 0; 
-                    app.plotHandles.persistence.handle.AlphaData = double(logical(app.plotHandles.persistence.handle.CData)) * event.Value;
+                    if ~isempty(idx) && ~app.plotUpdateEvent
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
 
-                case { app.WaterfallFunction, app.WaterfallDecimation }
-                    [~, ~, xData, yData] = plot.datatip.Search(app.UIAxes3);
-                    app.plotHandles.waterfall = plot.Waterfall('Delete', app.plotHandles.waterfall);
-                    updateWaterfallPlot(app)
+                        app.plotUpdateEvent = 1;
+                        runPlaybackLoop(app, idx, numel(app.mainApp.specData(idx).Data{1}))        
+                    else
+                        app.plotUpdateEvent = 0;
+                    end
 
-                    if ~isempty(xData)
-                        if event.Source == app.WaterfallFunction
-                            for ii = 1:numel(yData)
-                                switch event.Value
-                                    case 'image'
-                                        yData{ii} = timestamp2idx(app.bandObj, yData{ii});
-                                    case 'mesh'
-                                        yData{ii} = idx2timestamp(app.bandObj, yData{ii});
-                                end
-                            end
-                        end
+                %---------------------------------------------------------%
+                case app.tool_LoopControl
+                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
 
-                        dtConfig = struct('xData', xData, 'yData', yData);
-                        dtParent = app.plotHandles.waterfall;
-                        plot.datatip.Create('redrawWaterfall', dtConfig, dtParent)                        
-                    end                    
+                     if app.tool_LoopControl.UserData.loopMode
+                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
+                     else
+                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
+                    end
+            end
 
-                case app.WaterfallColormap
-                    plot.axes.Colormap(app.UIAxes3, event.Value)
+        end
 
-                case app.WaterfallMeshStyle
-                    app.plotHandles.waterfall.MeshStyle = event.Value;
+        % Callback function: tool_TimestampSlider, tool_TimestampSlider
+        function onToolbarTimelineSliderChanging(app, event)
+            
+            nSweeps = app.bandObj.NumSweeps;            
+            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
+            
+            if app.sweepTimeIdx < 1
+                app.sweepTimeIdx = 1;
+            elseif app.sweepTimeIdx > nSweeps
+                app.sweepTimeIdx = nSweeps;
+            end
+
+            if ~app.plotUpdateEvent
+                if ~app.plotHandles.clearWrite.Visible
+                    app.plotHandles.clearWrite.Visible = true;
+                end
+                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
+                
+                updatePersistencePlot(app, 'Update')
+
+                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
+                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                end
+
+                app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
             end
             
         end
@@ -1560,136 +1631,60 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: tool_LayoutLeft, tool_LayoutRight
-        function tool_PanelVisibilityButtonPushed(app, event)
-            
-            event.Source.UserData.status = ~event.Source.UserData.status;
-
-            switch event.Source
-                case app.tool_LayoutLeft
-                    if event.Source.UserData.status
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
-                        app.AxesContainer.Layout.Column(1) = 4;
-                        app.AxesToolbar.Layout.Column      = 5;
-                        app.LeftPanel.Visible              = 'on';
-                    else
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
-                        app.AxesContainer.Layout.Column(1) = 1;
-                        app.AxesToolbar.Layout.Column      = 2;
-                        app.LeftPanel.Visible              = 'off';
-                    end
-
-                case app.tool_LayoutRight
-                    if event.Source.UserData.status
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
-                        app.AxesContainer.Layout.Column(2) = 6;
-                        app.AxesAnnotation.Layout.Column   = 6;
-                        app.RightPanel.Visible             = 'on';
-                    else
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
-                        app.AxesContainer.Layout.Column(2) = 8;
-                        app.AxesAnnotation.Layout.Column   = [6 8];
-                        app.RightPanel.Visible             = 'off';
-                    end
-            end
-
-        end
-
-        % Callback function: tool_TimestampSlider, tool_TimestampSlider
-        function tool_TimestampSliderValueChanged(app, event)
-            
-            nSweeps = app.bandObj.NumSweeps;            
-            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
-            
-            if app.sweepTimeIdx < 1
-                app.sweepTimeIdx = 1;
-            elseif app.sweepTimeIdx > nSweeps
-                app.sweepTimeIdx = nSweeps;
-            end
-
-            if ~app.plotUpdateEvent
-                if ~app.plotHandles.clearWrite.Visible
-                    app.plotHandles.clearWrite.Visible = true;
-                end
-                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
-                
-                updatePersistencePlot(app, 'Update')
-
-                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
-                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                end
-
-                app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
-            end
-            
-        end
-
-        % Image clicked function: tool_LoopControl, tool_Play
-        function tool_PlaybackControlButtonPushed(app, event)
-            
-            switch event.Source
-                case app.tool_Play
-                    idx = findSpecDataIndex(app);
-
-                    if ~isempty(idx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        runPlaybackLoop(app, idx, numel(app.mainApp.specData(idx).Data{1}))        
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
-
-                %---------------------------------------------------------%
-                case app.tool_LoopControl
-                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
-
-                     if app.tool_LoopControl.UserData.loopMode
-                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
-                     else
-                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
-                    end
-            end
-
-        end
-
-        % Image clicked function: FlowChannelEdit, 
-        % ...and 5 other components
-        function openPopupApp(app, event)
-            
-            if app.plotUpdateEvent
-                app.plotUpdateEvent = 0;
-            end
-
-            switch event.Source
-                case app.FlowDetectionLimitsEdit
-                    dockAppTag = 'DetectionLimits';
-                case app.FlowEmissionsAdd
-                    dockAppTag = 'Detection';
-                case app.FlowChannelEdit
-                    dockAppTag = 'Channels';
-                case app.FlowOccupancyEdit
-                    dockAppTag = 'Occupancy';
-                case app.tool_OpenPopupMisc
-                    dockAppTag = 'Miscellaneous';
-                case app.tool_OpenPopupProject
-                    dockAppTag = 'ReportLib';
-            end
-
-            ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context)
-
-        end
-
-        % Image clicked function: axesTool_FlowInfo
-        function axesTool_FlowInfoImageClicked(app, event)
+        % Value changed function: LayoutRatio, PersistenceColormap, 
+        % ...and 7 other components
+        function onDisplayPlotConfigChanged(app, event)
             
             specData = app.bandObj.SpecData;
-            
-            if ~isempty(specData)
-                flowAnalysis = util.HtmlTextGenerator.ThreadAnalysis(specData);
-                ui.Dialog(app.UIFigure, 'info', flowAnalysis);
-            end
+            update(specData, 'UserData:PlotDisplayConfig', event.Source.Tag, event.Value)
 
+            switch event.Source
+                case app.LayoutRatio  
+                    plot.axes.Layout.Visibility([app.UIAxes1, app.UIAxes2, app.UIAxes3], event.Value, app.bandObj.Context)
+
+                case app.PersistenceInterpolation
+                    app.plotHandles.persistence.handle.Interpolation = event.Value;
+
+                case app.PersistenceWindowSize
+                    updatePersistencePlot(app, 'Delete')
+                    updatePersistencePlot(app, 'Creation')
+
+                case app.PersistenceColormap
+                    plot.axes.Colormap(app.UIAxes1, event.Value)
+
+                case app.PersistenceTransparency
+                    app.plotHandles.persistence.handle.CData(isnan(app.plotHandles.persistence.handle.CData)) = 0; 
+                    app.plotHandles.persistence.handle.AlphaData = double(logical(app.plotHandles.persistence.handle.CData)) * event.Value;
+
+                case { app.WaterfallFunction, app.WaterfallDecimation }
+                    [~, ~, xData, yData] = plot.datatip.Search(app.UIAxes3);
+                    app.plotHandles.waterfall = plot.Waterfall('Delete', app.plotHandles.waterfall);
+                    updateWaterfallPlot(app)
+
+                    if ~isempty(xData)
+                        if event.Source == app.WaterfallFunction
+                            for ii = 1:numel(yData)
+                                switch event.Value
+                                    case 'image'
+                                        yData{ii} = timestamp2idx(app.bandObj, yData{ii});
+                                    case 'mesh'
+                                        yData{ii} = idx2timestamp(app.bandObj, yData{ii});
+                                end
+                            end
+                        end
+
+                        dtConfig = struct('xData', xData, 'yData', yData);
+                        dtParent = app.plotHandles.waterfall;
+                        plot.datatip.Create('redrawWaterfall', dtConfig, dtParent)                        
+                    end                    
+
+                case app.WaterfallColormap
+                    plot.axes.Colormap(app.UIAxes3, event.Value)
+
+                case app.WaterfallMeshStyle
+                    app.plotHandles.waterfall.MeshStyle = event.Value;
+            end
+            
         end
 
         % Double-clicked callback: FlowOccupancy
@@ -1724,6 +1719,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             indices = event.Indices;
             newData = event.NewData;
             
+        end
+
+        % Menu selected function: ContextMenuClassificationOption, 
+        % ...and 1 other component
+        function onContextMenuOptionClicked(app, event)
+            
+            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            specData = app.mainApp.specData(flowIdx);
+
+            switch event.Source
+                case app.ContextMenuClassificationOption                    
+
+                case app.ContextMenuRemoveOption
+                    update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+            end
+
         end
     end
 
@@ -1783,7 +1795,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_LayoutLeft
             app.tool_LayoutLeft = uiimage(app.Toolbar);
             app.tool_LayoutLeft.ScaleMethod = 'none';
-            app.tool_LayoutLeft.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
+            app.tool_LayoutLeft.ImageClickedFcn = createCallbackFcn(app, @onToolbarPanelVisibilityChanged, true);
             app.tool_LayoutLeft.Layout.Row = [1 3];
             app.tool_LayoutLeft.Layout.Column = 1;
             app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
@@ -1800,7 +1812,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_Play
             app.tool_Play = uiimage(app.Toolbar);
             app.tool_Play.ScaleMethod = 'none';
-            app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlButtonPushed, true);
+            app.tool_Play.ImageClickedFcn = createCallbackFcn(app, @onToolbarPlaybackControlChanged, true);
             app.tool_Play.Enable = 'off';
             app.tool_Play.Layout.Row = [1 3];
             app.tool_Play.Layout.Column = 3;
@@ -1808,7 +1820,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create tool_LoopControl
             app.tool_LoopControl = uiimage(app.Toolbar);
-            app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @tool_PlaybackControlButtonPushed, true);
+            app.tool_LoopControl.ImageClickedFcn = createCallbackFcn(app, @onToolbarPlaybackControlChanged, true);
             app.tool_LoopControl.Enable = 'off';
             app.tool_LoopControl.Layout.Row = [1 3];
             app.tool_LoopControl.Layout.Column = 4;
@@ -1817,8 +1829,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_TimestampSlider
             app.tool_TimestampSlider = uislider(app.Toolbar);
             app.tool_TimestampSlider.MajorTicks = [0 50 100];
-            app.tool_TimestampSlider.ValueChangedFcn = createCallbackFcn(app, @tool_TimestampSliderValueChanged, true);
-            app.tool_TimestampSlider.ValueChangingFcn = createCallbackFcn(app, @tool_TimestampSliderValueChanged, true);
+            app.tool_TimestampSlider.ValueChangedFcn = createCallbackFcn(app, @onToolbarTimelineSliderChanging, true);
+            app.tool_TimestampSlider.ValueChangingFcn = createCallbackFcn(app, @onToolbarTimelineSliderChanging, true);
             app.tool_TimestampSlider.MinorTicks = [0 2.5 5 7.5 10 12.5 15 17.5 20 22.5 25 27.5 30 32.5 35 37.5 40 42.5 45 47.5 50 52.5 55 57.5 60 62.5 65 67.5 70 72.5 75 77.5 80 82.5 85 87.5 90 92.5 95 97.5 100];
             app.tool_TimestampSlider.FontSize = 8;
             app.tool_TimestampSlider.Enable = 'off';
@@ -1836,7 +1848,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_OpenPopupMisc
             app.tool_OpenPopupMisc = uiimage(app.Toolbar);
             app.tool_OpenPopupMisc.ScaleMethod = 'none';
-            app.tool_OpenPopupMisc.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.tool_OpenPopupMisc.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.tool_OpenPopupMisc.Enable = 'off';
             app.tool_OpenPopupMisc.Layout.Row = [1 3];
             app.tool_OpenPopupMisc.Layout.Column = 7;
@@ -1854,7 +1866,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_OpenPopupProject
             app.tool_OpenPopupProject = uiimage(app.Toolbar);
             app.tool_OpenPopupProject.ScaleMethod = 'none';
-            app.tool_OpenPopupProject.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.tool_OpenPopupProject.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.tool_OpenPopupProject.Layout.Row = [1 3];
             app.tool_OpenPopupProject.Layout.Column = 9;
             app.tool_OpenPopupProject.ImageSource = 'organization-20px-black.svg';
@@ -1887,7 +1899,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
             app.tool_LayoutRight.ScaleMethod = 'none';
-            app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @tool_PanelVisibilityButtonPushed, true);
+            app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @onToolbarPanelVisibilityChanged, true);
             app.tool_LayoutRight.Layout.Row = [1 3];
             app.tool_LayoutRight.Layout.Column = 13;
             app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
@@ -1992,7 +2004,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowChannelEdit
             app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
-            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowChannelEdit.Enable = 'off';
             app.FlowChannelEdit.Layout.Row = 2;
             app.FlowChannelEdit.Layout.Column = 4;
@@ -2017,7 +2029,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowDetectionLimitsEdit
             app.FlowDetectionLimitsEdit = uiimage(app.FlowPanelGrid);
-            app.FlowDetectionLimitsEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowDetectionLimitsEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowDetectionLimitsEdit.Enable = 'off';
             app.FlowDetectionLimitsEdit.Layout.Row = 6;
             app.FlowDetectionLimitsEdit.Layout.Column = 4;
@@ -2043,7 +2055,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowEmissionsAdd
             app.FlowEmissionsAdd = uiimage(app.FlowPanelGrid);
             app.FlowEmissionsAdd.ScaleMethod = 'none';
-            app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowEmissionsAdd.Enable = 'off';
             app.FlowEmissionsAdd.Layout.Row = 2;
             app.FlowEmissionsAdd.Layout.Column = 7;
@@ -2075,7 +2087,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowOccupancyEdit
             app.FlowOccupancyEdit = uiimage(app.FlowPanelGrid);
-            app.FlowOccupancyEdit.ImageClickedFcn = createCallbackFcn(app, @openPopupApp, true);
+            app.FlowOccupancyEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowOccupancyEdit.Enable = 'off';
             app.FlowOccupancyEdit.Layout.Row = 2;
             app.FlowOccupancyEdit.Layout.Column = 10;
@@ -2701,7 +2713,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create axesTool_FlowInfo
             app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
-            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @axesTool_FlowInfoImageClicked, true);
+            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_FlowInfo.Enable = 'off';
             app.axesTool_FlowInfo.Layout.Row = 1;
             app.axesTool_FlowInfo.Layout.Column = 16;
@@ -2720,7 +2732,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
-            app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
             app.dockModule_Undock.Enable = 'off';
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
@@ -2729,7 +2741,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create dockModule_Close
             app.dockModule_Close = uiimage(app.DockModule);
             app.dockModule_Close.ScaleMethod = 'none';
-            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @DockModuleGroup_ButtonPushed, true);
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
             app.dockModule_Close.Layout.Row = 1;
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
@@ -2739,11 +2751,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create ContextMenuClassificationOption
             app.ContextMenuClassificationOption = uimenu(app.ContextMenu);
+            app.ContextMenuClassificationOption.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
             app.ContextMenuClassificationOption.Enable = 'off';
             app.ContextMenuClassificationOption.Text = '🏷️ Classificação';
 
             % Create ContextMenuRemoveOption
             app.ContextMenuRemoveOption = uimenu(app.ContextMenu);
+            app.ContextMenuRemoveOption.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
             app.ContextMenuRemoveOption.Enable = 'off';
             app.ContextMenuRemoveOption.Separator = 'on';
             app.ContextMenuRemoveOption.Text = '❌ Excluir';
