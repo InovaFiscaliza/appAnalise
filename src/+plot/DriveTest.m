@@ -90,7 +90,7 @@ classdef (Abstract) DriveTest
         %-----------------------------------------------------------------%
         function Distortion(hAxes, srcTable, plotSize, Visibility, LevelUnit)
             hDistortion = geoscatter(hAxes, srcTable.Latitude, srcTable.Longitude, [], srcTable.ChannelPower,  ...
-                                            'filled', 'SizeData', 20*plotSize, 'Tag', 'Distortion', 'Visible', Visibility, 'DisplayName', 'Potência do canal (Distorção)');
+                                            'filled', 'SizeData', 20*plotSize, 'Tag', 'distortion', 'Visible', Visibility, 'DisplayName', 'Potência do canal (Distorção)');
             plot.datatip.Template(hDistortion, 'SweepID+ChannelPower+Coordinates', LevelUnit)
         end
 
@@ -103,7 +103,7 @@ classdef (Abstract) DriveTest
 
             geodensityplot(hAxes, srcTable.Latitude, srcTable.Longitude, weights, ...
                                   'FaceColor','interp', 'Radius', 100*plotSize,   ...
-                                  'PickableParts', 'none', 'Tag', 'Density', 'Visible', Visibility, 'DisplayName', 'Potência do canal (Densidade)');
+                                  'PickableParts', 'none', 'Tag', 'density', 'Visible', Visibility, 'DisplayName', 'Potência do canal (Densidade)');
         end
 
         %-----------------------------------------------------------------%

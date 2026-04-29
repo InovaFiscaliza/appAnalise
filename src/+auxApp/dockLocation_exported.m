@@ -169,7 +169,7 @@ classdef dockLocation_exported < matlab.apps.AppBase
                                     update(specData(ii), 'GPS', 'LocationChanged', app.City.Value)
                                 end
     
-                                if abs(currentAntennaHeight - app.Height.Value) > 0.1
+                                if app.Height.Value > 0 && abs(currentAntennaHeight - app.Height.Value) > 0.1
                                     isPositionUpdated = true;
                                     update(specData(ii), 'UserData:AntennaHeight', 'ManualEdition', app.Height.Value)
                                 end

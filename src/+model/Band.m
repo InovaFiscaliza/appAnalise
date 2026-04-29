@@ -219,7 +219,6 @@ classdef Band < handle
         %-----------------------------------------------------------------%
         function computeAxesLimits(obj, varargin)
             specData = obj.SpecData;
-            bandGuard = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 5));
 
             % xLimits
             switch obj.Context
@@ -234,12 +233,12 @@ classdef Band < handle
                     channelBandWidth  = specData.UserData.ReportChannels.ChannelBW(channelIdx);    % MHz
 
                     if channelBandWidth <= 0
-                        bandGuard = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
                     else
-                        bandGuard = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', ceil(1.1*channelBandWidth)));
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', ceil(1.1*channelBandWidth)));
                     end
 
-                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, channelFreqCenter, channelBandWidth, bandGuard);
+                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, channelFreqCenter, channelBandWidth, guardBand);
 
                 case {'appAnalise:REPORT:EMISSION', 'appAnalise:SIGNALANALYSIS'}
                     emissionIdx = varargin{1};
@@ -247,16 +246,19 @@ classdef Band < handle
                     emissionBandWidth  = specData.UserData.Emissions.BandWidthkHz(emissionIdx) / 1000;   % kHz >> MHz
 
                     if emissionBandWidth <= 0
-                        bandGuard = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed',     'Value', 1));
+                    else
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 5));
                     end
 
-                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, emissionFreqCenter, emissionBandWidth, bandGuard);
+                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, emissionFreqCenter, emissionBandWidth, guardBand);
 
                 case 'appAnalise:DRIVETEST'
                     emissionIdx = varargin{1};
+                    guardBand = varargin{2};
 
                     if isempty(emissionIdx)
-                        bandGuard.Parameters.Value = 1;
+                        guardBand.Parameters.Value = 1;
                         channelFreqCenter = (specData.MetaData.FreqStart + specData.MetaData.FreqStop) / 2e+6; % MHz
                         channelBandWidth  = (specData.MetaData.FreqStop - specData.MetaData.FreqStart) / 1e+6; % MHz
                     else
@@ -264,7 +266,7 @@ classdef Band < handle
                         channelBandWidth  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW / 1000; % kHz >> MHz
                     end
 
-                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, channelFreqCenter, channelBandWidth, bandGuard);
+                    [xLimits, xLimitDownIdx, xLimitUpIdx] = computeRoiXLimits(obj, channelFreqCenter, channelBandWidth, guardBand);
 
                 otherwise
                     error('class:Band:UnexpectedContext', 'Unexpected context "%s"', obj.Context)

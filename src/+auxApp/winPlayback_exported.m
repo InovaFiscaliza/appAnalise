@@ -111,8 +111,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
         ContextMenu                    matlab.ui.container.ContextMenu
-        ContextMenuClassificationOption  matlab.ui.container.Menu
-        ContextMenuRemoveOption        matlab.ui.container.Menu
+        ContextMenuClassification      matlab.ui.container.Menu
+        ContextMenuDelete              matlab.ui.container.Menu
     end
 
     
@@ -1498,13 +1498,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    idx = findSpecDataIndex(app);
+                    flowIdx = findSpecDataIndex(app);
 
-                    if ~isempty(idx) && ~app.plotUpdateEvent
+                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
 
                         app.plotUpdateEvent = 1;
-                        runPlaybackLoop(app, idx, numel(app.mainApp.specData(idx).Data{1}))        
+                        runPlaybackLoop(app, flowIdx, numel(app.mainApp.specData(flowIdx).Data{1}))        
                     else
                         app.plotUpdateEvent = 0;
                     end
@@ -1721,7 +1721,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
-        % Menu selected function: ContextMenuClassificationOption, 
+        % Menu selected function: ContextMenuClassification, 
         % ...and 1 other component
         function onContextMenuOptionClicked(app, event)
             
@@ -1729,9 +1729,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             specData = app.mainApp.specData(flowIdx);
 
             switch event.Source
-                case app.ContextMenuClassificationOption                    
+                case app.ContextMenuClassification                    
 
-                case app.ContextMenuRemoveOption
+                case app.ContextMenuDelete
                     update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
             end
@@ -2749,18 +2749,18 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
 
-            % Create ContextMenuClassificationOption
-            app.ContextMenuClassificationOption = uimenu(app.ContextMenu);
-            app.ContextMenuClassificationOption.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
-            app.ContextMenuClassificationOption.Enable = 'off';
-            app.ContextMenuClassificationOption.Text = '🏷️ Classificação';
+            % Create ContextMenuClassification
+            app.ContextMenuClassification = uimenu(app.ContextMenu);
+            app.ContextMenuClassification.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
+            app.ContextMenuClassification.Enable = 'off';
+            app.ContextMenuClassification.Text = '🏷️ Classificação';
 
-            % Create ContextMenuRemoveOption
-            app.ContextMenuRemoveOption = uimenu(app.ContextMenu);
-            app.ContextMenuRemoveOption.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
-            app.ContextMenuRemoveOption.Enable = 'off';
-            app.ContextMenuRemoveOption.Separator = 'on';
-            app.ContextMenuRemoveOption.Text = '❌ Excluir';
+            % Create ContextMenuDelete
+            app.ContextMenuDelete = uimenu(app.ContextMenu);
+            app.ContextMenuDelete.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
+            app.ContextMenuDelete.Enable = 'off';
+            app.ContextMenuDelete.Separator = 'on';
+            app.ContextMenuDelete.Text = '❌ Excluir';
             
             % Assign app.ContextMenu
             app.FlowEmissions.ContextMenu = app.ContextMenu;

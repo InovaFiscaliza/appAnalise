@@ -179,11 +179,25 @@ classdef (Abstract) HtmlTextGenerator
                     monitoringTypeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('InterrogationMark').html;
             end
 
+            initialAntennaHeight = calculateAntennaHeight(specData, 1, -1, 'initialValue');
+            currentAntennaHeight = specData.UserData.AntennaHeightMeters;
+            if abs(initialAntennaHeight - currentAntennaHeight) > 1e-1
+                if initialAntennaHeight == -1
+                    initialAntennaHeight = '(Desconhecido)';
+                end
+                antennaHeight = sprintf('<font style="color: red;"><del>%s</del> → %d metros</font>', string(initialAntennaHeight), currentAntennaHeight);
+            elseif currentAntennaHeight == -1
+                antennaHeight = '<font style="color: red;">(Desconhecido)</font>';
+            else
+                antennaHeight = sprintf('%d metros', currentAntennaHeight);
+            end
+
             gpsSummaryToGui = struct( ...
                 'GpsStatus', gpsLib.getGpsStatusLabel(specData.GPS.Status), ...
                 'Count', specData.GPS.Count, ...
                 'Latitude', sprintf('%.6f ± %.6f (1σ)', specData.GPS.Latitude, specData.GPS.Latitude_std), ...
                 'Longitude', sprintf('%.6f ± %.6f (1σ)', specData.GPS.Longitude, specData.GPS.Longitude_std), ...
+                'AntennaHeight', antennaHeight, ...
                 'Location', sprintf('%s (Fonte: %s)', specData.GPS.Location, specData.GPS.LocationSource) ...
             );
 
