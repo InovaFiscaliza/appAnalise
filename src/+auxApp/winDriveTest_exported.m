@@ -200,13 +200,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         eventName = varargin{1};
 
                         switch eventName
-                            case 'NomeEventoEspecifico'
-                                uialert(app.UIFigure, 'Oi', '')
-
                             case {'onFileListAdded', ...
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
-                                  'onLocationChanged', ...
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
                                   'onEmissionTruncatedValueChanged', ...
@@ -221,8 +217,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 else
                                     onFlowDropDownValueChanged(app)
                                 end
+
+                            case 'onLocationChanged'
+                                updateUIPanelContent(app)
             
-                            case {'onTabNavigatorButtonPushed', 'onPlaybackStarted'}
+                            case {'onTabNavigatorButtonPushed', ...
+                                  'onPlaybackStarted'}
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
                                 end
@@ -341,6 +341,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             initializeAxes(app)
 
+            % Preenche valores que atualmente não são customizados:
+            % (a lista de customização está restrita aos elementos do painel 
+            %  "Eixo Geográfico", com exceção dos parâmetros do carro)
+            app.CarMarker.Value           = app.defaultValues.drivetest.car.Marker;
+            app.CarColor.Value            = app.defaultValues.drivetest.car.MarkerFaceColor;
+            app.CarSize.Value             = app.defaultValues.drivetest.car.MarkerSize;
             app.ChannelRoiColor.Value     = app.defaultValues.channelROI.Color;
             app.ChannelRoiEdgeAlpha.Value = app.defaultValues.channelROI.EdgeAlpha;
             app.ChannelRoiFaceAlpha.Value = app.defaultValues.channelROI.FaceAlpha;
@@ -532,10 +538,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     additionalNote = ' (Emissão virtual)';
                 else
                     freqCenter   = emissions.Frequency(ii); % MHz
-                    bandWidthkHz = emissions.BandWidthkHz(ii);    % kHz
-                    if ~isempty(emissions.AuxAppData(ii).DriveTest)
-                        additionalNote = ' (DT)';
-                    end
+                    bandWidthkHz = emissions.BandWidthkHz(ii); % kHz
                 end
 
                 emissionList{end+1} = sprintf('%d: %.3f MHz ⌂ %.1f kHz%s', ii, freqCenter, bandWidthkHz, additionalNote);
@@ -706,37 +709,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase);
                 ui.TextView.update(app.EmissionMetadata, htmlContent);
     
-                % Verifica se os limites do plot estão adequados ao tipo de emissão (a
-                % emissão virtual, que corresponde à toda faixa espectral tem particularidades).
-                % if ~isempty(emissionIdx)
-                %     if ~app.BandGuardType.Enable
-                %         % Essa situação só ocorre quando estava selecionado uma
-                %         % emissão virtual e agora foi selecionada uma emissão real.
-                %         % Por isso, os valores estavam configurados em "BWRelated" e 1.
-                %         app.BandGuardType.Enable = 1;
-                %         set(app.BandGuardBWRelatedValue, 'Enable', 1, 'Value', 6)
-                %         config_BandGuardValueChanged(app, struct('Source', app.BandGuardBWRelatedValue))
-                %     end
-                % 
-                % else
-                %     if app.BandGuardType.Enable
-                %         % Essa situação só ocorre quando estava selecionado uma
-                %         % emissão real e agora foi selecionada uma emissão virtual.
-                %         app.BandGuardType.Enable = 0;
-                %         app.BandGuardBWRelatedValue.Enable = 0;
-                % 
-                %         if app.BandGuardType.Value ~= "BWRelated"
-                %             app.BandGuardType.Value = 'BWRelated';
-                %             config_BandGuardValueChanged(app, struct('Source', app.BandGuardType))
-                %         end
-                % 
-                %         if app.BandGuardBWRelatedValue.Value ~= 1
-                %             app.BandGuardBWRelatedValue.Value = 1;
-                %             config_BandGuardValueChanged(app, struct('Source', app.BandGuardBWRelatedValue))
-                %         end
-                %     end
-                % end
-    
                 buildFilterTree(app)
                 buildPointsTree(app)
 
@@ -758,7 +730,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 end
 
                 set(app.FilterTree, 'SelectedNodes', app.FilterTree.Children(end), 'Enable', 1)
-                FilterTreeSelectionChanged(app)
+                onFilterTreeSelectionChanged(app)
             else
                 app.FilterTree.Enable = 1;
             end
@@ -918,7 +890,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 return
             end
 
-            driveTestAttributes = specData.UserData.Emissions.AuxAppData.DriveTest;
+            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
 
             if isempty(driveTestAttributes)
                 app.Colormap.Value       = app.defaultValues.colormap;
@@ -941,6 +913,22 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.PointsMarker.Value   = driveTestAttributes.PlotDisplayConfig.Points.Marker;
                 app.PointsColor.Value    = driveTestAttributes.PlotDisplayConfig.Points.Color;
                 app.PointsSize.Value     = driveTestAttributes.PlotDisplayConfig.Points.Size;
+            end
+
+
+            if ~strcmp(app.UIAxes1.UserData.Colormap, app.Colormap.Value)
+                plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
+            end
+
+            if ~strcmp(app.UIAxes1.Basemap, app.Basemap.Value)
+                app.UIAxes1.Basemap = app.Basemap.Value;
+
+                switch app.Basemap.Value
+                    case {'darkwater', 'none'}
+                        app.UIAxes1.Grid = 'on';
+                    otherwise
+                        app.UIAxes1.Grid = 'off';
+                end
             end
         end
 
@@ -978,7 +966,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function updatePlotRoute(app)
             outTable  = app.emissionPoints.raw(~app.emissionPoints.raw.Filtered, :);
             inTable   = app.emissionPoints.raw;
-
             lineStyle = app.RouteLineStyle.Value;
             outColor  = app.RouteColorOut.Value;
             inColor   = app.RouteColorIn.Value;
@@ -1092,7 +1079,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function plot_PointsController(app)
-            delete(findobj(app.UIAxes1.Children, 'Tag', 'Points'))
+            delete(findobj(app.UIAxes1.Children, 'Tag', 'points'))
 
             hAxes       = app.UIAxes1;
             MarkerStyle = app.PointsMarker.Value;
@@ -1439,8 +1426,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 drawnow
             end
 
-            [idxThread, idxEmission] = specDataIndex(app);
-            updateCustomProperty(app, idxThread, idxEmission)
+            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            specData = app.mainApp.specData(flowIdx);
+            updateCustomProperty(app, specData, emissionIdx)
             
         end
 
@@ -1463,6 +1451,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 set(findobj(app.UIAxes1.Children, 'Tag', 'distortion'), 'SizeData', 20*event.Value)
             end
             
+        end
+
+        % Image clicked function: axesTool_Target
+        function onAxesToolbarTargetButtonClicked(app, event)
+            
+            uialert(app.UIFigure, 'Pendente!', '')
+
         end
 
         % Image clicked function: tool_LayoutLeft, tool_LayoutRight
@@ -1622,7 +1617,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         % Selection changed function: FilterTree
-        function FilterTreeSelectionChanged(app, event)
+        function onFilterTreeSelectionChanged(app, event)
             
             if ~isempty(app.FilterTree.SelectedNodes) && all(isvalid([app.filterTable.roi.handle]))
                 idxFilter = app.FilterTree.SelectedNodes.NodeData;        
@@ -1657,8 +1652,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
+        % Image clicked function: FilterTreeButton
+        function onFilterTreeButtonClicked(app, event)
+            
+        end
+
         % Callback function: PointsTree
-        function PointsTreeCheckedNodesChanged(app, event)
+        function onPointsTreeCheckedNodesChanged(app, event)
             
             visibleNodeData   = arrayfun(@(x) x.NodeData, app.PointsTree.CheckedNodes);
             invisibleNodeData = setdiff(1:height(app.pointsTable), visibleNodeData);
@@ -1670,21 +1670,156 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: FilterTreeButton
-        function FilterTreeButtonImageClicked(app, event)
-            
-        end
-
         % Image clicked function: PointsTreeButton
-        function PointsTreeButtonImageClicked(app, event)
+        function onPointsTreeButtonClicked(app, event)
             
         end
 
-        % Image clicked function: axesTool_Target
-        function axesTool_TargetImageClicked(app, event)
+        % Value changed function: Basemap, Colormap, PointsColor, 
+        % ...and 6 other components
+        function onCustomizableParameterValueChanged(app, event)
             
-            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'RepoFiles', app.Context)
+            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            if isempty(flowIdx)
+                return
+            end
 
+            specData = app.mainApp.specData(flowIdx);
+
+            switch event.Source
+                case app.Colormap
+                    if strcmp(app.UIAxes1.UserData.Colormap, event.Value)
+                        return
+                    end
+
+                    plot.axes.Colormap(app.UIAxes1, event.Value)
+
+                case app.Basemap
+                    app.UIAxes1.Basemap = event.Value;
+                    switch event.Value
+                        case {'darkwater', 'none'}
+                            app.UIAxes1.Grid = 'on';
+                        otherwise
+                            app.UIAxes1.Grid = 'off';
+                    end
+
+                case app.RouteLineStyle
+                    switch event.Value
+                        case 'none'
+                            markerSize = 1;
+                        otherwise
+                            markerSize = 8*app.RouteLineWidth.Value;
+                    end
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'routeFailFilter'),                           'MarkerSize', markerSize)
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'routePassFilter'), 'LineStyle', event.Value, 'MarkerSize', markerSize)
+
+                case app.RouteColorOut
+                    selectedColor = event.Value;
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'routeFailFilter'), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
+
+                case app.RouteColorIn
+                    selectedColor = event.Value;
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'routePassFilter'), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
+
+                case app.RouteLineWidth
+                    if ~strcmp(app.RouteLineWidth.Value, 'none')
+                        set(findobj(app.UIAxes1.Children, 'Tag', 'routeFailFilter'), 'MarkerSize', 8*event.Value)
+                        set(findobj(app.UIAxes1.Children, 'Tag', 'routePassFilter'), 'MarkerSize', 8*event.Value)
+                    end
+
+                case app.PointsMarker
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'points'), 'Marker', event.Value)
+
+                case app.PointsColor
+                    selectedColor = event.Value;
+                    hPoints = findobj(app.UIAxes1.Children, 'Tag', 'points');
+                    for ii = 1:numel(hPoints)
+                        if strcmp(hPoints(ii).MarkerFaceColor, 'none')
+                            set(hPoints(ii), 'Color', selectedColor, 'MarkerEdgeColor', selectedColor)
+                        else
+                            set(hPoints(ii), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
+                        end
+                    end
+                
+                case app.PointsSize
+                    set(findobj(app.UIAxes1.Children, 'Tag', 'points'), 'MarkerSize', event.Value)
+            end
+
+            updateCustomProperty(app, specData, emissionIdx)
+
+        end
+
+        % Value changed function: BandGuardBWRelatedValue, 
+        % ...and 14 other components
+        function onNonCustomizableParameterValueChanged(app, event)
+            
+            switch event.Source
+                case app.CarMarker
+                    set(app.plotHandles.car, 'Marker', event.Value)
+
+                case app.CarColor
+                    selectedColor = event.Value;
+                    et(app.plotHandles.car, 'MarkerFaceColor', selectedColor)
+
+                case app.CarSize
+                    set(app.plotHandles.car, 'SizeData', 10 * event.Value)
+
+                case app.PersistanceVisibility
+                    elHandles = findobj(app.UIAxes2.Children, 'Tag', 'persistence');
+                    set(elHandles, 'Visible', event.Value)
+
+                case app.ChannelRoiVisibility
+                    elHandles = findobj([app.UIAxes2.Children; app.UIAxes3.Children], 'Tag', 'channelROI');
+                    set(elHandles, 'Visible', event.Value)
+
+                case {app.ChannelRoiColor, app.ChannelRoiEdgeAlpha, app.ChannelRoiFaceAlpha}                    
+                    elHandles = findobj([app.UIAxes2.Children; app.UIAxes3.Children], 'Tag', 'channelROI');
+                    set(elHandles, 'Color',     app.ChannelRoiColor.Value,     ...
+                                   'EdgeAlpha', app.ChannelRoiEdgeAlpha.Value, ...
+                                   'FaceAlpha', app.ChannelRoiFaceAlpha.Value)
+
+                case app.ChannelPowerVisibility
+                    set(findobj(app.UIAxes4), 'Visible', event.Value)
+
+                case {app.ChannelPowerColor, app.ChannelPowerEdgeAlpha, app.ChannelPowerFaceAlpha}
+                    elHandles = findobj(app.UIAxes4.Children, 'Tag', 'channelPower');
+                    set(elHandles, 'EdgeColor', app.ChannelPowerColor.Value,     ...
+                                   'FaceColor', app.ChannelPowerColor.Value,     ...
+                                   'EdgeAlpha', app.ChannelPowerEdgeAlpha.Value, ...
+                                   'FaceAlpha', app.ChannelPowerFaceAlpha.Value)
+
+                case app.BandGuardType
+                    chBandWidth = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
+
+                    switch event.Value
+                        case 'Fixed'
+                            set(app.BandGuardFixedValue, 'Visible', 1, 'Value', app.BandGuardBWRelatedValue.Value * chBandWidth)
+                            app.BandGuardBWRelatedValue.Visible = 0;                            
+
+                        case 'BWRelated'
+                            app.BandGuardFixedValue.Visible = 0;
+                            set(app.BandGuardBWRelatedValue, 'Visible', 1, 'Value', app.BandGuardFixedValue.Value / chBandWidth)
+                    end
+                    onNonCustomizableParameterValueChanged(app, struct('Source', app.BandGuardBWRelatedValue))
+
+                case {app.BandGuardFixedValue, app.BandGuardBWRelatedValue}
+                    if strcmp(app.BandGuardType, 'Fixed')
+                        chBandWidth = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
+                        chBandWidthLimits = chBandWidth * app.BandGuardBWRelatedValue.Limits;
+                
+                        if app.BandGuardFixedValue.Value < chBandWidthLimits(1)
+                            app.BandGuardFixedValue.Value = chBandWidthLimits(1);
+                        elseif app.BandGuardFixedValue.Value > chBandWidthLimits(2)
+                            app.BandGuardFixedValue.Value = chBandWidthLimits(2);
+                        end
+                    end
+
+                    xLim = getFrequencyScreenSpanInMHz(app, 'ScreenLimits');
+                    app.UIAxes2.XLim = xLim;
+                    app.restoreView(2).xLim = xLim;
+                    app.restoreView(3).xLim = xLim;
+            end
+            
         end
     end
 
@@ -2005,7 +2140,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create FilterTreeButton
             app.FilterTreeButton = uiimage(app.EmissionPanelGrid);
-            app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @FilterTreeButtonImageClicked, true);
+            app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @onFilterTreeButtonClicked, true);
             app.FilterTreeButton.Enable = 'off';
             app.FilterTreeButton.Layout.Row = 8;
             app.FilterTreeButton.Layout.Column = 4;
@@ -2014,7 +2149,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create FilterTree
             app.FilterTree = uitree(app.EmissionPanelGrid);
-            app.FilterTree.SelectionChangedFcn = createCallbackFcn(app, @FilterTreeSelectionChanged, true);
+            app.FilterTree.SelectionChangedFcn = createCallbackFcn(app, @onFilterTreeSelectionChanged, true);
             app.FilterTree.FontSize = 10.5;
             app.FilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FilterTree.Layout.Row = 10;
@@ -2032,7 +2167,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create PointsTreeButton
             app.PointsTreeButton = uiimage(app.EmissionPanelGrid);
-            app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @PointsTreeButtonImageClicked, true);
+            app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @onPointsTreeButtonClicked, true);
             app.PointsTreeButton.Enable = 'off';
             app.PointsTreeButton.Layout.Row = 3;
             app.PointsTreeButton.Layout.Column = 7;
@@ -2047,7 +2182,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.PointsTree.Layout.Column = [6 7];
 
             % Assign Checked Nodes
-            app.PointsTree.CheckedNodesChangedFcn = createCallbackFcn(app, @PointsTreeCheckedNodesChanged, true);
+            app.PointsTree.CheckedNodesChangedFcn = createCallbackFcn(app, @onPointsTreeCheckedNodesChanged, true);
 
             % Create EmissionList
             app.EmissionList = uidropdown(app.LeftPanel);
@@ -2113,6 +2248,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create Colormap
             app.Colormap = uidropdown(app.GeographicAxesPanelGrid);
             app.Colormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
+            app.Colormap.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.Colormap.Enable = 'off';
             app.Colormap.FontSize = 11;
             app.Colormap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2133,6 +2269,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create Basemap
             app.Basemap = uidropdown(app.GeographicAxesPanelGrid);
             app.Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
+            app.Basemap.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.Basemap.Enable = 'off';
             app.Basemap.FontSize = 11;
             app.Basemap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2153,6 +2290,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create RouteLineStyle
             app.RouteLineStyle = uidropdown(app.GeographicAxesPanelGrid);
             app.RouteLineStyle.Items = {'none', ':', '-'};
+            app.RouteLineStyle.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.RouteLineStyle.Enable = 'off';
             app.RouteLineStyle.FontSize = 11;
             app.RouteLineStyle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2164,6 +2302,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create RouteColorOut
             app.RouteColorOut = uicolorpicker(app.GeographicAxesPanelGrid);
             app.RouteColorOut.Value = [0.502 0.502 0.502];
+            app.RouteColorOut.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.RouteColorOut.Enable = 'off';
             app.RouteColorOut.Layout.Row = 4;
             app.RouteColorOut.Layout.Column = 2;
@@ -2172,6 +2311,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create RouteColorIn
             app.RouteColorIn = uicolorpicker(app.GeographicAxesPanelGrid);
             app.RouteColorIn.Value = [0.8706 0.5412 0.5412];
+            app.RouteColorIn.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.RouteColorIn.Enable = 'off';
             app.RouteColorIn.Layout.Row = 4;
             app.RouteColorIn.Layout.Column = 3;
@@ -2181,6 +2321,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.RouteLineWidth = uislider(app.GeographicAxesPanelGrid);
             app.RouteLineWidth.Limits = [1 9];
             app.RouteLineWidth.MajorTicks = [];
+            app.RouteLineWidth.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.RouteLineWidth.MinorTicks = [1 2.6 4.2 5.8 7.4 9];
             app.RouteLineWidth.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.RouteLineWidth.Enable = 'off';
@@ -2201,6 +2342,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create CarMarker
             app.CarMarker = uidropdown(app.GeographicAxesPanelGrid);
             app.CarMarker.Items = {'none', 'o', 'square', '^'};
+            app.CarMarker.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.CarMarker.Enable = 'off';
             app.CarMarker.FontSize = 11;
             app.CarMarker.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2211,6 +2353,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create CarColor
             app.CarColor = uicolorpicker(app.GeographicAxesPanelGrid);
+            app.CarColor.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.CarColor.Enable = 'off';
             app.CarColor.Layout.Row = 6;
             app.CarColor.Layout.Column = 3;
@@ -2220,6 +2363,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.CarSize = uislider(app.GeographicAxesPanelGrid);
             app.CarSize.Limits = [1 19];
             app.CarSize.MajorTicks = [];
+            app.CarSize.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.CarSize.MinorTicks = [1 4.6 8.2 11.8 15.4 19];
             app.CarSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.CarSize.Enable = 'off';
@@ -2240,6 +2384,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create PointsMarker
             app.PointsMarker = uidropdown(app.GeographicAxesPanelGrid);
             app.PointsMarker.Items = {'none', 'o', 'square', '^'};
+            app.PointsMarker.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.PointsMarker.Enable = 'off';
             app.PointsMarker.FontSize = 11;
             app.PointsMarker.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2251,6 +2396,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create PointsColor
             app.PointsColor = uicolorpicker(app.GeographicAxesPanelGrid);
             app.PointsColor.Value = [0 0 0];
+            app.PointsColor.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.PointsColor.Enable = 'off';
             app.PointsColor.Layout.Row = 8;
             app.PointsColor.Layout.Column = 3;
@@ -2260,6 +2406,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.PointsSize = uislider(app.GeographicAxesPanelGrid);
             app.PointsSize.Limits = [6 12];
             app.PointsSize.MajorTicks = [];
+            app.PointsSize.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.PointsSize.MinorTicks = [6 7 8 9 10 11 12];
             app.PointsSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.PointsSize.Enable = 'off';
@@ -2310,6 +2457,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create PersistanceVisibility
             app.PersistanceVisibility = uidropdown(app.CartesianAxesGrid);
             app.PersistanceVisibility.Items = {'on', 'off'};
+            app.PersistanceVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.PersistanceVisibility.Enable = 'off';
             app.PersistanceVisibility.Tooltip = {''};
             app.PersistanceVisibility.FontSize = 11;
@@ -2332,6 +2480,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create ChannelRoiVisibility
             app.ChannelRoiVisibility = uidropdown(app.CartesianAxesGrid);
             app.ChannelRoiVisibility.Items = {'on', 'off'};
+            app.ChannelRoiVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelRoiVisibility.Enable = 'off';
             app.ChannelRoiVisibility.Tooltip = {''};
             app.ChannelRoiVisibility.FontSize = 11;
@@ -2344,6 +2493,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create ChannelRoiColor
             app.ChannelRoiColor = uicolorpicker(app.CartesianAxesGrid);
             app.ChannelRoiColor.Value = [0.7216 0.2706 1];
+            app.ChannelRoiColor.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelRoiColor.Enable = 'off';
             app.ChannelRoiColor.Tooltip = {''};
             app.ChannelRoiColor.Layout.Row = 4;
@@ -2355,6 +2505,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelRoiEdgeAlpha.Step = 0.1;
             app.ChannelRoiEdgeAlpha.Limits = [0 1];
             app.ChannelRoiEdgeAlpha.ValueDisplayFormat = '%.1f';
+            app.ChannelRoiEdgeAlpha.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelRoiEdgeAlpha.FontSize = 11;
             app.ChannelRoiEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ChannelRoiEdgeAlpha.Enable = 'off';
@@ -2367,6 +2518,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelRoiFaceAlpha.Step = 0.1;
             app.ChannelRoiFaceAlpha.Limits = [0 1];
             app.ChannelRoiFaceAlpha.ValueDisplayFormat = '%.1f';
+            app.ChannelRoiFaceAlpha.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelRoiFaceAlpha.FontSize = 11;
             app.ChannelRoiFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ChannelRoiFaceAlpha.Enable = 'off';
@@ -2388,6 +2540,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create ChannelPowerVisibility
             app.ChannelPowerVisibility = uidropdown(app.CartesianAxesGrid);
             app.ChannelPowerVisibility.Items = {'on', 'off'};
+            app.ChannelPowerVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelPowerVisibility.Enable = 'off';
             app.ChannelPowerVisibility.Tooltip = {''};
             app.ChannelPowerVisibility.FontSize = 11;
@@ -2400,6 +2553,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create ChannelPowerColor
             app.ChannelPowerColor = uicolorpicker(app.CartesianAxesGrid);
             app.ChannelPowerColor.Value = [0.5686 1 0];
+            app.ChannelPowerColor.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelPowerColor.Enable = 'off';
             app.ChannelPowerColor.Tooltip = {''};
             app.ChannelPowerColor.Layout.Row = 6;
@@ -2411,6 +2565,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelPowerEdgeAlpha.Step = 0.1;
             app.ChannelPowerEdgeAlpha.Limits = [0 1];
             app.ChannelPowerEdgeAlpha.ValueDisplayFormat = '%.1f';
+            app.ChannelPowerEdgeAlpha.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelPowerEdgeAlpha.FontSize = 11;
             app.ChannelPowerEdgeAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ChannelPowerEdgeAlpha.Enable = 'off';
@@ -2424,6 +2579,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelPowerFaceAlpha.Step = 0.1;
             app.ChannelPowerFaceAlpha.Limits = [0 1];
             app.ChannelPowerFaceAlpha.ValueDisplayFormat = '%.1f';
+            app.ChannelPowerFaceAlpha.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelPowerFaceAlpha.FontSize = 11;
             app.ChannelPowerFaceAlpha.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ChannelPowerFaceAlpha.Enable = 'off';
@@ -2453,6 +2609,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create BandGuardType
             app.BandGuardType = uidropdown(app.CartesianAxesGrid);
             app.BandGuardType.Items = {'Fixed', 'BWRelated'};
+            app.BandGuardType.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.BandGuardType.Enable = 'off';
             app.BandGuardType.FontSize = 11;
             app.BandGuardType.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
@@ -2465,6 +2622,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.BandGuardFixedValue = uieditfield(app.CartesianAxesGrid, 'numeric');
             app.BandGuardFixedValue.Limits = [0 Inf];
             app.BandGuardFixedValue.ValueDisplayFormat = '%.1f';
+            app.BandGuardFixedValue.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.BandGuardFixedValue.FontSize = 11;
             app.BandGuardFixedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.BandGuardFixedValue.Enable = 'off';
@@ -2478,6 +2636,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.BandGuardBWRelatedValue.Limits = [1 10];
             app.BandGuardBWRelatedValue.RoundFractionalValues = 'on';
             app.BandGuardBWRelatedValue.ValueDisplayFormat = '%.0f';
+            app.BandGuardBWRelatedValue.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.BandGuardBWRelatedValue.FontSize = 11;
             app.BandGuardBWRelatedValue.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.BandGuardBWRelatedValue.Enable = 'off';
@@ -2492,7 +2651,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [1 2];
-            app.AxesContainer.Layout.Column = [4 8];
+            app.AxesContainer.Layout.Column = [4 6];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
@@ -2566,7 +2725,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create axesTool_Target
             app.axesTool_Target = uiimage(app.AxesToolbar);
             app.axesTool_Target.ScaleMethod = 'none';
-            app.axesTool_Target.ImageClickedFcn = createCallbackFcn(app, @axesTool_TargetImageClicked, true);
+            app.axesTool_Target.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarTargetButtonClicked, true);
             app.axesTool_Target.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
             app.axesTool_Target.Layout.Row = 1;
             app.axesTool_Target.Layout.Column = 11;

@@ -205,7 +205,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         eventName = varargin{1};
 
                         switch eventName
-                            case {'onFileListAdded', 'onFileListRemoved', 'onFileFilterChanged', 'onSpectralDataReadError'}
+                            case {'onFileListAdded', ...
+                                  'onFileListRemoved', ...
+                                  'onFileFilterChanged', ...
+                                  'onSpectralDataReadError'}
                                 updateFlowDropDown(app)
 
                                 if app.plotUpdateEvent
@@ -217,11 +220,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'onLocationChanged'
                                 updateUIPanelContent(app)
 
-                            case {'onEmissionAdded', 'onEmissionParameterValueChanged', 'onEmissionDeleted'}
+                            case {'onEmissionAdded', ...
+                                  'onEmissionParameterValueChanged', ...
+                                  'onEmissionDeleted'}
                                 updateUIPanelContent(app)
                                 updateEmissionsPlot(app)
             
-                            case {'onTabNavigatorButtonPushed', 'onPlaybackStarted'}
+                            case {'onTabNavigatorButtonPushed', ...
+                                  'onPlaybackStarted'}
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
                                 end
@@ -890,7 +896,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     updateWaterfallPlot(app)
                 end
         
-                % customPlayback >> DataTips
+                % DataTips
                 if ~isempty(specData.UserData.PlotDisplayConfig.dataTips)
                     dtConfig = specData.UserData.PlotDisplayConfig.dataTips;
                     dtParent = [app.UIAxes1, app.UIAxes2, app.UIAxes3];
@@ -1288,9 +1294,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function onFlowDropDownValueChanged(app, event)
 
             if exist('event', 'var')
-                previousIdx = event.PreviousValue;
                 [parentTag, dataIndex] = plot.datatip.Search([app.UIAxes1, app.UIAxes2, app.UIAxes3]);
-                update(app.mainApp.specData(previousIdx), 'UserData:PlotDisplayConfig', 'dataTip', parentTag, dataIndex)
+                update(app.mainApp.specData(event.PreviousValue), 'UserData:PlotDisplayConfig', 'dataTip', parentTag, dataIndex)
             end
 
             if app.plotUpdateEvent
@@ -1386,7 +1391,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         hObject = plot.draw2D.OrdinaryLine(app.UIAxes1, plotTag, app.bandObj, app.sweepTimeIdx);
                         plot.datatip.Template(hObject, 'Frequency+Level', app.bandObj.LevelUnit)
                         plot.axes.StackingOrder.execute(app.UIAxes1, app.bandObj.Context)
-            
                         app.plotHandles.(plotTag) = hObject;
 
                     else
