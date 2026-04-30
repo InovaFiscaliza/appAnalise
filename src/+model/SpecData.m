@@ -625,7 +625,7 @@ classdef SpecData < model.SpecDataBase
 
                             for ii = 1:numel(idxList)
                                 idx = height(obj.UserData.Emissions) + 1;
-                                obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated'}) = {freqList(ii), idxList(ii), widthList(ii), true};
+                                obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated', 'Uuid'}) = {freqList(ii), idxList(ii), widthList(ii), true, matlab.lang.internal.uuid()};
 
                                 defaultChannelEmission = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
 

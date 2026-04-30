@@ -173,6 +173,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         projectData
+
+        % Armazena o hash da emissão em edição, de forma a mantê-la selecionada 
+        % após alteração das suas características (via tabela ou no próprio plot, 
+        % ajustando a ROI).
+        emissionSelectedHash = ''
     end
 
 
@@ -719,8 +724,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             if hasEmissions
+                [~, emissionSelectedIdx] = ismember(app.emissionSelectedHash, specData.UserData.Emissions.Uuid);
+                if ~emissionSelectedIdx
+                    emissionSelectedIdx = 1;
+                end
+                
                 app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                app.FlowEmissions.Selection = 1;
+                app.FlowEmissions.Selection = emissionSelectedIdx;
+
             else
                 app.FlowEmissions.Data = [];
             end
@@ -982,6 +993,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateEmissionsPlot(app)
             delete(findobj(app.UIAxes1, 'Tag', 'emissions', '-or', 'Tag', 'emissionSelected'))
+            app.emissionSelectedHash = '';
 
             specData = app.bandObj.SpecData;
             if isempty(specData)
@@ -994,6 +1006,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             emissionSelectedIdx = app.FlowEmissions.Selection;
+            app.emissionSelectedHash = emissions.Uuid(emissionSelectedIdx);
+
             app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
             emissionSelectedHandle = plot.Emissions.draw(emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
 
@@ -1024,18 +1038,38 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         frequencyIdx = freq2idx(app.bandObj, freqCenter * 1e+6);                        
                         bandWidthkHz = app.FlowEmissions.Data.BandWidthkHz(emissionSelectedIdx);
 
-                        update(specData, 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', emissionSelectedIdx, frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
-
-                        [~, freqSortIdxs] = sort(app.FlowEmissions.Data.Frequency);
-                        [~, emissionSelectedIdx] = ismember(emissionSelectedIdx, freqSortIdxs);
-                        
-                        app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                        app.FlowEmissions.Selection = emissionSelectedIdx;
-                        FlowEmissionsSelectionChanged(app)
-
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
+                        updateEmissionTable(app, specData, 'Edit', emissionSelectedIdx, 'Frequency|BandWidth', frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
                 end
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateEmissionTable(app, specData, updateType, emissionIdx, varargin)
+            arguments
+                app
+                specData
+                updateType {mustBeMember(updateType, {'Edit', 'Delete'})}
+                emissionIdx
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
+            switch updateType
+                case 'Edit'
+                    parameterName = varargin{1};
+                    update(specData, 'UserData:Emissions', updateType, parameterName, emissionIdx, varargin{2:end})
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
+
+                case 'Delete'
+                    update(specData, 'UserData:Emissions', updateType, emissionIdx)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+            end
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
         end
 
         %-----------------------------------------------------------------%
@@ -1721,6 +1755,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Cell edit callback: FlowEmissions
         function FlowEmissionsCellEdit(app, event)
             
+            % A tabela de emissões possui umas 10 colunas, mas aqui, no
+            % modo PLAYBACK, apresenta-se apenas três delas: "Frequency",
+            % "BandWidthkHz" e "Description". As duas primeiras numéricas;
+            % a outra, string.
+
             emissionIdx  = event.Indices(1);
             columnIdx    = event.Indices(2);
             previousData = event.PreviousData;
@@ -1730,14 +1769,35 @@ classdef winPlayback_exported < matlab.apps.AppBase
                (isstring(newData) && strtrim(newData) == strtrim(previousData))
                 event.Source.Data{emissionIdx, columnIdx} = previousData;
                 return
-            end            
+            end
+
+            specData = app.bandObj.SpecData;
 
             switch columnIdx
                 case {1, 2}
                     parameterName = 'Frequency|BandWidth';
+
                     frequency = event.Source.Data{emissionIdx, 'Frequency'};
-                    frequencyIdx = freq2idx(app.bandObj, frequency);
+                    [frequencyIdx, invalidIdx] = freq2idx(app.bandObj, frequency*1e+6);
+                    if invalidIdx
+                        event.Source.Data{emissionIdx, columnIdx} = previousData;
+                        return
+                    end
+
                     bandWidthkHz = event.Source.Data{emissionIdx, 'BandWidthkHz'};
+                    frequencyLimits = [ ...
+                        frequency - bandWidthkHz/2000, ...
+                        frequency + bandWidthkHz/2000 ...
+                    ];
+
+                    % Ajusta a largura ocupada, fixando a frequência, de forma 
+                    % a não ultrapassar os limites das faixas.
+                    if frequencyLimits(1) < app.bandObj.FreqStart
+                        bandWidthkHz = 2000 * abs(frequency - app.bandObj.FreqStart);
+                    elseif frequencyLimits(2) > app.bandObj.FreqStop
+                        bandWidthkHz = 2000 * abs(frequency - app.bandObj.FreqStop);
+                    end
+
                     complementaryArgs = {frequencyIdx, frequency, bandWidthkHz, app.mainApp.channelObj};
                 
                 otherwise
@@ -1745,10 +1805,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     complementaryArgs = {newData, app.mainApp.channelObj};
             end
 
-            flowIdx = findSpecDataIndex(app);
-            specData = app.mainApp.specData(flowIdx);
-
-            update(specData, 'UserData:Emissions', 'Edit', parameterName, emissionIdx, complementaryArgs{:})
+            updateEmissionTable(app, specData, 'Edit', emissionIdx, parameterName, complementaryArgs{:})
             
         end
 
@@ -1763,8 +1820,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case app.ContextMenuClassification                    
 
                 case app.ContextMenuDelete
-                    update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+                    updateEmissionTable(app, specData, 'Delete', emissionIdx)
             end
 
         end
