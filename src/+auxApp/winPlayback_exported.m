@@ -1720,8 +1720,35 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         % Cell edit callback: FlowEmissions
         function FlowEmissionsCellEdit(app, event)
-            indices = event.Indices;
-            newData = event.NewData;
+            
+            emissionIdx  = event.Indices(1);
+            columnIdx    = event.Indices(2);
+            previousData = event.PreviousData;
+            newData      = event.NewData;
+
+            if (isnumeric(newData) && (isnan(newData) || abs(newData-previousData) < 1e-3)) || ...
+               (isstring(newData) && strtrim(newData) == strtrim(previousData))
+                event.Source.Data{emissionIdx, columnIdx} = previousData;
+                return
+            end            
+
+            switch columnIdx
+                case {1, 2}
+                    parameterName = 'Frequency|BandWidth';
+                    frequency = event.Source.Data{emissionIdx, 'Frequency'};
+                    frequencyIdx = freq2idx(app.bandObj, frequency);
+                    bandWidthkHz = event.Source.Data{emissionIdx, 'BandWidthkHz'};
+                    complementaryArgs = {frequencyIdx, frequency, bandWidthkHz, app.mainApp.channelObj};
+                
+                otherwise
+                    parameterName = 'Description';
+                    complementaryArgs = {newData, app.mainApp.channelObj};
+            end
+
+            flowIdx = findSpecDataIndex(app);
+            specData = app.mainApp.specData(flowIdx);
+
+            update(specData, 'UserData:Emissions', 'Edit', parameterName, emissionIdx, complementaryArgs{:})
             
         end
 
@@ -2069,7 +2096,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowEmissions
             app.FlowEmissions = uitable(app.FlowPanelGrid);
             app.FlowEmissions.ColumnName = {'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
-            app.FlowEmissions.ColumnWidth = {95, 95, 190};
+            app.FlowEmissions.ColumnWidth = {95, 95, 106};
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = true;

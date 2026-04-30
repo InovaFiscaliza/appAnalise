@@ -318,9 +318,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITable.Data = app.emissionsTable(:, columnNames);
             updateTableStyle(app)
 
-            pause(.100)
             app.UITable.Selection = selectedRow;
             updateSelectedEmissionFormAndPlot(app)
+            pause(.100)
     
             requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
         end
@@ -328,7 +328,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateTableStyle(app)
             removeStyle(app.UITable)
-                
+
             % Destaca registros que tiveram a sua classificação editada...
             editedEmissionIdxs = [];            
             for ii = 1:height(app.emissionsTable)
@@ -339,8 +339,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             end
             
             if ~isempty(editedEmissionIdxs)
-                listOfCells1 = [editedEmissionIdxs, ones(numel(editedEmissionIdxs), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', listOfCells1) 
+                cellList = [editedEmissionIdxs, 2*ones(numel(editedEmissionIdxs), 1)];
+                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
             end
 
             % Destaca registros que apresentam valores inválidos de estações...
@@ -348,8 +348,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % idxInvalidStationNumber = find(arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification) == -1);
             invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
             if ~isempty(invalidStationNumberIdxs)
-                listOfCells2 = [invalidStationNumberIdxs, repmat(2, numel(invalidStationNumberIdxs), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'Circle_18Red.png',  'IconAlignment', 'leftmargin'), 'cell', listOfCells2) 
+                addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'row', invalidStationNumberIdxs) 
             end
         end
 
@@ -358,8 +357,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             if ~isempty(app.emissionsTable)
                 [flowIdx, emissionIdx] = getEmissionIndexes(app);
                 specData = app.mainApp.specData(flowIdx);
+
+                % Destaca célula selecionada...
                 selectedRow = app.UITable.Selection;
-    
+                selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
+                if ~isempty(selectedRowOldStyleIdx)
+                    removeStyle(app.UITable, selectedRowOldStyleIdx)
+                end
+                addStyle(app.UITable, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
+                drawnow
+
                 [htmlContent1, ...
                  htmlContent2, ...
                  emissionTag, ...
