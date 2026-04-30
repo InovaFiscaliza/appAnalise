@@ -563,9 +563,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function createRFLinkPlot(app, selectedRow, idxThread)
+        function createRFLinkPlot(app, selectedRow, flowIdx)
+            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+
             try
-                specData = app.mainApp.specData(idxThread);
+                specData = app.mainApp.specData(flowIdx);
 
                 % OBJETOS TX e RX
                 [txObj, rxObj] = getRFLinkObjects(app, specData, selectedRow);
@@ -590,16 +592,31 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             catch ME
                 cla(app.UIAxes2)
                 app.UIAxes2.PickableParts = "none";
-                msgWarning = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), { ...
-                    'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
-                    'E PROVÁVEL EMISSOR É LIMITADO ÀS';  ...
-                    'ESTAÇÕES INCLUÍDAS NO RFDATAHUB';   ...
-                    '(EXCETO VISUALIZAÇÃO TEMPORÁRIA)' ...
-                }, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
-                msgWarning.Units = 'normalized';
+
+                if exist('msgWarning', 'var') && ~isempty(msgWarning)
+                    msgText = { ...
+                        'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
+                        'E PROVÁVEL EMISSOR INDISPONÍVEL';  ...
+                        sprintf('(%s)', msgWarning) ...
+                    };
+                else
+                    msgText = { ...
+                        'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
+                        'E PROVÁVEL EMISSOR É LIMITADO ÀS';  ...
+                        'ESTAÇÕES INCLUÍDAS NO RFDATAHUB';   ...
+                        '(EXCETO VISUALIZAÇÃO TEMPORÁRIA)' ...
+                    };
+                end
+
+                msgTextHandle = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), msgText, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
+                msgTextHandle.Units = 'normalized';
+                
                 app.RFLinkWarning.Visible = 0;
             end
+
             app.TXLocationEditConfirm.Enable = 0;
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
         end
 
         %-----------------------------------------------------------------%
