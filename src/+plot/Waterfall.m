@@ -1,9 +1,10 @@
-function [waterfallHandle, decimation] = Waterfall(operationType, waterfallHandle, axesHandle, bandObj)
+function [waterfallHandle, decimation] = Waterfall(operationType, waterfallHandle, axesHandle, bandObj, xLimits)
     arguments
         operationType {mustBeMember(operationType, {'Creation', 'Delete'})}
         waterfallHandle
         axesHandle = []
         bandObj = []
+        xLimits = []
     end
 
     switch operationType
@@ -15,9 +16,16 @@ function [waterfallHandle, decimation] = Waterfall(operationType, waterfallHandl
             xLim = [xArray(1), xArray(end)];
             
             decimation = plotDisplayConfig.waterfall.decimation;
+            
+            switch bandObj.Context
+                case 'appAnalise:DRIVETEST'
+                    waterfallRenderFcn = 'image';
+                otherwise
+                    waterfallRenderFcn = plotDisplayConfig.waterfall.function;
+            end
 
             set(axesHandle, 'CLimMode', 'auto')
-            switch plotDisplayConfig.waterfall.function
+            switch waterfallRenderFcn
                 case 'mesh'
                     [nDecimation, tArray] = checkDecimation(specData, bandObj, decimation, 1);
         
@@ -32,7 +40,29 @@ function [waterfallHandle, decimation] = Waterfall(operationType, waterfallHandl
 
                 case 'image'
                     nSweeps = bandObj.NumSweeps;
-                    nDecimation = checkDecimation(specData, bandObj, decimation, 16);
+                    
+                    % Isso aqui ficou feio... arrumar depois. Trecho abaixo
+                    % se refere à tentativa de ter um waterfall cortado na
+                    % faixa visível, tornando operacional o DataTip.
+                    if ~isempty(xLimits)
+                        freqIdx1 = freq2idx(bandObj, xLimits(1) * 1e+6, 'CheckAndRound', 'fix');
+                        freqIdx2 = freq2idx(bandObj, xLimits(2) * 1e+6, 'CheckAndRound', 'ceil');
+                        xArray = xArray(freqIdx1:freqIdx2);
+
+                        nWaterFallPoints = (freqIdx2-freqIdx1+1) * bandObj.NumSweeps;
+                        nMaxWaterFallPoints = 16 * class.Constants.nMaxWaterFallPoints;
+            
+                        if nWaterFallPoints > nMaxWaterFallPoints
+                            nDecimation = ceil(nWaterFallPoints/nMaxWaterFallPoints);
+                        else
+                            nDecimation = 1;
+                        end
+
+                    else
+                        nDecimation = checkDecimation(specData, bandObj, decimation, 16);
+                        freqIdx1 = 1;
+                        freqIdx2 = bandObj.DataPoints;
+                    end
 
                     timeIdxs = 1:nDecimation:nSweeps;
                     if timeIdxs(end) ~= nSweeps
@@ -42,7 +72,7 @@ function [waterfallHandle, decimation] = Waterfall(operationType, waterfallHandl
                     yLim = [1, nSweeps];
                     plot.axes.Ruler(axesHandle, xLim, yLim)
 
-                    waterfallHandle = image(axesHandle, xArray, timeIdxs, specData.Data{2}(:, timeIdxs)', 'CDataMapping', 'scaled', 'Tag', 'waterfall');
+                    waterfallHandle = image(axesHandle, xArray, timeIdxs, specData.Data{2}(freqIdx1:freqIdx2, timeIdxs)', 'CDataMapping', 'scaled', 'Tag', 'waterfall');
             end
             decimation = num2str(nDecimation);
 

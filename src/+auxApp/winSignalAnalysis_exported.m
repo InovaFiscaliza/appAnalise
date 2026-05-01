@@ -564,8 +564,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function createRFLinkPlot(app, selectedRow, flowIdx)
-            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
-
             try
                 specData = app.mainApp.specData(flowIdx);
 
@@ -573,6 +571,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 [txObj, rxObj] = getRFLinkObjects(app, specData, selectedRow);
     
                 % ELEVAÇÃO DO LINK TX-RX
+                % Validação que possibilitahabilitar o bloqueio de tela apenas 
+                % se a informação de elevação não estiver em cache.
+                if ~IsCached(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
+                    requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+                end
+
                 [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
                 if ~isempty(msgWarning)
                     ui.Dialog(app.UIFigure, 'warning', msgWarning);
@@ -616,7 +620,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             app.TXLocationEditConfirm.Enable = 0;
 
-            requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+            if strcmp(app.progressDialog.Visible, 'visible')
+                requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+            end
         end
 
         %-----------------------------------------------------------------%

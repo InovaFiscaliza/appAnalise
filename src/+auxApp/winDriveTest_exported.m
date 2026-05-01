@@ -146,7 +146,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         plotUpdateEvent = 0
 
         % Handles dos objetos gráficos do plot.
-        plotHandles
+        plotHandles = struct( ...
+            'car', [], ...
+            'clearWrite', [], ...
+            'persistence', [], ...
+            'waterfallTime', [] ...
+        )
 
         % Índice da varredura atual.
         sweepTimeIdx
@@ -219,7 +224,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 end
 
                             case 'onLocationChanged'
-                                updateUIPanelContent(app)
+                                specData = app.bandObj.SpecData;
+                                updateUIPanelContent(app, specData)
             
                             case {'onTabNavigatorButtonPushed', ...
                                   'onPlaybackStarted'}
@@ -511,6 +517,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
             end
 
+            % Reinicializa handles dos plots WATERFALL e PERSISTÊNCIA. Os
+            % outros são reinicializados quando alterada a emissão.
+            resetPlotState(app, specData, 'onFlowDropDownValueChanged')
+
             updateEmissionDropDown(app)
             onEmissionDropDownValueChanged(app)
         end
@@ -585,11 +595,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Atualiza PAINEL À ESQUERDA com metadados do fluxo e da emissão.
             updateUIControlsState(app, specData, emissionIdx)
-            updateUIPanelContent(app, specData, emissionIdx)
+            updateUIPanelContent(app, specData)
 
             % Reseta o PLOT e atualiza informações que suportam o plot, como 
             % as dispostas no painel à direita.
-            resetPlotState(app, specData)
+            resetPlotState(app, specData, 'onEmissionDropDownValueChanged')
             
             % % Atualiza PAINEL À DIREITA.
             applyCustomProperty(app, specData, emissionIdx)
@@ -640,6 +650,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                                                            app.filterTable);
             else
                 app.emissionSelectedIdxs(:) = [];
+                app.emissionPoints(:) = [];
             end
         end
 
@@ -696,7 +707,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateUIPanelContent(app, specData, emissionIdx)
+        function updateUIPanelContent(app, specData)
             if ~isempty(specData)
                 % Verifica se o handle para o app continua ativo no workspace
                 % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
@@ -756,32 +767,40 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## PLOT CONTROLLER ##
         %-----------------------------------------------------------------%
-        function resetPlotState(app, specData)
-            cla([app.UIAxes1, app.UIAxes2, app.UIAxes3, app.UIAxes4])
+        function resetPlotState(app, specData, eventName)
+            switch eventName
+                case 'onFlowDropDownValueChanged'
+                    delete(findobj(app.UIAxes2.Children, 'Tag', 'persistence'))
+                    app.plotHandles.persistence = [];
+
+                case 'onEmissionDropDownValueChanged'
+                    cla([app.UIAxes1, app.UIAxes3, app.UIAxes4])
+                    delete(findobj(app.UIAxes2.Children, '-not', 'Tag', 'persistence'))
+                    
+                    % A inicialização de plots mais pesados como WATERFALL e PERSISTÊNCIA 
+                    % ocorre apenas quando alterado o fluxo espectral.
+                    app.plotHandles.car = [];
+                    app.plotHandles.clearWrite = [];
+                    app.plotHandles.waterfallTime = [];
             
-            app.plotHandles = struct( ...
-                'car', [], ...
-                'clearWrite', [], ...
-                'waterfallTime', [] ...
-            );
-    
-            app.sweepTimeIdx = 1;
-            app.tool_TimestampSlider.Value = 0;
-            resetRestoreView(app)            
-
-            if ~isempty(specData)
-                if isempty(app.UIAxes1.Legend)
-                    lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
-                    lgd.Title.FontSize = 8.5;
-                end
-
-                set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
-                updateTimestampLabel(app)
-
-            else
-                app.UIAxes1.Legend.Title.Visible = 'off';
-                app.tool_TimestampLabel.Text = '';
-                onAxesToolbarZoomControlButtonClicked(app, struct('Source', app.axesTool_RestoreView))
+                    app.sweepTimeIdx = 1;
+                    app.tool_TimestampSlider.Value = 0;
+                    resetRestoreView(app)            
+        
+                    if ~isempty(specData)
+                        if isempty(app.UIAxes1.Legend)
+                            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                            lgd.Title.FontSize = 8.5;
+                        end
+        
+                        set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
+                        updateTimestampLabel(app)
+        
+                    else
+                        app.UIAxes1.Legend.Title.Visible = 'off';
+                        app.tool_TimestampLabel.Text = '';
+                        onAxesToolbarZoomControlButtonClicked(app, struct('Source', app.axesTool_RestoreView))
+                    end
             end
         end
 
@@ -808,12 +827,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 % (b) ClearWrite+Persistance
                 app.plotHandles.clearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, 'clearWrite', app.bandObj, app.sweepTimeIdx);
-                plot.datatip.Template(app.plotHandles.clearWrite, "Frequency+Level", app.bandObj.LevelUnit)                
-                plot.Persistence('Creation', [], app.UIAxes2, app.bandObj, app.sweepTimeIdx);
+                plot.datatip.Template(app.plotHandles.clearWrite, "Frequency+Level", app.bandObj.LevelUnit)
+                updatePersistencePlot(app)                
                 set(app.UIAxes2, 'XLim', app.restoreView(2).xLim, 'YLim', app.restoreView(2).yLim)
 
                 % (c) Waterfall+Timeline
-                plot.Waterfall('Creation', [], app.UIAxes3, app.bandObj);
+                plot.Waterfall('Creation', [], app.UIAxes3, app.bandObj, app.restoreView(2).xLim);
                 app.plotHandles.waterfallTime = plot.draw2D.OrdinaryLine(app.UIAxes3, 'waterfallTime', app.bandObj, app.sweepTimeIdx);
 
                 % (d) ChannelPower
@@ -831,6 +850,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 updatePlotCar(app, 'Update')
             end
             drawnow
+        end
+
+        %-----------------------------------------------------------------%
+        function updatePersistencePlot(app)
+            if isempty(app.plotHandles.persistence) && strcmp(app.PersistanceVisibility.Value, 'on')
+                app.plotHandles.persistence = plot.Persistence('Creation', [], app.UIAxes2, app.bandObj, app.sweepTimeIdx);
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -945,6 +971,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 'PlotDisplayConfig', struct( ...
                     'Colormap', app.Colormap.Value, ...
                     'Basemap', app.Basemap.Value, ....
+                    'Data', struct( ...
+                        'Source', app.axesTool_DataSourceDropDown.Value, ...
+                        'PlotMode', app.UIAxes1.UserData.PlotMode, ...
+                        'PlotSize', app.axesTool_PlotSize.Value ...
+                    ), ...
                     'Route', struct( ...
                         'LineStyle', app.RouteLineStyle.Value, ...
                         'LineWidth', app.RouteLineWidth.Value, ...
@@ -993,7 +1024,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updatePlotFilter(app)
-            delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'FilterROI'))
+            delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'filterROI'))
 
             if ~isempty(app.filterTable)
                 for ii = 1:height(app.filterTable)
@@ -1032,7 +1063,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function hROI = plot_FilterROIObject(app, callingFcn, FilterSubtype, hAxes, varargin)
             switch FilterSubtype
                 case 'Threshold'
-                    hROI = plot.ROI.draw('images.roi.Line', hAxes, {'Tag', 'FilterROI'});
+                    hROI = plot.ROI.draw('images.roi.Line', hAxes, {'Tag', 'filterROI'});
 
                 case 'PolygonKML'
                     shapeObj = varargin{1};
@@ -1042,7 +1073,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                                     EdgeAlpha=1,                 ...
                                                     LineWidth=2.5,               ...
                                                     PickableParts='none',        ...
-                                                    Tag='FilterROI');
+                                                    Tag='filterROI');
 
                 otherwise
                     roiNameArgument = '';
@@ -1067,7 +1098,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         roiNameArgument = 'Rotatable=true, ';
                     end
 
-                    eval(sprintf('hROI = %s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="FilterROI");', roiFcn, roiNameArgument))
+                    eval(sprintf('hROI = %s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFcn, roiNameArgument))
             end
 
             if ~strcmp(FilterSubtype, 'PolygonKML')
@@ -1096,7 +1127,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 case 'Creation'
                     app.plotHandles.car = geoscatter(app.UIAxes1, app.emissionPoints.raw.Latitude(app.sweepTimeIdx), app.emissionPoints.raw.Longitude(app.sweepTimeIdx), 'filled', ...
                         'Marker', app.CarMarker.Value, 'MarkerFaceColor', app.CarColor.Value, 'MarkerEdgeColor', 'black', ...
-                        'SizeData', 10*app.CarSize.Value, 'PickableParts', 'none', 'DisplayName', 'Veículo', 'Tag', 'Car');
+                        'SizeData', 10*app.CarSize.Value, 'PickableParts', 'none', 'DisplayName', 'Veículo', 'Tag', 'car');
 
                 case 'Update'
                     set(app.plotHandles.car, 'LatitudeData', app.emissionPoints.raw.Latitude(app.sweepTimeIdx), ...
@@ -1358,6 +1389,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         return
                     end
             end
+
+            % Isso força a reinicialização das tabelas e plot...
+            app.emissionSelectedIdxs(:) = [];
+            onEmissionDropDownValueChanged(app)
 
         end
 

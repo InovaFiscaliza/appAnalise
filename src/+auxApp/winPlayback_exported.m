@@ -1725,16 +1725,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
-        % Double-clicked callback: FlowOccupancy
-        function FlowOccupancyDoubleClicked(app, event)
-            
-            specData = app.bandObj.SpecData;
-            item = event.InteractionInformation.Item
-            
-        end
-
         % Selection changed function: FlowEmissions
-        function FlowEmissionsSelectionChanged(app, event)
+        function onEmissionsTableSelectionChanged(app, event)
             
             emissionSelectedIdx = app.FlowEmissions.Selection;
 
@@ -1753,7 +1745,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Cell edit callback: FlowEmissions
-        function FlowEmissionsCellEdit(app, event)
+        function onEmissionsTableCellEdit(app, event)
             
             % A tabela de emissões possui umas 10 colunas, mas aqui, no
             % modo PLAYBACK, apresenta-se apenas três delas: "Frequency",
@@ -2156,8 +2148,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = true;
-            app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @FlowEmissionsCellEdit, true);
-            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @FlowEmissionsSelectionChanged, true);
+            app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @onEmissionsTableCellEdit, true);
+            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsTableSelectionChanged, true);
             app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Visible = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
@@ -2187,7 +2179,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancy.FontSize = 11;
             app.FlowOccupancy.Layout.Row = [4 8];
             app.FlowOccupancy.Layout.Column = [9 10];
-            app.FlowOccupancy.DoubleClickedFcn = createCallbackFcn(app, @FlowOccupancyDoubleClicked, true);
             app.FlowOccupancy.Value = {};
 
             % Create RightPanel
