@@ -4,6 +4,8 @@ classdef dockReportLib_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                matlab.ui.Figure
         GridLayout              matlab.ui.container.GridLayout
+        SpectrumFlowTree        matlab.ui.container.CheckBoxTree
+        SpectrumFlowTreeLabel   matlab.ui.control.Label
         reportPanel             matlab.ui.container.Panel
         reportGrid              matlab.ui.container.GridLayout
         reportEntityPanel       matlab.ui.container.Panel
@@ -129,6 +131,45 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             end
             set(app.reportEntityId, 'Value', app.projectData.modules.(context).ui.entity.id, 'BackgroundColor', backgroundColor, 'FontColor', fontColor)
             app.reportEntityIdCheck.Enable = ~isempty(app.reportEntityId.Value);
+
+            buildTree(app)
+        end
+
+        %-----------------------------------------------------------------%
+        function buildTree(app)
+            if ~isempty(app.SpectrumFlowTree.Children)
+                delete(app.SpectrumFlowTree.Children)
+            end
+
+            if ~isempty(app.mainApp.specData)
+                [receiverList, ~, receiverListIdxs] = unique({app.mainApp.specData.Receiver});
+                checkedNodes = [];
+    
+                for ii = 1:numel(receiverList)
+                    receiverIdxs  = find(receiverListIdxs == ii)';
+                    occupancyIdxs = arrayfun(@(x) ismember(x.MetaData.DataType, class.Constants.occDataTypes), app.mainApp.specData(receiverIdxs));
+                    receiverIdxs(occupancyIdxs) = [];
+
+                    if isempty(receiverIdxs)
+                        continue
+                    end
+
+                    receiverNode = uitreenode(app.SpectrumFlowTree, 'Text',  util.layoutTreeNodeText(receiverList{ii}, 'play_TreeBuilding'), ...
+                                                                    'NodeData', receiverIdxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
+
+                    for jj = receiverIdxs
+                        treeNode = uitreenode(receiverNode, 'Text', sprintf('%.3f - %.3f MHz', app.mainApp.specData(jj).MetaData.FreqStart / 1e6, app.mainApp.specData(jj).MetaData.FreqStop  / 1e6), ...
+                                                            'NodeData', jj, 'Tag', 'BAND');
+
+                        if app.mainApp.specData(jj).UserData.ReportInclude
+                            checkedNodes = [checkedNodes; treeNode];
+                        end
+                    end
+                end
+
+                app.SpectrumFlowTree.CheckedNodes = checkedNodes;
+                expand(app.SpectrumFlowTree, 'all')
+            end
         end
     end
     
@@ -361,7 +402,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: reportEntityIdCheck
-        function reportEntityIdCheckImageClicked(app, event)
+        function onEntityIdCheckButtonClicked(app, event)
             
             details = getEntityDetailsFromCache(app.projectData, app.reportEntityId.Value);
 
@@ -380,6 +421,20 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             ui.Dialog(app.UIFigure, "none", msg);
 
         end
+
+        % Callback function: SpectrumFlowTree
+        function onReportFlowListChanged(app, event)
+            
+            checkedNodes = app.SpectrumFlowTree.CheckedNodes;
+            flowIdxs = [];
+            if ~isempty(checkedNodes)
+                flowIdxs = unique([checkedNodes.NodeData]);
+            end
+
+            update(app.mainApp.specData, 'UserData:ReportInclude', flowIdxs)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onReportFlowListChanged', app.inputArgs.context)
+            
+        end
     end
 
     % Component initialization
@@ -395,7 +450,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 460 598];
+                app.UIFigure.Position = [100 100 784 594];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -418,9 +473,9 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 22, 22, 22};
+            app.GridLayout.ColumnWidth = {'1x', 81, 10, '1x', 5, 22, 5, 22, 5, 22};
             app.GridLayout.RowHeight = {17, 136, 22, 100, 22, 230};
-            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
@@ -439,7 +494,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.prjOpenFileButton.ImageClickedFcn = createCallbackFcn(app, @onProjectLoad, true);
             app.prjOpenFileButton.Tooltip = {'Abre projeto'};
             app.prjOpenFileButton.Layout.Row = 1;
-            app.prjOpenFileButton.Layout.Column = 2;
+            app.prjOpenFileButton.Layout.Column = 6;
             app.prjOpenFileButton.VerticalAlignment = 'bottom';
             app.prjOpenFileButton.ImageSource = 'Import_16.png';
 
@@ -450,7 +505,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.prjSaveButton.Enable = 'off';
             app.prjSaveButton.Tooltip = {'Salva projeto'};
             app.prjSaveButton.Layout.Row = 1;
-            app.prjSaveButton.Layout.Column = 3;
+            app.prjSaveButton.Layout.Column = 8;
             app.prjSaveButton.VerticalAlignment = 'bottom';
             app.prjSaveButton.ImageSource = 'save.svg';
 
@@ -460,7 +515,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.prjNewProjectButton.ImageClickedFcn = createCallbackFcn(app, @onProjectRestart, true);
             app.prjNewProjectButton.Tooltip = {'Cria novo projeto'};
             app.prjNewProjectButton.Layout.Row = 1;
-            app.prjNewProjectButton.Layout.Column = 4;
+            app.prjNewProjectButton.Layout.Column = 10;
             app.prjNewProjectButton.VerticalAlignment = 'bottom';
             app.prjNewProjectButton.ImageSource = 'new-project.svg';
 
@@ -468,7 +523,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.prjPanel = uipanel(app.GridLayout);
             app.prjPanel.AutoResizeChildren = 'off';
             app.prjPanel.Layout.Row = 2;
-            app.prjPanel.Layout.Column = [1 4];
+            app.prjPanel.Layout.Column = [1 10];
 
             % Create prjGrid
             app.prjGrid = uigridlayout(app.prjPanel);
@@ -549,7 +604,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.eFiscalizaPanel = uipanel(app.GridLayout);
             app.eFiscalizaPanel.AutoResizeChildren = 'off';
             app.eFiscalizaPanel.Layout.Row = 4;
-            app.eFiscalizaPanel.Layout.Column = [1 4];
+            app.eFiscalizaPanel.Layout.Column = [1 2];
 
             % Create eFiscalizaGrid
             app.eFiscalizaGrid = uigridlayout(app.eFiscalizaPanel);
@@ -634,7 +689,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportPanel.AutoResizeChildren = 'off';
             app.reportPanel.BackgroundColor = [1 1 1];
             app.reportPanel.Layout.Row = 6;
-            app.reportPanel.Layout.Column = [1 4];
+            app.reportPanel.Layout.Column = [1 2];
 
             % Create reportGrid
             app.reportGrid = uigridlayout(app.reportPanel);
@@ -648,7 +703,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportModelLabel.VerticalAlignment = 'bottom';
             app.reportModelLabel.FontSize = 11;
             app.reportModelLabel.Layout.Row = 1;
-            app.reportModelLabel.Layout.Column = 1;
+            app.reportModelLabel.Layout.Column = [1 2];
             app.reportModelLabel.Text = 'Modelo (.json):';
 
             % Create reportModel
@@ -684,7 +739,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportEntityPanelLabel.VerticalAlignment = 'bottom';
             app.reportEntityPanelLabel.FontSize = 11;
             app.reportEntityPanelLabel.Layout.Row = 4;
-            app.reportEntityPanelLabel.Layout.Column = 1;
+            app.reportEntityPanelLabel.Layout.Column = [1 2];
             app.reportEntityPanelLabel.Text = 'Fiscalizada';
 
             % Create reportEntityPanel
@@ -730,7 +785,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create reportEntityIdCheck
             app.reportEntityIdCheck = uiimage(app.reportEntityGrid);
-            app.reportEntityIdCheck.ImageClickedFcn = createCallbackFcn(app, @reportEntityIdCheckImageClicked, true);
+            app.reportEntityIdCheck.ImageClickedFcn = createCallbackFcn(app, @onEntityIdCheckButtonClicked, true);
             app.reportEntityIdCheck.Enable = 'off';
             app.reportEntityIdCheck.Tooltip = {'Consulta'};
             app.reportEntityIdCheck.Layout.Row = 1;
@@ -760,6 +815,23 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportEntityName.FontSize = 11;
             app.reportEntityName.Layout.Row = 4;
             app.reportEntityName.Layout.Column = [1 3];
+
+            % Create SpectrumFlowTreeLabel
+            app.SpectrumFlowTreeLabel = uilabel(app.GridLayout);
+            app.SpectrumFlowTreeLabel.VerticalAlignment = 'bottom';
+            app.SpectrumFlowTreeLabel.FontSize = 10;
+            app.SpectrumFlowTreeLabel.Layout.Row = 3;
+            app.SpectrumFlowTreeLabel.Layout.Column = 4;
+            app.SpectrumFlowTreeLabel.Text = 'FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO';
+
+            % Create SpectrumFlowTree
+            app.SpectrumFlowTree = uitree(app.GridLayout, 'checkbox');
+            app.SpectrumFlowTree.FontSize = 11;
+            app.SpectrumFlowTree.Layout.Row = [4 6];
+            app.SpectrumFlowTree.Layout.Column = [4 10];
+
+            % Assign Checked Nodes
+            app.SpectrumFlowTree.CheckedNodesChangedFcn = createCallbackFcn(app, @onReportFlowListChanged, true);
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

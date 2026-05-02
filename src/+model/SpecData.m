@@ -435,6 +435,7 @@ classdef SpecData < model.SpecDataBase
                                                                'UserData:Channel', ...
                                                                'UserData:PlotDisplayConfig', ...
                                                                'UserData:Emissions', ...
+                                                               'UserData:ReportInclude', ...
                                                                'UserData:OccupancyFields', ...
                                                                'UserData:ReportFields', ...
                                                                'UserData:OccupancyFields+ReportFields'})}
@@ -739,6 +740,13 @@ classdef SpecData < model.SpecDataBase
                     end
 
                     hasEmissionsInSearchBand(obj)
+
+
+                case 'UserData:ReportInclude'
+                    flowIdxs = updateType;
+                    for ii = 1:numel(obj)
+                        obj(ii).UserData.ReportInclude = ismember(ii, flowIdxs);
+                    end
 
                 case 'UserData:OccupancyFields'
                     checkIfScalar(obj)

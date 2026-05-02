@@ -208,6 +208,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             case {'onFileListAdded', ...
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
+                                  'onReportFlowListChanged', ...
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
                                   'onEmissionTruncatedValueChanged', ...
@@ -637,7 +638,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     ) ...
                 );
 
-                [app.emissionPoints.raw, ...
+                [app.emissionPoints(1).raw, ...
                  app.UIAxes4.UserData.YLimUnit] = RF.DataBinning.RawTableCreation(specData, 1, emissionChannel);
 
                 [app.emissionPoints.raw, ...
@@ -791,13 +792,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         if isempty(app.UIAxes1.Legend)
                             lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
                             lgd.Title.FontSize = 8.5;
-                        end
-        
+                        end        
                         set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
+                        
                         updateTimestampLabel(app)
         
                     else
-                        app.UIAxes1.Legend.Title.Visible = 'off';
+                        if ~isempty(app.UIAxes1.Legend)
+                            app.UIAxes1.Legend.Title.Visible = 'off';
+                        end
+
                         app.tool_TimestampLabel.Text = '';
                         onAxesToolbarZoomControlButtonClicked(app, struct('Source', app.axesTool_RestoreView))
                     end
@@ -2686,7 +2690,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [1 2];
-            app.AxesContainer.Layout.Column = [4 6];
+            app.AxesContainer.Layout.Column = [4 8];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);

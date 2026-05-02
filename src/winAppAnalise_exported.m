@@ -377,6 +377,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
 
+                                    case 'onReportFlowListChanged'
+                                        notifySecondaryApps(app, eventName)
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -460,8 +463,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenWidth  = 880;
                     screenHeight = 480;
                 case 'ReportLib'
-                    screenWidth  = 460;
-                    screenHeight = 602;
+                    screenWidth  = 784;
+                    screenHeight = 594;
                 case 'RepoFiles'
                     screenWidth  = 640;
                     screenHeight = 480;
@@ -724,6 +727,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 updateType char {mustBeMember(updateType, {'onFileListAdded', ...
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
+                                                           'onReportFlowListChanged', ...
                                                            'onLocationChanged', ...
                                                            'onEmissionAdded', ...
                                                            'onEmissionParameterValueChanged', ...
