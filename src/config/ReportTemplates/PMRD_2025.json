@@ -6,17 +6,19 @@
             "Editable": "false",
             "Text": "OBJETIVO",
             "Variable": [],
-            "Component": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Atendimento à demanda de fiscalização cadastrada no Fiscaliza sob a <b>Atividade de Inspeção nº %s</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
-                    "Variable": [
-                        "var_Issue",
-                        "var_RelatedLocations"
-                    ]
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Atendimento à demanda de fiscalização cadastrada no eFiscaliza sob a <b>Atividade de Inspeção nº %.0f</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
+                        "Variable": [
+                            "var_Issue",
+                            "var_RelatedLocations"
+                        ]
+                    }
                 }
-            }
+            ]
         }
     },
     {
@@ -198,12 +200,12 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "Internal",
-                        "Source": "EmissionPerBand",
+                        "Source": "tbl_EmissionPerBand",
                         "Columns": [
                             "ID",
                             "Frequency",
                             "Truncated",
-                            "BW_kHz",
+                            "BandWidthkHz",
                             "Level_FreqCenter_Min",
                             "Level_FreqCenter_Mean",
                             "Level_FreqCenter_Max",

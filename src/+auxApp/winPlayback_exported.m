@@ -239,7 +239,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 end
 
                             case {'onReportGenerate', 'onFinalReportFileChanged'}
-                                updateToolbar(app)
+                                specData = app.bandObj.SpecData;
+                                updateToolbar(app, specData)
 
                             case 'onFetchIssueDetails'
                                 system   = varargin{1};
@@ -611,11 +612,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
-                app.axesTool_FlowInfo;
-                app.tool_Play;
-                app.tool_LoopControl;
-                app.tool_TimestampSlider;
-                app.tool_OpenPopupMisc
+                app.axesTool_FlowInfo
             ], 'Enable', nonEmptySpecData)
 
             set([
@@ -631,9 +628,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
-
-            app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
-            app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
 
             % DataCursorMode
             % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
@@ -652,11 +646,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 app.LimitsYLimLabel.Text = 'dB  ';
             end
+
+            updateToolbar(app, specData)
         end
 
         %-----------------------------------------------------------------%
-        function updateToolbar(app)
-            % ...
+        function updateToolbar(app, specData)
+            nonEmptySpecData = ~isempty(specData);
+
+            set([
+                app.tool_Play;
+                app.tool_LoopControl;
+                app.tool_TimestampSlider;
+                app.tool_OpenPopupMisc
+            ], 'Enable', nonEmptySpecData)
+
+            app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+            app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
         end
 
         %-----------------------------------------------------------------%
@@ -1879,10 +1885,26 @@ classdef winPlayback_exported < matlab.apps.AppBase
             criticalWarningMsg = '';
             if ~validateReportRequirements(app.projectData, context, 'reportModel')
                 criticalWarningMsg = 'Pendente escolha do modelo de relatório.';
+
             elseif isempty(flowIdxs)
-                criticalWarningMsg = 'Necessário incluir ao menos um fluxo espectral na lista de fluxos a processar.';
+                criticalWarningMsg = 'Inclua ao menos um fluxo espectral na lista de fluxos a processar.';
+
             elseif app.plotUpdateEvent
-                criticalWarningMsg = 'Necessário interromper o playback antes de inicializar análise para geração do relatório.';
+                criticalWarningMsg = 'Interrompa o playback antes de inicializar a análise para gerar o relatório.';
+
+            else
+                invalidCache = false;
+                for ii = flowIdxs
+                    specData = app.mainApp.specData(ii);
+                    if isempty(specData.Data) || numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)
+                        invalidCache = true;
+                        break
+                    end
+                end
+
+                if invalidCache
+                    criticalWarningMsg = 'Navegue ao menos uma vez por cada fluxo espectral a ser processado antes de iniciar a análise para gerar o relatório.';
+                end
             end
 
             if ~isempty(criticalWarningMsg)
@@ -1901,7 +1923,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             invalidClassification = false;
             for ii = flowIdxs
-                if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, app.mainApp.specData(ii).UserData.Emissions.Classification, 'UniformOutput', false))
+                specData = app.mainApp.specData(ii);
+                if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, specData.UserData.Emissions.Classification, 'UniformOutput', false))
                     invalidClassification = true;
                     break
                 end

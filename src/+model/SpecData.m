@@ -14,13 +14,13 @@ classdef SpecData < model.SpecDataBase
     %   ├── update ⚠️
     %   ├── hasOccupancyPerBin ⚠️
     %   ├── hasEmissionsInSearchBand ⚠️
-    %   └── calculateAntennaHeight
+    %   ├── calculateAntennaHeight
+    %   └── buildSpectrumReferenceTable
 
     % PRIVATE
     %   ├── checkIfScalar
-    %   ├── occupancyMapping
-    %   └── getSpectrumMergeTable
-
+    %   └── occupancyMapping
+    
     % STATIC
     %   └── identifyMergeType
 
@@ -229,7 +229,7 @@ classdef SpecData < model.SpecDataBase
                 error('model:SpecData:InvalidMergeRequirements', 'O processo de mesclagem requer ao menos dois fluxos espectrais.')
             end
 
-            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
+            mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
 
             if ~isscalar(unique(mergeTable.Receiver)) || ~isscalar(unique(mergeTable.DataType)) || ~isscalar(unique(mergeTable.LevelUnit))               
                 error('model:SpecData:InvalidMergeRequirements', [ ...
@@ -273,7 +273,7 @@ classdef SpecData < model.SpecDataBase
 
         %-----------------------------------------------------------------%
         function obj = mergeWith(obj, flowIdxs)            
-            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
+            mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
             mergeType = model.SpecData.identifyMergeType(mergeTable);
 
             numFlows = numel(flowIdxs);
@@ -911,6 +911,36 @@ classdef SpecData < model.SpecDataBase
                 antennaHeight = referenceValue;
             end
         end
+
+        %-----------------------------------------------------------------%
+        function referenceTable = buildSpectrumReferenceTable(obj, flowIdxs)
+            numFlows = numel(flowIdxs);
+            referenceTable = table( ...
+                'Size', [numFlows, 11], ...
+                'VariableTypes', {'double', 'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
+                'VariableNames', {'Idx', 'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
+            );
+
+            for ii = 1:numFlows
+                idx = flowIdxs(ii);
+                
+                referenceTable(ii,:) = {
+                    idx, ...
+                    obj(idx).Receiver, ...
+                    obj(idx).MetaData.DataType, ...
+                    obj(idx).MetaData.FreqStart, ...
+                    obj(idx).MetaData.FreqStop, ...
+                    obj(idx).MetaData.LevelUnit, ...
+                    obj(idx).MetaData.DataPoints, ...
+                    (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
+                    obj(idx).MetaData.Resolution, ...
+                    sum(obj(idx).RelatedFiles.NumSweeps), ...
+                    obj(idx).GPS.Count ...
+                };
+            end
+            
+            referenceTable = sortrows(referenceTable, {'FreqStart', 'FreqStop'});
+        end
     end
 
 
@@ -1052,35 +1082,6 @@ classdef SpecData < model.SpecDataBase
                 obj(ii).UserData.OccupancyComputationMode.RelatedHashes = relatedHashes;
                 obj(ii).UserData.OccupancyComputationMode.SelectedHash = selectedHash;
             end
-        end
-
-        %-----------------------------------------------------------------%
-        function mergeTable = getSpectrumMergeTable(obj, flowIdxs)
-            numFlows = numel(flowIdxs);
-            mergeTable = table( ...
-                'Size', [numFlows, 10], ...
-                'VariableTypes', {'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
-                'VariableNames', {'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
-            );
-
-            for ii = 1:numFlows
-                idx = flowIdxs(ii);
-                
-                mergeTable(ii,:) = {
-                    obj(idx).Receiver, ...
-                    obj(idx).MetaData.DataType, ...
-                    obj(idx).MetaData.FreqStart, ...
-                    obj(idx).MetaData.FreqStop, ...
-                    obj(idx).MetaData.LevelUnit, ...
-                    obj(idx).MetaData.DataPoints, ...
-                    (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
-                    obj(idx).MetaData.Resolution, ...
-                    sum(obj(idx).RelatedFiles.NumSweeps), ...
-                    obj(idx).GPS.Count ...
-                };
-            end
-            
-            mergeTable = sortrows(mergeTable, {'FreqStart', 'FreqStop'});
         end
     end
 
