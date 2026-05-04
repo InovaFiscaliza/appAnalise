@@ -981,7 +981,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 eventName {mustBeMember(eventName, {'onFetchIssueDetails', 'onReportGenerate', 'onUploadArtifacts'})}
-                context {mustBeMember(context, {'MONITORINGPLAN', 'EXTERNALREQUEST'})}
+                context {mustBeMember(context, {'PLAYBACK'})}
                 credentials
             end
 
@@ -1045,7 +1045,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             createEFiscalizaObject(app, credentials)
             try
-                reportLibConnection.Controller.Run(app, callingApp, context, app.measData(indexes))
+                reportLibConnection.Controller.Run(app, callingApp, context, app.specData(indexes))
                 if app == callingApp
                     updateToolbar(app)
                 else

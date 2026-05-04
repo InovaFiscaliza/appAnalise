@@ -238,6 +238,22 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                     app.plotUpdateEvent = 0;
                                 end
 
+                            case {'onReportGenerate', 'onFinalReportFileChanged'}
+                                updateToolbar(app)
+
+                            case 'onFetchIssueDetails'
+                                system   = varargin{1};
+                                issue    = varargin{2};
+                                details  = varargin{3};
+                                msgError = varargin{4};
+
+                                if ~isempty(msgError)
+                                    error(msgError)
+                                end
+
+                                msg = util.HtmlTextGenerator.issueDetails(system, issue, details);
+                                ui.Dialog(app.UIFigure, 'info', msg);
+
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
@@ -599,8 +615,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
-                app.tool_OpenPopupMisc;
-                app.tool_GenerateReport
+                app.tool_OpenPopupMisc
             ], 'Enable', nonEmptySpecData)
 
             set([
@@ -616,6 +631,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
+
+            app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
             app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
 
             % DataCursorMode
@@ -635,6 +652,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 app.LimitsYLimLabel.Text = 'dB  ';
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateToolbar(app)
+            % ...
         end
 
         %-----------------------------------------------------------------%
@@ -1239,6 +1261,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.plotUpdateEvent = 0;
             app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
         end
+
+        %-----------------------------------------------------------------%
+        function reportDispatchOperation(app, eventName, varargin)
+            arguments
+                app
+                eventName {mustBeMember(eventName, {'onReportGenerate', 'onUploadArtifacts'})}
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            if isempty(app.mainApp.eFiscalizaObj) || ~isvalid(app.mainApp.eFiscalizaObj)
+                dialogBox    = struct('id', 'login',    'label', 'Usuário: ', 'type', 'text');
+                dialogBox(2) = struct('id', 'password', 'label', 'Senha: ',   'type', 'password');
+
+                customFormData = struct('UUID', eventName, 'Fields', dialogBox, 'Context', app.Context);
+                if ~isempty(varargin)
+                    customFormData.Varargin = varargin;
+                end
+
+                sendEventToHTMLSource(app.jsBackDoor, 'customForm', customFormData)
+
+            else
+                ipcMainMatlabCallsHandler(app.mainApp, app, eventName, app.Context, varargin{:})
+            end
+        end
     end
     
 
@@ -1817,6 +1866,181 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Image clicked function: tool_GenerateReport
+        function onToolbarGeneralReportButtonClicked(app, event)
+            
+            context = app.Context;
+            issue = app.projectData.modules.(context).ui.issue;
+            reportVersion = app.projectData.modules.(context).ui.reportVersion;
+            flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+
+            % <VALIDAÇÕES>
+            criticalWarningMsg = '';
+            if ~validateReportRequirements(app.projectData, context, 'reportModel')
+                criticalWarningMsg = 'Pendente escolha do modelo de relatório.';
+            elseif isempty(flowIdxs)
+                criticalWarningMsg = 'Necessário incluir ao menos um fluxo espectral na lista de fluxos a processar.';
+            elseif app.plotUpdateEvent
+                criticalWarningMsg = 'Necessário interromper o playback antes de inicializar análise para geração do relatório.';
+            end
+
+            if ~isempty(criticalWarningMsg)
+                ui.Dialog(app.UIFigure, 'warning', criticalWarningMsg);
+                return
+            end
+
+            nonCriticalWarningMsg = {};
+            if ~validateReportRequirements(app.projectData, context, 'issue')
+                nonCriticalWarningMsg{end+1} = sprintf('• O número da inspeção "%.0f" é inválido.', issue);
+            end
+
+            if ~validateReportRequirements(app.projectData, context, 'unit')
+                nonCriticalWarningMsg{end+1} = '• Unidade geradora do documento precisa ser selecionada.';
+            end
+
+            invalidClassification = false;
+            for ii = flowIdxs
+                if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, app.mainApp.specData(ii).UserData.Emissions.Classification, 'UniformOutput', false))
+                    invalidClassification = true;
+                    break
+                end
+            end
+
+            if invalidClassification
+                nonCriticalWarningMsg{end+1} = '• Há ao menos uma emissão ainda <font style="color: red;">Pendente identificação</font>, o que inviabiliza a geração da versão definitiva do relatório.';
+            end
+
+            if isempty(nonCriticalWarningMsg)
+                switch reportVersion
+                    case 'Definitiva'
+                        msgQuestion = sprintf('Confirma que se trata de monitoração relacionada à Atividade de Inspeção nº %.0f?', issue);
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                        if userSelection == "Não"
+                            return
+                        end
+                        
+                    case 'Preliminar'
+                        % ...
+                end
+
+            else
+                switch reportVersion
+                    case 'Definitiva'
+                        msgInfo = sprintf([ ...
+                                'Foi(ram) identificado(s) a(s) pendência(s):<br>%s' ...
+                                '<br><br>' ...
+                                '<b>Essa(s) pendência(s) precisa(m) ser resolvida(s) ' ...
+                                'antes de ser gerada a versão "Definitiva" do relatório</b>.' ...
+                            ], strjoin(nonCriticalWarningMsg, '<br>') ...
+                        );
+                        ui.Dialog(app.UIFigure, 'warning', msgInfo);
+                        return
+
+                    case 'Preliminar'
+                        msgQuestion = sprintf([ ...
+                                'Foi(ram) identificado(s) a(s) pendência(s):<br>%s' ...
+                                '<br><br>' ...
+                                '<b>Continuar mesmo assim?</b>' ...
+                            ], strjoin(nonCriticalWarningMsg, '<br>') ...
+                        );
+                        selection = ui.Dialog(app.UIFigure, "uiconfirm", msgQuestion, {'Sim', 'Não'}, 1, 2);
+                        if strcmp(selection, 'Não')
+                            return
+                        end
+                end
+            end
+            % </VALIDAÇÕES>
+
+            % <PROCESSO>
+            reportDispatchOperation(app, 'onReportGenerate', flowIdxs)
+            % </PROCESSO>
+
+        end
+
+        % Image clicked function: tool_UploadFinalFile
+        function onToolbarUploadFinalFileButtonClicked(app, event)
+            
+            % <VALIDAÇÕES>
+            context = app.Context;            
+            system = app.projectData.modules.(context).ui.system;
+            issue = app.projectData.modules.(context).ui.issue;
+            generatedHtmlFilePath = getGeneratedDocumentFileName(app.projectData, '.html', context);
+
+            msg = '';
+            if isempty(generatedHtmlFilePath)
+                msg = 'A versão definitiva do relatório ainda não foi gerada.';
+            elseif ~isfile(generatedHtmlFilePath)
+                msg = sprintf('O arquivo "%s" não foi encontrado.', generatedHtmlFilePath);
+            elseif ~isfolder(app.mainApp.General.fileFolder.DataHub_POST)
+                msg = 'Pendente mapear pasta do Sharepoint';
+            elseif ~validateReportRequirements(app.projectData, context, 'issue')
+                msg = sprintf('O número da inspeção "%.0f" é inválido.', issue);
+            elseif ~validateReportRequirements(app.projectData, context, 'unit')
+                msg = 'Unidade geradora do documento precisa ser selecionada.';
+            elseif isempty(system)
+                msg = 'Ambiente do eFiscaliza precisa ser selecionado.';
+            end
+
+            if ~isempty(msg)
+                ui.Dialog(app.UIFigure, 'warning', msg);
+                return
+            end
+
+            selectedECD = getSelectedECD(app);
+
+            storedReportHash  = app.projectData.modules.(context).generatedFiles.id;
+            currentReportHash = model.ProjectBase.computeReportAnalysisResultsHash(selectedECD);
+
+            if ~isequal(storedReportHash, currentReportHash)
+                [~, generatedHtmlFileName, generatedHtmlFileExt] = fileparts(generatedHtmlFilePath);
+                msgQuestion = sprintf([ ...
+                    'O relatório indicado a seguir foi gerado com base em ' ...
+                    'um conjunto específico de arquivos e anotações.<br>%s<br><br>' ...
+                    '<i>Hash</i> no momento da geração:<br>' ...
+                    '%s<br><br>' ...
+                    '<i>Hash</i> atual (após alterações):<br>' ...
+                    '%s<br><br>' ...
+                    'Isso indica que um arquivo diferente foi selecionado ' ...
+                    'ou que alguma anotação foi modificada desde a geração ' ...
+                    'do relatório.<br><br>' ...
+                    '<b>Deseja continuar com o <i>upload</i> mesmo assim?</b>' ...
+                ], [generatedHtmlFileName, generatedHtmlFileExt], textFormatGUI.cellstr2Bullets(strsplit(storedReportHash, ' - ')), textFormatGUI.cellstr2Bullets(strsplit(currentReportHash, ' - ')));
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+
+                if strcmp(userSelection, 'Não')
+                    return
+                end
+            end
+
+            uploadedFiles = getUploadedFiles(app.projectData, context, system, issue);
+            if ~isempty(uploadedFiles)
+                uploadedStatus = extractAfter({uploadedFiles.status}, 'Documento cadastrado no SEI sob o nº ');
+
+                if isscalar(uploadedStatus)
+                    uploadedStatus = uploadedStatus{1};
+                else                    
+                    uploadedStatus = strjoin([{strjoin(uploadedStatus(1:end-1), ', ')}, uploadedStatus(end)], ' e ');
+                end
+
+                msgQuestion = sprintf([ ...
+                    'Já foi realizado <i>upload</i> para o SEI de relatório relacionado ' ...
+                    'à Atividade de Inspeção nº %d - SEI nº %s.<br><br>' ...
+                    'Deseja realizar um novo <i>upload</i> para o SEI?' ...
+                ], issue, uploadedStatus);
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+
+                if strcmp(userSelection, 'Não')
+                    return
+                end
+            end
+            % </VALIDAÇÕES>
+
+            % <PROCESSO>
+            reportDispatchOperation(app, 'onUploadArtifacts')
+            % </PROCESSO>
+
+        end
     end
 
     % Component initialization
@@ -1954,6 +2178,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_GenerateReport
             app.tool_GenerateReport = uiimage(app.Toolbar);
             app.tool_GenerateReport.ScaleMethod = 'none';
+            app.tool_GenerateReport.ImageClickedFcn = createCallbackFcn(app, @onToolbarGeneralReportButtonClicked, true);
             app.tool_GenerateReport.Enable = 'off';
             app.tool_GenerateReport.Layout.Row = [1 3];
             app.tool_GenerateReport.Layout.Column = 10;
@@ -1962,6 +2187,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_UploadFinalFile
             app.tool_UploadFinalFile = uiimage(app.Toolbar);
             app.tool_UploadFinalFile.ScaleMethod = 'none';
+            app.tool_UploadFinalFile.ImageClickedFcn = createCallbackFcn(app, @onToolbarUploadFinalFileButtonClicked, true);
             app.tool_UploadFinalFile.Enable = 'off';
             app.tool_UploadFinalFile.Layout.Row = [1 3];
             app.tool_UploadFinalFile.Layout.Column = 11;

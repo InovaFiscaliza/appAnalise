@@ -5,20 +5,15 @@
         "Data": {
             "Editable": "false",
             "Text": "OBJETIVO",
-            "Children": {
+            "Variable": [],
+            "Component": {
                 "Type": "ItemN2",
                 "Data": {
                     "Editable": "false",
                     "Text": "Atendimento à demanda de fiscalização cadastrada no Fiscaliza sob a <b>Atividade de Inspeção nº %s</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
                     "Variable": [
-                        {
-                            "Source": "Issue",
-                            "Precision": "%.0f"
-                        },
-                        {
-                            "Source": "RelatedLocations",
-                            "Precision": "%s"
-                        }
+                        "var_Issue",
+                        "var_RelatedLocations"
                     ]
                 }
             }
@@ -30,12 +25,14 @@
         "Data": {
             "Editable": "false",
             "Text": "INTRODUÇÃO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "O Plano de Monitoração de Radiodifusão (PMRD), criado no ano de 2020, tem como objetivo controlar, de forma preventiva, o uso de faixas de frequência relacionados aos serviços de radiodifusão, com destaque para as indicadas a seguir. Dentre as atividades relacionadas a esse controle, a estimativa da área de atendimento e a avaliação de parâmetros técnicos de estações de radiodifusão, além da identificação e mitigação de espúrios gerados por essas estações."
+                        "Text": "O Plano de Monitoração de Radiodifusão (PMRD), criado no ano de 2020, tem como objetivo controlar, de forma preventiva, o uso de faixas de frequência relacionados aos serviços de radiodifusão, com destaque para as indicadas a seguir. Dentre as atividades relacionadas a esse controle, a estimativa da área de atendimento e a avaliação de parâmetros técnicos de estações de radiodifusão, além da identificação e mitigação de espúrios gerados por essas estações.",
+                        "Variable": []
                     }
                 },
                 {
@@ -43,11 +40,13 @@
                     "Data": [
                         {
                             "Editable": "false",
-                            "Text": "Faixas 54.000 a 88.000 MHz, 176.000 a 214.000 MHz e 470.000 a 698.000 MHz, destinadas aos serviços televisivos."
+                            "Text": "Faixas 54.000 a 88.000 MHz, 176.000 a 214.000 MHz e 470.000 a 698.000 MHz, destinadas aos serviços televisivos.",
+                            "Variable": []
                         },
                         {
                             "Editable": "false",
-                            "Text": "Faixa 76.000 a 108.000 MHz, destinada ao serviço de Radiodifusão Sonora em Frequência Modulada (incluso Radiodifusão Comunitária)."
+                            "Text": "Faixa 76.000 a 108.000 MHz, destinada ao serviço de Radiodifusão Sonora em Frequência Modulada (incluso Radiodifusão Comunitária).",
+                            "Variable": []
                         }
                     ]
                 },
@@ -55,7 +54,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "Neste ano de 2025, o PMRD foi formalizado por meio do <b>Processo nº 53500.100466/2024-15</b>, o qual contempla o Plano de Trabalho (SEI nº 13183357)."
+                        "Text": "Neste ano de 2025, o PMRD foi formalizado por meio do <b>Processo nº 53500.100466/2024-15</b>, o qual contempla o Plano de Trabalho (SEI nº 13183357).",
+                        "Variable": []
                     }
                 }
             ]
@@ -67,12 +67,14 @@
         "Data": {
             "Editable": "false",
             "Text": "METODOLOGIA",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas."
+                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas.",
+                        "Variable": []
                     }
                 },
                 {
@@ -135,17 +137,14 @@
         "Data": {
             "Editable": "false",
             "Text": "RESULTADOS",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
                         "Text": "%s",
-                        "Variable":
-                        {
-                            "Source": "threadTag",
-                            "Precision": "%s"
-                        }
+                        "Variable": "var_TagFlow"
                     }
                 },
                 {
@@ -297,7 +296,8 @@
         "Data": {
             "Editable": "false",
             "Text": "ANÁLISE",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "Table",
                     "Data": {
@@ -607,7 +607,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "true",
-                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:"
+                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:",
+                        "Variable": []
                     }
                 },
                 {
@@ -615,11 +616,13 @@
                     "Data": [
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         }
                     ]
                 }
@@ -632,11 +635,13 @@
         "Data": {
             "Editable": "false",
             "Text": "CONCLUSÃO",
-            "Children": {
+            "Variable": [],
+            "Component": {
                 "Type": "ItemN2",
                 "Data": {
                     "Editable": "false",
-                    "Text": "Ante o exposto, conclui-se este relatório de atividades."
+                    "Text": "Ante o exposto, conclui-se este relatório de atividades.",
+                    "Variable": []
                 }
             }
         }
