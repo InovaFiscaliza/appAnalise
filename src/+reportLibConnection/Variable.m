@@ -33,14 +33,23 @@ classdef (Abstract) Variable
                      fieldValue = jsonencode(struct('Name', reportInfo.Model.Name, 'DocumentType', reportInfo.Model.DocumentType, 'Version', reportInfo.Model.Version));
 
                 otherwise
-                    error('UnexpectedFieldName')
+                    error('reportLibConnection:Variable:UnexpectedFieldName', 'Unexpected field name "%s"', fieldName)
             end
         end
 
         %-----------------------------------------------------------------%
-        function fieldValue = ClassProperty(analyzedData, reportInfo, fieldName)
-            specData = analyzedData.InfoSet;
+        function fieldValue = GlobalProperty(specData, fieldName)
+            switch fieldName
+                case 'RelatedLocations'
+                    fieldValue = textFormatGUI.cellstr2FriendlyListWithQuotes(unique(arrayfun(@(x) x.GPS.Location, specData, 'UniformOutput', false), 'stable'));
 
+                otherwise
+                    error('reportLibConnection:Variable:UnexpectedFieldName', 'Unexpected field name "%s"', fieldName)
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function fieldValue = ClassProperty(specData, fieldName)
             switch fieldName
                 case 'Band'
                     fieldValue = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart * 1e-6, specData.MetaData.FreqStop * 1e-6);
@@ -77,11 +86,7 @@ classdef (Abstract) Variable
                     fieldValue = specData.Receiver;
                 
                 case 'RelatedFiles'
-                    fieldValue = strjoin(specData.RelatedFiles.File, ', ');        
-                
-                case 'RelatedLocations'
-                    specData = reportInfo.Object;
-                    fieldValue = textFormatGUI.cellstr2FriendlyListWithQuotes(unique(arrayfun(@(x) x.GPS.Location, specData, 'UniformOutput', false), 'stable'));
+                    fieldValue = strjoin(specData.RelatedFiles.File, ', ');
 
                 case 'StepWidth'
                     fieldValue = ((specData.MetaData.FreqStop - specData.MetaData.FreqStart) / (specData.MetaData.DataPoints - 1)) * 1e-3;
@@ -168,7 +173,7 @@ classdef (Abstract) Variable
                     fieldValue = sprintf('EMISSÃO #%d.%d: <b>%.3f MHz ⌂ %.1f kHz</b>', bandIdx, emissionIdx, specData.UserData.Emissions.Frequency(emissionIdx), specData.UserData.Emissions.BW_kHz(emissionIdx));
 
                 otherwise
-                    error('UnexpectedFieldName')
+                    error('reportLibConnection:Variable:UnexpectedFieldName', 'Unexpected field name "%s"', fieldName)
             end
         end
     end

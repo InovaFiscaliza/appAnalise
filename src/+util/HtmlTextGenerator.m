@@ -183,11 +183,11 @@ classdef (Abstract) HtmlTextGenerator
             currentAntennaHeight = specData.UserData.AntennaHeightMeters;
             if abs(initialAntennaHeight - currentAntennaHeight) > 1e-1
                 if initialAntennaHeight == -1
-                    initialAntennaHeight = '(Desconhecido)';
+                    initialAntennaHeight = '(Desconhecida)';
                 end
                 antennaHeight = sprintf('<font style="color: red;"><del>%s</del> → %d metros</font>', string(initialAntennaHeight), currentAntennaHeight);
             elseif currentAntennaHeight == -1
-                antennaHeight = '<font style="color: red;">(Desconhecido)</font>';
+                antennaHeight = '<font style="color: red;">(Desconhecida)</font>';
             else
                 antennaHeight = sprintf('%d metros', currentAntennaHeight);
             end

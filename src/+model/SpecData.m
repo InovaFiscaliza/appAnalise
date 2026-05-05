@@ -189,9 +189,14 @@ classdef SpecData < model.SpecDataBase
                 % - "OccupancyFiniteIntegrationCache"
                 % - "OccupancyCumulativeIntegration"
                 if isempty(obj(ii).UserData.PlotDisplayConfig)
-                    obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
                     obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
-                    
+                end
+
+                if isempty(obj(ii).UserData.AntennaHeightMeters)
+                    update(obj(ii), 'UserData:AntennaHeight', 'InitialValue')
+                end
+
+                if isempty(obj(ii).UserData.ChannelLibraryRelatedIndexes)                    
                     if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
                         obj(ii).UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj(ii));
                     end
@@ -472,6 +477,11 @@ classdef SpecData < model.SpecDataBase
 
                 case 'UserData:AntennaHeight' % Origem: auxApp.dockLocation
                     switch updateType
+                        case 'InitialValue'
+                            for ii = 1:numel(obj)
+                                obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
+                            end
+
                         case 'Refresh'
                             for ii = 1:numel(obj)
                                 autoAntennaHeight = calculateAntennaHeight(obj, ii, -1, 'refreshValue');

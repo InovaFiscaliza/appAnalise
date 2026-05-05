@@ -82,8 +82,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Custom",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Custom",
                         "Columns": [
                             "ID",
                             "Receiver",
@@ -152,9 +152,9 @@
                 {
                     "Type": "Image",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Band",
-                        "Plot": "MinHold+Average+MaxHold+Emission:Waterfall",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "img_Band",
+                        "Name": "minHold+average+maxHold+emission:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
                         "Settings": {
@@ -169,8 +169,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Algorithms",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Algorithms",
                         "Columns": [
                             "Algorithm",
                             "Parameters"
@@ -199,7 +199,7 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
+                        "Origin": "FunctionEvaluation",
                         "Source": "tbl_EmissionPerBand",
                         "Columns": [
                             "ID",
@@ -303,8 +303,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Summary",
                         "Columns": [
                             "Banda",
                             "N1_Licenciada",
@@ -391,8 +391,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Summary",
                         "Columns": [
                             "Banda",
                             "N2_Fundamental",
@@ -471,8 +471,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Summary",
                         "Columns": [
                             "Banda",
                             "N3_Licenciada",
@@ -543,12 +543,12 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Irregular",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_Irregular",
                         "Columns": [
                             "Frequency",
                             "Truncated",
-                            "BW_kHz",                            
+                            "BandWidthkHz",                            
                             "Regulatory",
                             "Type",
                             "RiskLevel",

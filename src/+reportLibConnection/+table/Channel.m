@@ -70,7 +70,7 @@ function GeneralTable = Channel(specData, idxThread, tempBandObj, occInfo)
         chTable.OCUPACAO_TOTAL = -ones(height(chTable), 1);
     end
 
-    GeneralTable   = TableTemplate('GeneralTable', height(chTable));
+    GeneralTable   = getTableTemplate('GeneralTable', height(chTable));
     
     for ii = 1:height(chTable)
         % Limites do canal sob análise.
@@ -114,7 +114,7 @@ function GeneralTable = Channel(specData, idxThread, tempBandObj, occInfo)
         Emissions      = specData.UserData.Emissions;
         idxEmissions   = find((Emissions.Frequency >= chStart) & (Emissions.Frequency < chStop));
         EmissionsCount = numel(idxEmissions);
-        EmissionTable  = TableTemplate('EmissionTable', numel(idxEmissions));
+        EmissionTable  = getTableTemplate('EmissionTable', numel(idxEmissions));
 
         for jj = 1:EmissionsCount
             idxEmission = idxEmissions(jj);
@@ -166,29 +166,31 @@ end
 
 
 %-------------------------------------------------------------------------%
-function Template = TableTemplate(Type, Height)
-    switch Type
+function template = getTableTemplate(tableType, tableHeight)
+    switch tableType
         case 'GeneralTable'
-            Template = table('Size',          [Height, 16],                                                                                              ...
-                             'VariableNames', {'Transponder', 'Frequência central (MHz)', 'Largura (kHz)', 'Referência', 'FBO estimada (%)',             ...
-                                               'Threshold mínimo', 'Threshold máximo', 'Offset', 'FBO mínima (%)', 'FBO média (%)', 'FBO máxima (%)',    ...
-                                               'FCO (%)', 'FCO per bin (%)', 'Qtd. emissões', 'idxEmission', 'Emissões'},                                ...
-                             'VariableTypes', {'cell', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double', 'double', 'double', ...
-                                               'double', 'cell', 'uint32', 'cell', 'cell'});
+            template = table( ...
+                'Size', [tableHeight, 16], ...
+                 'VariableNames', {'Transponder', 'Frequência central (MHz)', 'Largura (kHz)', 'Referência', 'FBO estimada (%)', 'Threshold mínimo', 'Threshold máximo', 'Offset', 'FBO mínima (%)', 'FBO média (%)', 'FBO máxima (%)', 'FCO (%)', 'FCO per bin (%)', 'Qtd. emissões', 'idxEmission', 'Emissões'}, ...
+                 'VariableTypes', {'cell', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'double', 'cell', 'uint32', 'cell', 'cell'} ...
+             );
+            
         case 'EmissionTable'
-            Template = table('Size',          [Height, 4],                                                           ...
-                             'VariableNames', {'Frequência central (MHz)', 'Largura (kHz)', 'FCO (%)', 'Descrição'}, ...
-                             'VariableTypes', {'double', 'double', 'double', 'cell'});
+            template = table( ...
+                'Size', [tableHeight, 4], ...
+                'VariableNames', {'Frequência central (MHz)', 'Largura (kHz)', 'FCO (%)', 'Descrição'}, ...
+                'VariableTypes', {'double', 'double', 'double', 'cell'} ...
+            );
     end
 end
 
 
 %-------------------------------------------------------------------------%
-function FrequencyIndex = freq2idx(FreqStart, FreqStop, DataPoints, FrequencyInHertz)
-    aCoef = (FreqStop - FreqStart) ./ (DataPoints - 1);
-    bCoef = FreqStart - aCoef;
+function frequencyIndex = freq2idx(freqStart, freqStop, dataPoints, frequencyInHertz)
+    aCoef = (freqStop - freqStart) ./ (dataPoints - 1);
+    bCoef = freqStart - aCoef;
 
-    FrequencyIndex = round((FrequencyInHertz - bCoef)/aCoef);
-    FrequencyIndex(FrequencyIndex < 1) = 1;
-    FrequencyIndex(FrequencyIndex > DataPoints) = DataPoints;
+    frequencyIndex = round((frequencyInHertz - bCoef)/aCoef);
+    frequencyIndex(frequencyIndex < 1) = 1;
+    frequencyIndex(frequencyIndex > dataPoints) = dataPoints;
 end

@@ -61,7 +61,11 @@ classdef dockLocation_exported < matlab.apps.AppBase
             app.Longitude.Value = round(specData.GPS.Longitude, 6);
             app.Height.Value = calculateAntennaHeight(specData, 1);
             app.City.Value = specData.GPS.Location;
-            app.Refresh.Visible = specData.GPS.Edited;
+
+            initialAntennaHeight = calculateAntennaHeight(specData, 1, -1, 'initialValue');
+            currentAntennaHeight = specData.UserData.AntennaHeightMeters;
+
+            app.Refresh.Visible = specData.GPS.Edited || abs(initialAntennaHeight - currentAntennaHeight) > 1e-1;
         end
 
         %-----------------------------------------------------------------%
@@ -148,6 +152,10 @@ classdef dockLocation_exported < matlab.apps.AppBase
 
                             for ii = 1:numel(specData)
                                 currentGps = specData(ii).GPS;
+
+                                if isempty(specData(ii).UserData.AntennaHeightMeters)
+                                    update(specData(ii), 'UserData:AntennaHeight', 'InitialValue')
+                                end
                                 currentAntennaHeight = specData(ii).UserData.AntennaHeightMeters;
     
                                 if any([ ...

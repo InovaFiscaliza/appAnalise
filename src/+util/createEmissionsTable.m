@@ -27,7 +27,7 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
     
         for ii = flowIdxs
             emissionsTempTable = specData(ii).UserData.Emissions;
-    
+            
             emissionsTempTable.Truncated = arrayfun(@(x) x.UserModified.Frequency,     emissionsTempTable.ChannelAssigned);
             if any(~emissionsTempTable.IsTruncated)
                 idxUntruncated = find(~emissionsTempTable.IsTruncated);
@@ -79,6 +79,7 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
         end
     
         emissionsTable = sortrows(vertcat(emissionsTempTableCellArray{:}), {'Frequency', 'BandWidthkHz'});
+        emissionsTable.ID = string(1:height(emissionsTable))';
         
         if ismember(operationType, {'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})
             for jj = 1:height(emissionsTable)
