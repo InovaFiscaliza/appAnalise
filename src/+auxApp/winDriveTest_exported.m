@@ -664,7 +664,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             set([
                 app.axesTool_DataSourceDropDown;
                 app.axesTool_PlotSize;
-                app.axesTool_Target;
                 app.Colormap;
                 app.Basemap;
                 app.RouteLineStyle;
@@ -695,6 +694,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             ], 'Enable', isSpectralFlow)
 
             set([
+                app.axesTool_Target; 
                 app.DataBinningLength;
                 app.DataBinningFcn;
                 app.FilterTreeButton;
@@ -1495,7 +1495,17 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: axesTool_Target
         function onAxesToolbarTargetButtonClicked(app, event)
             
-            uialert(app.UIFigure, 'Pendente!', '')
+            specData = app.bandObj.SpecData;
+            [~, emissionIdx] = findSpecDataIndex(app);
+            if isempty(emissionIdx)
+                return
+            end
+
+            frequencyCenterMHz = specData.UserData.Emissions.Frequency(emissionIdx);
+            bandWidthkHz = specData.UserData.Emissions.BandWidthkHz(emissionIdx);
+
+            [estimatedLatitude, estimatedLongitude, uncertaintyRadius] = RF.Geolocation.poA(specData, frequencyCenterMHz, bandWidthkHz);
+            RF.Geolocation.drawResults(app.UIAxes1, estimatedLatitude, estimatedLongitude, uncertaintyRadius)
 
         end
 
@@ -2765,7 +2775,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_Target = uiimage(app.AxesToolbar);
             app.axesTool_Target.ScaleMethod = 'none';
             app.axesTool_Target.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarTargetButtonClicked, true);
-            app.axesTool_Target.Tooltip = {'Heatmap'; '(aplicável apenas quando visualizados os dados processados)'};
+            app.axesTool_Target.Tooltip = {''};
             app.axesTool_Target.Layout.Row = 1;
             app.axesTool_Target.Layout.Column = 11;
             app.axesTool_Target.ImageSource = 'target.svg';

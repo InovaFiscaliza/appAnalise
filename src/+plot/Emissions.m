@@ -42,7 +42,7 @@ classdef (Abstract) Emissions
         end
 
         %-----------------------------------------------------------------%
-        function TStyle(axesHandle, bandObj, plotTag, varargin)
+        function TStyle(axesHandle, bandObj, plotTag)
             specData = bandObj.SpecData;
             if isempty(specData)
                 return
@@ -85,9 +85,9 @@ classdef (Abstract) Emissions
                     % Deixar configuráveis os parâmetros...
                     % Editar "GeneralSettings.json"
 
-                    line(axesHandle, [freqStart, freqStop], [yLevel2Plot, yLevel2Plot], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'Marker', '.', 'MarkerSize', 8, 'PickableParts', 'none', 'Tag', 'Emission');
-                    line(axesHandle, [freqCenter, freqCenter], [-1000, 1000], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'PickableParts', 'none', 'Tag', 'Emission');
-                    text(axesHandle, freqCenter, yLevel2Plot, sprintf(' %d', ii), Color='#ffff12', FontSize=10, FontWeight='bold', FontName='Helvetica', VerticalAlignment='bottom', Tag='EmissionTag');
+                    line(axesHandle, [freqStart, freqStop], [yLevel2Plot, yLevel2Plot], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'Marker', '.', 'MarkerSize', 8, 'PickableParts', 'none', 'Tag', 'emission');
+                    line(axesHandle, [freqCenter, freqCenter], [-1000, 1000], 'Color', '#ffff12', 'LineWidth', 1, 'LineStyle', ':', 'PickableParts', 'none', 'Tag', 'emission');
+                    text(axesHandle, freqCenter, yLevel2Plot, sprintf(' %d', ii), Color='#ffff12', FontSize=10, FontWeight='bold', FontName='Helvetica', VerticalAlignment='bottom', Tag='emissionTag');
                 end
 
                 plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)

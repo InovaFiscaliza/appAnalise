@@ -28,22 +28,23 @@ classdef (Abstract) Plot
             % Cria eixos de acordo com estabelecido no JSON.
             tiledPos     = 1;
             tiledSpan    = str2double(strsplit(imgSettings.Layout, ':'));
+            tiledNames   = strsplit(imgSettings.Name, ':');
 
             axesParent   = tiledlayout(hContainer, sum(tiledSpan), 1, "Padding", "tight", "TileSpacing", "tight");           
             [axesType,   ...
              axesXLabel, ...
              axesYLabel, ...
-             axesYScale] = plot.axes.axesTypeMapping({imgSettings.Name}, bandObj);
+             axesYScale] = plot.axes.axesTypeMapping(tiledNames, bandObj);
 
-            for ii = 1:numel(imgSettings)
+            for ii = 1:numel(tiledNames)
                 xLabelFlag  = true;
                 
                 switch axesType{ii}
                     case 'Geographic'
                         axesHandle = plot.axes.Creation(axesParent, 'Geographic',  {'Basemap',  generalSettings.reportLib.basemap, ...
-                                                                               'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5]});
+                                                                                    'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5]});
 
-                        if ismember(generalSettings.plot.geographicAxes.basemap, {'darkwater', 'none'})
+                        if ismember(generalSettings.plot.geographicAxes.Basemap, {'darkwater', 'none'})
                             axesHandle.Grid = 'on';
                         end
                     
@@ -59,7 +60,7 @@ classdef (Abstract) Plot
 
                     case 'Cartesian'
                         axesHandle = plot.axes.Creation(axesParent, 'Cartesian', {'XColor', [.15,.15,.15], 'YColor', [.15,.15,.15], 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel});
-                        if (numel(imgSettings) > 1) && (ii < numel(imgSettings)) && any(strcmp(axesType(ii+1:end), 'Cartesian'))
+                        if ~isscalar(tiledNames) && (ii < numel(tiledNames)) && any(strcmp(axesType(ii+1:end), 'Cartesian'))
                             xLabelFlag = false;
                         end
                 end
@@ -67,7 +68,7 @@ classdef (Abstract) Plot
                 axesHandle.Layout.TileSpan = [tiledSpan(ii) 1];
             
                 % PLOT
-                plotNames = strsplit(imgSettings(ii).Name, '+');
+                plotNames = strsplit(tiledNames{ii}, '+');
                 for plotTag = plotNames
                     switch plotTag{1}
                         case {'minHold', 'average', 'maxHold'}
@@ -95,8 +96,8 @@ classdef (Abstract) Plot
                             end
 
                         case 'emission'
-                            % plot.draw2D.horizontalSetOfLines(hAxes, bandObj, idxThread, 'Emission')
-                            plot.Emission.TStyle(axesHandle, bandObj, idxThread, 'Emission')
+                            % plot.draw2D.horizontalSetOfLines(axesHandle, bandObj, 'emission')
+                            plot.Emissions.TStyle(axesHandle, bandObj, 'emission')
 
                         % <PENDENTE MIGRAR PARA NOVAS FUNÇÕES>
                         case 'occupancyThreshold'
@@ -115,24 +116,21 @@ classdef (Abstract) Plot
                         case 'occupancyPerChannel'
                             axesHandle.YLim = [0,100];
 
-                        case 'DriveTest'
-                            reportLibConnection.Plot.DriveTestPlot(axesHandle, bandObj, reportInfo)
+                        case 'driveTestHeatmap'
+                            tempBandObj = model.Band('appAnalise:REPORT:EMISSION', reportInfo.App);
+                            updateSpectrumInfo(tempBandObj, specData)
 
-                        case 'DriveTestChannelPower'
-                            idxEmission = reportInfo.General.Parameters.Plot.idxEmission;
-
-                            if ~isempty(specData.UserData.Emissions.auxAppData(idxEmission).DriveTest)
-                                specRawTable = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.specRawTable;
-                                Color        = '#91ff00';
-                                EdgeAlpha    = 1;
-                                FaceAlpha    = .4;
-                    
-                                plot.DriveTest.ChannelPower(axesHandle, bandObj, specRawTable, Color, EdgeAlpha, FaceAlpha)
-                                plot.axes.StackingOrder.execute(axesHandle, 'appAnalise:DRIVETEST')
-                            end                            
+                            reportLibConnection.Plot.DriveTestPlot(axesHandle, tempBandObj, reportInfo)                         
     
-                        case 'DriveTestRoute'
-                            plot.DriveTest.Route(axesHandle, bandObj, idxThread)
+                        case 'driveTestRoute'
+                            tempBandObj = model.Band('appAnalise:REPORT:BAND', reportInfo.App);
+                            updateSpectrumInfo(tempBandObj, specData)
+
+                            % cb = findobj(axesHandle.Parent.Children, 'Type', 'colorbar');
+                            % cb.Visible = 'off';
+
+                            plot.axes.Colorbar(axesHandle, 'off')
+                            plot.DriveTest.Route(axesHandle, tempBandObj)
                     end
                 end
                 
@@ -322,28 +320,26 @@ classdef (Abstract) Plot
 
         %-----------------------------------------------------------------%
         function DriveTestPlot(hAxes, bandObj, reportInfo)
-            if bandObj.Context ~= "appAnalise:REPORT:EMISSION"
-                return
-            end
-
             specData = bandObj.SpecData;
-            idxEmission = reportInfo.General.Parameters.Plot.idxEmission;
+            emissionIdx = reportInfo.General.Parameters.Plot.idxEmission;
 
-            if ~isempty(specData.UserData.Emissions.auxAppData(idxEmission).DriveTest)
+            if ~isempty(specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest)
                 % Density | Distortion
-                Source      = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.Source;
-                filterTable = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.filterTable;
-                pointsTable = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.pointsTable;
-                plotMode    = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.plotType;
-                plotSize    = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.plotSize;
-                Basemap     = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.Basemap;
-                Colormap    = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.Colormap;
+                Source      = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.Source;
+                filterTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Filters;
+                pointsTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Points;
+                plotMode    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.PlotMode;
+                plotSize    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.PlotSize;
+                Basemap     = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Basemap;
+                Colormap    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Colormap;
     
                 switch Source
-                    case {'Raw', 'Filtered'}
-                        srcTable = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.specFilteredTable;
+                    case 'Raw'
+                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.raw;
+                    case 'Filtered'
+                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.filtered;
                     case 'Data-Binning'
-                        srcTable = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.specBinTable;
+                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.binned;
                 end
     
                 if ~strcmp(hAxes.Basemap, Basemap)
@@ -356,9 +352,9 @@ classdef (Abstract) Plot
 
                 % Points
                 if ~isempty(pointsTable)
-                    MarkerStyle = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.points_Marker;
-                    MarkerColor = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.points_Color;
-                    MarkerSize  = specData.UserData.Emissions.auxAppData(idxEmission).DriveTest.points_Size;
+                    MarkerStyle = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Marker;
+                    MarkerColor = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Color;
+                    MarkerSize  = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Size;
                     plot.DriveTest.Points(hAxes, pointsTable, MarkerStyle, MarkerColor, MarkerSize)
                 end
 

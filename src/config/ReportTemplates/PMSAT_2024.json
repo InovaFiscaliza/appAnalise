@@ -277,7 +277,7 @@
                     "Type": "Container",
                     "Data": {
                         "Source": "Channel",
-                        "Children": [
+                        "Component": [
                             {
                                 "Type": "Paragraph",
                                 "Data": {

@@ -9,9 +9,7 @@ classdef (Abstract) DriveTest
                         hAxes.Basemap = 'streets-light';
                     end
 
-                    idxThread  = varargin{1};
-                    specData   = tempBandObj.callingApp.specData(idxThread);
-        
+                    specData   = tempBandObj.SpecData;        
                     gpsPerFile = vertcat(specData.RelatedFiles.GPS{:});
                     gpsMatrix  = vertcat(gpsPerFile.Matrix);
         

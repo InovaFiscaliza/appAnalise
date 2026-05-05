@@ -89,9 +89,12 @@ classdef (Abstract) Table
         end
 
         %-----------------------------------------------------------------%
-        function Table = EmissionPerBand(analyzedData)
+        function Table = EmissionPerBand(reportInfo, analyzedData)
             specData = analyzedData.InfoSet;
+            bandIdx = reportInfo.Function.var_Index;
+
             Table = util.createEmissionsTable(specData, 1, 'REPORT: HTMLFile');
+            Table.ID = string(bandIdx) + "." + string(1:height(Table))';
         end
 
         %-----------------------------------------------------------------%
@@ -217,7 +220,7 @@ classdef (Abstract) Table
                                 Table{ll, kk} = ll;
 
                             otherwise
-                                Table(ll, kk) = {reportLibConnection.Variable.ClassProperty(specData(jj), fieldName)};
+                                Table(ll, kk) = {reportLibConnection.Variable.ClassProperty(reportInfo, specData(jj), fieldName)};
                         end
                     end
                 end

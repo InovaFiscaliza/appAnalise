@@ -1,7 +1,8 @@
-function Colorbar(hAxes, Location)
+function Colorbar(hAxes, Location, customConfig)
     arguments
         hAxes
         Location char {mustBeMember(Location, {'off', 'on', 'west', 'east', 'north', 'south', 'eastoutside', 'southoutside', 'westoutside'})}
+        customConfig = {}
     end
 
     switch Location
@@ -16,7 +17,10 @@ function Colorbar(hAxes, Location)
             if ~isempty(cb)
                 cb.Location = Location;
             else
-                colorbar(hAxes, 'Location', Location, 'Color', [.8,.8,.8], 'FontSize', 7, 'PickableParts', 'none');
+                cb = colorbar(hAxes, 'Location', Location, 'Color', [.8,.8,.8], 'FontSize', 7, 'PickableParts', 'none');
+                if ~isempty(customConfig)
+                    set(cb, customConfig{:})
+                end
             end
     end
 end

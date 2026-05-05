@@ -49,7 +49,7 @@ classdef (Abstract) Variable
         end
 
         %-----------------------------------------------------------------%
-        function fieldValue = ClassProperty(specData, fieldName)
+        function fieldValue = ClassProperty(reportInfo, specData, fieldName)
             switch fieldName
                 case 'Band'
                     fieldValue = sprintf('%.3f - %.3f MHz', specData.MetaData.FreqStart * 1e-6, specData.MetaData.FreqStop * 1e-6);
@@ -150,13 +150,11 @@ classdef (Abstract) Variable
                     fieldValue = strjoin(fieldValue, '<br>');
                     
                 case 'TagFlow'
-                    flowIdx = reportInfo.General.Parameters.Plot.idxThread;
-                    bandIdx = reportInfo.General.Parameters.Plot.idxBand;        
-                    fieldValue = sprintf('FAIXA DE FREQUÊNCIA #%d: <b>%.3f - %.3f MHz</b>', bandIdx, specData.MetaData.FreqStart * 1e-6, specData.MetaData.FreqStop  * 1e-6);
+                    bandIdx = reportInfo.Function.var_Index;
+                    fieldValue = sprintf('FAIXA DE FREQUÊNCIA #%s: <b>%.3f - %.3f MHz</b>', bandIdx, specData.MetaData.FreqStart / 1e6, specData.MetaData.FreqStop  / 1e6);
 
                 case 'TagChannel'
-                    flowIdx = reportInfo.General.Parameters.Plot.idxThread;
-                    bandIdx = reportInfo.General.Parameters.Plot.idxBand;
+                    bandIdx = reportInfo.Function.var_Index;
                     channelIdx = reportInfo.General.Parameters.Plot.idxChannel;
                     
                     channelTable = specData.UserData.reportChannelTable;
@@ -167,8 +165,7 @@ classdef (Abstract) Variable
                     fieldValue = sprintf('CANAL #%d.%d: <b>%s @ %.3f MHz ⌂ %.1f kHz</b>', bandIdx, channelIdx, channelName, channelTable.FirstChannel(channelIdx), channelTable.ChannelBW(channelIdx) * 1000);
 
                 case 'TagEmission'
-                    flowIdx = reportInfo.General.Parameters.Plot.idxThread;
-                    bandIdx = reportInfo.General.Parameters.Plot.idxBand;
+                    bandIdx = reportInfo.Function.var_Index;
                     emissionIdx = reportInfo.General.Parameters.Plot.idxEmission;        
                     fieldValue = sprintf('EMISSÃO #%d.%d: <b>%.3f MHz ⌂ %.1f kHz</b>', bandIdx, emissionIdx, specData.UserData.Emissions.Frequency(emissionIdx), specData.UserData.Emissions.BW_kHz(emissionIdx));
 

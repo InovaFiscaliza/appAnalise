@@ -79,7 +79,6 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
         end
     
         emissionsTable = sortrows(vertcat(emissionsTempTableCellArray{:}), {'Frequency', 'BandWidthkHz'});
-        emissionsTable.ID = string(1:height(emissionsTable))';
         
         if ismember(operationType, {'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})
             for jj = 1:height(emissionsTable)
