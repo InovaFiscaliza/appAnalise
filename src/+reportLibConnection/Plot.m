@@ -10,9 +10,16 @@ classdef (Abstract) Plot
             end
 
             generalSettings = reportInfo.Settings;
-            specData = analyzedData.InfoSet;            
-            bandObj = model.Band('appAnalise:REPORT:BAND', reportInfo.App);
-            updateSpectrumInfo(bandObj, specData)
+            specData = analyzedData.InfoSet;
+            emissionIdx = reportInfo.Function.var_IndexEmission;
+
+            context = 'appAnalise:REPORT:BAND';
+            if isfield(imgSettings, 'Context')
+                context = imgSettings.Context;
+            end
+
+            bandObj = model.Band(context, reportInfo.App);
+            updateSpectrumInfo(bandObj, specData, emissionIdx)
 
             % Container
             hFigure = reportInfo.App.UIFigure;
@@ -26,11 +33,11 @@ classdef (Abstract) Plot
             end
 
             % Cria eixos de acordo com estabelecido no JSON.
-            tiledPos     = 1;
-            tiledSpan    = str2double(strsplit(imgSettings.Layout, ':'));
-            tiledNames   = strsplit(imgSettings.Name, ':');
+            tiledPos = 1;
+            tiledSpan = str2double(strsplit(imgSettings.Layout, ':'));
+            tiledNames = strsplit(imgSettings.Name, ':');
 
-            axesParent   = tiledlayout(hContainer, sum(tiledSpan), 1, "Padding", "tight", "TileSpacing", "tight");           
+            axesParent = tiledlayout(hContainer, sum(tiledSpan), 1, "Padding", "tight", "TileSpacing", "tight");           
             [axesType,   ...
              axesXLabel, ...
              axesYLabel, ...
@@ -117,20 +124,11 @@ classdef (Abstract) Plot
                             axesHandle.YLim = [0,100];
 
                         case 'driveTestHeatmap'
-                            tempBandObj = model.Band('appAnalise:REPORT:EMISSION', reportInfo.App);
-                            updateSpectrumInfo(tempBandObj, specData)
-
-                            reportLibConnection.Plot.DriveTestPlot(axesHandle, tempBandObj, reportInfo)                         
+                            reportLibConnection.Plot.DriveTestPlot(axesHandle, bandObj, reportInfo)                         
     
                         case 'driveTestRoute'
-                            tempBandObj = model.Band('appAnalise:REPORT:BAND', reportInfo.App);
-                            updateSpectrumInfo(tempBandObj, specData)
-
-                            % cb = findobj(axesHandle.Parent.Children, 'Type', 'colorbar');
-                            % cb.Visible = 'off';
-
                             plot.axes.Colorbar(axesHandle, 'off')
-                            plot.DriveTest.Route(axesHandle, tempBandObj)
+                            plot.DriveTest.Route(axesHandle, bandObj)
                     end
                 end
                 
@@ -179,6 +177,8 @@ classdef (Abstract) Plot
                     break
                 end
             end
+
+            delete(hContainer.Children)
         end
 
         %-----------------------------------------------------------------%
@@ -319,77 +319,78 @@ classdef (Abstract) Plot
         end
 
         %-----------------------------------------------------------------%
-        function DriveTestPlot(hAxes, bandObj, reportInfo)
+        function DriveTestPlot(axesHandle, bandObj, reportInfo)
             specData = bandObj.SpecData;
-            emissionIdx = reportInfo.General.Parameters.Plot.idxEmission;
+            emissionIdx = reportInfo.Function.var_IndexEmission;
 
-            if ~isempty(specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest)
-                % Density | Distortion
-                Source      = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.Source;
-                filterTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Filters;
-                pointsTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Points;
-                plotMode    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.PlotMode;
-                plotSize    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Data.PlotSize;
-                Basemap     = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Basemap;
-                Colormap    = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Colormap;
-    
-                switch Source
-                    case 'Raw'
-                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.raw;
-                    case 'Filtered'
-                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.filtered;
-                    case 'Data-Binning'
-                        srcTable = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.Measures.binned;
-                end
-    
-                if ~strcmp(hAxes.Basemap, Basemap)
-                    hAxes.Basemap = Basemap;
-                end
-                colormap(hAxes, Colormap)
-    
-                plot.DriveTest.DistortionAndDensityPlot(hAxes, bandObj, srcTable, plotMode, plotSize)
-                plot.axes.StackingOrder.execute(hAxes, 'appAnalise:DRIVETEST')
+            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
 
-                % Points
-                if ~isempty(pointsTable)
-                    MarkerStyle = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Marker;
-                    MarkerColor = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Color;
-                    MarkerSize  = specData.UserData.Emissions.auxAppData(emissionIdx).DriveTest.PlotDisplayConfig.Points.Size;
-                    plot.DriveTest.Points(hAxes, pointsTable, MarkerStyle, MarkerColor, MarkerSize)
-                end
+            % Density | Distortion
+            dataSource = driveTestAttributes.PlotDisplayConfig.Data.Source;
+            switch dataSource
+                case 'Dados brutos'
+                    tableSource = driveTestAttributes.Measures.filtered;
+                
+                case 'Processados'
+                    tableSource = driveTestAttributes.Measures.binned;
 
-                % Filters
-                if ~isempty(filterTable)
-                    for ii = 1:height(filterTable)
-                        FilterSubtype = filterTable.subtype{ii};
-    
-                        switch FilterSubtype
-                            case 'PolygonKML'
-                                Latitude  = filterTable.roi(ii).specification.Latitude;
-                                Longitude = filterTable.roi(ii).specification.Longitude;
-                                shapeObj  = geopolyshape(Latitude, Longitude);
-    
-                                geoplot(hAxes, shapeObj, FaceColor=[0 0.4470 0.7410], ...
-                                                         EdgeColor=[0 0.4470 0.7410], ...
-                                                         FaceAlpha=0.05,              ...
-                                                         EdgeAlpha=1,                 ...
-                                                         LineWidth=1,               ...
-                                                         PickableParts='none',        ...
-                                                         Tag='FilterROI');
-                            case {'Circle', 'Rectangle', 'Polygon'}
-                                switch FilterSubtype
-                                    case 'Circle';     roiFcn = 'images.roi.Circle';
-                                    case 'Rectangle';  roiFcn = 'images.roi.Rectangle';
-                                    case 'Polygon';    roiFcn = 'images.roi.Polygon';
-                                end
-            
-                                eval(sprintf('hROI = %s(hAxes, LineWidth=1, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, InteractionsAllowed="none", Tag="FilterROI");', roiFcn))
+                otherwise
+                    error('reportLibConnection:Plot:UnexpectedDataSource', 'Unexpected data source "%s"', dataSource)
+            end
 
-                                fieldsList = fields(filterTable.roi(ii).specification);
-                                for jj = 1:numel(fieldsList)
-                                    hROI.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
-                                end
-                        end
+            if ~strcmp(axesHandle.Basemap, driveTestAttributes.PlotDisplayConfig.Basemap)
+                axesHandle.Basemap = driveTestAttributes.PlotDisplayConfig.Basemap;
+            end
+            colormap(axesHandle, driveTestAttributes.PlotDisplayConfig.Colormap)
+
+            plot.DriveTest.DistortionAndDensityPlot(axesHandle, bandObj, tableSource, driveTestAttributes.PlotDisplayConfig.Data.PlotMode, driveTestAttributes.PlotDisplayConfig.Data.PlotSize)
+            plot.axes.StackingOrder.execute(axesHandle, 'appAnalise:DRIVETEST')
+
+            % Points
+            pointsTable = driveTestAttributes.Points;
+            if ~isempty(pointsTable)
+                markerStyle = driveTestAttributes.PlotDisplayConfig.Points.Marker;
+                markerColor = driveTestAttributes.PlotDisplayConfig.Points.Color;
+                markerSize  = driveTestAttributes.PlotDisplayConfig.Points.Size;
+                plot.DriveTest.Points(axesHandle, pointsTable, markerStyle, markerColor, markerSize)
+            end
+
+            % Filters
+            filterTable = driveTestAttributes.Filters;
+            if ~isempty(filterTable)
+                for ii = 1:height(filterTable)
+                    filterSubtype = filterTable.subtype{ii};
+
+                    switch filterSubtype
+                        case 'PolygonKML'
+                            lat = filterTable.roi(ii).specification.Latitude;
+                            lng = filterTable.roi(ii).specification.Longitude;
+                            shapeObj = geopolyshape(lat, lng);
+
+                            geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
+                                                          EdgeColor=[0 0.4470 0.7410], ...
+                                                          FaceAlpha=0.05,              ...
+                                                          EdgeAlpha=1,                 ...
+                                                          LineWidth=1,               ...
+                                                          PickableParts='none',        ...
+                                                          Tag='filterROI');
+
+                        case {'Circle', 'Rectangle', 'Polygon'}
+                            switch filterSubtype
+                                case 'Circle';     roiFcn = 'images.roi.Circle';
+                                case 'Rectangle';  roiFcn = 'images.roi.Rectangle';
+                                case 'Polygon';    roiFcn = 'images.roi.Polygon';
+                            end
+        
+                            roiHandle = evalc(sprintf('%s(hAxes, LineWidth=1, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, InteractionsAllowed="none", Tag="filterROI");', roiFcn));
+
+                            fieldsList = fieldnames(filterTable.roi(ii).specification);
+                            for jj = 1:numel(fieldsList)
+                                roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
+                            end
+
+                        otherwise
+                            error('reportLibConnection:Plot:UnexpectedFilterSubtype', 'Unexpected filter subtype "%s"', filterSubtype)
                     end
                 end
             end

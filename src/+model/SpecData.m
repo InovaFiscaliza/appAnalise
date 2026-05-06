@@ -740,10 +740,14 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.Emissions(idx, :) = [];
                             return
 
-                        case 'AuxApp:DriveTest'
+                        case 'AuxAppData:DriveTest'
                             idx = varargin{1};
                             driveTestAttributes = varargin{2};
                             obj.UserData.Emissions.AuxAppData(idx).DriveTest = driveTestAttributes;
+
+                        case 'AuxAppData:DriveTest:ReportInclude'
+                            idx = varargin{1};
+                            obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude = ~obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude;
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)

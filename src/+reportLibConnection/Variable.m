@@ -41,7 +41,7 @@ classdef (Abstract) Variable
         function fieldValue = GlobalProperty(specData, fieldName)
             switch fieldName
                 case 'RelatedLocations'
-                    fieldValue = textFormatGUI.cellstr2FriendlyListWithQuotes(unique(arrayfun(@(x) x.GPS.Location, specData, 'UniformOutput', false), 'stable'));
+                    fieldValue = textFormatGUI.cellstr2FriendlyListWithQuotes(unique(arrayfun(@(x) x.GPS.Location, specData, 'UniformOutput', false)));
 
                 otherwise
                     error('reportLibConnection:Variable:UnexpectedFieldName', 'Unexpected field name "%s"', fieldName)
@@ -68,6 +68,18 @@ classdef (Abstract) Variable
                 
                 case 'FreqStop'
                     fieldValue = specData.MetaData.FreqStop  * 1e-6;
+
+                case 'LocationSummary'
+                    monitoringType = gpsLib.classifyMonitoringType(specData.GPS);
+                    switch monitoringType
+                        case 'fixed'
+                            monitoringTypeNote = 'Monitoração fixa<br>';
+                        case 'mobile'
+                            monitoringTypeNote = 'Monitoração móvel<br>';
+                        otherwise
+                            monitoringTypeIcon = '';
+                    end
+                    fieldValue = sprintf('%sLatitude: %.6f ± %.6f (1σ)<br>Longitude: %.6f ± %.6f (1σ)<br>%s', monitoringTypeNote, specData.GPS.Latitude, specData.GPS.Latitude_std, specData.GPS.Longitude, specData.GPS.Longitude_std, specData.GPS.Location);
 
                 case 'GPS'
                     fieldValue = sprintf('%.6f, %.6f (%s)', specData.GPS.Latitude,  specData.GPS.Longitude, specData.GPS.Location);
@@ -155,19 +167,19 @@ classdef (Abstract) Variable
 
                 case 'TagChannel'
                     bandIdx = reportInfo.Function.var_Index;
-                    channelIdx = reportInfo.General.Parameters.Plot.idxChannel;
+                    channelIdx = reportInfo.Function.var_IndexChannel;
                     
                     channelTable = specData.UserData.reportChannelTable;
                     channelName  = extractBefore(channelTable.Name{channelIdx}, ' @');
                     if isempty(channelName)
                         channelName = channelTable.Name{channelIdx};
                     end
-                    fieldValue = sprintf('CANAL #%d.%d: <b>%s @ %.3f MHz ⌂ %.1f kHz</b>', bandIdx, channelIdx, channelName, channelTable.FirstChannel(channelIdx), channelTable.ChannelBW(channelIdx) * 1000);
+                    fieldValue = sprintf('CANAL #%s.%d: <b>%s @ %.3f MHz ⌂ %.1f kHz</b>', bandIdx, channelIdx, channelName, channelTable.FirstChannel(channelIdx), channelTable.ChannelBW(channelIdx) * 1000);
 
                 case 'TagEmission'
                     bandIdx = reportInfo.Function.var_Index;
-                    emissionIdx = reportInfo.General.Parameters.Plot.idxEmission;        
-                    fieldValue = sprintf('EMISSÃO #%d.%d: <b>%.3f MHz ⌂ %.1f kHz</b>', bandIdx, emissionIdx, specData.UserData.Emissions.Frequency(emissionIdx), specData.UserData.Emissions.BW_kHz(emissionIdx));
+                    emissionIdx = reportInfo.Function.var_IndexEmission;
+                    fieldValue = sprintf('EMISSÃO #%s.%d: <b>%.3f MHz ⌂ %.1f kHz</b>', bandIdx, emissionIdx, specData.UserData.Emissions.Frequency(emissionIdx), specData.UserData.Emissions.BandWidthkHz(emissionIdx));
 
                 otherwise
                     error('reportLibConnection:Variable:UnexpectedFieldName', 'Unexpected field name "%s"', fieldName)

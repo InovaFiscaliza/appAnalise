@@ -22,7 +22,9 @@ classdef (Abstract) HtmlTextGenerator
             'HierarchyArrow',    struct('unicode', '↳',  'html', '&#x21B3;'), ...
             'Pin',               struct('unicode', '📍', 'html', '&#x1F4CD;'), ...
             'Car',               struct('unicode', '🚗', 'html', '&#x1F697;'), ...
-            'InterrogationMark', struct('unicode', '❓', 'html', '&#x2753;') ...
+            'InterrogationMark', struct('unicode', '❓', 'html', '&#x2753;'), ...
+            'Add',               struct('unicode', '➕', 'html', '&#10133;'), ...
+            'Delete',            struct('unicode', '❌', 'html', '&#x274C;') ...
         );
 
         monitoringTypeDict = dictionary( ...
@@ -594,9 +596,18 @@ classdef (Abstract) HtmlTextGenerator
                         classificationInfo.(classificationField) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(classification.AutoSuggested.(classificationField)), string(classification.UserModified.(classificationField)));                    
                     end
                 end
+
+                if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
+                    reportIncludeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('GreenCircle').html;
+                    reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
+                else
+                    reportIncludeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('RedCircle').html;
+                    reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
+                end
     
                 dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onChannelEditRequested''''))'')"> ✏️</a>',        appHandleNameInBase));
                 dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onClassificationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase));
+                dataStruct(3) = struct('group', 'RELATÓRIO',     'value', reportIncludeText,  'link', sprintf('%s <a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onReportIncludeRequested''''))'')"> ✏️</a>',   reportIncludeIcon, appHandleNameInBase));
 
             else
                 dataStruct(1) = struct('group', 'INFO', 'value', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');

@@ -83,11 +83,12 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Custom",
+                        "Source": "tbl_MonitoringBandsOverview",
                         "Columns": [
                             "ID",
-                            "Receiver",
                             "Band",
+                            "Receiver",
+                            "LocationSummary",
                             "ObservationTime",
                             "Parameters"
                         ],
@@ -102,21 +103,27 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Sensor",
-                                "Precision": "%s",
-                                "Width": "130px"
-                            },
-                            {
-                                "Editable": "false",
                                 "ColumnName": "Faixa de frequência sob análise",
                                 "Precision": "%s",
                                 "Width": "130px"
                             },
                             {
                                 "Editable": "false",
+                                "ColumnName": "Sensor",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Local da monitoração",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
                                 "ColumnName": "Observação<br>(Período, Varreduras e Tempo de revisita)",
                                 "Precision": "%s",
-                                "Width": "220px"
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
@@ -153,7 +160,7 @@
                     "Type": "Image",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "img_Band",
+                        "Source": "img_Plot",
                         "Name": "minHold+average+maxHold+emission:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
@@ -170,7 +177,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Algorithms",
+                        "Source": "tbl_BandAlgorithms",
                         "Columns": [
                             "Algorithm",
                             "Parameters"
@@ -200,7 +207,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_EmissionPerBand",
+                        "Source": "tbl_BandEmissions",
                         "Columns": [
                             "ID",
                             "Frequency",
@@ -304,7 +311,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N1_Licenciada",
@@ -392,7 +399,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N2_Fundamental",
@@ -472,7 +479,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N3_Licenciada",
@@ -544,7 +551,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Irregular",
+                        "Source": "tbl_GlobalEmissionsIrregular",
                         "Columns": [
                             "Frequency",
                             "Truncated",

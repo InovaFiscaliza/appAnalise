@@ -6,17 +6,19 @@
             "Editable": "false",
             "Text": "OBJETIVO",
             "Variable": [],
-            "Component": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Atendimento à demanda de fiscalização cadastrada no e-Fiscaliza sob a <b>Atividade de Inspeção nº %s</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
-                    "Variable": [
-                        "var_Issue",
-                        "var_RelatedLocations"
-                    ]
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Atendimento à demanda de fiscalização cadastrada no eFiscaliza sob a <b>Atividade de Inspeção nº %.0f</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
+                        "Variable": [
+                            "var_Issue",
+                            "var_RelatedLocations"
+                        ]
+                    }
                 }
-            }
+            ]
         }
     },
     {
@@ -119,11 +121,12 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Custom",
+                        "Source": "tbl_MonitoringBandsOverview",
                         "Columns": [
                             "ID",
-                            "Receiver",
                             "Band",
+                            "Receiver",
+                            "LocationSummary",
                             "ObservationTime",
                             "Parameters"
                         ],
@@ -138,21 +141,27 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Sensor",
-                                "Precision": "%s",
-                                "Width": "130px"
-                            },
-                            {
-                                "Editable": "false",
                                 "ColumnName": "Faixa de frequência sob análise",
                                 "Precision": "%s",
                                 "Width": "130px"
                             },
                             {
                                 "Editable": "false",
+                                "ColumnName": "Sensor",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Local da monitoração",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
                                 "ColumnName": "Observação<br>(Período, Varreduras e Tempo de revisita)",
                                 "Precision": "%s",
-                                "Width": "220px"
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
@@ -170,7 +179,8 @@
                     "Type": "Image",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "img_Band",
+                        "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
                         "Name": "driveTestRoute",
                         "Layout": "1",
                         "Caption": "Rota percorrida durante a monitoração.",
@@ -205,7 +215,8 @@
                     "Type": "Image",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "img_Band",
+                        "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
                         "Name": "minHold+average+maxHold+emission:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
@@ -222,7 +233,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Algorithms",
+                        "Source": "tbl_BandAlgorithms",
                         "Columns": [
                             "Algorithm",
                             "Parameters"
@@ -252,7 +263,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_EmissionPerBand",
+                        "Source": "tbl_BandEmissions",
                         "Columns": [
                             "ID",
                             "Frequency",
@@ -357,8 +368,9 @@
                             {
                                 "Type": "Image",
                                 "Data": {
-                                    "Origin": "Internal",
-                                    "Source": "Emission",
+                                    "Origin": "FunctionEvaluation",
+                                    "Source": "img_Plot",
+                                    "Context": "appAnalise:REPORT:EMISSION",
                                     "Name": "minHold+average+maxHold+emission:driveTestHeatmap",
                                     "Layout": "1:3",
                                     "Caption": "Representação gráfica da emissão sob análise.",
@@ -388,7 +400,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N1_Licenciada",
@@ -436,7 +448,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N2_Fundamental",
@@ -516,7 +528,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_Summary",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N3_Licenciada",

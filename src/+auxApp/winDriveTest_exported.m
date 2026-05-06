@@ -188,6 +188,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         [flowIdx, emissionIdx] = findSpecDataIndex(app);
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onClassificationEditRequested', app.Context, flowIdx, emissionIdx)
 
+                    case 'onReportIncludeRequested'
+                        specData = app.bandObj.SpecData;
+                        emissionIdx = app.emissionSelectedIdxs.emissionIdx;
+                        update(specData, 'UserData:Emissions', 'AuxAppData:DriveTest:ReportInclude', emissionIdx)
+
+                        updateEmissionDropDown(app)
+                        updateEmissionMetadataPanel(app, specData)
+
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
                 end
@@ -542,6 +550,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             for ii = 0:height(emissions)
                 additionalNote = '';
+                reportStatus = '';
     
                 if ii == 0
                     freqCenter   = (specData.MetaData.FreqStart + specData.MetaData.FreqStop) / 2e6; % MHz
@@ -550,9 +559,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 else
                     freqCenter   = emissions.Frequency(ii); % MHz
                     bandWidthkHz = emissions.BandWidthkHz(ii); % kHz
+
+                    if ~isempty(emissions.AuxAppData(ii).DriveTest) && emissions.AuxAppData(ii).DriveTest.ReportInclude
+                        reportStatus = ' 🟢';
+                    end
                 end
 
-                emissionList{end+1} = sprintf('%d: %.3f MHz ⌂ %.1f kHz%s', ii, freqCenter, bandWidthkHz, additionalNote);
+                emissionList{end+1} = sprintf('%d: %.3f MHz ⌂ %.1f kHz%s%s', ii, freqCenter, bandWidthkHz, additionalNote, reportStatus);
             end
 
             previousValue = app.EmissionList.Value;
@@ -717,16 +730,20 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 if isempty(appHandleNameInBase) || ~evalin('base', sprintf('exist("%s", "var") && isa(%s, "%s") && isvalid(%s)', appHandleNameInBase, appHandleNameInBase, class(app), appHandleNameInBase))
                     app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
                 end
-    
-                htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase);
-                ui.TextView.update(app.EmissionMetadata, htmlContent);
-    
+
+                updateEmissionMetadataPanel(app, specData)
                 buildFilterTree(app)
                 buildPointsTree(app)
 
             else
                 ui.TextView.update(app.EmissionMetadata, '');
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateEmissionMetadataPanel(app, specData)
+            htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase);
+            ui.TextView.update(app.EmissionMetadata, htmlContent);
         end
 
         %-----------------------------------------------------------------%
@@ -932,19 +949,22 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.PointsMarker.Value   = app.defaultValues.drivetest.points.Marker;
                 app.PointsColor.Value    = app.defaultValues.drivetest.points.MarkerFaceColor;
                 app.PointsSize.Value     = app.defaultValues.drivetest.points.MarkerSize;
+                
+                updateCustomProperty(app, specData, emissionIdx)
+                applyCustomProperty(app, specData, emissionIdx)
 
-            else
-                app.Colormap.Value       = driveTestAttributes.PlotDisplayConfig.Colormap;
-                app.Basemap.Value        = driveTestAttributes.PlotDisplayConfig.Basemap;
-                app.RouteLineStyle.Value = driveTestAttributes.PlotDisplayConfig.Route.LineStyle;
-                app.RouteLineWidth.Value = driveTestAttributes.PlotDisplayConfig.Route.LineWidth;
-                app.RouteColorOut.Value  = driveTestAttributes.PlotDisplayConfig.Route.ColorOut;
-                app.RouteColorIn.Value   = driveTestAttributes.PlotDisplayConfig.Route.ColorIn;                
-                app.PointsMarker.Value   = driveTestAttributes.PlotDisplayConfig.Points.Marker;
-                app.PointsColor.Value    = driveTestAttributes.PlotDisplayConfig.Points.Color;
-                app.PointsSize.Value     = driveTestAttributes.PlotDisplayConfig.Points.Size;
+                return
             end
 
+            app.Colormap.Value       = driveTestAttributes.PlotDisplayConfig.Colormap;
+            app.Basemap.Value        = driveTestAttributes.PlotDisplayConfig.Basemap;
+            app.RouteLineStyle.Value = driveTestAttributes.PlotDisplayConfig.Route.LineStyle;
+            app.RouteLineWidth.Value = driveTestAttributes.PlotDisplayConfig.Route.LineWidth;
+            app.RouteColorOut.Value  = driveTestAttributes.PlotDisplayConfig.Route.ColorOut;
+            app.RouteColorIn.Value   = driveTestAttributes.PlotDisplayConfig.Route.ColorIn;                
+            app.PointsMarker.Value   = driveTestAttributes.PlotDisplayConfig.Points.Marker;
+            app.PointsColor.Value    = driveTestAttributes.PlotDisplayConfig.Points.Color;
+            app.PointsSize.Value     = driveTestAttributes.PlotDisplayConfig.Points.Size;
 
             if ~strcmp(app.UIAxes1.UserData.Colormap, app.Colormap.Value)
                 plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
@@ -956,6 +976,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 switch app.Basemap.Value
                     case {'darkwater', 'none'}
                         app.UIAxes1.Grid = 'on';
+
                     otherwise
                         app.UIAxes1.Grid = 'off';
                 end
@@ -968,7 +989,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 return
             end
 
+            reportInclude = false;
+            if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest)
+                reportInclude = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude;
+            end
+
             driveTestAttributes = struct( ...
+                'ReportInclude', reportInclude, ...
                 'Measures', app.emissionPoints, ...
                 'Filters', app.filterTable, ...
                 'Points', app.pointsTable, ...
@@ -994,7 +1021,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 ) ...
             );
 
-            update(specData, 'UserData:Emissions', 'AuxApp:DriveTest', emissionIdx, driveTestAttributes)
+            update(specData, 'UserData:Emissions', 'AuxAppData:DriveTest', emissionIdx, driveTestAttributes)
         end
 
         %-----------------------------------------------------------------%
@@ -1102,7 +1129,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         roiNameArgument = 'Rotatable=true, ';
                     end
 
-                    eval(sprintf('hROI = %s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFcn, roiNameArgument))
+                    hROI = evalc(sprintf('%s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFcn, roiNameArgument));
             end
 
             if ~strcmp(FilterSubtype, 'PolygonKML')
