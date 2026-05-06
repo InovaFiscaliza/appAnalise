@@ -1,5 +1,5 @@
 {
-    "version": 1.32,
+    "version": 1.33,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -217,8 +217,8 @@
             "LabelFontSize": 8
         },
         "channelPower": {
-            "EdgeColor": "#FF5CAD",
-            "FaceColor": "#FF5CAD",
+            "EdgeColor": "#ffff12",
+            "FaceColor": "#ffff12",
             "EdgeAlpha": 0,
             "FaceAlpha": 0.4
         },
