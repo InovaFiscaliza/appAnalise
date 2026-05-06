@@ -87,7 +87,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         tool_LayoutRight                matlab.ui.control.Image
         tool_Separator3                 matlab.ui.control.Image
         tool_FilterSummary              matlab.ui.control.Image
-        tool_DataBinningExport          matlab.ui.control.Image
+        tool_DataExport                 matlab.ui.control.Image
         tool_TimestampLabel             matlab.ui.control.Label
         tool_TimestampSlider            matlab.ui.control.Slider
         tool_LoopControl                matlab.ui.control.Image
@@ -283,6 +283,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         app.tool_LayoutRight;
                         app.tool_Play;
                         app.tool_LoopControl;
+                        app.tool_DataExport;
+                        app.tool_FilterSummary;
                         app.dockModule_Undock;
                         app.dockModule_Close
                     };
@@ -300,6 +302,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.tool_DataExport.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta drive-test (.XLSX e .KML)')), ...
+                            struct('appName', appName, 'dataTag', app.tool_FilterSummary.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Sumário do data binning aplicado aos dados brutos')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,  'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,   'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
@@ -333,7 +337,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 'waterfall', prjGeneralSettings.context.PLAYBACK.defaultPlotDisplayConfig.waterfall, ...
                 'channelROI', prjGeneralSettings.plot.channelROI, ...
                 'channelPower', prjGeneralSettings.plot.channelPower, ...
-                'drivetest', prjGeneralSettings.plot.drivetest ...
+                'drivetest', prjGeneralSettings.plot.drivetest, ...
+                'dataBinning', prjGeneralSettings.context.DRIVETEST.dataBinning ...
             );
 
             app.defaultValues.waterfall.function = 'image';
@@ -353,6 +358,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_LayoutLeft.UserData.status = true;
             app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
+            app.tool_FilterSummary.UserData.dataBinningSummary = '';
 
             initializeAxes(app)
 
@@ -678,12 +684,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                  app.emissionPoints.filtered, ...
                  app.emissionPoints.binned, ...
                  app.filterTable, ...
-                 app.tool_FilterSummary.UserData] = RF.DataBinning.execute(app.emissionPoints.raw,      ...
-                                                                           app.DataBinningLength.Value, ...
-                                                                           app.DataBinningFcn.Value,    ...
-                                                                           app.filterTable);
+                 app.tool_FilterSummary.UserData.dataBinningSummary] = RF.DataBinning.execute(app.emissionPoints.raw,      ...
+                                                                                              app.DataBinningLength.Value, ...
+                                                                                              app.DataBinningFcn.Value,    ...
+                                                                                              app.filterTable);
             else
                 app.emissionPoints(:) = [];
+                app.tool_FilterSummary.UserData.dataBinningSummary = '';
             end
         end
 
@@ -694,8 +701,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             isDataBinned   = strcmp(app.axesTool_DataSourceDropDown.Value, 'Processados');
 
             set([
-                app.axesTool_DataSourceDropDown;
-                app.axesTool_PlotSize;
                 app.Colormap;
                 app.Basemap;
                 app.RouteLineStyle;
@@ -720,24 +725,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
-                app.tool_DataBinningExport;
+                app.tool_DataExport;
                 app.tool_FilterSummary
             ], 'Enable', isSpectralFlow)
 
             set([
+                app.axesTool_DataSourceDropDown;
+                app.axesTool_DistortionPlot;
+                app.axesTool_PlotSize;
                 app.axesTool_Target; 
                 app.DataBinningLength;
                 app.DataBinningFcn;
                 app.FilterTreeButton;
-                app.PointsTreeButton
+                app.PointsTreeButton;
+                app.BandGuardType
             ], 'Enable', hasEmission)
 
-            app.axesTool_DistortionPlot.Enable = isSpectralFlow;
-            app.axesTool_DensityPlot.Enable    = isSpectralFlow && isDataBinned;
-
-            app.BandGuardType.Enable           = isSpectralFlow && hasEmission;
-            app.BandGuardFixedValue.Enable     = isSpectralFlow && hasEmission && strcmp(app.BandGuardType.Value, 'Fixed');
-            app.BandGuardBWRelatedValue.Enable = isSpectralFlow && hasEmission && strcmp(app.BandGuardType.Value, 'BWRelated');
+            app.axesTool_DensityPlot.Enable = hasEmission && isDataBinned;
+            app.BandGuardFixedValue.Enable = hasEmission && strcmp(app.BandGuardType.Value, 'Fixed');
+            app.BandGuardBWRelatedValue.Enable = hasEmission && strcmp(app.BandGuardType.Value, 'BWRelated');
         end
 
         %-----------------------------------------------------------------%
@@ -827,7 +833,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         
                     if ~isempty(specData)
                         if isempty(app.UIAxes1.Legend)
-                            pause(.100)
+                            pause(1)
                             lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
                             lgd.Title.FontSize = 8.5;
                         end        
@@ -923,10 +929,35 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
+        function updateDataSourceToolbarComponents(app)
+            switch app.axesTool_DataSourceDropDown.Value
+                case 'Dados brutos'
+                    app.axesTool_DensityPlot.Enable = 0;
+                    if ~strcmp(app.UIAxes1.UserData.PlotMode, 'distortion')
+                        app.UIAxes1.UserData.PlotMode = 'distortion';
+                    end
+
+                otherwise % 'Processados'
+                    app.axesTool_DensityPlot.Enable = 1;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function restartDataBinningStatus(app)
+            app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
+            updateDataSourceToolbarComponents(app)
+            app.axesTool_PlotSize.Value = 1;
+            
+            app.DataBinningFcn.Value = app.defaultValues.dataBinning.aggregationFunction;
+            app.DataBinningLength.Value = app.defaultValues.dataBinning.binLengthMeters;
+        end
+
+        %-----------------------------------------------------------------%
         function applyCustomProperty(app, specData, emissionIdx, guardBand)
             updateScreenSpan(app, guardBand.Parameters.Type, guardBand.Parameters.Value)
 
             if isempty(specData) || isempty(emissionIdx)
+                restartDataBinningStatus(app)
                 updateEmissionMeasures(app, specData, emissionIdx)
                 return
             end
@@ -934,17 +965,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
 
             if isempty(driveTestAttributes)
-                updateEmissionMeasures(app, specData, emissionIdx)
-                app.Colormap.Value       = app.defaultValues.colormap;
-                app.Basemap.Value        = app.defaultValues.basemap;
+                restartDataBinningStatus(app)
+
+                app.Colormap.Value = app.defaultValues.colormap;
+                app.Basemap.Value = app.defaultValues.basemap;
                 app.RouteLineStyle.Value = app.defaultValues.drivetest.route.LineStyle;
                 app.RouteLineWidth.Value = app.defaultValues.drivetest.route.LineWidth;
-                app.RouteColorOut.Value  = app.defaultValues.drivetest.route.Colors.OutROI;
-                app.RouteColorIn.Value   = app.defaultValues.drivetest.route.Colors.InROI;
-                app.PointsMarker.Value   = app.defaultValues.drivetest.points.Marker;
-                app.PointsColor.Value    = app.defaultValues.drivetest.points.MarkerFaceColor;
-                app.PointsSize.Value     = app.defaultValues.drivetest.points.MarkerSize;
+                app.RouteColorOut.Value = app.defaultValues.drivetest.route.Colors.OutROI;
+                app.RouteColorIn.Value = app.defaultValues.drivetest.route.Colors.InROI;
+                app.PointsMarker.Value = app.defaultValues.drivetest.points.Marker;
+                app.PointsColor.Value = app.defaultValues.drivetest.points.MarkerFaceColor;
+                app.PointsSize.Value = app.defaultValues.drivetest.points.MarkerSize;
                 
+                updateEmissionMeasures(app, specData, emissionIdx)
                 updateCustomProperty(app, specData, emissionIdx)
 
                 guardBand = computeScreenSpan(app, specData, emissionIdx);
@@ -957,9 +990,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.filterTable = driveTestAttributes.Filters;
             app.pointsTable = driveTestAttributes.Points;
 
-            app.axesTool_DataSourceDropDown.Value = driveTestAttributes.PlotDisplayConfig.Data.Source;
+            app.DataBinningFcn.Value = driveTestAttributes.Binning.AggregationFunction;
+            app.DataBinningLength.Value = driveTestAttributes.Binning.LengthMeters;
+            app.tool_FilterSummary.UserData.dataBinningSummary = driveTestAttributes.Binning.Summary;
+
             app.UIAxes1.UserData.PlotMode = driveTestAttributes.PlotDisplayConfig.Data.PlotMode;
             app.axesTool_PlotSize.Value = driveTestAttributes.PlotDisplayConfig.Data.PlotSize;
+            
+            app.axesTool_DataSourceDropDown.Value = driveTestAttributes.PlotDisplayConfig.Data.Source;
+            updateDataSourceToolbarComponents(app)
             
             app.Colormap.Value = driveTestAttributes.PlotDisplayConfig.Colormap;
             if ~strcmp(app.UIAxes1.UserData.Colormap, app.Colormap.Value)
@@ -1041,6 +1080,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             driveTestAttributes = struct( ...
                 'ReportInclude', reportInclude, ...
                 'Measures', app.emissionPoints, ...
+                'Binning', struct( ...
+                    'AggregationFunction', app.DataBinningFcn.Value, ...
+                    'LengthMeters', app.DataBinningLength.Value, ...
+                    'Summary', app.tool_FilterSummary.UserData.dataBinningSummary ...
+                ), ...
                 'Filters', app.filterTable, ...
                 'Points', app.pointsTable, ...
                 'PlotDisplayConfig', struct( ...
@@ -1454,19 +1498,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             switch event.Source
                 case app.axesTool_DataSourceDropDown
-                    switch app.axesTool_DataSourceDropDown.Value
-                        case 'Dados brutos'
-                            app.axesTool_DensityPlot.Enable = 0;
-                            if strcmp(app.UIAxes1.UserData.PlotMode, 'density')
-                                app.UIAxes1.UserData.PlotMode = 'distortion';
-                            end
-
-                        otherwise
-                            app.axesTool_DensityPlot.Enable = 1;
-                    end
+                    updateDataSourceToolbarComponents(app)
                     updateCustomProperty(app, specData, emissionIdx)
 
                 case {app.DataBinningLength, app.DataBinningFcn}
+                    updateEmissionMeasures(app, specData, emissionIdx)
                     updateCustomProperty(app, specData, emissionIdx)
 
                     % Se o plot em evidência é o gerado pelas informações
@@ -1678,7 +1714,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_DataBinningExport
+        % Image clicked function: tool_DataExport
         function onToolbarExportFileButtonClicked(app, event)
             
             nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
@@ -1708,7 +1744,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Image clicked function: tool_FilterSummary
         function onToolbarSummaryButtonClicked(app, event)
             
-            ui.Dialog(app.UIFigure, 'info', app.tool_FilterSummary.UserData);
+            ui.Dialog(app.UIFigure, 'info', app.tool_FilterSummary.UserData.dataBinningSummary);
 
         end
 
@@ -2081,14 +2117,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
 
-            % Create tool_DataBinningExport
-            app.tool_DataBinningExport = uiimage(app.Toolbar);
-            app.tool_DataBinningExport.ScaleMethod = 'none';
-            app.tool_DataBinningExport.ImageClickedFcn = createCallbackFcn(app, @onToolbarExportFileButtonClicked, true);
-            app.tool_DataBinningExport.Enable = 'off';
-            app.tool_DataBinningExport.Layout.Row = [1 3];
-            app.tool_DataBinningExport.Layout.Column = 8;
-            app.tool_DataBinningExport.ImageSource = 'Export_16.png';
+            % Create tool_DataExport
+            app.tool_DataExport = uiimage(app.Toolbar);
+            app.tool_DataExport.ScaleMethod = 'none';
+            app.tool_DataExport.ImageClickedFcn = createCallbackFcn(app, @onToolbarExportFileButtonClicked, true);
+            app.tool_DataExport.Enable = 'off';
+            app.tool_DataExport.Layout.Row = [1 3];
+            app.tool_DataExport.Layout.Column = 8;
+            app.tool_DataExport.ImageSource = 'Export_16.png';
 
             % Create tool_FilterSummary
             app.tool_FilterSummary = uiimage(app.Toolbar);
@@ -2603,6 +2639,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.PersistanceVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.PersistanceVisibility.Enable = 'off';
             app.PersistanceVisibility.FontSize = 11;
+            app.PersistanceVisibility.BackgroundColor = [1 1 1];
             app.PersistanceVisibility.Layout.Row = 2;
             app.PersistanceVisibility.Layout.Column = 1;
             app.PersistanceVisibility.Value = 'on';
@@ -2623,6 +2660,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelRoiVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelRoiVisibility.Enable = 'off';
             app.ChannelRoiVisibility.FontSize = 11;
+            app.ChannelRoiVisibility.BackgroundColor = [1 1 1];
             app.ChannelRoiVisibility.Layout.Row = 4;
             app.ChannelRoiVisibility.Layout.Column = 1;
             app.ChannelRoiVisibility.Value = 'on';
@@ -2675,6 +2713,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.ChannelPowerVisibility.ValueChangedFcn = createCallbackFcn(app, @onNonCustomizableParameterValueChanged, true);
             app.ChannelPowerVisibility.Enable = 'off';
             app.ChannelPowerVisibility.FontSize = 11;
+            app.ChannelPowerVisibility.BackgroundColor = [1 1 1];
             app.ChannelPowerVisibility.Layout.Row = 6;
             app.ChannelPowerVisibility.Layout.Column = 1;
             app.ChannelPowerVisibility.Value = 'on';
@@ -2775,7 +2814,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [1 2];
-            app.AxesContainer.Layout.Column = [4 6];
+            app.AxesContainer.Layout.Column = [4 8];
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
