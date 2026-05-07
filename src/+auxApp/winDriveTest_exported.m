@@ -261,7 +261,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
                                   'onEmissionTruncatedValueChanged', ...
-                                  'onEmissionChannelChanged', ...
                                   'onEmissionDeleted', ...
                                   'onSpectralDataReadError'}
                                 app.emissionSelectedIdxs(:) = [];
@@ -272,6 +271,21 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 else
                                     onFlowDropDownValueChanged(app)
                                 end
+
+                            case 'onEmissionChannelChanged'
+                                if app.plotUpdateEvent
+                                    app.plotUpdateEvent = 0;
+                                end
+
+                                specData = app.bandObj.SpecData;
+                                emissionIdx = app.emissionSelectedIdxs.emissionIdx;
+
+                                updateEmissionMeasures(app, specData, emissionIdx)
+                                updateCustomProperty(app, specData, emissionIdx)
+            
+                                % Isso força a reinicialização das tabelas e plot...
+                                app.emissionSelectedIdxs(:) = [];
+                                onEmissionDropDownValueChanged(app)
 
                             case 'onLocationChanged'
                                 specData = app.bandObj.SpecData;
@@ -460,6 +474,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.UIAxes4 = plot.axes.Creation(hParent, 'Cartesian', {'XColor', 'white', 'XGrid', 1, 'XMinorGrid', 0,              ...
                                                                     'YColor', 'white', 'YGrid', 0, 'YMinorGrid', 0, 'YTick', {}, ...
                                                                     'GridLineStyle', '-.', 'TickDir', 'both', 'Color', 'none',   ...
+                                                                    'HitTest', 'off',                                            ...
                                                                     'UserData', struct('YLimUnit', 'dBm')});
             app.UIAxes4.Layout.Tile = 112;
             app.UIAxes4.Layout.TileSpan = [18, 1];
@@ -739,6 +754,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function updateUIControlsState(app, specData, emissionIdx)
             isSpectralFlow = ~isempty(specData) && ismember(specData.MetaData.DataType, class.Constants.specDataTypes);
             hasEmission    = ~isempty(specData) && ~isempty(emissionIdx);
+            hasChannelBW   = ~isempty(specData) && ~isempty(emissionIdx) && specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW > 0;
             isDataBinned   = strcmp(app.axesTool_DataSourceDropDown.Value, 'Processados');
 
             set([
@@ -776,13 +792,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.DataBinningLength;
                 app.DataBinningFcn;
                 app.FilterTreeButton;
-                app.PointsTreeButton;
-                app.BandGuardType
+                app.PointsTreeButton
             ], 'Enable', hasEmission)
 
             app.axesTool_DensityPlot.Enable = hasEmission && isDataBinned;
-            app.BandGuardFixedValue.Enable = hasEmission && strcmp(app.BandGuardType.Value, 'Fixed');
-            app.BandGuardBWRelatedValue.Enable = hasEmission && strcmp(app.BandGuardType.Value, 'BWRelated');
+
+            app.BandGuardType.Enable = hasChannelBW;
+            app.BandGuardFixedValue.Enable = hasChannelBW && strcmp(app.BandGuardType.Value, 'Fixed');
+            app.BandGuardBWRelatedValue.Enable = hasChannelBW && strcmp(app.BandGuardType.Value, 'BWRelated');
         end
 
         %-----------------------------------------------------------------%
@@ -1072,12 +1089,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 1));
 
             else
+                channelAssigned = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
                 driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
 
                 if isempty(driveTestAttributes)
                     guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6));
                 else
-                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', driveTestAttributes.PlotDisplayConfig.ScreenSpan.Type, 'Value', driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value));
+                    guardBandType = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Type;
+                    switch guardBandType
+                        case 'Fixed'
+                            guardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value / 1000; % MHz
+                        otherwise % 'BWRelated'
+                            guardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value;
+                    end
+
+                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', guardBandType, 'Value', guardBandValue));
+                end
+
+                if channelAssigned.ChannelBW <= 0
+                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
                 end
             end
         end
@@ -1088,10 +1118,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             switch guardBandType
                 case 'Fixed'
-                    set(app.BandGuardFixedValue,     'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue)
+                    app.BandGuardValueLabel.Text = 'Largura (kHz):';
+                    set(app.BandGuardFixedValue,     'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue * 1000) % MHz >> kHz
                     set(app.BandGuardBWRelatedValue, 'Enable', 'off', 'Visible', 'off')
 
                 otherwise % 'BWRelated'
+                    app.BandGuardValueLabel.Text = 'Fator:';
                     set(app.BandGuardFixedValue,     'Enable', 'off', 'Visible', 'off')
                     set(app.BandGuardBWRelatedValue, 'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue)
             end
@@ -1315,7 +1347,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             end
 
             chFreqCenter = app.emissionSelectedIdxs.attributes.channel.Frequency;
-            chBandWidth  = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
+            chBandWidth  = max(10, app.emissionSelectedIdxs.attributes.channel.ChannelBW);
 
             switch operationType
                 case 'Creation'
@@ -1919,17 +1951,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 case app.BandGuardType
                     guardBandType = event.Value;
-                    chBandWidth = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
+                    chBandWidthkHz = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
 
                     switch guardBandType
                         case 'Fixed'
-                            guardBandValue = validateGuardBandValue(app.BandGuardBWRelatedValue.Value * chBandWidth, chBandWidth);
+                            guardBandValue = validateGuardBandValue(app.BandGuardBWRelatedValue.Value * chBandWidthkHz, chBandWidthkHz);
+                            updateScreenSpan(app, 'Fixed', guardBandValue / 1000) % kHz >> MHz
 
                         otherwise % 'BWRelated'
-                            guardBandValue = app.BandGuardFixedValue.Value / chBandWidth;
+                            guardBandValue = app.BandGuardFixedValue.Value / chBandWidthkHz;
+                            updateScreenSpan(app, 'BWRelated', guardBandValue)
                     end
 
-                    updateScreenSpan(app, guardBandType, guardBandValue)
                     onCustomizableParameterValueChanged(app, struct('Source', app.BandGuardFixedValue, 'Value', guardBandValue))
 
                 case {app.BandGuardFixedValue, app.BandGuardBWRelatedValue}
@@ -1939,6 +1972,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             chBandWidth = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
                             bandGuardValue = validateGuardBandValue(app.BandGuardFixedValue.Value, chBandWidth);
                             app.BandGuardFixedValue.Value = bandGuardValue;
+                            bandGuardValue = bandGuardValue / 1000; % kHz >> MHz
 
                         otherwise % 'BWRelated'
                             bandGuardValue = app.BandGuardBWRelatedValue.Value;
@@ -1949,11 +1983,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     guardBand.Parameters.Value = bandGuardValue;
 
                     updateSpectrumInfo(app.bandObj, specData, emissionIdx, guardBand);
-
                     xLimits = app.bandObj.XLimits;
+
                     app.UIAxes2.XLim = xLimits;
                     app.restoreView(2).xLim = xLimits;
                     app.restoreView(3).xLim = xLimits;
+
+                    % Como estou usando o renderizador "image" (ao invés de
+                    % mesh), preciso plotar novamente o waterfall toda vez
+                    % que é alterado o parâmetro, de forma que não seja
+                    % perdida a interação datatips.
+                    delete(findobj(app.UIAxes3, 'Tag', 'waterfall'))
+                    plot.Waterfall('Creation', [], app.UIAxes3, app.bandObj, xLimits);
+                    plot.axes.StackingOrder.execute(app.UIAxes3, 'appAnalise:DRIVETEST')
             end
 
             updateCustomProperty(app, specData, emissionIdx)

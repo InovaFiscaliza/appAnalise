@@ -233,7 +233,7 @@ classdef Band < handle
                     channelBandWidth  = specData.UserData.ReportChannels.ChannelBW(channelIdx);    % MHz
 
                     if channelBandWidth <= 0
-                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1000)); % Value em kHz
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1)); % MHz
                     else
                         guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', ceil(1.1*channelBandWidth)));
                     end
@@ -242,11 +242,11 @@ classdef Band < handle
 
                 case {'appAnalise:REPORT:EMISSION', 'appAnalise:SIGNALANALYSIS'}
                     emissionIdx = varargin{1};
-                    emissionFreqCenter = specData.UserData.Emissions.Frequency(emissionIdx);       % MHz
-                    emissionBandWidth  = specData.UserData.Emissions.BandWidthkHz(emissionIdx) / 1000;   % kHz >> MHz
+                    emissionFreqCenter = specData.UserData.Emissions.Frequency(emissionIdx); % MHz
+                    emissionBandWidth  = specData.UserData.Emissions.BandWidthkHz(emissionIdx) / 1000; % kHz >> MHz
 
                     if emissionBandWidth <= 0
-                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed',     'Value', 1000)); % Value em kHz
+                        guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed',     'Value', 1)); % MHz
                     else
                         guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 5));
                     end
@@ -330,21 +330,25 @@ classdef Band < handle
         end
 
         %-----------------------------------------------------------------%
-        function [xLimits, xDownIdx, xUpIdx] = computeRoiXLimits(obj, freqCenter, bandWidth, bandGuard)
+        function [xLimits, xDownIdx, xUpIdx] = computeRoiXLimits(obj, freqCenterMHz, bandWidthMHz, bandGuard)
+            if bandWidthMHz == 0
+                bandWidthMHz = 1;
+            end
+
             switch bandGuard.Mode
                 case 'auto'
-                    screenFreqStart = freqCenter - bandWidth / 2;
-                    screenFreqStop  = freqCenter + bandWidth / 2;
+                    screenFreqStart = freqCenterMHz - bandWidthMHz / 2;
+                    screenFreqStop  = freqCenterMHz + bandWidthMHz / 2;
         
                 case 'manual'
                     switch bandGuard.Parameters.Type
                         case 'Fixed'
-                            screenFreqStart = freqCenter - bandGuard.Parameters.Value / 2000;
-                            screenFreqStop  = freqCenter + bandGuard.Parameters.Value / 2000;
+                            screenFreqStart = freqCenterMHz - bandGuard.Parameters.Value / 2;
+                            screenFreqStop  = freqCenterMHz + bandGuard.Parameters.Value / 2;
         
                         case 'BWRelated'
-                            screenFreqStart = freqCenter - bandGuard.Parameters.Value * bandWidth / 2;
-                            screenFreqStop  = freqCenter + bandGuard.Parameters.Value * bandWidth / 2;
+                            screenFreqStart = freqCenterMHz - bandGuard.Parameters.Value * bandWidthMHz / 2;
+                            screenFreqStop  = freqCenterMHz + bandGuard.Parameters.Value * bandWidthMHz / 2;
                     end
             end
     
