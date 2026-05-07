@@ -682,7 +682,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
                 end
 
-                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase);
+                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase, app.mainApp.General);
 
             else
                 app.FlowMetadata.Text = '';

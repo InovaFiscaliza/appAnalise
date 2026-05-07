@@ -148,10 +148,11 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData, appHandleNameInBase)
+        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData, appHandleNameInBase, generalSettings)
             arguments
                 specData
                 appHandleNameInBase = ''
+                generalSettings = []
             end
 
             threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
@@ -161,7 +162,7 @@ classdef (Abstract) HtmlTextGenerator
             dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}), 'link', '');
             
             dataStruct.value.FreqStart = sprintf('%d Hz', dataStruct.value.FreqStart);
-            dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);
+            dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);            
 
             if specData.MetaData.Resolution ~= -1
                 dataStruct.value.Resolution = sprintf('%.1f kHz', dataStruct.value.Resolution/1000);
@@ -188,7 +189,7 @@ classdef (Abstract) HtmlTextGenerator
                     initialAntennaHeight = '(Desconhecida)';
                 end
                 antennaHeight = sprintf('<font style="color: red;"><del>%s</del> → %d metros</font>', string(initialAntennaHeight), currentAntennaHeight);
-            elseif currentAntennaHeight == -1
+            elseif isempty(currentAntennaHeight) || (currentAntennaHeight == -1)
                 antennaHeight = '<font style="color: red;">(Desconhecida)</font>';
             else
                 antennaHeight = sprintf('%d metros', currentAntennaHeight);
@@ -207,10 +208,7 @@ classdef (Abstract) HtmlTextGenerator
                 gpsSummaryToGui = rmfield(gpsSummaryToGui, 'Location');
             end
     
-            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui, 'link', '');
-            if ~isempty(appHandleNameInBase)
-                dataStruct(2).link = sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onLocationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase);
-            end
+            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onLocationEditRequested', generalSettings));
 
             if ~isempty(specData.Hash)
                 dataStruct(end+1) = struct('group', 'HASH', 'value', specData.Hash, 'link', '');
@@ -567,7 +565,14 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlContent = EmissionMetaData(specData, emissionSelected, appHandleNameInBase)
+        function htmlContent = EmissionMetaData(specData, emissionSelected, appHandleNameInBase, generalSettings)
+            arguments
+                specData
+                emissionSelected
+                appHandleNameInBase = ''
+                generalSettings = []
+            end
+
             emissionIdx  = emissionSelected.emissionIdx;
             emissionTag  = emissionSelected.attributes.tag;
             freqCenter   = emissionSelected.attributes.freqCenter;
@@ -604,10 +609,25 @@ classdef (Abstract) HtmlTextGenerator
                     reportIncludeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('RedCircle').html;
                     reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
                 end
-    
-                dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onChannelEditRequested''''))'')"> ✏️</a>',        appHandleNameInBase));
-                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onClassificationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase));
-                dataStruct(3) = struct('group', 'RELATÓRIO',     'value', reportIncludeText,  'link', sprintf('%s <a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onReportIncludeRequested''''))'')"> ✏️</a>',   reportIncludeIcon, appHandleNameInBase));
+
+                measures = specData.UserData.Emissions(emissionIdx, :).Measures;
+                measuresInfo = struct( ...
+                    'FreqCenterLevelRange', sprintf('%.1f a %.1f %s', measures.Level.FreqCenter_Min, measures.Level.FreqCenter_Max, specData.MetaData.LevelUnit), ...
+                    'ChannelLevelRange', sprintf('%.1f a %.1f %s (integração)', measures.Level.Channel_Min, measures.Level.Channel_Max, specData.MetaData.LevelUnit), ...
+                    'FreqCenterCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.FreqCenter_Infinite), ...                    
+                    'ChannelCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.Channel_Infinite) ...
+                );
+
+                dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onChannelEditRequested', generalSettings));
+                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onClassificationEditRequested', generalSettings));
+                
+                dataStruct(3) = struct('group', 'MEDIDAS',       'value', measuresInfo,   'link', [ ...
+                    util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsExportRequested', generalSettings, 'link', 'Export_16.png') ...
+                    '&emsp;', ...
+                    util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsDetailsRequested', generalSettings, 'question', 'info.svg') ...
+                ]);
+                
+                dataStruct(4) = struct('group', 'RELATÓRIO',     'value', reportIncludeText,  'link', [reportIncludeIcon '&emsp;' util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onReportIncludeRequested', generalSettings)]);
 
             else
                 dataStruct(1) = struct('group', 'INFO', 'value', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');
@@ -773,6 +793,30 @@ classdef (Abstract) HtmlTextGenerator
                                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>', stationTag)                                                                                                                                                                                                                                                     ...
                                sprintf('<font style="font-size: 11px;">%s</font><br><br>', stationInfo.Description)];
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
+        end
+
+
+        %-----------------------------------------------------------------%
+        function htmlLink = createEditHTMLLink(appHandleNameInBase, eventName, generalSettings, linkType, imgFileName)
+            arguments
+                appHandleNameInBase 
+                eventName 
+                generalSettings 
+                linkType {mustBeMember(linkType, {'link', 'question', 'edit'})} = 'edit'
+                imgFileName = 'Edit_32.png'
+            end
+
+            htmlLink = '';
+            try
+                if ~isempty(appHandleNameInBase)
+                    if ~isempty(generalSettings) && ~isempty(generalSettings.AppVersion.application.resourceStaticURL)
+                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, imgFileName, generalSettings);
+                    else
+                        htmlLink = ui.TextView.createHTMLLink(linkType, appHandleNameInBase, eventName);
+                    end
+                end
+            catch
+            end
         end
     end
 end

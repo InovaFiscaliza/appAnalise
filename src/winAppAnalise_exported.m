@@ -187,6 +187,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     case 'getNavigatorBasicInformation'
                         app.General.AppVersion.browser = event.HTMLEventData;
 
+                    case 'findResourceStaticURL'
+                        resourceStaticURL = event.HTMLEventData;
+                        if ~isempty(resourceStaticURL)
+                            app.General.AppVersion.application.resourceStaticURL = resourceStaticURL;
+                        end
+
                     % winAppAnalise
                     case 'mainApp.FileTree'
                         onFileTreeDeleteRequested(app)
@@ -652,6 +658,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.General = app.General_I;
             app.General.AppVersion = util.getAppVersion(app.rootFolder, MFilePath, tempDir);
             sendEventToHTMLSource(app.jsBackDoor, 'getNavigatorBasicInformation')
+
+            % Ideia é identificar URL de pasta estática servida pelo backend, de 
+            % forma que possam ser inseridas imagens em uilabel (como ui.TextView).
+            try
+                [~, resourceName, resourceExt] = fileparts(app.tool_ReadFiles.ImageSource);
+                sendEventToHTMLSource(app.jsBackDoor, 'findResourceStaticURL', struct('resourceName', [resourceName resourceExt], 'resourceTag', 'img', 'resourceId', app.tool_ReadFiles.UserData.id))
+            catch
+            end
         end
 
         %-----------------------------------------------------------------%

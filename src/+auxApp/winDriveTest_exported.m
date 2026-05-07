@@ -85,9 +85,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         SpectrumFlowList                matlab.ui.control.DropDown
         Toolbar                         matlab.ui.container.GridLayout
         tool_LayoutRight                matlab.ui.control.Image
-        tool_Separator3                 matlab.ui.control.Image
-        tool_FilterSummary              matlab.ui.control.Image
-        tool_DataExport                 matlab.ui.control.Image
         tool_TimestampLabel             matlab.ui.control.Label
         tool_TimestampSlider            matlab.ui.control.Slider
         tool_LoopControl                matlab.ui.control.Image
@@ -188,6 +185,50 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         [flowIdx, emissionIdx] = findSpecDataIndex(app);
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onClassificationEditRequested', app.Context, flowIdx, emissionIdx)
 
+                    case 'onMeasurementsDetailsRequested'
+                        if isempty(app.emissionSelectedIdxs)
+                            return
+                        end
+
+                        dataBinningDetails = app.emissionSelectedIdxs.attributes.dataBinningDetails;
+                        ui.Dialog(app.UIFigure, 'info', dataBinningDetails);
+
+                    case 'onMeasurementsExportRequested'
+                        if isempty(app.emissionSelectedIdxs)
+                            return
+                        end
+
+                        questionMsg = 'Deseja exportar drive-test em arquivos .XLSX e .KML?';
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
+                        if userSelection == "Não"
+                            return
+                        end
+
+                        nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
+                        basename = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'DriveTest');
+                        fileFullPath = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, basename);
+                        if isempty(fileFullPath)
+                            return
+                        end
+            
+                        app.progressDialog.Visible = 'visible';
+            
+                        dataSource = checkDataSource(app);
+                        distortionHandle = findobj(app.UIAxes1.Children, 'Tag', 'distortion');
+                        channelTag = sprintf('%.3f MHz ⌂ %.1f kHz', ...
+                            app.emissionSelectedIdxs.attributes.channel.Frequency, ...
+                            app.emissionSelectedIdxs.attributes.channel.ChannelBW ...
+                        );
+            
+                        try
+                            msgWarning = util.exportDriveTestAnalysis(app.emissionPoints, basename, fileFullPath, dataSource, distortionHandle, channelTag);
+                            ui.Dialog(app.UIFigure, 'info', msgWarning);
+                        catch ME
+                            ui.Dialog(app.UIFigure, 'error', ME.message);
+                        end
+            
+                        app.progressDialog.Visible = 'hidden';
+
                     case 'onReportIncludeRequested'
                         specData = app.bandObj.SpecData;
                         emissionIdx = app.emissionSelectedIdxs.emissionIdx;
@@ -283,8 +324,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         app.tool_LayoutRight;
                         app.tool_Play;
                         app.tool_LoopControl;
-                        app.tool_DataExport;
-                        app.tool_FilterSummary;
                         app.dockModule_Undock;
                         app.dockModule_Close
                     };
@@ -302,8 +341,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
-                            struct('appName', appName, 'dataTag', app.tool_DataExport.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta drive-test (.XLSX e .KML)')), ...
-                            struct('appName', appName, 'dataTag', app.tool_FilterSummary.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Sumário do data binning aplicado aos dados brutos')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,  'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,   'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
@@ -358,7 +395,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_LayoutLeft.UserData.status = true;
             app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
-            app.tool_FilterSummary.UserData.dataBinningSummary = '';
 
             initializeAxes(app)
 
@@ -651,7 +687,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         'tag', sprintf('%.3f MHz ⌂ %.1f kHz', freqCenter, bandWidthkHz), ...
                         'freqCenter', freqCenter, ...
                         'bandWidthkHz', bandWidthkHz, ...
-                        'channel', emissionChannel ...
+                        'channel', emissionChannel, ...
+                        'dataBinningDetails', '' ...
                     ) ...
                 );
             else
@@ -684,13 +721,17 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                  app.emissionPoints.filtered, ...
                  app.emissionPoints.binned, ...
                  app.filterTable, ...
-                 app.tool_FilterSummary.UserData.dataBinningSummary] = RF.DataBinning.execute(app.emissionPoints.raw,      ...
-                                                                                              app.DataBinningLength.Value, ...
-                                                                                              app.DataBinningFcn.Value,    ...
-                                                                                              app.filterTable);
+                 dataBinningDetails] = RF.DataBinning.execute(app.emissionPoints.raw,      ...
+                                                              app.DataBinningLength.Value, ...
+                                                              app.DataBinningFcn.Value,    ...
+                                                              app.filterTable);
+
+                if ~isempty(app.emissionSelectedIdxs)
+                    app.emissionSelectedIdxs.attributes.dataBinningDetails = dataBinningDetails;
+                end
+
             else
                 app.emissionPoints(:) = [];
-                app.tool_FilterSummary.UserData.dataBinningSummary = '';
             end
         end
 
@@ -724,9 +765,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.ChannelPowerFaceAlpha;
                 app.tool_Play;
                 app.tool_LoopControl;
-                app.tool_TimestampSlider;
-                app.tool_DataExport;
-                app.tool_FilterSummary
+                app.tool_TimestampSlider
             ], 'Enable', isSpectralFlow)
 
             set([
@@ -768,7 +807,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateEmissionMetadataPanel(app, specData)
-            htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase);
+            htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase, app.mainApp.General);
             ui.TextView.update(app.EmissionMetadata, htmlContent);
         end
 
@@ -992,7 +1031,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             app.DataBinningFcn.Value = driveTestAttributes.Binning.AggregationFunction;
             app.DataBinningLength.Value = driveTestAttributes.Binning.LengthMeters;
-            app.tool_FilterSummary.UserData.dataBinningSummary = driveTestAttributes.Binning.Summary;
+            app.emissionSelectedIdxs.attributes.dataBinningDetails = driveTestAttributes.Binning.Summary;
 
             app.UIAxes1.UserData.PlotMode = driveTestAttributes.PlotDisplayConfig.Data.PlotMode;
             app.axesTool_PlotSize.Value = driveTestAttributes.PlotDisplayConfig.Data.PlotSize;
@@ -1083,7 +1122,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 'Binning', struct( ...
                     'AggregationFunction', app.DataBinningFcn.Value, ...
                     'LengthMeters', app.DataBinningLength.Value, ...
-                    'Summary', app.tool_FilterSummary.UserData.dataBinningSummary ...
+                    'Summary', app.emissionSelectedIdxs.attributes.dataBinningDetails ...
                 ), ...
                 'Filters', app.filterTable, ...
                 'Points', app.pointsTable, ...
@@ -1714,40 +1753,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_DataExport
-        function onToolbarExportFileButtonClicked(app, event)
-            
-            nameFormatMap = {'*.zip', 'appAnalise (*.zip)'};
-            Basename      = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'DriveTest', app.mainApp.report_Issue.Value);
-            fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, Basename);
-            if isempty(fileFullPath)
-                return
-            end
-
-            app.progressDialog.Visible = 'visible';
-
-            dataSource = checkDataSource(app);
-            hPlot      = findobj(app.UIAxes1.Children, 'Tag', 'distortion');
-            channelTag = sprintf('%.3f MHz ⌂ %.1f kHz', app.ChannelFrequency.Value, app.ChannelBandWidthkHz.Value);
-
-            try
-                msgWarning = util.exportDriveTestAnalysis(app.emissionPointsTable, app.emissionFilteredPointsTable, app.emissionBinnedPointsTable, Basename, fileFullPath, dataSource, hPlot, channelTag);
-                ui.Dialog(app.UIFigure, 'info', msgWarning);
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
-            end
-
-            app.progressDialog.Visible = 'hidden';
-
-        end
-
-        % Image clicked function: tool_FilterSummary
-        function onToolbarSummaryButtonClicked(app, event)
-            
-            ui.Dialog(app.UIFigure, 'info', app.tool_FilterSummary.UserData.dataBinningSummary);
-
-        end
-
         % Menu selected function: DeleteAllEntries, DeleteSelectedItem
         function onContextMenuItemClicked(app, event)
             
@@ -1843,8 +1848,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: BandGuardBWRelatedValue, BandGuardFixedValue, 
-        % ...and 10 other components
+        % Value changed function: BandGuardBWRelatedValue, 
+        % ...and 11 other components
         function onCustomizableParameterValueChanged(app, event)
             
             [flowIdx, emissionIdx] = findSpecDataIndex(app);
@@ -1965,7 +1970,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: CarColor, CarMarker, CarSize, 
+        % Value changed function: CarColor, CarMarker, CarSize, 
         % ...and 9 other components
         function onNonCustomizableParameterValueChanged(app, event)
             
@@ -2053,7 +2058,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, 196, '1x', 22, 22, 5, 22};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, 196, '1x', 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -2117,38 +2122,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
 
-            % Create tool_DataExport
-            app.tool_DataExport = uiimage(app.Toolbar);
-            app.tool_DataExport.ScaleMethod = 'none';
-            app.tool_DataExport.ImageClickedFcn = createCallbackFcn(app, @onToolbarExportFileButtonClicked, true);
-            app.tool_DataExport.Enable = 'off';
-            app.tool_DataExport.Layout.Row = [1 3];
-            app.tool_DataExport.Layout.Column = 8;
-            app.tool_DataExport.ImageSource = 'Export_16.png';
-
-            % Create tool_FilterSummary
-            app.tool_FilterSummary = uiimage(app.Toolbar);
-            app.tool_FilterSummary.ImageClickedFcn = createCallbackFcn(app, @onToolbarSummaryButtonClicked, true);
-            app.tool_FilterSummary.Enable = 'off';
-            app.tool_FilterSummary.Layout.Row = [1 3];
-            app.tool_FilterSummary.Layout.Column = 9;
-            app.tool_FilterSummary.ImageSource = 'Info_32.png';
-
-            % Create tool_Separator3
-            app.tool_Separator3 = uiimage(app.Toolbar);
-            app.tool_Separator3.ScaleMethod = 'none';
-            app.tool_Separator3.Enable = 'off';
-            app.tool_Separator3.Layout.Row = [1 3];
-            app.tool_Separator3.Layout.Column = 10;
-            app.tool_Separator3.VerticalAlignment = 'bottom';
-            app.tool_Separator3.ImageSource = 'LineV.svg';
-
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);
             app.tool_LayoutRight.ScaleMethod = 'none';
             app.tool_LayoutRight.ImageClickedFcn = createCallbackFcn(app, @onToolbarPanelVisibilityChanged, true);
             app.tool_LayoutRight.Layout.Row = [1 3];
-            app.tool_LayoutRight.Layout.Column = 11;
+            app.tool_LayoutRight.Layout.Column = 8;
             app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
 
             % Create Document
@@ -2325,12 +2304,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create FilterTreeButton
             app.FilterTreeButton = uiimage(app.EmissionPanelGrid);
+            app.FilterTreeButton.ScaleMethod = 'none';
             app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @onFilterTreeButtonClicked, true);
             app.FilterTreeButton.Enable = 'off';
             app.FilterTreeButton.Layout.Row = 8;
             app.FilterTreeButton.Layout.Column = 4;
             app.FilterTreeButton.VerticalAlignment = 'bottom';
-            app.FilterTreeButton.ImageSource = 'Edit_32.png';
+            app.FilterTreeButton.ImageSource = 'Filter_18.png';
 
             % Create FilterTree
             app.FilterTree = uitree(app.EmissionPanelGrid);
@@ -2352,12 +2332,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create PointsTreeButton
             app.PointsTreeButton = uiimage(app.EmissionPanelGrid);
+            app.PointsTreeButton.ScaleMethod = 'none';
             app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @onPointsTreeButtonClicked, true);
             app.PointsTreeButton.Enable = 'off';
             app.PointsTreeButton.Layout.Row = 3;
             app.PointsTreeButton.Layout.Column = 7;
             app.PointsTreeButton.VerticalAlignment = 'bottom';
-            app.PointsTreeButton.ImageSource = 'Edit_32.png';
+            app.PointsTreeButton.ImageSource = 'Pin_18.png';
 
             % Create PointsTree
             app.PointsTree = uitree(app.EmissionPanelGrid, 'checkbox');
