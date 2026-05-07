@@ -103,7 +103,7 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Faixa de frequência sob análise",
+                                "ColumnName": "Faixa de frequência",
                                 "Precision": "%s",
                                 "Width": "130px"
                             },
@@ -161,6 +161,7 @@
                     "Data": {
                         "Origin": "FunctionEvaluation",
                         "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
                         "Name": "minHold+average+maxHold+emission:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
@@ -250,19 +251,19 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível mínimo (%LevelUnit%)",
+                                "ColumnName": "Nível mínimo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível médio (%LevelUnit%)",
+                                "ColumnName": "Nível médio (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível máximo (%LevelUnit%)",
+                                "ColumnName": "Nível máximo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
@@ -645,14 +646,16 @@
             "Editable": "false",
             "Text": "CONCLUSÃO",
             "Variable": [],
-            "Component": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Ante o exposto, conclui-se este relatório de atividades.",
-                    "Variable": []
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Ante o exposto, conclui-se este relatório de atividades.",
+                        "Variable": []
+                    }
                 }
-            }
+            ]
         }
     }
 ]

@@ -63,8 +63,6 @@ classdef (Abstract) Plot
                         plot.axes.Colormap(axesHandle, generalSettings.plot.geographicAxes.Colormap)
                         plot.axes.Colorbar(axesHandle, generalSettings.plot.geographicAxes.Colorbar)
 
-                        legend(axesHandle, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 4, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none')
-
                     case 'Cartesian'
                         axesHandle = plot.axes.Creation(axesParent, 'Cartesian', {'XColor', [.15,.15,.15], 'YColor', [.15,.15,.15], 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel});
                         if ~isscalar(tiledNames) && (ii < numel(tiledNames)) && any(strcmp(axesType(ii+1:end), 'Cartesian'))
@@ -136,7 +134,22 @@ classdef (Abstract) Plot
                 plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
                 switch axesType{ii}
                     case 'Geographic'
-                        % ...
+                        % Força renderização do basemap usando função waitfor
+                        % customizada, evitando, assim, o risco de parar a
+                        % execução (no caso de uso da MATLAB built-in waitfor).
+
+                        % Protegido por bloco try/catch porque o basemap não 
+                        % é informação essencial do plot e esse approach de usar 
+                        % o objeto "TileReader" é algo não documentado, sujeito 
+                        % a alterações pela Mathworks.
+                        try
+                            tilesController = struct(axesHandle).BasemapManager.TileReader;
+                            if ~tilesController.MapTileAcquired && tilesController.NumMapTilesInCache == 0
+                                % waitfor(tilesController, 'NumMapTilesInCache')
+                                matlab.waitfor(tilesController, 'NumMapTilesInCache', @(x) x~=0, .100, 10)
+                            end
+                        catch
+                        end
 
                     case 'Cartesian'
                         % xAxes
