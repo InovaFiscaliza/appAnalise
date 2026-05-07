@@ -178,11 +178,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         appEngine.activate(app, app.Role)
 
                     case 'onChannelEditRequested'
-                        [flowIdx, emissionIdx] = findSpecDataIndex(app);
+                        [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
                         ipcMainMatlabOpenPopupApp(app.mainApp, app, 'EmissionChannel', app.Context, flowIdx, emissionIdx)
 
                     case 'onClassificationEditRequested'
-                        [flowIdx, emissionIdx] = findSpecDataIndex(app);
+                        [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onClassificationEditRequested', app.Context, flowIdx, emissionIdx)
 
                     case 'onMeasurementsDetailsRequested'
@@ -213,7 +213,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
                         app.progressDialog.Visible = 'visible';
             
-                        dataSource = checkDataSource(app);
+                        dataSource = getActiveDataSource(app);
                         distortionHandle = findobj(app.UIAxes1.Children, 'Tag', 'distortion');
                         channelTag = sprintf('%.3f MHz ⌂ %.1f kHz', ...
                             app.emissionSelectedIdxs.attributes.channel.Frequency, ...
@@ -234,8 +234,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         emissionIdx = app.emissionSelectedIdxs.emissionIdx;
                         update(specData, 'UserData:Emissions', 'AuxAppData:DriveTest:ReportInclude', emissionIdx)
 
-                        updateEmissionDropDown(app)
-                        updateEmissionMetadataPanel(app, specData)
+                        refreshEmissionList(app)
+                        refreshEmissionMetadataPanel(app, specData)
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -264,7 +264,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                   'onEmissionDeleted', ...
                                   'onSpectralDataReadError'}
                                 app.emissionSelectedIdxs(:) = [];
-                                updateFlowDropDown(app)
+                                refreshFlowList(app)
 
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = -1;
@@ -280,8 +280,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 specData = app.bandObj.SpecData;
                                 emissionIdx = app.emissionSelectedIdxs.emissionIdx;
 
-                                updateEmissionMeasures(app, specData, emissionIdx)
-                                updateCustomProperty(app, specData, emissionIdx)
+                                recomputeEmissionMeasures(app, specData, emissionIdx)
+                                persistEmissionDisplaySettings(app, specData, emissionIdx)
             
                                 % Isso força a reinicialização das tabelas e plot...
                                 app.emissionSelectedIdxs(:) = [];
@@ -289,7 +289,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                             case 'onLocationChanged'
                                 specData = app.bandObj.SpecData;
-                                updateUIPanelContent(app, specData)
+                                refreshMetadataPanels(app, specData)
             
                             case {'onTabNavigatorButtonPushed', ...
                                   'onPlaybackStarted'}
@@ -426,7 +426,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            updateFlowDropDown(app)
+            refreshFlowList(app)
             onFlowDropDownValueChanged(app)
         end
     end
@@ -494,7 +494,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateFlowDropDown(app)
+        function [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app)
+            flowIdx = app.SpectrumFlowList.Value;
+            emissionIdx = find(strcmp(app.EmissionList.Items, app.EmissionList.Value), 1) - 1;
+            if ~emissionIdx
+                emissionIdx = [];
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function refreshFlowList(app)
             specData = app.mainApp.specData;
 
             if ~isempty(specData)
@@ -546,7 +555,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateFlowView(app, flowIdx)
+        function loadSelectedFlow(app, flowIdx)
             % Caso não esteja em cache os dados do fluxo espectral selecionado, 
             % procede-se a sua leitura, preenchendo a propriedade "Data" com
             % timestamps, níveis das varreduras, azimutes e notas de qualidade.
@@ -574,7 +583,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                     delete(app.mainApp.specData(flowIdx))
                     app.mainApp.specData(flowIdx) = [];
-                    updateFlowDropDown(app)
+                    refreshFlowList(app)
 
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
                     return
@@ -587,18 +596,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % outros são reinicializados quando alterada a emissão.
             resetPlotState(app, specData, 'onFlowDropDownValueChanged')
 
-            updateEmissionDropDown(app)
+            refreshEmissionList(app)
             onEmissionDropDownValueChanged(app)
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionDropDown(app)
+        function refreshEmissionList(app)
             if isempty(app.mainApp.specData)
                 app.EmissionList.Items = {};
                 return
             end
 
-            flowIdx   = findSpecDataIndex(app);
+            flowIdx   = getSelectedFlowAndEmissionIndices(app);
             specData  = app.mainApp.specData(flowIdx);
             emissions = specData.UserData.Emissions;
 
@@ -641,8 +650,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionView(app)
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+        function loadSelectedEmission(app)
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
 
             if ~isempty(app.emissionSelectedIdxs) && isequal(app.emissionSelectedIdxs.flowIdx, flowIdx) && isequal(app.emissionSelectedIdxs.emissionIdx, emissionIdx)
                 return
@@ -657,17 +666,17 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % informações derivadas da instância de model.SpecData sob análise.
             % A partir desse momento, a referência ao specData selecionado
             % se dará por app.bandObj.SpecData.
-            updateEmissionSelected(app, specData, flowIdx, emissionIdx)
+            storeSelectedEmissionContext(app, specData, flowIdx, emissionIdx)
 
-            guardBand = computeScreenSpan(app, specData, emissionIdx);
+            guardBand = resolveScreenSpan(app, specData, emissionIdx);
             updateSpectrumInfo(app.bandObj, specData, emissionIdx, guardBand);
 
             % Atualiza PAINEL À DIREITA.
-            applyCustomProperty(app, specData, emissionIdx, guardBand)
+            applyEmissionDisplaySettings(app, specData, emissionIdx, guardBand)
 
             % Atualiza PAINEL À ESQUERDA com metadados do fluxo e da emissão.
-            updateUIControlsState(app, specData, emissionIdx)
-            updateUIPanelContent(app, specData)
+            refreshControlStates(app, specData, emissionIdx)
+            refreshMetadataPanels(app, specData)
 
             % Reseta o PLOT e atualiza informações que suportam o plot, como 
             % as dispostas no painel à direita.
@@ -675,7 +684,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionSelected(app, specData, flowIdx, emissionIdx)
+        function storeSelectedEmissionContext(app, specData, flowIdx, emissionIdx)
             if ~isempty(specData)
                 if ~isempty(emissionIdx)
                     freqCenter   = specData.UserData.Emissions.Frequency(emissionIdx);
@@ -712,7 +721,165 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionMeasures(app, specData, emissionIdx)
+        function guardBand = resolveScreenSpan(app, specData, emissionIdx)
+            if isempty(emissionIdx)
+                guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 1));
+
+            else
+                driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
+                chBandWidthkHz = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW;                
+
+                if isempty(driveTestAttributes)
+                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6));
+
+                else
+                    guardBandType = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Type;
+                    switch guardBandType
+                        case 'Fixed'
+                            initialGuardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value;
+                            guardBandValue = limitGuardBandValue(app, initialGuardBandValue, chBandWidthkHz) / 1000; % MHz
+                        otherwise % 'BWRelated'
+                            guardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value;
+                    end
+
+                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', guardBandType, 'Value', guardBandValue));
+                end
+
+                if chBandWidthkHz <= 0
+                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function guardBandValue = limitGuardBandValue(app, guardBandValue, chBandWidthkHz)
+            chBandWidthLimits = chBandWidthkHz * app.BandGuardBWRelatedValue.Limits;
+    
+            if guardBandValue < chBandWidthLimits(1)
+                guardBandValue = chBandWidthLimits(1);
+            elseif guardBandValue > chBandWidthLimits(2)
+                guardBandValue = chBandWidthLimits(2);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function applyEmissionDisplaySettings(app, specData, emissionIdx, guardBand)
+            syncScreenSpanControls(app, guardBand.Parameters.Type, guardBand.Parameters.Value)
+
+            if isempty(specData) || isempty(emissionIdx)
+                resetDataBinningControls(app)
+                recomputeEmissionMeasures(app, specData, emissionIdx)
+                return
+            end
+
+            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
+
+            if isempty(driveTestAttributes)
+                resetDataBinningControls(app)
+
+                app.Colormap.Value = app.defaultValues.colormap;
+                app.Basemap.Value = app.defaultValues.basemap;
+                app.RouteLineStyle.Value = app.defaultValues.drivetest.route.LineStyle;
+                app.RouteLineWidth.Value = app.defaultValues.drivetest.route.LineWidth;
+                app.RouteColorOut.Value = app.defaultValues.drivetest.route.Colors.OutROI;
+                app.RouteColorIn.Value = app.defaultValues.drivetest.route.Colors.InROI;
+                app.PointsMarker.Value = app.defaultValues.drivetest.points.Marker;
+                app.PointsColor.Value = app.defaultValues.drivetest.points.MarkerFaceColor;
+                app.PointsSize.Value = app.defaultValues.drivetest.points.MarkerSize;
+                
+                recomputeEmissionMeasures(app, specData, emissionIdx)
+                persistEmissionDisplaySettings(app, specData, emissionIdx)
+
+                guardBand = resolveScreenSpan(app, specData, emissionIdx);
+                applyEmissionDisplaySettings(app, specData, emissionIdx, guardBand)
+
+                return
+            end
+
+            app.emissionPoints = driveTestAttributes.Measures;
+            app.filterTable = driveTestAttributes.Filters;
+            app.pointsTable = driveTestAttributes.Points;
+
+            app.DataBinningFcn.Value = driveTestAttributes.Binning.AggregationFunction;
+            app.DataBinningLength.Value = driveTestAttributes.Binning.LengthMeters;
+            app.emissionSelectedIdxs.attributes.dataBinningDetails = driveTestAttributes.Binning.Summary;
+
+            app.UIAxes1.UserData.PlotMode = driveTestAttributes.PlotDisplayConfig.Data.PlotMode;
+            app.axesTool_PlotSize.Value = driveTestAttributes.PlotDisplayConfig.Data.PlotSize;
+            
+            app.axesTool_DataSourceDropDown.Value = driveTestAttributes.PlotDisplayConfig.Data.Source;
+            syncDataSourceToolbarState(app)
+            
+            app.Colormap.Value = driveTestAttributes.PlotDisplayConfig.Colormap;
+            if ~strcmp(app.UIAxes1.UserData.Colormap, app.Colormap.Value)
+                plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
+            end
+            
+            app.Basemap.Value = driveTestAttributes.PlotDisplayConfig.Basemap;
+            if ~strcmp(app.UIAxes1.Basemap, app.Basemap.Value)
+                app.UIAxes1.Basemap = app.Basemap.Value;
+
+                switch app.Basemap.Value
+                    case {'darkwater', 'none'}
+                        app.UIAxes1.Grid = 'on';
+
+                    otherwise
+                        app.UIAxes1.Grid = 'off';
+                end
+            end
+
+            app.RouteLineStyle.Value = driveTestAttributes.PlotDisplayConfig.Route.LineStyle;
+            app.RouteLineWidth.Value = driveTestAttributes.PlotDisplayConfig.Route.LineWidth;
+            app.RouteColorOut.Value = driveTestAttributes.PlotDisplayConfig.Route.ColorOut;
+            app.RouteColorIn.Value = driveTestAttributes.PlotDisplayConfig.Route.ColorIn;                
+            app.PointsMarker.Value = driveTestAttributes.PlotDisplayConfig.Points.Marker;
+            app.PointsColor.Value = driveTestAttributes.PlotDisplayConfig.Points.Color;
+            app.PointsSize.Value = driveTestAttributes.PlotDisplayConfig.Points.Size;                    
+        end
+
+        %-----------------------------------------------------------------%
+        function syncScreenSpanControls(app, guardBandType, guardBandValue)
+            app.BandGuardType.Value = guardBandType;
+
+            switch guardBandType
+                case 'Fixed'
+                    app.BandGuardValueLabel.Text = 'Largura (kHz):';
+                    set(app.BandGuardFixedValue,     'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue * 1000) % MHz >> kHz
+                    set(app.BandGuardBWRelatedValue, 'Enable', 'off', 'Visible', 'off')
+
+                otherwise % 'BWRelated'
+                    app.BandGuardValueLabel.Text = 'Fator:';
+                    set(app.BandGuardFixedValue,     'Enable', 'off', 'Visible', 'off')
+                    set(app.BandGuardBWRelatedValue, 'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue)
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function resetDataBinningControls(app)
+            app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
+            syncDataSourceToolbarState(app)
+            app.axesTool_PlotSize.Value = 1;
+            
+            app.DataBinningFcn.Value = app.defaultValues.dataBinning.aggregationFunction;
+            app.DataBinningLength.Value = app.defaultValues.dataBinning.binLengthMeters;
+        end
+
+        %-----------------------------------------------------------------%
+        function syncDataSourceToolbarState(app)
+            switch app.axesTool_DataSourceDropDown.Value
+                case 'Dados brutos'
+                    app.axesTool_DensityPlot.Enable = 0;
+                    if ~strcmp(app.UIAxes1.UserData.PlotMode, 'distortion')
+                        app.UIAxes1.UserData.PlotMode = 'distortion';
+                    end
+
+                otherwise % 'Processados'
+                    app.axesTool_DensityPlot.Enable = 1;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function recomputeEmissionMeasures(app, specData, emissionIdx)
             if ~isempty(specData)
                 if ~isempty(emissionIdx)
                     chFrequency  = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
@@ -751,7 +918,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateUIControlsState(app, specData, emissionIdx)
+        function refreshControlStates(app, specData, emissionIdx)
             isSpectralFlow = ~isempty(specData) && ismember(specData.MetaData.DataType, class.Constants.specDataTypes);
             hasEmission    = ~isempty(specData) && ~isempty(emissionIdx);
             hasChannelBW   = ~isempty(specData) && ~isempty(emissionIdx) && specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW > 0;
@@ -803,7 +970,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateUIPanelContent(app, specData)
+        function refreshMetadataPanels(app, specData)
             if ~isempty(specData)
                 % Verifica se o handle para o app continua ativo no workspace
                 % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
@@ -813,9 +980,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
                 end
 
-                updateEmissionMetadataPanel(app, specData)
-                buildFilterTree(app)
-                buildPointsTree(app)
+                refreshEmissionMetadataPanel(app, specData)
+                rebuildFilterTree(app)
+                rebuildPointsTree(app)
 
             else
                 ui.TextView.update(app.EmissionMetadata, '');
@@ -823,13 +990,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateEmissionMetadataPanel(app, specData)
+        function refreshEmissionMetadataPanel(app, specData)
             htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase, app.mainApp.General);
             ui.TextView.update(app.EmissionMetadata, htmlContent);
         end
 
         %-----------------------------------------------------------------%
-        function buildFilterTree(app)
+        function rebuildFilterTree(app)
             if ~isempty(app.FilterTree.Children)
                 delete(app.FilterTree.Children)
             end
@@ -848,7 +1015,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function buildPointsTree(app)
+        function rebuildPointsTree(app)
             if ~isempty(app.PointsTree.Children)
                 delete(app.PointsTree.Children)
             end
@@ -865,272 +1032,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        % ## PLOT CONTROLLER ##
-        %-----------------------------------------------------------------%
-        function resetPlotState(app, specData, eventName)
-            switch eventName
-                case 'onFlowDropDownValueChanged'
-                    delete(findobj(app.UIAxes2.Children, 'Tag', 'persistence'))
-                    app.plotHandles.persistence = [];
-
-                case 'onEmissionDropDownValueChanged'
-                    cla([app.UIAxes1, app.UIAxes3, app.UIAxes4])
-                    delete(findobj(app.UIAxes2.Children, '-not', 'Tag', 'persistence'))
-                    
-                    % A inicialização de plots mais pesados como WATERFALL e PERSISTÊNCIA 
-                    % ocorre apenas quando alterado o fluxo espectral.
-                    app.plotHandles.car = [];
-                    app.plotHandles.clearWrite = [];
-                    app.plotHandles.waterfallTime = [];
-            
-                    app.sweepTimeIdx = 1;
-                    app.tool_TimestampSlider.Value = 0;
-                    resetRestoreView(app)            
-        
-                    if ~isempty(specData)
-                        if isempty(app.UIAxes1.Legend)
-                            pause(1)
-                            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
-                            lgd.Title.FontSize = 8.5;
-                        end        
-                        set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
-                        
-                        updateTimestampLabel(app)
-        
-                    else
-                        if ~isempty(app.UIAxes1.Legend)
-                            app.UIAxes1.Legend.Title.Visible = 'off';
-                        end
-
-                        app.tool_TimestampLabel.Text = '';
-                        onAxesToolbarZoomControlButtonClicked(app, struct('Source', app.axesTool_RestoreView))
-                    end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function resetRestoreView(app)
-            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [], 'yLim', [], 'cLim', 'auto');
-            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
-            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', [], 'cLim', app.bandObj.CLimits);
-            app.restoreView(4) = struct('ID', 'app.UIAxes4', 'xLim', [], 'yLim', [], 'cLim', 'auto');
-        end
-
-        %-----------------------------------------------------------------%
-        function updatePlot(app)
-            specData = app.bandObj.SpecData;
-            if isempty(specData)
-                return
-            end
-
-            if isempty(app.plotHandles.clearWrite)
-                % (a) Route+Distortion+Density+Car
-                updatePlotRoute(app)
-                updatePlotDistortionAndDensity(app)
-                updatePlotCar(app, 'Creation')
-                
-                geolimits(app.UIAxes1, 'auto')
-                app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
-                app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;
-
-                % (b) ClearWrite+Persistance
-                app.plotHandles.clearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, 'clearWrite', app.bandObj, app.sweepTimeIdx);
-                plot.datatip.Template(app.plotHandles.clearWrite, "Frequency+Level", app.bandObj.LevelUnit)
-                updatePersistencePlot(app)                
-                set(app.UIAxes2, 'XLim', app.restoreView(2).xLim, 'YLim', app.restoreView(2).yLim)
-
-                % (c) Waterfall+Timeline
-                plot.Waterfall('Creation', [], app.UIAxes3, app.bandObj, app.restoreView(2).xLim);
-                app.plotHandles.waterfallTime = plot.draw2D.OrdinaryLine(app.UIAxes3, 'waterfallTime', app.bandObj, app.sweepTimeIdx);
-
-                % (d) ChannelPower
-                updatePlotChannelPower(app)
-
-                % (e) ChannelROI
-                updatePlotChannelRoi(app, 'Creation')
-                
-            else
-                plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
-                plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                updatePlotCar(app, 'Update')
-            end
-            drawnow
-        end
-
-        %-----------------------------------------------------------------%
-        function updatePersistencePlot(app)
-            if isempty(app.plotHandles.persistence) && strcmp(app.PersistanceVisibility.Value, 'on')
-                app.plotHandles.persistence = plot.Persistence('Creation', [], app.UIAxes2, app.bandObj, app.sweepTimeIdx);
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateTimestampLabel(app)
-            app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, app.bandObj.NumSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
-        end
-
-        %-----------------------------------------------------------------%
-        function dataSource = checkDataSource(app)
-            switch app.axesTool_DataSourceDropDown.Value
-                case 'Dados brutos'
-                    if isempty(app.filterTable)
-                        dataSource = 'Raw';
-                    else
-                        dataSource = 'Filtered';
-                    end
-                
-                otherwise
-                    dataSource = 'Data-Binning';
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateDataSourceToolbarComponents(app)
-            switch app.axesTool_DataSourceDropDown.Value
-                case 'Dados brutos'
-                    app.axesTool_DensityPlot.Enable = 0;
-                    if ~strcmp(app.UIAxes1.UserData.PlotMode, 'distortion')
-                        app.UIAxes1.UserData.PlotMode = 'distortion';
-                    end
-
-                otherwise % 'Processados'
-                    app.axesTool_DensityPlot.Enable = 1;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function restartDataBinningStatus(app)
-            app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
-            updateDataSourceToolbarComponents(app)
-            app.axesTool_PlotSize.Value = 1;
-            
-            app.DataBinningFcn.Value = app.defaultValues.dataBinning.aggregationFunction;
-            app.DataBinningLength.Value = app.defaultValues.dataBinning.binLengthMeters;
-        end
-
-        %-----------------------------------------------------------------%
-        function applyCustomProperty(app, specData, emissionIdx, guardBand)
-            updateScreenSpan(app, guardBand.Parameters.Type, guardBand.Parameters.Value)
-
-            if isempty(specData) || isempty(emissionIdx)
-                restartDataBinningStatus(app)
-                updateEmissionMeasures(app, specData, emissionIdx)
-                return
-            end
-
-            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
-
-            if isempty(driveTestAttributes)
-                restartDataBinningStatus(app)
-
-                app.Colormap.Value = app.defaultValues.colormap;
-                app.Basemap.Value = app.defaultValues.basemap;
-                app.RouteLineStyle.Value = app.defaultValues.drivetest.route.LineStyle;
-                app.RouteLineWidth.Value = app.defaultValues.drivetest.route.LineWidth;
-                app.RouteColorOut.Value = app.defaultValues.drivetest.route.Colors.OutROI;
-                app.RouteColorIn.Value = app.defaultValues.drivetest.route.Colors.InROI;
-                app.PointsMarker.Value = app.defaultValues.drivetest.points.Marker;
-                app.PointsColor.Value = app.defaultValues.drivetest.points.MarkerFaceColor;
-                app.PointsSize.Value = app.defaultValues.drivetest.points.MarkerSize;
-                
-                updateEmissionMeasures(app, specData, emissionIdx)
-                updateCustomProperty(app, specData, emissionIdx)
-
-                guardBand = computeScreenSpan(app, specData, emissionIdx);
-                applyCustomProperty(app, specData, emissionIdx, guardBand)
-
-                return
-            end
-
-            app.emissionPoints = driveTestAttributes.Measures;
-            app.filterTable = driveTestAttributes.Filters;
-            app.pointsTable = driveTestAttributes.Points;
-
-            app.DataBinningFcn.Value = driveTestAttributes.Binning.AggregationFunction;
-            app.DataBinningLength.Value = driveTestAttributes.Binning.LengthMeters;
-            app.emissionSelectedIdxs.attributes.dataBinningDetails = driveTestAttributes.Binning.Summary;
-
-            app.UIAxes1.UserData.PlotMode = driveTestAttributes.PlotDisplayConfig.Data.PlotMode;
-            app.axesTool_PlotSize.Value = driveTestAttributes.PlotDisplayConfig.Data.PlotSize;
-            
-            app.axesTool_DataSourceDropDown.Value = driveTestAttributes.PlotDisplayConfig.Data.Source;
-            updateDataSourceToolbarComponents(app)
-            
-            app.Colormap.Value = driveTestAttributes.PlotDisplayConfig.Colormap;
-            if ~strcmp(app.UIAxes1.UserData.Colormap, app.Colormap.Value)
-                plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
-            end
-            
-            app.Basemap.Value = driveTestAttributes.PlotDisplayConfig.Basemap;
-            if ~strcmp(app.UIAxes1.Basemap, app.Basemap.Value)
-                app.UIAxes1.Basemap = app.Basemap.Value;
-
-                switch app.Basemap.Value
-                    case {'darkwater', 'none'}
-                        app.UIAxes1.Grid = 'on';
-
-                    otherwise
-                        app.UIAxes1.Grid = 'off';
-                end
-            end
-
-            app.RouteLineStyle.Value = driveTestAttributes.PlotDisplayConfig.Route.LineStyle;
-            app.RouteLineWidth.Value = driveTestAttributes.PlotDisplayConfig.Route.LineWidth;
-            app.RouteColorOut.Value = driveTestAttributes.PlotDisplayConfig.Route.ColorOut;
-            app.RouteColorIn.Value = driveTestAttributes.PlotDisplayConfig.Route.ColorIn;                
-            app.PointsMarker.Value = driveTestAttributes.PlotDisplayConfig.Points.Marker;
-            app.PointsColor.Value = driveTestAttributes.PlotDisplayConfig.Points.Color;
-            app.PointsSize.Value = driveTestAttributes.PlotDisplayConfig.Points.Size;                    
-        end
-
-        %-----------------------------------------------------------------%
-        function guardBand = computeScreenSpan(~, specData, emissionIdx)
-            if isempty(emissionIdx)
-                guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 1));
-
-            else
-                channelAssigned = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
-                driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
-
-                if isempty(driveTestAttributes)
-                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6));
-                else
-                    guardBandType = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Type;
-                    switch guardBandType
-                        case 'Fixed'
-                            guardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value / 1000; % MHz
-                        otherwise % 'BWRelated'
-                            guardBandValue = driveTestAttributes.PlotDisplayConfig.ScreenSpan.Value;
-                    end
-
-                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', guardBandType, 'Value', guardBandValue));
-                end
-
-                if channelAssigned.ChannelBW <= 0
-                    guardBand = struct('Mode', 'manual', 'Parameters', struct('Type', 'Fixed', 'Value', 1));
-                end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateScreenSpan(app, guardBandType, guardBandValue)
-            app.BandGuardType.Value = guardBandType;
-
-            switch guardBandType
-                case 'Fixed'
-                    app.BandGuardValueLabel.Text = 'Largura (kHz):';
-                    set(app.BandGuardFixedValue,     'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue * 1000) % MHz >> kHz
-                    set(app.BandGuardBWRelatedValue, 'Enable', 'off', 'Visible', 'off')
-
-                otherwise % 'BWRelated'
-                    app.BandGuardValueLabel.Text = 'Fator:';
-                    set(app.BandGuardFixedValue,     'Enable', 'off', 'Visible', 'off')
-                    set(app.BandGuardBWRelatedValue, 'Enable', 'on',  'Visible', 'on', 'Value', guardBandValue)
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateCustomProperty(app, specData, emissionIdx)
+        function persistEmissionDisplaySettings(app, specData, emissionIdx)
             if isempty(specData) || isempty(emissionIdx)
                 return
             end
@@ -1188,7 +1090,127 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotRoute(app)
+        % ## PLOT ##
+        %-----------------------------------------------------------------%
+        function resetPlotState(app, specData, eventName)
+            switch eventName
+                case 'onFlowDropDownValueChanged'
+                    delete(findobj(app.UIAxes2.Children, 'Tag', 'persistence'))
+                    app.plotHandles.persistence = [];
+
+                case 'onEmissionDropDownValueChanged'
+                    cla([app.UIAxes1, app.UIAxes3, app.UIAxes4])
+                    delete(findobj(app.UIAxes2.Children, '-not', 'Tag', 'persistence'))
+                    
+                    % A inicialização de plots mais pesados como WATERFALL e PERSISTÊNCIA 
+                    % ocorre apenas quando alterado o fluxo espectral.
+                    app.plotHandles.car = [];
+                    app.plotHandles.clearWrite = [];
+                    app.plotHandles.waterfallTime = [];
+            
+                    app.sweepTimeIdx = 1;
+                    app.tool_TimestampSlider.Value = 0;
+                    resetRestoreView(app)            
+        
+                    if ~isempty(specData)
+                        if isempty(app.UIAxes1.Legend)
+                            pause(1)
+                            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                            lgd.Title.FontSize = 8.5;
+                        end        
+                        set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
+                        
+                        refreshTimestampLabel(app)
+        
+                    else
+                        if ~isempty(app.UIAxes1.Legend)
+                            app.UIAxes1.Legend.Title.Visible = 'off';
+                        end
+
+                        app.tool_TimestampLabel.Text = '';
+                        onAxesToolbarZoomControlButtonClicked(app, struct('Source', app.axesTool_RestoreView))
+                    end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function resetRestoreView(app)
+            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
+            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', [], 'cLim', app.bandObj.CLimits);
+            app.restoreView(4) = struct('ID', 'app.UIAxes4', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+        end
+
+        %-----------------------------------------------------------------%
+        function dataSource = getActiveDataSource(app)
+            switch app.axesTool_DataSourceDropDown.Value
+                case 'Dados brutos'
+                    if isempty(app.filterTable)
+                        dataSource = 'Raw';
+                    else
+                        dataSource = 'Filtered';
+                    end
+                
+                otherwise
+                    dataSource = 'Data-Binning';
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function refreshPlots(app)
+            specData = app.bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
+
+            if isempty(app.plotHandles.clearWrite)
+                % (a) Route+Distortion+Density+Car
+                plotMeasurementRoute(app)
+                plotDistortionAndDensity(app)
+                plotOrUpdateVehicleMarker(app, 'Creation')
+                
+                geolimits(app.UIAxes1, 'auto')
+                app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
+                app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;
+
+                % (b) ClearWrite+Persistance
+                app.plotHandles.clearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, 'clearWrite', app.bandObj, app.sweepTimeIdx);
+                plot.datatip.Template(app.plotHandles.clearWrite, "Frequency+Level", app.bandObj.LevelUnit)
+                ensurePersistencePlot(app)                
+                set(app.UIAxes2, 'XLim', app.restoreView(2).xLim, 'YLim', app.restoreView(2).yLim)
+
+                % (c) Waterfall+Timeline
+                plot.Waterfall('Creation', [], app.UIAxes3, app.bandObj, app.restoreView(2).xLim);
+                app.plotHandles.waterfallTime = plot.draw2D.OrdinaryLine(app.UIAxes3, 'waterfallTime', app.bandObj, app.sweepTimeIdx);
+
+                % (d) ChannelPower
+                plotChannelPower(app)
+
+                % (e) ChannelROI
+                plotOrUpdateChannelRoi(app, 'Creation')
+                
+            else
+                plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
+                plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                plotOrUpdateVehicleMarker(app, 'Update')
+            end
+            drawnow
+        end
+
+        %-----------------------------------------------------------------%
+        function ensurePersistencePlot(app)
+            if isempty(app.plotHandles.persistence) && strcmp(app.PersistanceVisibility.Value, 'on')
+                app.plotHandles.persistence = plot.Persistence('Creation', [], app.UIAxes2, app.bandObj, app.sweepTimeIdx);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function refreshTimestampLabel(app)
+            app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, app.bandObj.NumSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
+        end
+
+        %-----------------------------------------------------------------%
+        function plotMeasurementRoute(app)
             outTable  = app.emissionPoints.raw(~app.emissionPoints.raw.Filtered, :);
             inTable   = app.emissionPoints.raw;
             lineStyle = app.RouteLineStyle.Value;
@@ -1200,8 +1222,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotDistortionAndDensity(app)
-            dataSource = checkDataSource(app);
+        function plotDistortionAndDensity(app)
+            dataSource = getActiveDataSource(app);
             plotMode = app.UIAxes1.UserData.PlotMode;
             plotSize = app.axesTool_PlotSize.Value;
 
@@ -1217,7 +1239,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotFilter(app)
+        function plotFilterRegions(app)
             delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'filterROI'))
 
             if ~isempty(app.filterTable)
@@ -1230,7 +1252,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             Longitude = app.filterTable.roi(ii).specification.Longitude;
                             shapeObj  = geopolyshape(Latitude, Longitude);
 
-                            hROI = plot_FilterROIObject(app, 'DrawProgrammatically', FilterSubtype, app.UIAxes1, shapeObj);
+                            hROI = createFilterRoiGraphic(app, 'DrawProgrammatically', FilterSubtype, app.UIAxes1, shapeObj);
 
                         otherwise
                             switch FilterSubtype                        
@@ -1240,7 +1262,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                     hAxes = app.UIAxes1;
                             end
 
-                            hROI = plot_FilterROIObject(app, 'DrawProgrammatically', FilterSubtype, hAxes);
+                            hROI = createFilterRoiGraphic(app, 'DrawProgrammatically', FilterSubtype, hAxes);
             
                             fieldsList = fields(app.filterTable.roi(ii).specification);
                             for jj = 1:numel(fieldsList)
@@ -1254,7 +1276,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function hROI = plot_FilterROIObject(app, callingFcn, FilterSubtype, hAxes, varargin)
+        function hROI = createFilterRoiGraphic(app, callingFcn, FilterSubtype, hAxes, varargin)
             switch FilterSubtype
                 case 'Threshold'
                     hROI = plot.ROI.draw('images.roi.Line', hAxes, {'Tag', 'filterROI'});
@@ -1297,13 +1319,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             if ~strcmp(FilterSubtype, 'PolygonKML')
                 addlistener(hROI, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, hAxes, []));
-                addlistener(hROI, 'ROIMoved',             @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, hAxes, @app.filter_UpdatePlot));
+                addlistener(hROI, 'ROIMoved',             @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, hAxes, @app.replotAfterFilterChange));
                 addlistener(hROI, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
             end
         end
 
         %-----------------------------------------------------------------%
-        function plot_PointsController(app)
+        function plotHighlightedPoints(app)
             delete(findobj(app.UIAxes1.Children, 'Tag', 'points'))
 
             hAxes       = app.UIAxes1;
@@ -1316,7 +1338,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotCar(app, operationType)
+        function plotOrUpdateVehicleMarker(app, operationType)
             switch operationType
                 case 'Creation'
                     app.plotHandles.car = geoscatter(app.UIAxes1, app.emissionPoints.raw.Latitude(app.sweepTimeIdx), app.emissionPoints.raw.Longitude(app.sweepTimeIdx), 'filled', ...
@@ -1330,7 +1352,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotChannelPower(app)
+        function plotChannelPower(app)
             color = app.ChannelPowerColor.Value;
             edgeAlpha = app.ChannelPowerEdgeAlpha.Value;
             faceAlpha = app.ChannelPowerFaceAlpha.Value;
@@ -1340,7 +1362,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updatePlotChannelRoi(app, operationType)
+        function plotOrUpdateChannelRoi(app, operationType)
             emissionIdx = app.emissionSelectedIdxs.emissionIdx;
             if isempty(emissionIdx)
                 return
@@ -1373,19 +1395,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function filter_UpdatePlot(app)
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
-            updateCustomProperty(app, flowIdx, emissionIdx)
+        function replotAfterFilterChange(app)
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
+            persistEmissionDisplaySettings(app, flowIdx, emissionIdx)
             prePlot_Startup(app, flowIdx, emissionIdx, 'AddEditOrDeleteFilter')
-        end
-
-        %-----------------------------------------------------------------%
-        function [flowIdx, emissionIdx] = findSpecDataIndex(app)
-            flowIdx = app.SpectrumFlowList.Value;
-            emissionIdx = find(strcmp(app.EmissionList.Items, app.EmissionList.Value), 1) - 1;
-            if ~emissionIdx
-                emissionIdx = [];
-            end
         end
 
         %-----------------------------------------------------------------%
@@ -1403,8 +1416,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     case -1
                         app.plotUpdateEvent = 1;
 
-                        flowIdx = findSpecDataIndex(app);
-                        updateFlowView(app, flowIdx)
+                        flowIdx = getSelectedFlowAndEmissionIndices(app);
+                        loadSelectedFlow(app, flowIdx)
 
                         if isempty(flowIdx)
                             break
@@ -1418,8 +1431,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 sweepTic = tic;
 
-                updatePlot(app)
-                updateTimestampLabel(app)
+                refreshPlots(app)
+                refreshTimestampLabel(app)
                 app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
                 
                 pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
@@ -1490,8 +1503,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Value changed function: SpectrumFlowList
         function onFlowDropDownValueChanged(app, event)
             
-            flowIdx = findSpecDataIndex(app);
-            updateFlowView(app, flowIdx)
+            flowIdx = getSelectedFlowAndEmissionIndices(app);
+            loadSelectedFlow(app, flowIdx)
 
         end
 
@@ -1501,8 +1514,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if app.plotUpdateEvent
                 app.plotUpdateEvent = -1;
             else
-                updateEmissionView(app)
-                updatePlot(app)
+                loadSelectedEmission(app)
+                refreshPlots(app)
             end
 
         end
@@ -1564,17 +1577,17 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % ...and 1 other component
         function onAxesToolbarDataSourceChanged(app, event)
 
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             specData = app.mainApp.specData(flowIdx);
 
             switch event.Source
                 case app.axesTool_DataSourceDropDown
-                    updateDataSourceToolbarComponents(app)
-                    updateCustomProperty(app, specData, emissionIdx)
+                    syncDataSourceToolbarState(app)
+                    persistEmissionDisplaySettings(app, specData, emissionIdx)
 
                 case {app.DataBinningLength, app.DataBinningFcn}
-                    updateEmissionMeasures(app, specData, emissionIdx)
-                    updateCustomProperty(app, specData, emissionIdx)
+                    recomputeEmissionMeasures(app, specData, emissionIdx)
+                    persistEmissionDisplaySettings(app, specData, emissionIdx)
 
                     % Se o plot em evidência é o gerado pelas informações
                     % brutas (e não pela processada via Data-Binning), então 
@@ -1634,9 +1647,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             colorBar.LimitsMode = 'manual';
             colorBar.LimitsMode = 'auto';
 
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             specData = app.mainApp.specData(flowIdx);
-            updateCustomProperty(app, specData, emissionIdx)
+            persistEmissionDisplaySettings(app, specData, emissionIdx)
 
         end
 
@@ -1655,9 +1668,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 drawnow
             end
 
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             specData = app.mainApp.specData(flowIdx);
-            updateCustomProperty(app, specData, emissionIdx)
+            persistEmissionDisplaySettings(app, specData, emissionIdx)
             
         end
 
@@ -1686,7 +1699,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function onAxesToolbarTargetButtonClicked(app, event)
             
             specData = app.bandObj.SpecData;
-            [~, emissionIdx] = findSpecDataIndex(app);
+            [~, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             if isempty(emissionIdx)
                 return
             end
@@ -1737,7 +1750,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    flowIdx = findSpecDataIndex(app);
+                    flowIdx = getSelectedFlowAndEmissionIndices(app);
 
                     if ~isempty(flowIdx) && ~app.plotUpdateEvent
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
@@ -1779,8 +1792,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if ~app.plotUpdateEvent
                 plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
                 plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                updatePlotCar(app, 'Update')
-                updateTimestampLabel(app)
+                plotOrUpdateVehicleMarker(app, 'Update')
+                refreshTimestampLabel(app)
             end
 
         end
@@ -1871,7 +1884,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.pointsTable.visible(visibleNodeData)   = true;
             app.pointsTable.visible(invisibleNodeData) = false;
 
-            plot_PointsController(app)
+            plotHighlightedPoints(app)
             
         end
 
@@ -1884,7 +1897,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % ...and 11 other components
         function onCustomizableParameterValueChanged(app, event)
             
-            [flowIdx, emissionIdx] = findSpecDataIndex(app);
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             if isempty(flowIdx)
                 return
             end
@@ -1955,12 +1968,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                     switch guardBandType
                         case 'Fixed'
-                            guardBandValue = validateGuardBandValue(app.BandGuardBWRelatedValue.Value * chBandWidthkHz, chBandWidthkHz);
-                            updateScreenSpan(app, 'Fixed', guardBandValue / 1000) % kHz >> MHz
+                            guardBandValue = limitGuardBandValue(app, app.BandGuardBWRelatedValue.Value * chBandWidthkHz, chBandWidthkHz);
+                            syncScreenSpanControls(app, 'Fixed', guardBandValue / 1000) % kHz >> MHz
 
                         otherwise % 'BWRelated'
                             guardBandValue = app.BandGuardFixedValue.Value / chBandWidthkHz;
-                            updateScreenSpan(app, 'BWRelated', guardBandValue)
+                            syncScreenSpanControls(app, 'BWRelated', guardBandValue)
                     end
 
                     onCustomizableParameterValueChanged(app, struct('Source', app.BandGuardFixedValue, 'Value', guardBandValue))
@@ -1969,8 +1982,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     bandGuardType = app.BandGuardType.Value;
                     switch bandGuardType
                         case 'Fixed'
-                            chBandWidth = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
-                            bandGuardValue = validateGuardBandValue(app.BandGuardFixedValue.Value, chBandWidth);
+                            chBandWidthkHz = app.emissionSelectedIdxs.attributes.channel.ChannelBW;
+                            bandGuardValue = limitGuardBandValue(app, app.BandGuardFixedValue.Value, chBandWidthkHz);
                             app.BandGuardFixedValue.Value = bandGuardValue;
                             bandGuardValue = bandGuardValue / 1000; % kHz >> MHz
 
@@ -1978,7 +1991,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             bandGuardValue = app.BandGuardBWRelatedValue.Value;
                     end
 
-                    guardBand = computeScreenSpan(app, specData, emissionIdx);
+                    guardBand = resolveScreenSpan(app, specData, emissionIdx);
                     guardBand.Parameters.Type  = bandGuardType;
                     guardBand.Parameters.Value = bandGuardValue;
 
@@ -1998,17 +2011,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     plot.axes.StackingOrder.execute(app.UIAxes3, 'appAnalise:DRIVETEST')
             end
 
-            updateCustomProperty(app, specData, emissionIdx)
-
-            function guardBandValue = validateGuardBandValue(guardBandValue, chBandWidth)
-                chBandWidthLimits = chBandWidth * app.BandGuardBWRelatedValue.Limits;
-        
-                if guardBandValue < chBandWidthLimits(1)
-                    guardBandValue = chBandWidthLimits(1);
-                elseif guardBandValue > chBandWidthLimits(2)
-                    guardBandValue = chBandWidthLimits(2);
-                end
-            end
+            persistEmissionDisplaySettings(app, specData, emissionIdx)
 
         end
 
