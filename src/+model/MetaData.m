@@ -117,7 +117,7 @@ classdef MetaData < handle
 
                     freqStart = obj(ii).Data(jj).MetaData.FreqStart;
                     freqStop  = obj(ii).Data(jj).MetaData.FreqStop;
-                    bandTag   = sprintf('%.3f - %.3f MHz', freqStart / 1e+6, freqStop / 1e+6);
+                    bandTag   = sprintf('%.3f – %.3f MHz', freqStart / 1e+6, freqStop / 1e+6);
 
                     referenceTable(end+1, 2:end) = { ...
                         obj(ii).File, ...

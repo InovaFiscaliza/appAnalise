@@ -152,20 +152,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         % Índice da varredura atual.
         sweepTimeIdx
+
+        emissionPoints = struct('raw', [], 'filtered', [], 'binned', [])
+        filterTable = table({}, {}, struct('handle', {}, 'specification', {}), 'VariableNames', {'type', 'subtype', 'roi'})
+        pointsTable = table({}, struct('source', {}, 'data', {}, 'dataIdx', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
     end
 
 
     properties (Access = private)
         %-----------------------------------------------------------------%
         projectData
-
-        emissionSelectedIdxs = struct('flowIdx', {}, 'emissionIdx', {}, 'attributes', {})
-        emissionPoints = struct('raw', [], 'filtered', [], 'binned', [])
-
-        filterTable = table({}, {}, struct('handle', {}, 'specification', {}), 'VariableNames', {'type', 'subtype', 'roi'})
-        pointsTable = table({}, struct('source', {}, 'data', {}, 'dataIdx', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
-
         defaultValues
+        emissionSelectedIdxs = struct('flowIdx', {}, 'emissionIdx', {}, 'attributes', {})
     end
 
 
@@ -1188,6 +1186,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 % (e) ChannelROI
                 plotOrUpdateChannelRoi(app, 'Creation')
+
+                % (f) Filters
+                plotFilterRegions(app)
+
+                % (g) Points
+                plotHighlightedPoints(app)
                 
             else
                 plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
@@ -1276,50 +1280,57 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function hROI = createFilterRoiGraphic(app, callingFcn, FilterSubtype, hAxes, varargin)
-            switch FilterSubtype
+        function hROI = createFilterRoiGraphic(app, filterSubtype, axesHandle, varargin)
+            switch filterSubtype
                 case 'Threshold'
-                    hROI = plot.ROI.draw('images.roi.Line', hAxes, {'Tag', 'filterROI'});
+                    hROI = plot.ROI.draw('images.roi.Line', axesHandle, {'Tag', 'filterROI'});
 
                 case 'PolygonKML'
                     shapeObj = varargin{1};
-                    hROI = geoplot(hAxes, shapeObj, FaceColor=[0 0.4470 0.7410], ...
-                                                    EdgeColor=[0 0.4470 0.7410], ...
-                                                    FaceAlpha=0.05,              ...
-                                                    EdgeAlpha=1,                 ...
-                                                    LineWidth=2.5,               ...
-                                                    PickableParts='none',        ...
-                                                    Tag='filterROI');
+                    hROI = geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
+                                                         EdgeColor=[0 0.4470 0.7410], ...
+                                                         FaceAlpha=0.05,              ...
+                                                         EdgeAlpha=1,                 ...
+                                                         LineWidth=2.5,               ...
+                                                         PickableParts='none',        ...
+                                                         Tag='filterROI');
 
                 otherwise
+                    drawType = varargin{1};
                     roiNameArgument = '';
 
-                    switch callingFcn
+                    switch drawType
                         case 'DrawInRealTime'
-                            switch FilterSubtype
-                                case 'Circle';     roiFcn = 'drawcircle';
-                                case 'Rectangle';  roiFcn = 'drawrectangle';
-                                case 'Polygon';    roiFcn = 'drawpolygon';
+                            switch filterSubtype
+                                case 'Circle'
+                                    roiFunction = 'drawcircle';
+                                case 'Rectangle'
+                                    roiFunction = 'drawrectangle';
+                                case 'Polygon'
+                                    roiFunction = 'drawpolygon';
                             end
 
                         case 'DrawProgrammatically'
-                            switch FilterSubtype
-                                case 'Circle';     roiFcn = 'images.roi.Circle';
-                                case 'Rectangle';  roiFcn = 'images.roi.Rectangle';
-                                case 'Polygon';    roiFcn = 'images.roi.Polygon';
+                            switch filterSubtype
+                                case 'Circle'
+                                    roiFunction = 'images.roi.Circle';
+                                case 'Rectangle'
+                                    roiFunction = 'images.roi.Rectangle';
+                                case 'Polygon'
+                                    roiFunction = 'images.roi.Polygon';
                             end
                     end
 
-                    if strcmp(FilterSubtype, 'Rectangle')
+                    if strcmp(filterSubtype, 'Rectangle')
                         roiNameArgument = 'Rotatable=true, ';
                     end
 
-                    hROI = evalc(sprintf('%s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFcn, roiNameArgument));
+                    hROI = evalc(sprintf('%s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFunction, roiNameArgument));
             end
 
-            if ~strcmp(FilterSubtype, 'PolygonKML')
-                addlistener(hROI, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, hAxes, []));
-                addlistener(hROI, 'ROIMoved',             @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, hAxes, @app.replotAfterFilterChange));
+            if ~strcmp(filterSubtype, 'PolygonKML')
+                addlistener(hROI, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, []));
+                addlistener(hROI, 'ROIMoved',             @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, @app.replotAfterFilterChange));
                 addlistener(hROI, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
             end
         end
@@ -1328,13 +1339,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         function plotHighlightedPoints(app)
             delete(findobj(app.UIAxes1.Children, 'Tag', 'points'))
 
-            hAxes       = app.UIAxes1;
-            MarkerStyle = app.PointsMarker.Value;
-            MarkerColor = app.PointsColor.Value;
-            MarkerSize  = app.PointsSize.Value;
-            plot.DriveTest.Points(hAxes, app.pointsTable, MarkerStyle, MarkerColor, MarkerSize)
-            
-            plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:DRIVETEST')
+            if ~isempty(app.pointsTable)
+                markerStyle = app.PointsMarker.Value;
+                markerColor = app.PointsColor.Value;
+                markerSize  = app.PointsSize.Value;
+                plot.DriveTest.Points(app.UIAxes1, app.pointsTable, markerStyle, markerColor, markerSize)
+                plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:DRIVETEST')
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -1396,9 +1407,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function replotAfterFilterChange(app)
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = 0;
+            end
+    
             [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
-            persistEmissionDisplaySettings(app, flowIdx, emissionIdx)
-            prePlot_Startup(app, flowIdx, emissionIdx, 'AddEditOrDeleteFilter')
+            specData = app.mainApp.specData(flowIdx);
+    
+            recomputeEmissionMeasures(app, specData, emissionIdx)
+            persistEmissionDisplaySettings(app, specData, emissionIdx)
+    
+            % Isso força a reinicialização das tabelas e plot...
+            app.emissionSelectedIdxs(:) = [];
+            onEmissionDropDownValueChanged(app)
         end
 
         %-----------------------------------------------------------------%
@@ -1497,6 +1518,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 case app.dockModule_Close
                     closeModule(app.mainApp.tabGroupController, auxAppTag, app.mainApp.General)
             end
+
+        end
+
+        % Image clicked function: FilterTreeButton, PointsTreeButton
+        function onOpenPopupApp(app, event)
+            
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = 0;
+            end
+
+            switch event.Source
+                case app.FilterTreeButton
+                    dockAppTag = 'DriveTestFilter';
+                case app.PointsTreeButton
+                    dockAppTag = 'DriveTestPoints';
+            end
+
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context, flowIdx, emissionIdx)
 
         end
 
@@ -1870,11 +1910,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: FilterTreeButton
-        function onFilterTreeButtonClicked(app, event)
-            
-        end
-
         % Callback function: PointsTree
         function onPointsTreeCheckedNodesChanged(app, event)
             
@@ -1885,11 +1920,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.pointsTable.visible(invisibleNodeData) = false;
 
             plotHighlightedPoints(app)
-            
-        end
-
-        % Image clicked function: PointsTreeButton
-        function onPointsTreeButtonClicked(app, event)
             
         end
 
@@ -2350,7 +2380,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create FilterTreeButton
             app.FilterTreeButton = uiimage(app.EmissionPanelGrid);
             app.FilterTreeButton.ScaleMethod = 'none';
-            app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @onFilterTreeButtonClicked, true);
+            app.FilterTreeButton.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FilterTreeButton.Enable = 'off';
             app.FilterTreeButton.Layout.Row = 8;
             app.FilterTreeButton.Layout.Column = 4;
@@ -2378,7 +2408,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create PointsTreeButton
             app.PointsTreeButton = uiimage(app.EmissionPanelGrid);
             app.PointsTreeButton.ScaleMethod = 'none';
-            app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @onPointsTreeButtonClicked, true);
+            app.PointsTreeButton.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.PointsTreeButton.Enable = 'off';
             app.PointsTreeButton.Layout.Row = 3;
             app.PointsTreeButton.Layout.Column = 7;

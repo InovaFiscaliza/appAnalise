@@ -184,15 +184,22 @@ classdef (Abstract) HtmlTextGenerator
 
             initialAntennaHeight = calculateAntennaHeight(specData, 1, -1, 'initialValue');
             currentAntennaHeight = specData.UserData.AntennaHeightMeters;
+            if isempty(currentAntennaHeight)
+                currentAntennaHeight = initialAntennaHeight;
+            end
+
             if abs(initialAntennaHeight - currentAntennaHeight) > 1e-1
                 if initialAntennaHeight == -1
-                    initialAntennaHeight = '(Desconhecida)';
+                    antennaHeight = sprintf('<font style="color: red;"><del>Desconhecida</del> → %d metros</font>', currentAntennaHeight);
+                else
+                    antennaHeight = sprintf('<font style="color: red;"><del>%d</del> → %d metros</font>', initialAntennaHeight, currentAntennaHeight);
                 end
-                antennaHeight = sprintf('<font style="color: red;"><del>%s</del> → %d metros</font>', string(initialAntennaHeight), currentAntennaHeight);
-            elseif isempty(currentAntennaHeight) || (currentAntennaHeight == -1)
-                antennaHeight = '<font style="color: red;">(Desconhecida)</font>';
             else
-                antennaHeight = sprintf('%d metros', currentAntennaHeight);
+                if currentAntennaHeight == -1
+                    antennaHeight = '<font style="color: red;">Desconhecida</font>';
+                else
+                    antennaHeight = sprintf('%d metros', currentAntennaHeight);
+                end            
             end
 
             gpsSummaryToGui = struct( ...

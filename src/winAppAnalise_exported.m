@@ -80,6 +80,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         
         channelObj
         elevationObj = RF.Elevation
+        kmlObj
 
         rfDataHub
         rfDataHubLOG
@@ -241,12 +242,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             try
                 switch eventName
                     case 'closeFcn'
-                        auxAppTag    = varargin{1};
+                        auxAppTag = varargin{1};
                         closeModule(app.tabGroupController, auxAppTag, app.General)
 
                     case 'dockButtonPushed'
-                        auxAppTag    = varargin{1};
                         varargout{1} = {app};
+
+                    case 'onUpdateLastVisitedFolder'
+                        filePath = varargin{1};
+                        updateLastVisitedFolder(app, filePath)
 
                     otherwise
                         switch class(callingApp)
@@ -361,20 +365,22 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % DOCKS:OTHERS
-                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ...
-                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ...
-                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ...
-                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ...
-                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ...
-                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ...
-                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ...
-                                  'auxApp.dockFilterByLevel',   'auxApp.dockTimeFiltering_exported',   ...
-                                  'auxApp.dockFiltersByTime',   'auxApp.dockEditLocation_exported',    ...
-                                  'auxApp.dockLocation',        'auxApp.dockAddKFactor_exported',      ...
-                                  'auxApp.dockMiscellaneous',   'auxApp.dockLevelFiltering_exported',  ...
-                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ...
-                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ...
-                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}
+                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ... % SIGNALANALYSIS | DRIVETEST
+                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ... % PLAYBACK
+                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ... % PLAYBACK
+                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ... % PLAYBACK
+                                  'auxApp.dockDriveTestFilter', 'auxApp.dockDriveTestFilter_exported', ... % DRIVETEST
+                                  'auxApp.dockDriveTestPoints', 'auxApp.dockDriveTestPoints_exported', ... % DRIVETEST
+                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ... % ? (PLAYBACK ou REPORTLIB)
+                                  'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockFiltersByTime',   'auxApp.dockFiltersByTime_exported',   ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK | DRIVETEST
+                                  'auxApp.dockMiscellaneous',   'auxApp.dockMiscellaneous_exported',   ... % ? (talvez volta a ser módulo "MISC")
+                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % PLAYBACK
+                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK
+                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
 
                                 switch eventName
                                     case {'onEmissionAdded', 'onLocationChanged'}
@@ -426,7 +432,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -444,7 +450,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
-                case 'Detection'        % auxApp.winPlayback
+                case {'Detection', 'DriveTestFilter', 'DriveTestPoints'}
                     screenWidth  = 412;
                     screenHeight = 484;
                 case 'DetectionLimits'  % auxApp.winPlayback
@@ -453,27 +459,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'EmissionChannel'
                     screenWidth  = 412;
                     screenHeight = 138;
-                case 'ExternalFiles'
+                case {'ExternalFiles', 'Miscellaneous'}
                     screenWidth  = 880; 
                     screenHeight = 480;
                 case 'FilterByLevel'
                     screenWidth  = 540; 
                     screenHeight = 300;
-                case 'FilterByTime'
+                case {'FilterByTime', 'RepoFiles'}
                     screenWidth  = 640; 
                     screenHeight = 480;
                 case 'Location'
                     screenWidth  = 412; 
                     screenHeight = 190;
-                case 'Miscellaneous'
-                    screenWidth  = 880;
-                    screenHeight = 480;
                 case 'ReportLib'
                     screenWidth  = 784;
                     screenHeight = 594;
-                case 'RepoFiles'
-                    screenWidth  = 640;
-                    screenHeight = 480;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
