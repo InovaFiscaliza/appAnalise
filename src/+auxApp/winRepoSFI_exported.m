@@ -10,6 +10,9 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         SubTabGroup                   matlab.ui.container.TabGroup
         FilesTab                      matlab.ui.container.Tab
         FilesMainGrid                 matlab.ui.container.GridLayout
+        GridLayout2                   matlab.ui.container.GridLayout
+        filesCleanButton              matlab.ui.control.Button
+        filesSearchButton             matlab.ui.control.Button
         filesStationLabel             matlab.ui.control.Label
         filesSensorLocationLabel      matlab.ui.container.Panel
         filesSensorLocationGrid       matlab.ui.container.GridLayout
@@ -39,7 +42,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         filesLocalityLabel            matlab.ui.control.Label
         filesStatusLabel              matlab.ui.control.Label
         filesStateLabel               matlab.ui.control.Label
-        filesSearchButton             matlab.ui.control.Button
         filesDescriptionEditField     matlab.ui.control.EditField
         filesDescriptionLabel         matlab.ui.control.Label
         filesFrequencyLabel           matlab.ui.control.Label
@@ -336,16 +338,188 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         function restoreMapView(app)
-            % Ajusta o enquadramento para os pontos filtrados atualmente.
-            % Passado dentro do callback do botão de homepage
-            filteredMapData = app.filteredRepoSFI;
+            % Reenquadra intencionalmente o mapa para o conjunto filtrado atual.
+            applyMapViewport(app, struct(), "fit")
+        end
 
-            if ~isstruct(filteredMapData) || ~isfield(filteredMapData, 'points') || isempty(filteredMapData.points)
+        function restoreMapInteractions(app)
+            % Reinstala as interações padrão que o geoaxes perde após cla().
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
+                return
+            end
+
+            plot.axes.Interactivity.DefaultCreation(app.UIAxes, ...
+                [zoomInteraction, panInteraction])
+        end
+
+        function viewportMode = normalizeViewportMode(~, viewportMode)
+            % Normaliza o modo de atualização da viewport do mapa.
+            if nargin < 2 || isempty(viewportMode)
+                viewportMode = "preserve_if_all_states";
+                return
+            end
+
+            viewportMode = string(viewportMode);
+        end
+
+        function output = selectedStateFilter(app)
+            % Retorna o estado atualmente selecionado no filtro do mapa.
+            output = "Todos os estados";
+
+            if isempty(app.filesStateDropDown) || ~isvalid(app.filesStateDropDown)
+                return
+            end
+
+            output = string(app.filesStateDropDown.Value);
+        end
+
+        function limits = getCurrentMapLimits(app)
+            % Captura os limites atuais do geoaxes para eventual restauração.
+            limits = struct('latitude', [], 'longitude', []);
+
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
+                return
+            end
+
+            latitudeLimits = double(app.UIAxes.LatitudeLimits);
+            longitudeLimits = double(app.UIAxes.LongitudeLimits);
+
+            if numel(latitudeLimits) == 2 && numel(longitudeLimits) == 2 && ...
+                    all(isfinite(latitudeLimits)) && all(isfinite(longitudeLimits))
+                limits.latitude = latitudeLimits;
+                limits.longitude = longitudeLimits;
+            end
+        end
+
+        function output = hasValidMapLimits(~, limits)
+            % Valida uma estrutura de limites antes de reaplicá-la ao mapa.
+            output = isstruct(limits) && isfield(limits, 'latitude') && isfield(limits, 'longitude') && ...
+                numel(limits.latitude) == 2 && numel(limits.longitude) == 2 && ...
+                all(isfinite(limits.latitude)) && all(isfinite(limits.longitude)) && ...
+                diff(limits.latitude) > 0 && diff(limits.longitude) > 0;
+        end
+
+        function setMapLimits(app, limits)
+            % Aplica ao geoaxes um par explícito de limites já validados.
+            if ~hasValidMapLimits(app, limits)
+                return
+            end
+
+            geolimits(app.UIAxes, limits.latitude, limits.longitude)
+        end
+
+        function applyMapViewport(app, previousLimits, viewportMode)
+            % Decide entre preservar ou recalcular o enquadramento do mapa.
+            viewportMode = normalizeViewportMode(app, viewportMode);
+            points = struct([]);
+
+            if isstruct(app.filteredRepoSFI) && isfield(app.filteredRepoSFI, 'points')
+                points = app.filteredRepoSFI.points;
+            end
+
+            if shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
+                setMapLimits(app, previousLimits)
+            else
+                fitMapToPoints(app, points)
+            end
+        end
+
+        function output = shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
+            % Preserva a viewport apenas quando isso evita microajustes sem ocultar tudo.
+            output = false;
+
+            if ~hasValidMapLimits(app, previousLimits)
+                return
+            end
+
+            switch normalizeViewportMode(app, viewportMode)
+                case "preserve"
+                    output = true;
+
+                case "preserve_if_all_states"
+                    if selectedStateFilter(app) ~= "Todos os estados"
+                        return
+                    end
+
+                    if isempty(points)
+                        output = true;
+                        return
+                    end
+
+                    lat = double([points.latitude]);
+                    lon = double([points.longitude]);
+                    isInside = lat >= previousLimits.latitude(1) & lat <= previousLimits.latitude(2) & ...
+                        lon >= previousLimits.longitude(1) & lon <= previousLimits.longitude(2);
+                    output = any(isInside);
+            end
+        end
+
+        function fitMapToPoints(app, points)
+            % Enquadra os pontos com padding estável, sem depender do auto-fit do geoaxes.
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
+                return
+            end
+
+            if isempty(points)
                 geolimits(app.UIAxes, 'auto')
                 return
             end
 
-            geolimits(app.UIAxes, 'auto')
+            lat = double([points.latitude]);
+            lon = double([points.longitude]);
+            validIdx = isfinite(lat) & isfinite(lon);
+            lat = lat(validIdx);
+            lon = lon(validIdx);
+
+            if isempty(lat) || isempty(lon)
+                geolimits(app.UIAxes, 'auto')
+                return
+            end
+
+            minLat = min(lat);
+            maxLat = max(lat);
+            minLon = min(lon);
+            maxLon = max(lon);
+            centerLat = (minLat + maxLat) / 2;
+            centerLon = (minLon + maxLon) / 2;
+
+            latSpan = max(maxLat - minLat, 0.30);
+            cosScale = max(cosd(centerLat), 0.25);
+            lonSpan = max(maxLon - minLon, 0.30 / cosScale);
+
+            targetAspect = 1.6;
+            if ~isempty(app.plotPanel) && isvalid(app.plotPanel)
+                panelPosition = getpixelposition(app.plotPanel, true);
+                if numel(panelPosition) >= 4 && panelPosition(4) > 0
+                    targetAspect = max(1.0, panelPosition(3) / panelPosition(4));
+                end
+            end
+
+            normalizedLonSpan = lonSpan * cosScale;
+            currentAspect = normalizedLonSpan / max(latSpan, eps);
+
+            if currentAspect > targetAspect
+                latSpan = normalizedLonSpan / targetAspect;
+            else
+                normalizedLonSpan = latSpan * targetAspect;
+                lonSpan = normalizedLonSpan / cosScale;
+            end
+
+            latSpan = max(latSpan * 1.18, 0.45);
+            lonSpan = max(lonSpan * 1.18, 0.45 / cosScale);
+
+            latitudeLimits = centerLat + 0.5 * [-latSpan, latSpan];
+            longitudeLimits = centerLon + 0.5 * [-lonSpan, lonSpan];
+
+            latitudeLimits = max(min(latitudeLimits, 89.5), -89.5);
+            longitudeLimits = max(min(longitudeLimits, 180), -180);
+
+            if diff(latitudeLimits) <= 0 || diff(longitudeLimits) <= 0
+                geolimits(app.UIAxes, 'auto')
+                return
+            end
+
+            geolimits(app.UIAxes, latitudeLimits, longitudeLimits)
         end
 
         %-----------------------------------------------------------------%
@@ -444,7 +618,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
-        function plot_Stations(app)
+        function plot_Stations(app, viewportMode)
             % Replota o mapa com base no dataset filtrado já preparado.
             %
             % Responsabilidades principais:
@@ -453,9 +627,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % - plotar cada grupo de marcadores com sua cor/estilo
             % - reinstalar as interações padrão do mapa
 
+            if nargin < 2
+                viewportMode = "preserve_if_all_states";
+            end
+
             if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
                 return
             end
+
+            previousLimits = getCurrentMapLimits(app);
 
             % Limpa completamente o eixo para evitar sobreposição entre plots
             % antigos e o novo estado filtrado.
@@ -474,6 +654,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Se nenhum ponto sobreviveu ao filtro, não há mais nada para desenhar.
             if isempty(filteredData.points)
+                restoreMapInteractions(app)
+                applyMapViewport(app, previousLimits, viewportMode)
                 return
             end
 
@@ -506,7 +688,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             %     'cLim', 'auto');
 
 
-            geolimits(app.UIAxes, 'auto')
+            restoreMapInteractions(app)
+            applyMapViewport(app, previousLimits, viewportMode)
 
             function plotGroup(idx, color, isHistorical, markerSize)
                 % Plota um subconjunto homogêneo de marcadores com o mesmo estilo.
@@ -1109,17 +1292,17 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Monta o cabeçalho fixo com título, resumo e botão de fechar.
             headerHTML = sprintf([ ...
-                '<section style="font-family: Helvetica, Arial, sans-serif; color: #202020; background-color: #f5f5f5; padding: 10px 12px 8px 12px; line-height: 1.35; border-bottom: 1px solid #dfdfdf; height: %dpx; box-sizing: border-box; position: relative;">' ...
+                '<section style="font-family: Helvetica, Arial, sans-serif; color: #202020; background-color: #f2f2f2; padding: 10px 12px 8px 12px; line-height: 1.35; border-bottom: 1px solid #d9d9d9; height: %dpx; box-sizing: border-box; position: relative;">' ...
                 '<p style="margin: 0 28px 2px 0;"><strong style="font-size: 13px; color: #202020;">Estações selecionadas</strong></p>' ...
-                '<p style="margin: 0 28px 0 0; color: #6a6a6a; font-size: 10px;">%s</p>' ...
-                '<button type="button" class="repo-sfi-close-popup" style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background-color: transparent; border: 1px solid #d7d7d7; border-radius: 11px; color: #8a8a8a; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 18px; text-align: center; padding: 0;">×</button>' ...
+                '<p style="margin: 0 28px 0 0; color: #707070; font-size: 10px;">%s</p>' ...
+                '<button type="button" class="repo-sfi-close-popup" style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background-color: #fafafa; border: 1px solid #d0d0d0; border-radius: 11px; color: #787878; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 18px; text-align: center; padding: 0;">×</button>' ...
                 '</section>'], headerHeight, summaryText);
 
             % Empacota cabeçalho e conteúdo em um contêiner único, com altura
             % total já calculada e rolagem vertical apenas no corpo do popup.
             html = sprintf([ ...
                 '<div style="padding: %dpx 0 0 0; box-sizing: border-box;">' ...
-                '<section style="background-color: #ffffff; border: 1px solid #d2d2d2; border-radius: 4px; overflow: hidden; height: %dpx; box-sizing: border-box;">' ...
+                '<section style="background-color: #ffffff; border: 1px solid #d8d8d8; border-radius: 4px; overflow: hidden; height: %dpx; box-sizing: border-box;">' ...
                 '%s' ...
                 '<section style="height: %dpx; overflow-y: auto; overflow-x: hidden; padding: 0; box-sizing: border-box;">' ...
                 '<div style="padding: 0 0 2px 0;">%s</div>' ...
@@ -1154,7 +1337,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % melhorando a leitura visual entre blocos consecutivos.
             sectionBorder = '';
             if addTopBorder
-                sectionBorder = 'border-top: 1px solid #e2e2e2;';
+                sectionBorder = 'border-top: 1px solid #e5e5e5;';
             end
 
             % Monta a seção completa do site, combinando cabeçalho, metadados
@@ -1164,7 +1347,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 '<p style="margin: 0 0 2px 0;">' ...
                 '<strong style="font-size: 12px; color: #202020;">%s</strong>' ...
                 '</p>' ...
-                '<p style="margin: 0; color: #6a6a6a; font-size: 10px;">ID %d   %s</p>' ...
+                '<p style="margin: 0; color: #707070; font-size: 10px;">ID %d   %s</p>' ...
                 '%s' ...
                 '</section>'], ...
                 sectionBorder, ...
@@ -1199,7 +1382,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             lastSeenHTML = '';
             if ~isempty(station.last_seen_at)
                 lastSeenHTML = sprintf( ...
-                    '<br><font size="1" color="#6f6f6f">Ultima visao: %s</font>', ...
+                    '<br><font size="1" color="#707070">Ultima visao: %s</font>', ...
                     char(esc(app, string(station.last_seen_at))));
             end
 
@@ -1209,7 +1392,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 '<p style="margin: 8px 0 0 0; text-align: right;">' ...
                 '<button type="button" class="repo-sfi-open-dock" ' ...
                 'data-site-id="%d" data-equipment-id="%d" data-host-id="%d" ' ...
-                'style="background-color: #f3f1ed; color: #2f2f2f; border: 1px solid #c9c1b6; border-radius: 3px; padding: 6px 12px; font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: bold; cursor: pointer; min-height: 31px;">' ...
+                'style="background-color: #f6f6f6; color: #303030; border: 1px solid #d1d1d1; border-radius: 3px; padding: 6px 12px; font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: bold; cursor: pointer; min-height: 31px;">' ...
                 'Abrir arquivos' ...
                 '</button>' ...
                 '</p>'], ...
@@ -1225,7 +1408,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 '<font color="%s" size="2"><strong>%s</strong></font>' ...
                 '</p>' ...
                 '<p style="margin: 0; padding-left: 11px; line-height: 1.25;">' ...
-                '<font size="2" color="#5f5f5f">%s</font>%s' ...
+                '<font size="2" color="#606060">%s</font>%s' ...
                 '</p>' ...
                 '%s' ...
                 '</section>'], ...
@@ -1382,8 +1565,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityRows        = table();
             app.filesStartDatePicker.Value = NaT;
             app.filesEndDatePicker.Value   = NaT;
-            app.filesFrequencyStartEditField.Value = -1;
-            app.filesFrequencyEndEditField.Value   = -1;
+            %app.filesFrequencyStartEditField.Value = NaN;
+            %app.filesFrequencyEndEditField.Value   = NaN;
             app.filesDescriptionEditField.Value    = '';
 
             loadFilesStationOptions(app)
@@ -1768,10 +1951,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             out = replace(out, ">", "&gt;");
         end
 
-        function refreshFilteredMap(app)
-            % Atualiza o dataset filtrado e replota o mapa a partir dele.
+        function refreshFilteredMap(app, viewportMode)
+            % Atualiza o dataset filtrado e replota o mapa com a regra de viewport informada.
+            if nargin < 2
+                viewportMode = "preserve_if_all_states";
+            end
+
             updateFilteredRepoSFI(app)
-            plot_Stations(app)
+            plot_Stations(app, viewportMode)
         end
 
         function updateFilteredRepoSFI(app)
@@ -2480,7 +2667,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         % ...and 2 other components
         function onStationFilterChanged(app, event)
 
-            refreshFilteredMap(app)
+            viewportMode = "preserve_if_all_states";
+
+            if isequal(event.Source, app.filesStateDropDown)
+                viewportMode = "fit";
+            end
+
+            refreshFilteredMap(app, viewportMode)
 
         end
 
@@ -2509,7 +2702,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Selecting a station in the search panel re-filters the map so the
             % user immediately sees where that equipment's sites are located.
             % getAppliedFilter reads filesStationDropDown as a map filter (Batch 3).
-            refreshFilteredMap(app);
+            refreshFilteredMap(app, "fit");
 
         end
 
@@ -2528,16 +2721,36 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         % Value changed function: filesLocationDropDown
         function onLocationChanged(app, event)
             updateFilesAvailablePeriod(app);
-            refreshFilteredMap(app);
-
+            refreshFilteredMap(app, "preserve_if_all_states");
         end
 
         % Value changed function: filesEndDatePicker, filesStartDatePicker
         function onDateChanged(app, event)
-            % Reaplica o filtro após consolidar um intervalo temporal válido.
+           % Reaplica o filtro após consolidar um intervalo temporal válido.
             getNormalizedFilterDateRange(app);
-            refreshFilteredMap(app)
+            refreshFilteredMap(app, "preserve_if_all_states")
             
+        end
+
+        % Button pushed function: filesCleanButton
+        function onCleanClick(app, event)
+             % Restaura os filtros da aba Arquivos ao estado inicial da tela.
+            app.filesStateDropDown.Value = 'Todos os estados';
+            app.filesStatusDropDown.Value = 'Todos';
+            app.filesLocalityDropDown.Value = 'Todas';
+
+            app.filesDescriptionEditField.Value = '';
+            app.filesFrequencyStartEditField.Value = -1;
+            app.filesFrequencyEndEditField.Value = -1;
+            app.filesStartDatePicker.Value = NaT;
+            app.filesEndDatePicker.Value = NaT;
+
+            loadFilesStationOptions(app)
+            app.filesStationDropDown.Value = '';
+            updateFilesLocationOptions(app, NaN)
+
+            closePopup(app)
+            refreshFilteredMap(app, "fit")
         end
     end
 
@@ -2802,14 +3015,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesDescriptionEditField.Layout.Row = 12;
             app.filesDescriptionEditField.Layout.Column = 1;
 
-            % Create filesSearchButton
-            app.filesSearchButton = uibutton(app.FilesMainGrid, 'push');
-            app.filesSearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
-            app.filesSearchButton.FontSize = 11;
-            app.filesSearchButton.Layout.Row = 13;
-            app.filesSearchButton.Layout.Column = 1;
-            app.filesSearchButton.Text = 'Pesquisar';
-
             % Create filesStationFilterPanel
             app.filesStationFilterPanel = uipanel(app.FilesMainGrid);
             app.filesStationFilterPanel.BackgroundColor = [1 1 1];
@@ -2957,15 +3162,19 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create filesFrequencyStartEditField
             app.filesFrequencyStartEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
+            app.filesFrequencyStartEditField.AllowEmpty = 'on';
             app.filesFrequencyStartEditField.FontSize = 11;
             app.filesFrequencyStartEditField.Layout.Row = 1;
             app.filesFrequencyStartEditField.Layout.Column = 2;
+            app.filesFrequencyStartEditField.Value = [];
 
             % Create filesFrequencyEndEditField
             app.filesFrequencyEndEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
+            app.filesFrequencyEndEditField.AllowEmpty = 'on';
             app.filesFrequencyEndEditField.FontSize = 11;
             app.filesFrequencyEndEditField.Layout.Row = 2;
             app.filesFrequencyEndEditField.Layout.Column = 2;
+            app.filesFrequencyEndEditField.Value = [];
 
             % Create filesFrequencyStartLabel
             app.filesFrequencyStartLabel = uilabel(app.filesFrequencyGrid);
@@ -3030,6 +3239,31 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesStationLabel.Layout.Row = 5;
             app.filesStationLabel.Layout.Column = 1;
             app.filesStationLabel.Text = 'ESTAÇÃO';
+
+            % Create GridLayout2
+            app.GridLayout2 = uigridlayout(app.FilesMainGrid);
+            app.GridLayout2.RowHeight = {'1x'};
+            app.GridLayout2.RowSpacing = 0;
+            app.GridLayout2.Padding = [0 0 0 0];
+            app.GridLayout2.Layout.Row = 13;
+            app.GridLayout2.Layout.Column = 1;
+            app.GridLayout2.BackgroundColor = [1 1 1];
+
+            % Create filesSearchButton
+            app.filesSearchButton = uibutton(app.GridLayout2, 'push');
+            app.filesSearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
+            app.filesSearchButton.FontSize = 11;
+            app.filesSearchButton.Layout.Row = 1;
+            app.filesSearchButton.Layout.Column = 1;
+            app.filesSearchButton.Text = 'Pesquisar';
+
+            % Create filesCleanButton
+            app.filesCleanButton = uibutton(app.GridLayout2, 'push');
+            app.filesCleanButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
+            app.filesCleanButton.FontSize = 11;
+            app.filesCleanButton.Layout.Row = 1;
+            app.filesCleanButton.Layout.Column = 2;
+            app.filesCleanButton.Text = 'Limpar';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);

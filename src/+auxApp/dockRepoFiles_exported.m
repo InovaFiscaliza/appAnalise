@@ -7,9 +7,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         INDICAQUANTASLINHASSELECIONADASLabel  matlab.ui.control.Label
         Image                       matlab.ui.control.Image
         LabelTotalPaginas           matlab.ui.control.Label
-        AnteriorButton              matlab.ui.control.Image
-        PosteriorButton             matlab.ui.control.Image
-        SpinnerPagina               matlab.ui.control.Spinner
         Panel                       matlab.ui.container.Panel
         GridLayout2                 matlab.ui.container.GridLayout
         LimparButton                matlab.ui.control.Button
@@ -28,8 +25,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         LabelEquipamento            matlab.ui.control.Label
         DatePickerPeriodoInicial    matlab.ui.control.DatePicker
         LabelPeriodoInicial         matlab.ui.control.Label
-        DropDownConsulta            matlab.ui.control.DropDown
-        LabelConsulta               matlab.ui.control.Label
         UITable                     matlab.ui.control.Table
     end
 
@@ -80,7 +75,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             configureTable(app)
             initializeFilters(app)
             loadEquipmentOptions(app)
-            updateQueryModeState(app)
             updateLocalityOptions(app, getContextValue(app, 'siteId'))
             refreshSearchResults(app)
         end
@@ -90,56 +84,24 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Configura a aparência e o comportamento base da tabela que exibe os
             % resultados das consultas no dock.
 
-            % Define cores alternadas nas linhas para melhorar a leitura horizontal
-            % quando houver muitas colunas e registros.
-            %app.UITable.BackgroundColor = [1 1 1; 0.9608 0.9608 0.9608];
+            app.UITable.ColumnName = {'ID Arquivo'; 'Arquivo'; 'Localidades'; 'Qtd. Espectros'; 'Faixa (MHz)'; 'Início'; 'Fim'; 'Caminho'};
+            app.UITable.ColumnWidth = {75, 220, 210, 105, 120, 135, 135, 'auto'};
 
-            % Permite ordenação por coluna diretamente pela interface da tabela.
-            %app.UITable.ColumnSortable = true;
-
-            % Restringe a seleção para linhas completas, o que faz sentido porque a
-            % interação ocorre sobre o registro inteiro e não sobre células isoladas.
-           % app.UITable.SelectionType = 'row';
-
-            % Garante seleção única para evitar ambiguidade nas ações derivadas do
-            % item selecionado.
-            %app.UITable.Multiselect = 'off';
-
-            % Ajusta o tamanho da fonte para equilibrar densidade de informação e
-            % legibilidade no espaço disponível do dock.
-            %app.UITable.FontSize = 10.5;
-
-            % Define larguras iniciais das colunas:
-            % - fixa onde o conteúdo tende a ser previsível
-            % - automática onde o texto pode variar mais entre os resultados
-            app.UITable.ColumnWidth = {70, 'auto', 160, 180, 110, 135, 135, 'auto'};
         end
 
 
         function initializeFilters(app)
             % Inicializa os filtros da tela a partir do contexto recebido na abertura
-            % do dock, além de resetar o estado de paginação da consulta atual.
-
-            % Reinicia o estado da paginação para garantir que uma nova consulta
-            % comece sempre da primeira página e sem resultados herdados.
-            app.currentPage = 1;
-            app.hasNextPage = false;
-            app.totalPages = 1;
+            % do dock e limpa o resumo do resultado atual.
             app.totalResults = 0;
-
-            % Lê o modo de consulta do contexto e normaliza sua tradução para o valor
-            % esperado pelo dropdown da interface.
-            queryMode = normalizedContextText(app, 'queryMode', "spectrum");
-            if any(strcmpi(queryMode, ["file", "arquivo"]))
-                app.DropDownConsulta.Value = 'Arquivo';
-            else
-                app.DropDownConsulta.Value = 'Espectro';
-            end
 
             % Preenche o período inicial e final convertendo os valores crus do
             % contexto para datetime, quando disponíveis.
             app.DatePickerPeriodoInicial.Value = rawToDatetime(app, getContextValue(app, 'startDate'));
             app.DatePickerPeriodoFinal.Value = rawToDatetime(app, getContextValue(app, 'endDate'));
+
+            app.EditFieldFrequenciaInicial.Value = rawToFiniteNumber(app, getContextValue(app, 'freqStart'), 20, 18000);
+            app.EditFieldFrequenciaFinal.Value = rawToFiniteNumber(app, getContextValue(app, 'freqEnd'), 20, 18000);
 
             % Carrega a descrição textual associada ao contexto da consulta.
             app.EditFieldPlanoDescricao.Value = char(normalizedContextText(app, 'description', ""));
@@ -191,7 +153,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Só consulta as localidades se houver um equipamento válido
             % selecionado.
             if ~isnan(equipmentId)
-                rows = app.dbHandler.getSpectrumLocalities(equipmentId);
+                rows = app.dbHandler.getSpectrumLocalities(equipmentId, getCurrentFilters(app));
 
                 % Converte cada linha retornada pelo banco em uma opção do dropdown:
                 % - o texto exibido ao usuário
@@ -221,42 +183,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        % Manipulação do layout do Filtro de busca baseado no modo de Consulta
-        %-----------------------------------------------------------------%
-        function updateQueryModeState(app)
-            % Arquivo ignora os filtros exclusivos de espectro.
-            isSpectrumMode = strcmp(app.DropDownConsulta.Value, 'Espectro');
-
-            set([app.LabelFrequenciaInicial, app.EditFieldFrequenciaInicial, ...
-                app.LabelFrequenciaFinal, app.EditFieldFrequenciaFinal, ...
-                app.LabelPlanoDescricao, app.EditFieldPlanoDescricao], ...
-                'Enable', matlab.lang.OnOffSwitchState(isSpectrumMode))
-
-            if isSpectrumMode
-                app.UITable.ColumnName = {'ID'; 'Plano'; 'Equipamento'; 'Localidade'; 'Faixa (MHz)'; 'Início'; 'Fim'; 'Arquivo Oficial'};
-            else
-                app.UITable.ColumnName = {'ID Arquivo'; 'Arquivo'; 'Equipamento'; 'Localidades'; 'Qtd. Espectros'; 'Início'; 'Fim'; 'Caminho'};
-            end
-        end
-
-        function output = mapQueryMode(app)
-            switch app.DropDownConsulta.Value
-                case 'Arquivo'
-                    set(findobj(app.GridLayout2.Children, 'Tag', 'SPECTRUM'), 'Enable', 'off')
-                    output = 'file';
-
-                otherwise
-                    set(findobj(app.GridLayout2.Children, 'Tag', 'SPECTRUM'), 'Enable', 'on')
-                    output = 'spectrum';
-            end
-        end
-
-        %-----------------------------------------------------------------%
         % Execução da pesquisa em banco
         %-----------------------------------------------------------------%
         function refreshSearchResults(app)
             % Executa a consulta atual com base nos filtros da tela, atualiza a
-            % tabela de resultados e sincroniza o estado da paginação.
+            % tabela de resultados em uma única carga.
 
             % Captura o snapshot atual dos filtros visíveis na interface.
             filters = getCurrentFilters(app);
@@ -266,53 +197,24 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             if isnan(filters.equipmentId)
                 app.UITable.Data = emptyResultTable(app);
                 app.UITable.UserData = table();
-                app.hasNextPage = false;
-                app.totalPages = 1;
                 app.totalResults = 0;
                 updatePaginationState(app)
                 return
             end
 
             try
-                % Primeiro consulta apenas a contagem total de registros para poder
-                % calcular a paginação antes de carregar a página corrente.
-                if strcmp(filters.queryMode, 'spectrum')
-                    app.totalResults = app.dbHandler.getSpectrumDataCount(filters);
-                else
-                    app.totalResults = app.dbHandler.getSpectrumFileDataCount(filters);
-                end
+                % Primeiro mede o universo filtrado para então carregar tudo em
+                % uma única consulta, sem navegação por páginas.
+                app.totalResults = app.dbHandler.getSpectrumFileDataCount(filters);
 
-                % Ajusta o total de páginas e garante que a página atual continue
-                % dentro do intervalo válido após qualquer mudança de filtro.
-                app.totalPages = max(1, ceil(app.totalResults / app.pageSize));
-                app.currentPage = min(app.currentPage, app.totalPages);
+                filters.page = 1;
+                filters.pageSize = max(app.totalResults, 1);
 
-                % Recalcula os filtros para refletir a página corrente já ajustada.
-                filters = getCurrentFilters(app);
+                % O resultado do dock sempre é orientado a arquivo: a busca filtra
+                % espectros e então colapsa a página para uma linha por arquivo.
+                rawRows = app.dbHandler.getSpectrumFileData(filters);
 
-                % Busca os dados efetivos da página, escolhendo a consulta correta
-                % conforme o modo atual: espectro ou arquivo.
-                if strcmp(filters.queryMode, 'spectrum')
-                    rawRows = app.dbHandler.getSpectrumData(filters);
-                else
-                    rawRows = app.dbHandler.getSpectrumFileData(filters);
-                end
-
-                % A consulta traz um registro extra para detectar se existe próxima
-                % página. Se existir, esse excedente não deve ser exibido na tabela.
-                app.hasNextPage = istable(rawRows) && (height(rawRows) > filters.pageSize);
-                if app.hasNextPage
-                    % rawRows = rawRows(1:filters.pageSize, :);
-                end
-
-                % Formata os dados crus para a representação esperada pela tabela,
-                % respeitando o layout específico de cada modo de consulta.
-                if strcmp(filters.queryMode, 'spectrum')
-                    %app.UITable.Data = formatSpectrumResults(app, rawRows);
-                else
-                    %app.UITable.Data = formatFileResults(app, rawRows);
-                end
-                set(app.UITable, 'Data', rawRows, 'ColumnName', rawRows.Properties.VariableNames)
+                app.UITable.Data = formatFileResults(app, rawRows);
 
                 % Mantém os dados originais associados à tabela para suportar ações
                 % posteriores que precisem do registro completo selecionado.
@@ -325,8 +227,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 % erro ao usuário sem deixar a interface em estado inconsistente.
                 app.UITable.Data = emptyResultTable(app);
                 app.UITable.UserData = table();
-                app.hasNextPage = false;
-                app.totalPages = 1;
                 app.totalResults = 0;
                 updatePaginationState(app)
                 ui.Dialog(app.UIFigure, 'error', sprintf('Erro ao consultar arquivos do repositório:\n%s', ME.message));
@@ -336,11 +236,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         function filters = getCurrentFilters(app)
             % Consolida o estado da UI no contrato esperado pelo DBHandler.
             filters = struct( ...
-                'queryMode', mapQueryMode(app), ...
                 'equipmentId', selectedNumericValue(app, app.DropDownEquipamento), ...
                 'siteId', selectedNumericValue(app, app.DropDownLocalidade), ...
-                'page', app.currentPage, ...
-                'pageSize', app.pageSize, ...
                 'startDate', app.DatePickerPeriodoInicial.Value, ...
                 'endDate', app.DatePickerPeriodoFinal.Value, ...
                 'freqStart', app.EditFieldFrequenciaInicial.Value, ...
@@ -355,12 +252,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             if isempty(filters.freqEnd) || ~isfinite(filters.freqEnd) || (filters.freqEnd < 0)
                 filters.freqEnd = NaN;
             end
-
-            if ~strcmp(filters.queryMode, 'spectrum')
-                filters.freqStart = NaN;
-                filters.freqEnd = NaN;
-                filters.description = "";
-            end
         end
 
 
@@ -368,79 +259,18 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         % Formatação da tabela para exibição em tela
         %-----------------------------------------------------------------%
         function updatePaginationState(app)
-            % Atualiza os controles visuais de paginação para refletir o estado
-            % corrente da consulta exibida no dock.
-
-            % Se os componentes de paginação ainda não existirem, não há nada a
-            % sincronizar neste momento.
-            if isempty(app.LabelTotalPaginas) || isempty(app.SpinnerPagina)
+            % Atualiza o resumo textual de resultados. A paginação visual foi
+            % removida, mas o rodapé continua informando a quantidade encontrada.
+            if isempty(app.LabelTotalPaginas)
                 return
             end
 
-            % Publica no rótulo o resumo do resultado total e da posição atual na
-            % navegação entre páginas.
-            app.LabelTotalPaginas.Text = sprintf('%d resultado(s)  |  Página %d de %d', ...
-                app.totalResults, app.currentPage, app.totalPages);
-
-            % Habilita ou desabilita os botões de navegação conforme a posição
-            % atual e a existência de próxima página.
-            app.AnteriorButton.Enable = matlab.lang.OnOffSwitchState(app.currentPage > 1);
-            app.PosteriorButton.Enable = matlab.lang.OnOffSwitchState(app.hasNextPage);
-
-            % Mantém o spinner coerente com a paginação atual:
-            % - avanço unitário
-            % - limites válidos
-            % - apenas valores inteiros
-            % - exibição sem casas decimais
-            app.SpinnerPagina.Step = 1;
-            app.SpinnerPagina.Limits = [1, max(1, app.totalPages)];
-            app.SpinnerPagina.RoundFractionalValues = 'on';
-            app.SpinnerPagina.ValueDisplayFormat = '%.0f';
-            app.SpinnerPagina.Value = app.currentPage;
-        end
-
-        function output = formatSpectrumResults(app, rawRows)
-            % Converte o resultado bruto da consulta por espectro para o formato
-            % tabular esperado pela UITable do dock.
-            if ~istable(rawRows) || isempty(rawRows)
-                output = emptyResultTable(app);
-                return
-            end
-
-            % Pré-aloca cada coluna exibida na tabela para montar a saída já no
-            % layout final da interface.
-            nRows = height(rawRows);
-            id = strings(nRows, 1);
-            plan = strings(nRows, 1);
-            equipment = strings(nRows, 1);
-            locality = strings(nRows, 1);
-            band = strings(nRows, 1);
-            startAt = strings(nRows, 1);
-            endAt = strings(nRows, 1);
-            fileName = strings(nRows, 1);
-
-            % Traduz linha a linha o retorno do banco para valores já formatados
-            % para exibição, sem expor diretamente nomes crus de campos internos.
-            for ii = 1:nRows
-                id(ii) = formatIdValue(app, rawRows.ID_SPECTRUM(ii));
-                plan(ii) = displayText(app, rawRows.NA_DESCRIPTION(ii), '-');
-                equipment(ii) = displayText(app, rawRows.NA_EQUIPMENT(ii), '-');
-                locality(ii) = formatLocalityDisplay(app, rawRows(ii, :));
-                band(ii) = formatFrequencyRange(app, rawRows.NU_FREQ_START(ii), rawRows.NU_FREQ_END(ii));
-                startAt(ii) = formatDateValue(app, rawRows.DT_TIME_START(ii));
-                endAt(ii) = formatDateValue(app, rawRows.DT_TIME_END(ii));
-                fileName(ii) = buildRepositoryFileName(app, rawRows(ii, :));
-            end
-
-            % Entrega a tabela final com os nomes de coluna usados pela interface
-            % no modo de consulta por espectro.
-            output = table(id, plan, equipment, locality, band, startAt, endAt, fileName, ...
-                'VariableNames', {'ID', 'Plano', 'Equipamento', 'Localidade', 'FaixaMHz', 'Inicio', 'Fim', 'ArquivoOficial'});
+            app.LabelTotalPaginas.Text = sprintf('%d resultado(s)', app.totalResults);
         end
 
         function output = formatFileResults(app, rawRows)
             % Converte o resultado bruto da consulta por arquivo para o formato
-            % tabular exibido pela UITable no modo "Arquivo".
+            % tabular exibido pela UITable.
             if ~istable(rawRows) || isempty(rawRows)
                 output = emptyResultTable(app);
                 return
@@ -451,9 +281,9 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             nRows = height(rawRows);
             id = strings(nRows, 1);
             fileName = strings(nRows, 1);
-            equipment = strings(nRows, 1);
             localities = strings(nRows, 1);
             spectrumCount = strings(nRows, 1);
+            band = strings(nRows, 1);
             startAt = strings(nRows, 1);
             endAt = strings(nRows, 1);
             pathValue = strings(nRows, 1);
@@ -463,32 +293,23 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             for ii = 1:nRows
                 id(ii) = formatIdValue(app, rawRows.ID_FILE(ii));
                 fileName(ii) = buildRepositoryFileName(app, rawRows(ii, :));
-                equipment(ii) = displayText(app, rawRows.NA_EQUIPMENT(ii), '-');
                 localities(ii) = displayText(app, rawRows.LOCALITY_LABELS(ii), '-');
                 spectrumCount(ii) = formatIdValue(app, rawRows.NU_SPECTRA(ii));
+                band(ii) = formatFrequencyRange(app, rawRows.NU_FREQ_START(ii), rawRows.NU_FREQ_END(ii));
                 startAt(ii) = formatDateValue(app, rawRows.DT_TIME_START(ii));
                 endAt(ii) = formatDateValue(app, rawRows.DT_TIME_END(ii));
                 pathValue(ii) = displayText(app, rawRows.NA_PATH(ii), '-');
             end
 
-            % Entrega a tabela final com o conjunto de colunas próprio da consulta
-            % por arquivo.
-            output = table(id, fileName, equipment, localities, spectrumCount, startAt, endAt, pathValue, ...
-                'VariableNames', {'IDArquivo', 'Arquivo', 'Equipamento', 'Localidades', 'QtdEspectros', 'Inicio', 'Fim', 'Caminho'});
+            output = table(id, fileName, localities, spectrumCount, band, startAt, endAt, pathValue, ...
+                'VariableNames', {'IDArquivo', 'Arquivo', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
-        function output = emptyResultTable(app)
-            % Cria uma tabela vazia já com o layout correto para o modo de consulta
-            % atual, evitando inconsistência de colunas na UITable.
-            if strcmp(mapQueryMode(app), 'file')
-                output = table(strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                    strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                    'VariableNames', {'IDArquivo', 'Arquivo', 'Equipamento', 'Localidades', 'QtdEspectros', 'Inicio', 'Fim', 'Caminho'});
-            else
-                output = table(strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                    strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                    'VariableNames', {'ID', 'Plano', 'Equipamento', 'Localidade', 'FaixaMHz', 'Inicio', 'Fim', 'ArquivoOficial'});
-            end
+        function output = emptyResultTable(~)
+            % Cria uma tabela vazia com o layout fixo da busca orientada a arquivo.
+            output = table(strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
+                strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
+                'VariableNames', {'IDArquivo', 'Arquivo', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
         %------------------------------------------------------------------
@@ -585,23 +406,23 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        function output = rawToFiniteNumber(~, rawValue)
+        function output = rawToFiniteNumber(~, rawValue, minValue, maxValue)
             % Converte um valor bruto do contexto para número finito escalar.
             % Aceita números, lógicos, textos e células; qualquer entrada inválida
-            % resulta em NaN para simplificar o tratamento posterior.
+            % resulta em [] para permitir campos numéricos vazios na UI.
             value = rawValue;
 
             % Desempacota células até chegar ao valor utilizável.
             while iscell(value)
                 if isempty(value)
-                    output = NaN;
+                    output = [];
                     return
                 end
                 value = value{1};
             end
 
             if isempty(value)
-                output = NaN;
+                output = [];
                 return
             end
 
@@ -612,7 +433,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 textValue = string(value);
                 textValue = textValue(~ismissing(textValue));
                 if isempty(textValue)
-                    output = NaN;
+                    output = [];
                     return
                 end
 
@@ -621,7 +442,17 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Garante que a saída final seja sempre um número finito e escalar.
             if isempty(output) || ~isscalar(output) || ~isfinite(output)
-                output = NaN;
+                output = [];
+                return
+            end
+
+            if isfinite(minValue) && output < minValue
+                output = [];
+                return
+            end
+
+            if isfinite(maxValue) && output > maxValue
+                output = [];
             end
         end
 
@@ -803,20 +634,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function
-        function CHAMAREVENTOButtonPushed(app, event)
-
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'NomeEventoEspecifico')
-
-        end
-
-        % Value changed function: DropDownConsulta
-        function onConsultChanged(app, event)
-            updateQueryModeState(app)
-            app.UITable.Data = emptyResultTable(app);
-
-        end
-
         % Value changed function: DropDownEquipamento
         function onEquipmentChanged(app, event)
             updateLocalityOptions(app, [])
@@ -833,44 +650,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         function onCleanClick(app, event)
             initializeFilters(app)
             loadEquipmentOptions(app)
-            updateQueryModeState(app)
             updateLocalityOptions(app, getContextValue(app, 'siteId'))
             refreshSearchResults(app)
-        end
-
-        % Image clicked function: AnteriorButton
-        function onPreviousPageClick(app, event)
-            if app.currentPage <= 1
-                return
-            end
-
-            app.currentPage = app.currentPage - 1;
-            refreshSearchResults(app)
-        end
-
-        % Image clicked function: PosteriorButton
-        function onNextPageClick(app, event)
-            if ~app.hasNextPage
-                return
-            end
-
-            app.currentPage = app.currentPage + 1;
-            refreshSearchResults(app)
-        end
-
-        % Value changed function: SpinnerPagina
-        function onPageSpinnerChanged(app, event)
-            requestedPage = round(app.SpinnerPagina.Value);
-            requestedPage = max(1, min(app.totalPages, requestedPage));
-
-            if requestedPage == app.currentPage
-                app.PageSpinner.Value = app.currentPage;
-                return
-            end
-
-            app.currentPage = requestedPage;
-            refreshSearchResults(app)
-
         end
 
         % Image clicked function: Image
@@ -883,7 +664,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 return
             end
 
-            userSelection
+            userSelection;
 
         end
     end
@@ -953,24 +734,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.GridLayout2.RowSpacing = 5;
             app.GridLayout2.BackgroundColor = [1 1 1];
 
-            % Create LabelConsulta
-            app.LabelConsulta = uilabel(app.GridLayout2);
-            app.LabelConsulta.VerticalAlignment = 'bottom';
-            app.LabelConsulta.FontSize = 11;
-            app.LabelConsulta.Layout.Row = 1;
-            app.LabelConsulta.Layout.Column = 1;
-            app.LabelConsulta.Text = 'Modo de consulta:';
-
-            % Create DropDownConsulta
-            app.DropDownConsulta = uidropdown(app.GridLayout2);
-            app.DropDownConsulta.Items = {'Espectro', 'Arquivo'};
-            app.DropDownConsulta.ValueChangedFcn = createCallbackFcn(app, @onConsultChanged, true);
-            app.DropDownConsulta.FontSize = 11;
-            app.DropDownConsulta.BackgroundColor = [1 1 1];
-            app.DropDownConsulta.Layout.Row = 2;
-            app.DropDownConsulta.Layout.Column = 1;
-            app.DropDownConsulta.Value = 'Espectro';
-
             % Create LabelPeriodoInicial
             app.LabelPeriodoInicial = uilabel(app.GridLayout2);
             app.LabelPeriodoInicial.VerticalAlignment = 'bottom';
@@ -990,7 +753,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelEquipamento.VerticalAlignment = 'bottom';
             app.LabelEquipamento.FontSize = 11;
             app.LabelEquipamento.Layout.Row = 1;
-            app.LabelEquipamento.Layout.Column = 2;
+            app.LabelEquipamento.Layout.Column = 1;
             app.LabelEquipamento.Text = 'Sensor:';
 
             % Create DropDownEquipamento
@@ -1000,7 +763,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEquipamento.FontSize = 11;
             app.DropDownEquipamento.BackgroundColor = [1 1 1];
             app.DropDownEquipamento.Layout.Row = 2;
-            app.DropDownEquipamento.Layout.Column = 2;
+            app.DropDownEquipamento.Layout.Column = [1 2];
             app.DropDownEquipamento.Value = {};
 
             % Create LabelLocalidade
@@ -1036,10 +799,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create LabelFrequenciaInicial
             app.LabelFrequenciaInicial = uilabel(app.GridLayout2);
-            app.LabelFrequenciaInicial.Tag = 'SPECTRUM';
             app.LabelFrequenciaInicial.VerticalAlignment = 'bottom';
             app.LabelFrequenciaInicial.FontSize = 11;
-            app.LabelFrequenciaInicial.Enable = 'off';
             app.LabelFrequenciaInicial.Layout.Row = 5;
             app.LabelFrequenciaInicial.Layout.Column = 1;
             app.LabelFrequenciaInicial.Text = 'Frequência inicial (MHz):';
@@ -1048,20 +809,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.EditFieldFrequenciaInicial = uieditfield(app.GridLayout2, 'numeric');
             app.EditFieldFrequenciaInicial.Limits = [20 18000];
             app.EditFieldFrequenciaInicial.ValueDisplayFormat = '%.3f';
-            app.EditFieldFrequenciaInicial.Tag = 'SPECTRUM';
+            app.EditFieldFrequenciaInicial.AllowEmpty = 'on';
             app.EditFieldFrequenciaInicial.FontSize = 11;
-            app.EditFieldFrequenciaInicial.Enable = 'off';
-            app.EditFieldFrequenciaInicial.Placeholder = 'Valor em MHz';
             app.EditFieldFrequenciaInicial.Layout.Row = 6;
             app.EditFieldFrequenciaInicial.Layout.Column = 1;
-            app.EditFieldFrequenciaInicial.Value = 20;
+            app.EditFieldFrequenciaInicial.Value = [];
 
             % Create LabelFrequenciaFinal
             app.LabelFrequenciaFinal = uilabel(app.GridLayout2);
-            app.LabelFrequenciaFinal.Tag = 'SPECTRUM';
             app.LabelFrequenciaFinal.VerticalAlignment = 'bottom';
             app.LabelFrequenciaFinal.FontSize = 11;
-            app.LabelFrequenciaFinal.Enable = 'off';
             app.LabelFrequenciaFinal.Layout.Row = 5;
             app.LabelFrequenciaFinal.Layout.Column = 2;
             app.LabelFrequenciaFinal.Text = 'Frequência final (MH):';
@@ -1070,28 +827,23 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.EditFieldFrequenciaFinal = uieditfield(app.GridLayout2, 'numeric');
             app.EditFieldFrequenciaFinal.Limits = [20 18000];
             app.EditFieldFrequenciaFinal.ValueDisplayFormat = '%.3f';
-            app.EditFieldFrequenciaFinal.Tag = 'SPECTRUM';
+            app.EditFieldFrequenciaFinal.AllowEmpty = 'on';
             app.EditFieldFrequenciaFinal.FontSize = 11;
-            app.EditFieldFrequenciaFinal.Enable = 'off';
             app.EditFieldFrequenciaFinal.Layout.Row = 6;
             app.EditFieldFrequenciaFinal.Layout.Column = 2;
-            app.EditFieldFrequenciaFinal.Value = 18000;
+            app.EditFieldFrequenciaFinal.Value = [];
 
             % Create LabelPlanoDescricao
             app.LabelPlanoDescricao = uilabel(app.GridLayout2);
-            app.LabelPlanoDescricao.Tag = 'SPECTRUM';
             app.LabelPlanoDescricao.VerticalAlignment = 'bottom';
             app.LabelPlanoDescricao.FontSize = 11;
-            app.LabelPlanoDescricao.Enable = 'off';
             app.LabelPlanoDescricao.Layout.Row = 3;
             app.LabelPlanoDescricao.Layout.Column = [3 5];
             app.LabelPlanoDescricao.Text = 'Plano/Descrição';
 
             % Create EditFieldPlanoDescricao
             app.EditFieldPlanoDescricao = uieditfield(app.GridLayout2, 'text');
-            app.EditFieldPlanoDescricao.Tag = 'SPECTRUM';
             app.EditFieldPlanoDescricao.FontSize = 11;
-            app.EditFieldPlanoDescricao.Enable = 'off';
             app.EditFieldPlanoDescricao.Placeholder = 'Ex. %PMEC% ou parte do nome';
             app.EditFieldPlanoDescricao.Layout.Row = 4;
             app.EditFieldPlanoDescricao.Layout.Column = [3 5];
@@ -1114,36 +866,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LimparButton.Layout.Column = 5;
             app.LimparButton.Text = 'Limpar';
 
-            % Create SpinnerPagina
-            app.SpinnerPagina = uispinner(app.GridLayout);
-            app.SpinnerPagina.Limits = [1 Inf];
-            app.SpinnerPagina.ValueDisplayFormat = '%d';
-            app.SpinnerPagina.ValueChangedFcn = createCallbackFcn(app, @onPageSpinnerChanged, true);
-            app.SpinnerPagina.FontSize = 11;
-            app.SpinnerPagina.Layout.Row = 4;
-            app.SpinnerPagina.Layout.Column = 6;
-            app.SpinnerPagina.Value = 1;
-
-            % Create PosteriorButton
-            app.PosteriorButton = uiimage(app.GridLayout);
-            app.PosteriorButton.ImageClickedFcn = createCallbackFcn(app, @onNextPageClick, true);
-            app.PosteriorButton.Layout.Row = 4;
-            app.PosteriorButton.Layout.Column = 5;
-            app.PosteriorButton.ImageSource = 'triangle-right.svg';
-
-            % Create AnteriorButton
-            app.AnteriorButton = uiimage(app.GridLayout);
-            app.AnteriorButton.ImageClickedFcn = createCallbackFcn(app, @onPreviousPageClick, true);
-            app.AnteriorButton.Layout.Row = 4;
-            app.AnteriorButton.Layout.Column = 4;
-            app.AnteriorButton.ImageSource = 'triangle-left.svg';
-
             % Create LabelTotalPaginas
             app.LabelTotalPaginas = uilabel(app.GridLayout);
             app.LabelTotalPaginas.HorizontalAlignment = 'right';
             app.LabelTotalPaginas.Layout.Row = 4;
-            app.LabelTotalPaginas.Layout.Column = 3;
-            app.LabelTotalPaginas.Text = '';
+            app.LabelTotalPaginas.Layout.Column = [3 6];
+            app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
 
             % Create Image
             app.Image = uiimage(app.GridLayout);
