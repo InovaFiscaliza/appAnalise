@@ -388,9 +388,21 @@ classdef (Abstract) Plot
             % % PLOT 
             specData = bandObj.SpecData;
             emissionIdx = reportInfo.Function.var_IndexEmission;
-            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
+
+            chFrequency = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
+            chBandWidth = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW;
+            emissionTag = sprintf('%.3f MHz ⌂ %.1f kHz', chFrequency, chBandWidth);
+
+            if isempty(axesHandle.Legend)
+                pause(1)
+                lgd = legend(axesHandle, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                lgd.Title.FontSize = 8.5;
+            end
+            set(axesHandle.Legend.Title, 'Visible', 'on', 'String', emissionTag)
 
             % Route && Density | Distortion
+            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
+
             outTable  = driveTestAttributes.Measures.raw(~driveTestAttributes.Measures.raw.Filtered, :);
             inTable   = driveTestAttributes.Measures.raw;
             lineStyle = ':';
@@ -419,7 +431,7 @@ classdef (Abstract) Plot
             
             % (b) ClearWrite+Persistance
             plot.draw2D.OrdinaryLine(uiAxes2, 'average', bandObj, []);
-            plot.Persistence('Creation', [], uiAxes2, bandObj, [])
+            plot.Persistence('Creation', [], uiAxes2, bandObj, []);
             set(uiAxes2, 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel)
 
             % (c) Waterfall
@@ -445,48 +457,7 @@ classdef (Abstract) Plot
 
             % (f) Filters
             filterTable = driveTestAttributes.Filters;
-            if ~isempty(filterTable)
-                for ii = 1:height(filterTable)
-                    filterSubtype = filterTable.subtype{ii};
-
-                    switch filterSubtype
-                        case 'PolygonKML'
-                            lat = filterTable.roi(ii).specification.Latitude;
-                            lng = filterTable.roi(ii).specification.Longitude;
-                            shapeObj = geopolyshape(lat, lng);
-
-                            geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
-                                                          EdgeColor=[0 0.4470 0.7410], ...
-                                                          FaceAlpha=0.05,              ...
-                                                          EdgeAlpha=1,                 ...
-                                                          LineWidth=1,               ...
-                                                          PickableParts='none',        ...
-                                                          Tag='filterROI');
-
-                        otherwise % 'Threshold' | 'Circle' | 'Rectangle' | 'Polygon'
-                            switch filterSubtype
-                                case 'Threshold'
-                                    roiHandle = plot.ROI.draw('images.roi.Line', uiAxes4, {'Tag', 'filterROI'});
-
-                                otherwise
-                                    switch filterSubtype
-                                        case 'Circle'
-                                            roiFcn = 'images.roi.Circle';                                        
-                                        case 'Rectangle'
-                                            roiFcn = 'images.roi.Rectangle';                                        
-                                        case 'Polygon'
-                                            roiFcn = 'images.roi.Polygon';
-                                    end
-                                    roiHandle = eval(sprintf('%s(axesHandle, LineWidth=1, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, InteractionsAllowed="none", Tag="filterROI");', roiFcn));
-                            end
-
-                            fieldsList = fieldnames(filterTable.roi(ii).specification);
-                            for jj = 1:numel(fieldsList)
-                                roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
-                            end
-                    end
-                end
-            end
+            plot.DriveTest.FilterRegions(filterTable, axesHandle, uiAxes4);
 
             % (g) Points
             pointsTable = driveTestAttributes.Points;

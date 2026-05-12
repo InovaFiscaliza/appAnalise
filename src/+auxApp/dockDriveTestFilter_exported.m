@@ -155,8 +155,10 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
         end
 
         % Button pushed function: OkButton
-        function onAddFilterButtonClicked(app, event)
+        function onOkButtonClicked(app, event)
             
+            kmlFileLayer = {};
+
             switch app.RadioGroup.SelectedObject
                 case app.ThresholdOption
                     if ismember('Level', app.callingApp.filterTable.type)
@@ -186,6 +188,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
                             end
                             
                             filterSubtype = 'PolygonKML';
+                            kmlFileLayer = {app.KMLFileLayer.Value};
 
                         case 'ROI:Círculo'
                             filterSubtype = 'Circle';
@@ -198,8 +201,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
                     end
             end
 
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestFilterChanged', filterType, filterSubtype)
-            closeFcn(app)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestFilterChanged', filterType, filterSubtype, kmlFileLayer{:})
 
         end
     end
@@ -350,7 +352,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
 
             % Create OkButton
             app.OkButton = uibutton(app.GridLayout, 'push');
-            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onAddFilterButtonClicked, true);
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onOkButtonClicked, true);
             app.OkButton.Icon = 'Add_16.png';
             app.OkButton.FontSize = 11;
             app.OkButton.Layout.Row = 5;

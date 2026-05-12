@@ -156,7 +156,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         emissionPoints = struct('raw', [], 'filtered', [], 'binned', [])
         filterTable = table({}, {}, struct('handle', {}, 'specification', {}), 'VariableNames', {'type', 'subtype', 'roi'})
-        pointsTable = table({}, struct('source', {}, 'data', {}, 'dataIdx', {}), true(0, 1), 'VariableNames', {'type', 'value', 'visible'})
+        pointsTable = table({}, struct('source', {}, 'data', {}, 'dataIdx', {}), true(0, 1), {}, 'VariableNames', {'type', 'value', 'visible', 'hash'})
     end
 
 
@@ -304,7 +304,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                     case 'Threshold'
                                         initialThreshold = min(app.emissionPoints.raw.ChannelPower);
 
-                                        roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes4);
+                                        roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, app.UIAxes4, @app.replotAfterFilterChange);
                                         roiHandle.Position = [height(app.emissionPoints.raw) initialThreshold; 1 initialThreshold];
                     
                                         app.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
@@ -319,7 +319,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                                 shapeObj = kmlObj.GeoTable.Shape(ii);
             
                                                 if isa(shapeObj, 'geopolyshape')
-                                                    roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, shapeObj);
+                                                    roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, app.UIAxes1, @app.replotAfterFilterChange, shapeObj);
                                                     app.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
                                                 end
                                             end
@@ -337,20 +337,28 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                         end
 
                                     otherwise % 'Circle' | 'Rectangle' | 'Polygon'
-                                        roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, 'DrawInRealTime');
+                                        roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, app.UIAxes1, @app.replotAfterFilterChange, 'DrawInRealTime');
                                         if isempty(roiHandle.Position)
                                             delete(roiHandle)                
                                             return
                                         end
             
-                                        app.filterTable(end+1,:) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
-                                end
-
-                                if ~strcmp(filterSubtype, 'Threshold') && exist('roiHandle', 'var') && isprop(roiHandle, 'DisplayName')
-                                    roiHandle.DisplayName = 'Contorno';
+                                        app.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
                                 end
 
                                 replotAfterFilterChange(app)
+
+                            case 'onDriveTestPointsAdded'
+                                newRowType = varargin{2};
+                                newRowData = varargin{3};
+                                newRowHash = Hash.sha1(sprintf('%s - %s', newRowType, jsonencode(newRowData)));
+
+                                if ismember(newRowHash, app.pointsTable.hash)
+                                    return
+                                end
+
+                                app.pointsTable(end+1, :) = {newRowType, newRowData, true, newRowHash};
+                                replotAfterPointsChange(app)
 
                             case 'auxApp.winDriveTest.FilterTree'
                                 onContextMenuItemClicked(app, struct('ContextObject', app.FilterTree.Children(1), 'Source', app.DeleteSelectedItem))
@@ -1075,13 +1083,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             end
 
             checkedTreeNodes = [];
+
             for ii = 1:height(app.pointsTable)
-                nodeText = sprintf('%s: %s', app.pointsTable.type{ii}, strjoin("#" + string(app.pointsTable.value(ii).idxData), ', '));
-                treeNode = uitreenode(app.PointsTree, 'Text', nodeText, 'NodeData', ii);
+                nodeText = sprintf('%s: %s', app.pointsTable.type{ii}, strjoin("#" + string(app.pointsTable.value(ii).dataIdx), ', '));
+                treeNode = uitreenode(app.PointsTree, 'Text', nodeText, 'NodeData', ii, 'ContextMenu', app.ContextMenu);
+
                 if app.pointsTable.visible(ii)
                     checkedTreeNodes = [checkedTreeNodes, treeNode];
                 end
             end
+
             app.PointsTree.CheckedNodes = checkedTreeNodes;
         end
 
@@ -1164,14 +1175,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
                     app.sweepTimeIdx = 1;
                     app.tool_TimestampSlider.Value = 0;
-                    resetRestoreView(app)            
+                    persistAxesViewLimits(app, 'resetPlotState')
         
                     if ~isempty(specData)
                         if isempty(app.UIAxes1.Legend)
                             pause(1)
                             lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
                             lgd.Title.FontSize = 8.5;
-                        end        
+                        end
                         set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
                         
                         refreshTimestampLabel(app)
@@ -1188,11 +1199,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function resetRestoreView(app)
-            app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [], 'yLim', [], 'cLim', 'auto');
-            app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
-            app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', [], 'cLim', app.bandObj.CLimits);
-            app.restoreView(4) = struct('ID', 'app.UIAxes4', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+        function persistAxesViewLimits(app, requestType)
+            arguments
+                app 
+                requestType {mustBeMember(requestType, {'resetPlotState', 'refreshGeoAxesPlotLimits'})}
+            end
+
+            switch requestType
+                case 'resetPlotState'
+                    app.restoreView(1) = struct('ID', 'app.UIAxes1', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+                    app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.bandObj.XLimits, 'yLim', app.bandObj.YLimitsLevel, 'cLim', 'auto');
+                    app.restoreView(3) = struct('ID', 'app.UIAxes3', 'xLim', app.bandObj.XLimits, 'yLim', [], 'cLim', app.bandObj.CLimits);
+                    app.restoreView(4) = struct('ID', 'app.UIAxes4', 'xLim', [], 'yLim', [], 'cLim', 'auto');
+
+                case 'refreshGeoAxesPlotLimits'
+                    geolimits(app.UIAxes1, 'auto')                    
+                    app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
+                    app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;                    
+                    geolimits(app.UIAxes1, 'manual')
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -1223,10 +1248,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 plotDistortionAndDensity(app)
                 plotOrUpdateVehicleMarker(app, 'Creation')
                 
-                geolimits(app.UIAxes1, 'auto')
-                app.restoreView(1).xLim = app.UIAxes1.LatitudeLimits;
-                app.restoreView(1).yLim = app.UIAxes1.LongitudeLimits;
-
                 % (b) ClearWrite+Persistance
                 app.plotHandles.clearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, 'clearWrite', app.bandObj, app.sweepTimeIdx);
                 plot.datatip.Template(app.plotHandles.clearWrite, "Frequency+Level", app.bandObj.LevelUnit)
@@ -1248,6 +1269,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 % (g) Points
                 plotHighlightedPoints(app)
+                persistAxesViewLimits(app, 'refreshGeoAxesPlotLimits')
                 
             else
                 plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
@@ -1301,96 +1323,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function plotFilterRegions(app)
             delete(findobj([app.UIAxes1.Children; app.UIAxes4.Children], 'Tag', 'filterROI'))
-
-            if ~isempty(app.filterTable)
-                for ii = 1:height(app.filterTable)
-                    filterSubtype = app.filterTable.subtype{ii};
-
-                    switch filterSubtype
-                        case 'PolygonKML'
-                            lat = app.filterTable.roi(ii).specification.Latitude;
-                            lng = app.filterTable.roi(ii).specification.Longitude;
-                            shapeObj = geopolyshape(lat, lng);
-
-                            roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, shapeObj);
-
-                        otherwise
-                            switch filterSubtype                        
-                                case 'Threshold'
-                                    axesHandle = app.UIAxes4;
-                                otherwise
-                                    axesHandle = app.UIAxes1;
-                            end
-
-                            roiHandle = createFilterRoiGraphic(app, filterSubtype, axesHandle, 'DrawProgrammatically');
-            
-                            fieldsList = fields(app.filterTable.roi(ii).specification);
-                            for jj = 1:numel(fieldsList)
-                                roiHandle.(fieldsList{jj}) = app.filterTable.roi(ii).specification.(fieldsList{jj});
-                            end
-                    end
-    
-                    app.filterTable.roi(ii).handle = roiHandle;
-                end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function roiHandle = createFilterRoiGraphic(app, filterSubtype, axesHandle, varargin)
-            switch filterSubtype
-                case 'Threshold'
-                    roiHandle = plot.ROI.draw('images.roi.Line', axesHandle, {'Tag', 'filterROI'});
-
-                case 'PolygonKML'
-                    shapeObj = varargin{1};
-                    roiHandle = geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
-                                                              EdgeColor=[0 0.4470 0.7410], ...
-                                                              FaceAlpha=0.05,              ...
-                                                              EdgeAlpha=1,                 ...
-                                                              LineWidth=.5,                ...
-                                                              PickableParts='none',        ...
-                                                              Tag='filterROI');
-
-                otherwise
-                    drawType = varargin{1};
-                    roiNameArgument = '';
-
-                    switch drawType
-                        case 'DrawInRealTime'
-                            switch filterSubtype
-                                case 'Circle'
-                                    roiFunction = 'drawcircle';
-                                case 'Rectangle'
-                                    roiFunction = 'drawrectangle';
-                                case 'Polygon'
-                                    roiFunction = 'drawpolygon';
-                            end
-
-                        case 'DrawProgrammatically'
-                            switch filterSubtype
-                                case 'Circle'
-                                    roiFunction = 'images.roi.Circle';
-                                case 'Rectangle'
-                                    roiFunction = 'images.roi.Rectangle';
-                                case 'Polygon'
-                                    roiFunction = 'images.roi.Polygon';
-                            end
-                    end
-
-                    if strcmp(filterSubtype, 'Rectangle')
-                        roiNameArgument = 'Rotatable=true, ';
-                    end
-
-                    roiHandle = eval(sprintf('%s(axesHandle, LineWidth=.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFunction, roiNameArgument));
-            end
-
-            if isprop(roiHandle, 'InteractionsAllowed')
-                roiHandle.InteractionsAllowed = 'none';
-
-                addlistener(roiHandle, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, []));
-                addlistener(roiHandle, 'ROIMoved',             @(src, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, @app.replotAfterFilterChange, src));
-                addlistener(roiHandle, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
-            end
+            app.filterTable = plot.DriveTest.FilterRegions(app.filterTable, app.UIAxes1, app.UIAxes4, @app.replotAfterFilterChange);
         end
 
         %-----------------------------------------------------------------%
@@ -1488,6 +1421,18 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Isso força a reinicialização das tabelas e plot...
             app.emissionSelectedIdxs(:) = [];
             onEmissionDropDownValueChanged(app)
+        end
+
+        %-----------------------------------------------------------------%
+        function replotAfterPointsChange(app)
+            [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
+            specData = app.mainApp.specData(flowIdx);
+            persistEmissionDisplaySettings(app, specData, emissionIdx)
+
+            % Reinicializa uitree e plot...
+            rebuildPointsTree(app)
+            plotHighlightedPoints(app)
+            persistAxesViewLimits(app, 'refreshGeoAxesPlotLimits')
         end
 
         %-----------------------------------------------------------------%
@@ -1680,7 +1625,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     try
                         geolimits(app.UIAxes1, app.restoreView(1).xLim, app.restoreView(1).yLim)
                     catch
-                        geolimits(app.UIAxes1, 'auto')
+                        persistAxesViewLimits(app, 'refreshGeoAxesPlotLimits')
                     end
 
                 case app.axesTool_RegionZoom
@@ -1942,9 +1887,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         app.filterTable(idx,:) = [];
                         rebuildFilterTree(app)
                         replotAfterFilterChange(app)
+
                     case app.PointsTree
-                        app.pointsTable(idx,:) = [];
-                        rebuildPointsTree(app)
+                        app.pointsTable(idx, :) = [];
+                        replotAfterPointsChange(app)
                 end
             end
 
@@ -2006,6 +1952,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.pointsTable.visible(invisibleNodeData) = false;
 
             plotHighlightedPoints(app)
+            persistAxesViewLimits(app, 'refreshGeoAxesPlotLimits')
             
         end
 

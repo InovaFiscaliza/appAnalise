@@ -27,6 +27,11 @@ classdef (Abstract) HtmlTextGenerator
             'Delete',            struct('unicode', '❌', 'html', '&#x274C;') ...
         );
 
+        checkbox = struct( ...
+            'on',  '<table style="background-color: rgb(237, 237, 237); border-radius: 12px; height: 16px; width: 32px;"><tbody><tr><td></td><td style="background-color: rgb(76, 217, 100); border-radius: 50%;"></td></tr></tbody></table>', ...
+            'off', '<table style="background-color: rgb(237, 237, 237); border-radius: 12px; height: 16px; width: 32px;"><tbody><tr><td style="background-color: rgb(150, 150, 150); border-radius: 50%;"></td><td></td></tr></tbody></table>' ...
+        )
+
         monitoringTypeDict = dictionary( ...
             ["fixed", "mobile", "undetermined"], ...
             ["FIXA", "MÓVEL", "INDETERMINADA"] ...
@@ -211,7 +216,9 @@ classdef (Abstract) HtmlTextGenerator
                 'Location', sprintf('%s (Fonte: %s)', specData.GPS.Location, specData.GPS.LocationSource) ...
             );
 
-            if specData.GPS.Status == 0
+            if specData.GPS.Status > 0 && strcmp(specData.GPS.LocationSource, 'Manual')
+                gpsSummaryToGui.Location = sprintf('<font style="color: red;">%s</font>', gpsSummaryToGui.Location);
+            elseif specData.GPS.Status == 0
                 gpsSummaryToGui = rmfield(gpsSummaryToGui, 'Location');
             end
     
@@ -609,14 +616,6 @@ classdef (Abstract) HtmlTextGenerator
                     end
                 end
 
-                if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
-                    reportIncludeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('GreenCircle').html;
-                    reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
-                else
-                    reportIncludeIcon = util.HtmlTextGenerator.unicodeToHtmlHexMap.('RedCircle').html;
-                    reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
-                end
-
                 measures = specData.UserData.Emissions(emissionIdx, :).Measures;
                 measuresInfo = struct( ...
                     'FreqCenterLevelRange', sprintf('%.1f a %.1f %s', measures.Level.FreqCenter_Min, measures.Level.FreqCenter_Max, specData.MetaData.LevelUnit), ...
@@ -624,6 +623,14 @@ classdef (Abstract) HtmlTextGenerator
                     'FreqCenterCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.FreqCenter_Infinite), ...                    
                     'EmissionCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.Channel_Infinite) ...
                 );
+
+                if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
+                    reportIncludeIcon = util.HtmlTextGenerator.checkbox.on;
+                    reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
+                else
+                    reportIncludeIcon = util.HtmlTextGenerator.checkbox.off;
+                    reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
+                end
 
                 dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onChannelEditRequested', generalSettings));
                 dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onClassificationEditRequested', generalSettings));
@@ -633,8 +640,8 @@ classdef (Abstract) HtmlTextGenerator
                     '&emsp;', ...
                     util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsDetailsRequested', generalSettings, 'question', 'info.svg') ...
                 ]);
-                
-                dataStruct(4) = struct('group', 'RELATÓRIO',     'value', reportIncludeText,  'link', [reportIncludeIcon '&emsp;' util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onReportIncludeRequested', generalSettings)]);
+
+                dataStruct(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', reportIncludeIcon));
 
             else
                 dataStruct(1) = struct('group', 'INFO', 'value', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');

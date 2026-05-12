@@ -127,14 +127,50 @@ classdef (Abstract) Table
 
         %-----------------------------------------------------------------%
         % EMISSÕES
-        % (recorrente, uma tabela por faixa sob análise)
         %-----------------------------------------------------------------&
+        function tbl = GlobalEmissions(dataOverview)
+            tempTableCellArray = {};
+
+            for ii = 1:numel(dataOverview)
+                specData = dataOverview(ii).InfoSet;
+
+                tempTable = util.createEmissionsTable(specData, 1, 'REPORT: HTMLFile');
+                tempTable.ID = string(ii) + "." + string(1:height(tempTable))';
+
+                tempTableCellArray{end+1} = tempTable;
+            end
+
+            tbl = vertcat(tempTableCellArray{:});
+        end
+
+        %-----------------------------------------------------------------%
         function tbl = BandEmissions(reportInfo, analyzedData)
             specData = analyzedData.InfoSet;
             bandIdx = reportInfo.Function.var_Index;
 
             tbl = util.createEmissionsTable(specData, 1, 'REPORT: HTMLFile');
             tbl.ID = string(bandIdx) + "." + string(1:height(tbl))';
+        end
+
+        %-----------------------------------------------------------------%
+        function tbl = EmissionPoints(reportInfo, analyzedData)
+            specData = analyzedData.InfoSet;
+            emissionIdx = reportInfo.Function.var_IndexEmission;
+            pointsTable = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.Points;
+
+            tbl = table( ...
+                'Size', [height(pointsTable), 3], ...
+                'VariableTypes', {'cell', 'cell', 'cell'}, ...
+                'VariableNames', {'Type', 'Source', 'Data'} ...
+            );
+
+            for ii = 1:height(pointsTable)
+                tbl(ii, :) = { ...
+                    pointsTable.type{ii}, ...
+                    pointsTable.value(ii).source, ...
+                    jsonencode(pointsTable.value(ii).data) ...
+                };
+            end
         end
 
 

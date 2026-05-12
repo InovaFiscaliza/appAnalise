@@ -393,6 +393,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         notifySecondaryApps(app, eventName)
 
                                     case 'onDriveTestFilterChanged'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
+
+                                    case 'onDriveTestPointsAdded'
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
                                     otherwise
@@ -491,7 +500,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             inputArguments = [{app, callingApp, context}, varargin];
             
             if app.General.operationMode.Debug
-                eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName))
+                currentApp = eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName));
+                currentApp.isDocked = false;
 
             else
                 ui.PopUpContainer(callingApp, screenWidth, screenHeight)
@@ -1313,7 +1323,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     end
                 end
             else
-                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
+                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat;*.zip', 'Binários (*.bin,*.dbm,*.mat,*.zip)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
 
                 if isempty(fileName)
                     return
@@ -1384,7 +1394,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             continue
                         end
 
-                    otherwise % {'.bin', '.dbm', '.sm1809', '.csv'}
+                    otherwise % {'.bin', '.dbm', '.zip', '.sm1809', '.csv'}
                         prj_Type = 'Spectral data';
                 end
 

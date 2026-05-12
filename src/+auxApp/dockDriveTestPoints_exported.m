@@ -2,25 +2,25 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                 matlab.ui.Figure
-        GridLayout               matlab.ui.container.GridLayout
-        OkButton                 matlab.ui.control.Button
-        RadioGroup               matlab.ui.container.ButtonGroup
-        PeaksMinDistance         matlab.ui.control.Spinner
-        PeaksMinDistanceLabel    matlab.ui.control.Label
-        PeaksCount               matlab.ui.control.Spinner
-        PeaksCountLabel          matlab.ui.control.Label
-        PeaksDataSource          matlab.ui.control.DropDown
-        PeaksDataSourceLabel     matlab.ui.control.Label
-        PeaksOption              matlab.ui.control.RadioButton
-        StationMaxDistance       matlab.ui.control.NumericEditField
-        StationMaxDistanceLabel  matlab.ui.control.Label
-        StationTypeValue         matlab.ui.control.EditField
-        StationType              matlab.ui.control.DropDown
-        StationTypeLabel         matlab.ui.control.Label
-        StationOption            matlab.ui.control.RadioButton
-        Title                    matlab.ui.control.Label
-        TitleIcon                matlab.ui.control.Image
+        UIFigure                     matlab.ui.Figure
+        GridLayout                   matlab.ui.container.GridLayout
+        OkButton                     matlab.ui.control.Button
+        RadioGroup                   matlab.ui.container.ButtonGroup
+        PeaksMinDistanceMeters       matlab.ui.control.Spinner
+        PeaksMinDistanceMetersLabel  matlab.ui.control.Label
+        PeaksCount                   matlab.ui.control.Spinner
+        PeaksCountLabel              matlab.ui.control.Label
+        PeaksDataSource              matlab.ui.control.DropDown
+        PeaksDataSourceLabel         matlab.ui.control.Label
+        PeaksOption                  matlab.ui.control.RadioButton
+        StationMaxDistanceKm         matlab.ui.control.NumericEditField
+        StationMaxDistanceKmLabel    matlab.ui.control.Label
+        StationTypeValue             matlab.ui.control.EditField
+        StationType                  matlab.ui.control.DropDown
+        StationTypeLabel             matlab.ui.control.Label
+        StationOption                matlab.ui.control.RadioButton
+        Title                        matlab.ui.control.Label
+        TitleIcon                    matlab.ui.control.Image
     end
 
     
@@ -48,44 +48,43 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, dataSource, numPeaks, minPeaksDistance)
+        function [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, dataSource, numMaxPeaks, maxCoLocationPeaksDistanceKm)
             pointsIdxs = [];
             pointsCoordinates = [];
 
+            flowIdx = app.inputArgs.flowIdx;
+            specData = app.mainApp.specData(flowIdx);
+            emissionIdx = app.inputArgs.emissionIdx;
+            driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
+
             switch dataSource
                 case 'Dados brutos'
-                    sourceData = app.callingApp.emissionPoints.raw;
-
+                    srcTable = driveTestAttributes.Measures.filtered;
+                
                 otherwise % 'Processados'
-                    sourceData = app.callingApp.emissionPoints.binned;
+                    srcTable = driveTestAttributes.Measures.binned;
             end
 
-            [~, peakIdxs] = findpeaks(sourceData.ChannelPower, 'SortStr', 'descend');
+            [~, peakIdxs] = findpeaks(srcTable.ChannelPower, 'SortStr', 'descend');
 
             if ~isempty(peakIdxs)
                 pointsIdxs = peakIdxs(1);
 
                 for ii = 2:numel(peakIdxs)
-                    if numel(pointsIdxs) >= numPeaks
+                    if numel(pointsIdxs) >= numMaxPeaks
                         break
                     end
 
-                    referenceCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
-                    pointsCoordinates = sourceData{peakIdxs(ii), {'Latitude', 'Longitude'}};
+                    referenceCoordinates = srcTable{pointsIdxs, {'Latitude', 'Longitude'}};
+                    pointsCoordinates = srcTable{peakIdxs(ii), {'Latitude', 'Longitude'}};
     
                     pointsDistance = deg2km(distance(referenceCoordinates, pointsCoordinates(end,:))); % em km
-                    if all(pointsDistance >= minPeaksDistance)
+                    if all(pointsDistance >= maxCoLocationPeaksDistanceKm)
                         pointsIdxs(end+1) = peakIdxs(ii);
                     end
                 end
 
-                switch dataSource
-                    case 'Dados brutos'
-                        pointsCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
-
-                    otherwise % 'Processados'
-                        pointsCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
-                end
+                pointsCoordinates = round(srcTable{pointsIdxs, {'Latitude', 'Longitude'}}, 6);
             end
         end
     end
@@ -114,13 +113,26 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function
-        function onButtonClicked(app, event)
+        % Selection changed function: RadioGroup
+        function onRadioGroupSelectionChanged(app, event)
             
-            context = app.inputArgs.context;
+            switch app.RadioGroup.SelectedObject
+                case app.StationOption
+                    set(findobj(app.RadioGroup.Children, 'Tag', 'STATION'), 'Enable', 'on')
+                    set(findobj(app.RadioGroup.Children, 'Tag', 'PEAKS'),   'Enable', 'off')
+
+                otherwise % app.PeaksOption
+                    set(findobj(app.RadioGroup.Children, 'Tag', 'STATION'), 'Enable', 'off')
+                    set(findobj(app.RadioGroup.Children, 'Tag', 'PEAKS'),   'Enable', 'on')
+            end
+
+        end
+
+        % Button pushed function: OkButton
+        function onOkButtonClicked(app, event)
+            
             flowIdx = app.inputArgs.flowIdx;
             specData = app.mainApp.specData(flowIdx);
-            emissionIdx = app.inputArgs.emissionIdx;
 
             switch app.RadioGroup.SelectedObject
                 case app.StationOption
@@ -137,29 +149,35 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
                     switch app.StationType.Value
                         case 'Índices de registros do RFDataHub'
                             pointsIdxs = regexp(entryText, '#(\d+)', 'tokens');
+
                             if isempty(pointsIdxs)
-                                warningMsg = 'Valor inválido! Deve ser inserida lista de IDs dos registros do RFDataHub. Por exemplo: #1000 #1500 #2000';
+                                warningMsg = [ ...
+                                    'Valor inválido!<br><br>Deve ser informada lista de IDs ' ...
+                                    'dos registros do RFDataHub. Exemplo: #1000 #1500 #2000' ...
+                                ];
                                 ui.Dialog(app.UIFigure, 'warning', warningMsg);
                                 return
                             end
+
                             pointsIdxs = str2double([pointsIdxs{:}]);
                             pointsIdxs(pointsIdxs < 1 | pointsIdxs > height(RFDataHub)) = [];
         
                         otherwise % 'Lista de frequências (MHz)'
                             freqList = regexp(entryText, '(\d+[.]*\d*)', 'tokens');
+
                             if isempty(freqList)
-                                warningMsg = 'Valor inválido! Deve ser inserida lista de frequências em MHz. Por exemplos: 101.1, 101.3, 101.5';
+                                warningMsg = [ ...
+                                    'Valor inválido!<br><br>Deve ser informada lista de ' ...
+                                    'frequências em MHz. Exemplo: 101.1, 101.3, 101.5' ...
+                                ];
                                 ui.Dialog(app.UIFigure, 'warning', warningMsg);
                                 return
                             end
+
                             freqList = cellfun(@(x) str2double(x), [freqList{:}]);
 
-                            % ## ToDo ##
                             % Criada tabela, de forma que possa ser consumida função utilitária 
-                            % de filtragem "util.TableFiltering". Posteriormente, deve ser
-                            % refatorado esse trecho, de forma que seja consumida a função
-                            % "tableFiltering", do repo "SupportPackages".
-        
+                            % de filtragem "util.TableFiltering".        
                             filterTempTable = table( ...
                                 'Size', [0, 8], ...
                                 'VariableTypes', {'cell', 'int8', 'int8', 'cell', 'cell', 'int8', 'cell', 'logical'}, ...
@@ -189,35 +207,44 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
                             RFDataHub.Latitude(pointsIdxs), RFDataHub.Longitude(pointsIdxs), ...
                             specData.GPS.Latitude, specData.GPS.Longitude) ...
                         );
-                        pointsIdxs(distanceArray > app.StationMaxDistance.Value) = [];
+                        pointsIdxs(distanceArray > app.StationMaxDistanceKm.Value) = [];
                         
                         finalNumPoints = numel(pointsIdxs);
 
                         if finalNumPoints > 0
-                            logMsg = sprintf('Identificada(s) %d estação(ões) de telecomunicações que atende(m) ao critério "%s".', initialNumPoints, app.StationType.Value);
+                            logMsg = sprintf([ ...
+                                'Foram identificadas %d estações de telecomunicações ' ...
+                                'que atendem ao critério "%s".' ...
+                            ], initialNumPoints, app.StationType.Value);
+
                             if finalNumPoints ~= initialNumPoints
-                                logMsg = sprintf('%s Contudo, apenas %d atende(m) ao critério de distância máxima ao sensor.', msgLOG, finalNumPoints);
+                                logMsg = sprintf([ ...
+                                    '%s Contudo, apenas %d atendem ao critério de ' ...
+                                    'distância máxima em relação ao sensor.' ...
+                                ], logMsg, finalNumPoints);
                             end
 
-                            newRow = {'RFDataHub', struct('Source', app.StationType.Value, 'idxData', pointsIdxs, 'Data', RFDataHub(pointsIdxs,:)), true};
-                            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRow)
+                            newRowType = 'RFDataHub';
+                            newRowData = struct('source', app.StationType.Value, 'data', RFDataHub(pointsIdxs, setdiff(RFDataHub.Properties.VariableNames, {'ID', 'Description', '_Name', '_Location'})), 'dataIdx', pointsIdxs);
+                            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRowType, newRowData)
 
                         else
-                            logMsg = 'Não identificada estação de telecomunicações que atenda ao critério.';
+                            logMsg = 'Nenhuma estação de telecomunicações foi identificada para os critérios informados.';
                         end
 
                     else
-                        logMsg = 'Não identificada estação de telecomunicações que atenda ao critério.';
+                        logMsg = 'Nenhuma estação de telecomunicações foi identificada para os critérios informados.';
                     end
 
                 otherwise % app.PeaksOption
-                    [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, app.PeaksDataSource.Value, app.PeaksCount.Value, app.PeaksMinDistance.Value/1000);
+                    [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, app.PeaksDataSource.Value, app.PeaksCount.Value, app.PeaksMinDistanceMeters.Value/1000);
                     numPoints = numel(pointsIdxs);
 
-                    newRow = {'FindPeaks', struct('Source', app.PeaksDataSource.Value, 'idxData', pointsIdxs, 'Data', pointsCoordinates), true};
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRow)
+                    newRowType = 'FindPeaks';
+                    newRowData = struct('source', app.PeaksDataSource.Value, 'data', pointsCoordinates, 'dataIdx', pointsIdxs);
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRowType, newRowData)
 
-                    logMsg = sprintf('Identificado(s) %d ponto(s) que atende(m) ao critério.', numPoints);
+                    logMsg = sprintf('Foram identificados %d pontos que atendem ao critério "%s".', numPoints, app.StationType.Value);
             end
 
             ui.Dialog(app.UIFigure, 'warning', logMsg);
@@ -286,6 +313,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             % Create RadioGroup
             app.RadioGroup = uibuttongroup(app.GridLayout);
             app.RadioGroup.AutoResizeChildren = 'off';
+            app.RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @onRadioGroupSelectionChanged, true);
             app.RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.RadioGroup.BackgroundColor = [1 1 1];
             app.RadioGroup.Layout.Row = 3;
@@ -328,25 +356,25 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             app.StationTypeValue.Tooltip = {'Exemplos:'; '• 101.1, 101.3, 101.5 (Lista de frequências)'; '• #1000 #1500 #2000 (RFDataHub)'};
             app.StationTypeValue.Position = [30 189 330 22];
 
-            % Create StationMaxDistanceLabel
-            app.StationMaxDistanceLabel = uilabel(app.RadioGroup);
-            app.StationMaxDistanceLabel.Tag = 'STATION';
-            app.StationMaxDistanceLabel.WordWrap = 'on';
-            app.StationMaxDistanceLabel.FontSize = 11;
-            app.StationMaxDistanceLabel.FontColor = [0.302 0.302 0.302];
-            app.StationMaxDistanceLabel.Position = [30 155 221 28];
-            app.StationMaxDistanceLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
+            % Create StationMaxDistanceKmLabel
+            app.StationMaxDistanceKmLabel = uilabel(app.RadioGroup);
+            app.StationMaxDistanceKmLabel.Tag = 'STATION';
+            app.StationMaxDistanceKmLabel.WordWrap = 'on';
+            app.StationMaxDistanceKmLabel.FontSize = 11;
+            app.StationMaxDistanceKmLabel.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistanceKmLabel.Position = [30 155 221 28];
+            app.StationMaxDistanceKmLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
 
-            % Create StationMaxDistance
-            app.StationMaxDistance = uieditfield(app.RadioGroup, 'numeric');
-            app.StationMaxDistance.Limits = [1 Inf];
-            app.StationMaxDistance.RoundFractionalValues = 'on';
-            app.StationMaxDistance.ValueDisplayFormat = '%d';
-            app.StationMaxDistance.Tag = 'STATION';
-            app.StationMaxDistance.FontSize = 11;
-            app.StationMaxDistance.FontColor = [0.302 0.302 0.302];
-            app.StationMaxDistance.Position = [262 160 98 22];
-            app.StationMaxDistance.Value = 30;
+            % Create StationMaxDistanceKm
+            app.StationMaxDistanceKm = uieditfield(app.RadioGroup, 'numeric');
+            app.StationMaxDistanceKm.Limits = [1 Inf];
+            app.StationMaxDistanceKm.RoundFractionalValues = 'on';
+            app.StationMaxDistanceKm.ValueDisplayFormat = '%d';
+            app.StationMaxDistanceKm.Tag = 'STATION';
+            app.StationMaxDistanceKm.FontSize = 11;
+            app.StationMaxDistanceKm.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistanceKm.Position = [262 160 98 22];
+            app.StationMaxDistanceKm.Value = 30;
 
             % Create PeaksOption
             app.PeaksOption = uiradiobutton(app.RadioGroup);
@@ -358,7 +386,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
             % Create PeaksDataSourceLabel
             app.PeaksDataSourceLabel = uilabel(app.RadioGroup);
-            app.PeaksDataSourceLabel.Tag = 'PEAK';
+            app.PeaksDataSourceLabel.Tag = 'PEAKS';
             app.PeaksDataSourceLabel.VerticalAlignment = 'bottom';
             app.PeaksDataSourceLabel.FontSize = 11;
             app.PeaksDataSourceLabel.FontColor = [0.302 0.302 0.302];
@@ -369,7 +397,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             % Create PeaksDataSource
             app.PeaksDataSource = uidropdown(app.RadioGroup);
             app.PeaksDataSource.Items = {'Dados brutos', 'Processados'};
-            app.PeaksDataSource.Tag = 'PEAK';
+            app.PeaksDataSource.Tag = 'PEAKS';
             app.PeaksDataSource.Enable = 'off';
             app.PeaksDataSource.FontSize = 11;
             app.PeaksDataSource.FontColor = [0.302 0.302 0.302];
@@ -379,7 +407,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
             % Create PeaksCountLabel
             app.PeaksCountLabel = uilabel(app.RadioGroup);
-            app.PeaksCountLabel.Tag = 'PEAK';
+            app.PeaksCountLabel.Tag = 'PEAKS';
             app.PeaksCountLabel.VerticalAlignment = 'bottom';
             app.PeaksCountLabel.FontSize = 11;
             app.PeaksCountLabel.FontColor = [0.302 0.302 0.302];
@@ -392,37 +420,38 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             app.PeaksCount.Limits = [1 100];
             app.PeaksCount.RoundFractionalValues = 'on';
             app.PeaksCount.ValueDisplayFormat = '%.0f';
-            app.PeaksCount.Tag = 'PEAK';
+            app.PeaksCount.Tag = 'PEAKS';
             app.PeaksCount.FontSize = 11;
             app.PeaksCount.FontColor = [0.302 0.302 0.302];
             app.PeaksCount.Enable = 'off';
             app.PeaksCount.Position = [262 46 98 22];
             app.PeaksCount.Value = 1;
 
-            % Create PeaksMinDistanceLabel
-            app.PeaksMinDistanceLabel = uilabel(app.RadioGroup);
-            app.PeaksMinDistanceLabel.Tag = 'PEAK';
-            app.PeaksMinDistanceLabel.FontSize = 11;
-            app.PeaksMinDistanceLabel.FontColor = [0.302 0.302 0.302];
-            app.PeaksMinDistanceLabel.Enable = 'off';
-            app.PeaksMinDistanceLabel.Position = [31 14 204 22];
-            app.PeaksMinDistanceLabel.Text = 'Distância mínima entre picos (metros):';
+            % Create PeaksMinDistanceMetersLabel
+            app.PeaksMinDistanceMetersLabel = uilabel(app.RadioGroup);
+            app.PeaksMinDistanceMetersLabel.Tag = 'PEAKS';
+            app.PeaksMinDistanceMetersLabel.FontSize = 11;
+            app.PeaksMinDistanceMetersLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistanceMetersLabel.Enable = 'off';
+            app.PeaksMinDistanceMetersLabel.Position = [31 14 204 22];
+            app.PeaksMinDistanceMetersLabel.Text = 'Distância mínima entre picos (metros):';
 
-            % Create PeaksMinDistance
-            app.PeaksMinDistance = uispinner(app.RadioGroup);
-            app.PeaksMinDistance.Step = 100;
-            app.PeaksMinDistance.Limits = [0 10000];
-            app.PeaksMinDistance.RoundFractionalValues = 'on';
-            app.PeaksMinDistance.ValueDisplayFormat = '%.0f';
-            app.PeaksMinDistance.Tag = 'PEAK';
-            app.PeaksMinDistance.FontSize = 11;
-            app.PeaksMinDistance.FontColor = [0.302 0.302 0.302];
-            app.PeaksMinDistance.Enable = 'off';
-            app.PeaksMinDistance.Position = [262 14 98 22];
-            app.PeaksMinDistance.Value = 1000;
+            % Create PeaksMinDistanceMeters
+            app.PeaksMinDistanceMeters = uispinner(app.RadioGroup);
+            app.PeaksMinDistanceMeters.Step = 100;
+            app.PeaksMinDistanceMeters.Limits = [0 10000];
+            app.PeaksMinDistanceMeters.RoundFractionalValues = 'on';
+            app.PeaksMinDistanceMeters.ValueDisplayFormat = '%.0f';
+            app.PeaksMinDistanceMeters.Tag = 'PEAKS';
+            app.PeaksMinDistanceMeters.FontSize = 11;
+            app.PeaksMinDistanceMeters.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistanceMeters.Enable = 'off';
+            app.PeaksMinDistanceMeters.Position = [262 14 98 22];
+            app.PeaksMinDistanceMeters.Value = 1000;
 
             % Create OkButton
             app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onOkButtonClicked, true);
             app.OkButton.Icon = 'Add_16.png';
             app.OkButton.FontSize = 11;
             app.OkButton.Layout.Row = 5;

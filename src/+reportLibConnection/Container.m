@@ -37,7 +37,7 @@ classdef (Abstract) Container
                             end
 
                         case 'Image'
-                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data)', childType));
+                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data, false)', childType));
 
                         otherwise 
                             error('reportLibConnection:Container:UnexpectedContainerElement', 'Unexpected container element "%s"', childType)
@@ -82,7 +82,10 @@ classdef (Abstract) Container
                             end
 
                         case {'Image', 'Table'}
-                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data)', childType));
+                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data, false)', childType));
+                            if strcmp(childType, 'Table') && isempty(vararginArgument)
+                                continue
+                            end
 
                         otherwise 
                             error('reportLibConnection:Container:UnexpectedContainerElement', 'Unexpected container element "%s"', childType)
