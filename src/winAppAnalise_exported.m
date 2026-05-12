@@ -193,6 +193,17 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     case 'mainApp.FileFilterTree'
                         onFileFilterDeleteRequested(app)
+                    
+                    % Eventos do popup no winRepoSFI
+                    case {'repoSFI.openDock', 'repoSFI.mapBackgroundClick', 'repoSFI.closePopup'}
+                        hAuxApp = getAppHandle(app.tabGroupController, 'REPOSFI');
+
+                        if isempty(hAuxApp) || ~isvalid(hAuxApp)
+                            error('UnexpectedEvent')
+                        end
+
+                        ipcSecondaryJSEventsHandler(hAuxApp, event)
+
 
                     % % auxApp.winPlayback
                     % case 'auxApp.winPlayback.ChannelTree'
@@ -463,8 +474,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenWidth  = 460;
                     screenHeight = 602;
                 case 'RepoFiles'
-                    screenWidth  = 640;
-                    screenHeight = 480;
+                    screenWidth  = 940;
+                    screenHeight = 580;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
@@ -677,6 +688,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
             updateWarningLampVisibility(app)
+
         end
     end
 

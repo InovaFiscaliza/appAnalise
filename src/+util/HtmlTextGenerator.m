@@ -763,5 +763,71 @@ classdef (Abstract) HtmlTextGenerator
                                sprintf('<font style="font-size: 11px;">%s</font><br><br>', stationInfo.Description)];
             htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
         end
+
+        %-----------------------------------------------------------------%
+        % REPOSFI - HOST STATISTICS
+        %-----------------------------------------------------------------%
+        function htmlContent = HostStatistics(hostTable)
+            % Renderiza estatísticas de um host a partir de uma table row
+            % do resultado de DBHandler.getHostStats()
+            
+            if isempty(hostTable) || ~istable(hostTable) || height(hostTable) == 0
+                htmlContent = '<p style="padding: 10px; color: red;">Erro ao carregar dados do host.</p>';
+                return;
+            end
+
+            hostRow = hostTable(1, :);
+            hostId = hostRow.ID_HOST{1};
+            hostName = hostRow.NA_HOST_NAME{1};
+            hostAddr = hostRow.NA_HOST_ADDRESS{1};
+            hostPort = hostRow.NA_HOST_PORT{1};
+
+            % Status e últimas operações
+            isOffline = hostRow.IS_OFFLINE{1};
+            isBusy = hostRow.IS_BUSY{1};
+            statusText = 'Online';
+            statusColor = '#4f7f67';
+            if isOffline
+                statusText = 'Offline';
+                statusColor = '#b88352';
+            end
+            if isBusy
+                statusText = [statusText ' (Ocupado)'];
+                statusColor = '#c94756';
+            end
+
+            % Conversões de tamanho
+            pendingBackupKB = hostRow.VL_PENDING_BACKUP_KB{1};
+            if isempty(pendingBackupKB) || pendingBackupKB == 0
+                pendingBackupStr = '0 KB';
+            else
+                pendingBackupMB = pendingBackupKB / 1024;
+                if pendingBackupMB > 1024
+                    pendingBackupStr = sprintf('%.1f GB', pendingBackupMB / 1024);
+                else
+                    pendingBackupStr = sprintf('%.1f MB', pendingBackupMB);
+                end
+            end
+
+            % Estrutura de dados para renderização
+            dataStruct(1) = struct('group', 'INFORMAÇÕES', ...
+                'value', struct('Nome', hostName, ...
+                               'Endereço', sprintf('%s:%d', hostAddr, hostPort), ...
+                               'ID', hostId));
+
+            dataStruct(2) = struct('group', 'STATUS', ...
+                'value', struct('Estado', sprintf('<font style="color: %s;"><b>%s</b></font>', statusColor, statusText), ...
+                               'Último check', datestr(hostRow.DT_LAST_CHECK{1}, 'dd/mm/yyyy HH:MM:SS')));
+
+            dataStruct(3) = struct('group', 'ATIVIDADES', ...
+                'value', struct('Arquivos no host', hostRow.NU_HOST_FILES{1}, ...
+                               'Descoberta de arquivos', datestr(hostRow.DT_LAST_DISCOVERY{1}, 'dd/mm/yyyy HH:MM:SS'), ...
+                               'Backup pendente', sprintf('%s (Tarefas: %d)', pendingBackupStr, hostRow.NU_PENDING_FILE_BACKUP_TASKS{1}), ...
+                               'Último backup', datestr(hostRow.DT_LAST_BACKUP{1}, 'dd/mm/yyyy HH:MM:SS'), ...
+                               'Último processamento', datestr(hostRow.DT_LAST_PROCESSING{1}, 'dd/mm/yyyy HH:MM:SS')));
+
+            freeInitialText = sprintf('<font style="color: white; background-color: #336699; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">HOST</font><br><br><font style="font-size: 16px;"><b>%s</b></font><br><br>', hostName);
+            htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
+        end
     end
 end
