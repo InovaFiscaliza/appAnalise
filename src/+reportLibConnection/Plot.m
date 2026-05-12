@@ -18,8 +18,13 @@ classdef (Abstract) Plot
                 context = imgSettings.Context;
             end
 
+            guardBand = {};
+            if strcmp(context, 'appAnalise:DRIVETEST')
+                guardBand = {struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6))};
+            end
+
             bandObj = model.Band(context, reportInfo.App);
-            updateSpectrumInfo(bandObj, specData, emissionIdx)
+            updateSpectrumInfo(bandObj, specData, emissionIdx, guardBand{:})
 
             % Container
             hFigure = reportInfo.App.UIFigure;
@@ -49,19 +54,15 @@ classdef (Abstract) Plot
                 switch axesType{ii}
                     case 'Geographic'
                         axesHandle = plot.axes.Creation(axesParent, 'Geographic',  {'Basemap',  generalSettings.reportLib.basemap, ...
-                                                                                    'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5]});
+                                                                                    'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
+                                                                                    'Grid', 'on', 'TickDir', 'in', 'Box', 'on', 'FontSize', 7});
 
-                        if ismember(generalSettings.plot.geographicAxes.Basemap, {'darkwater', 'none'})
-                            axesHandle.Grid = 'on';
-                        end
-                    
-                        set(axesHandle.LatitudeAxis,  'TickLabels', {}, 'Color', 'none')
-                        set(axesHandle.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
+                        axesHandle.LatitudeAxis.Color = [.2,.2,.2];
+                        axesHandle.LongitudeAxis.Color = [.2,.2,.2];
                         
                         geolimits(axesHandle, 'auto')
                     
                         plot.axes.Colormap(axesHandle, generalSettings.plot.geographicAxes.Colormap)
-                        plot.axes.Colorbar(axesHandle, generalSettings.plot.geographicAxes.Colorbar)
 
                     case 'Cartesian'
                         axesHandle = plot.axes.Creation(axesParent, 'Cartesian', {'XColor', [.15,.15,.15], 'YColor', [.15,.15,.15], 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel});
@@ -121,12 +122,17 @@ classdef (Abstract) Plot
                         case 'occupancyPerChannel'
                             axesHandle.YLim = [0,100];
 
-                        case 'driveTestHeatmap'
-                            reportLibConnection.Plot.DriveTestPlot(axesHandle, bandObj, reportInfo)                         
-    
                         case 'driveTestRoute'
-                            plot.axes.Colorbar(axesHandle, 'off')
+                            plot.axes.Colorbar(axesHandle, 'eastoutside')
+                            cb = findobj(axesHandle.Parent.Children, 'Type', 'colorbar');
+                            if ~isempty(cb)
+                                cb.Visible = 'off';
+                            end
+
                             plot.DriveTest.Route(axesHandle, bandObj)
+                        
+                        case 'driveTestHeatmap'
+                            axesHandle = reportLibConnection.Plot.DriveTestHeatmap(axesParent, axesHandle, bandObj, reportInfo, generalSettings);
                     end
                 end
                 
@@ -332,23 +338,75 @@ classdef (Abstract) Plot
         end
 
         %-----------------------------------------------------------------%
-        function DriveTestPlot(axesHandle, bandObj, reportInfo)
+        function axesHandle = DriveTestHeatmap(hParent, axesHandle, bandObj, reportInfo, generalSettings)
+            % Replica plot apresentado no módulo "DRIVETEST".
+            delete(axesHandle)
+            set(hParent, 'GridSize', [24, 16], 'Padding', 'none', 'TileSpacing', 'none', 'Position', [0, 0, 1, 1])
+
+            % Eixo geográfico: MAPA
+            axesHandle = plot.axes.Creation(hParent, 'Geographic', {'Basemap', generalSettings.reportLib.basemap,                ...
+                                                                     'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
+                                                                     'UserData', struct('CLimMode', 'auto', 'Colormap', '', 'PlotMode', 'distortion')});
+            axesHandle.Layout.Tile = 1;
+            axesHandle.Layout.TileSpan = [24, 12];
+
+            % Eixo cartesiano: ESPECTRO
+            uiAxes2 = plot.axes.Creation(hParent, 'Cartesian', {'XColor', 'white', 'XGrid', 1, 'XMinorGrid', 0, 'XTick', {}, 'XTickLabel', {}, ...
+                                                                    'YColor', 'white', 'YGrid', 0, 'YMinorGrid', 0, 'YTick', {},                   ...
+                                                                    'Layer', 'top', 'GridLineStyle', '-.', 'TickDir', 'none',                      ...
+                                                                    'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
+            uiAxes2.Layout.Tile = 13;
+            uiAxes2.Layout.TileSpan = [6, 4];
+
+            % Eixo cartesiano: WATERFALL
+            uiAxes3 = plot.axes.Creation(hParent, 'Cartesian', {'XColor', 'white', 'XGrid', 1, 'XMinorGrid', 0, 'XTick', {}, 'XTickLabel', {}, ...
+                                                                    'YColor', 'white', 'YGrid', 1, 'YMinorGrid', 0, 'YTick', {}, 'YTickLabel', {}, ...
+                                                                    'Layer', 'top', 'GridLineStyle', '-.', 'TickDir', 'in',                        ...
+                                                                    'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
+            uiAxes3.Layout.Tile = 109;
+            uiAxes3.Layout.TileSpan = [18, 4];
+
+            % Eixo cartesiano: POTÊNCIA DO CANAL
+            uiAxes4 = plot.axes.Creation(hParent, 'Cartesian', {'XColor', 'white', 'XGrid', 1, 'XMinorGrid', 0,              ...
+                                                                    'YColor', 'white', 'YGrid', 0, 'YMinorGrid', 0, 'YTick', {}, ...
+                                                                    'GridLineStyle', '-.', 'TickDir', 'both', 'Color', 'none',   ...
+                                                                    'HitTest', 'off',                                            ...
+                                                                    'UserData', struct('YLimUnit', 'dBm')});
+            uiAxes4.Layout.Tile = 112;
+            uiAxes4.Layout.TileSpan = [18, 1];
+            uiAxes4.View = [270, 90];
+            uiAxes4.YAxis.Direction = "reverse";
+
+            % Colorbar
+            colorBar = colorbar(axesHandle, "Location", "layout", "TickDirection", "none", "PickableParts", "none", "FontSize", 7, "Color", "white", 'AxisLocation', 'in', 'Box', 'off');
+            colorBar.Layout.Tile = 284;
+            colorBar.Layout.TileSpan = [6,1];
+
+            % Interações
+            linkaxes([uiAxes2, uiAxes3], 'x')
+            
+            % % PLOT 
             specData = bandObj.SpecData;
             emissionIdx = reportInfo.Function.var_IndexEmission;
-
             driveTestAttributes = specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest;
 
-            % Density | Distortion
+            % Route && Density | Distortion
+            outTable  = driveTestAttributes.Measures.raw(~driveTestAttributes.Measures.raw.Filtered, :);
+            inTable   = driveTestAttributes.Measures.raw;
+            lineStyle = ':';
+            outColor  = [0.502, 0.502, 0.502];
+            inColor   = [0.8706, 0.5412, 0.5412];
+            markerSize= 1;
+
+            plot.DriveTest.Route(axesHandle, bandObj, outTable, inTable, lineStyle, outColor, inColor, markerSize)
+
             dataSource = driveTestAttributes.PlotDisplayConfig.Data.Source;
             switch dataSource
-                case 'Dados brutos'
-                    tableSource = driveTestAttributes.Measures.filtered;
+                case {'Raw', 'Filtered', 'Dados brutos'}
+                    srcTable = driveTestAttributes.Measures.filtered;
                 
-                case 'Processados'
-                    tableSource = driveTestAttributes.Measures.binned;
-
-                otherwise
-                    error('reportLibConnection:Plot:UnexpectedDataSource', 'Unexpected data source "%s"', dataSource)
+                otherwise % 'Data-Binning' | 'Processados'
+                    srcTable = driveTestAttributes.Measures.binned;
             end
 
             if ~strcmp(axesHandle.Basemap, driveTestAttributes.PlotDisplayConfig.Basemap)
@@ -356,19 +414,36 @@ classdef (Abstract) Plot
             end
             colormap(axesHandle, driveTestAttributes.PlotDisplayConfig.Colormap)
 
-            plot.DriveTest.DistortionAndDensityPlot(axesHandle, bandObj, tableSource, driveTestAttributes.PlotDisplayConfig.Data.PlotMode, driveTestAttributes.PlotDisplayConfig.Data.PlotSize)
-            plot.axes.StackingOrder.execute(axesHandle, 'appAnalise:DRIVETEST')
+            plot.DriveTest.DistortionAndDensityPlot(axesHandle, bandObj, srcTable, driveTestAttributes.PlotDisplayConfig.Data.PlotMode, driveTestAttributes.PlotDisplayConfig.Data.PlotSize)
 
-            % Points
-            pointsTable = driveTestAttributes.Points;
-            if ~isempty(pointsTable)
-                markerStyle = driveTestAttributes.PlotDisplayConfig.Points.Marker;
-                markerColor = driveTestAttributes.PlotDisplayConfig.Points.Color;
-                markerSize  = driveTestAttributes.PlotDisplayConfig.Points.Size;
-                plot.DriveTest.Points(axesHandle, pointsTable, markerStyle, markerColor, markerSize)
-            end
+            
+            % (b) ClearWrite+Persistance
+            plot.draw2D.OrdinaryLine(uiAxes2, 'average', bandObj, []);
+            plot.Persistence('Creation', [], uiAxes2, bandObj, [])
+            set(uiAxes2, 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel)
 
-            % Filters
+            % (c) Waterfall
+            plot.Waterfall('Creation', [], uiAxes3, bandObj, bandObj.XLimits);
+
+            % (d) ChannelPower
+            plot.DriveTest.ChannelPower(uiAxes4, bandObj, driveTestAttributes.Measures.raw)
+
+            % (e) ChannelROI
+            chFreqCenter = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.Frequency;
+            chBandWidth  = max(10, specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified.ChannelBW);
+
+            srcROITable = table(chFreqCenter, chBandWidth, 'VariableNames', {'Frequency', 'BandWidthkHz'});
+            postPlotConfig = { ...
+                'InteractionsAllowed', 'none', ...
+                'Color', hex2rgb("#b746ff"), ...
+                'EdgeAlpha', 0, ...
+                'FaceAlpha', .4 ...
+            };
+            
+            plot.draw2D.rectangularROI(uiAxes2, bandObj, srcROITable, 1, 'channelROI', postPlotConfig, [-1000, 1000])
+            plot.draw2D.rectangularROI(uiAxes3, bandObj, srcROITable, 1, 'channelROI', postPlotConfig)
+
+            % (f) Filters
             filterTable = driveTestAttributes.Filters;
             if ~isempty(filterTable)
                 for ii = 1:height(filterTable)
@@ -388,24 +463,38 @@ classdef (Abstract) Plot
                                                           PickableParts='none',        ...
                                                           Tag='filterROI');
 
-                        case {'Circle', 'Rectangle', 'Polygon'}
+                        otherwise % 'Threshold' | 'Circle' | 'Rectangle' | 'Polygon'
                             switch filterSubtype
-                                case 'Circle';     roiFcn = 'images.roi.Circle';
-                                case 'Rectangle';  roiFcn = 'images.roi.Rectangle';
-                                case 'Polygon';    roiFcn = 'images.roi.Polygon';
+                                case 'Threshold'
+                                    roiHandle = plot.ROI.draw('images.roi.Line', uiAxes4, {'Tag', 'filterROI'});
+
+                                otherwise
+                                    switch filterSubtype
+                                        case 'Circle'
+                                            roiFcn = 'images.roi.Circle';                                        
+                                        case 'Rectangle'
+                                            roiFcn = 'images.roi.Rectangle';                                        
+                                        case 'Polygon'
+                                            roiFcn = 'images.roi.Polygon';
+                                    end
+                                    roiHandle = eval(sprintf('%s(axesHandle, LineWidth=1, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, InteractionsAllowed="none", Tag="filterROI");', roiFcn));
                             end
-        
-                            roiHandle = evalc(sprintf('%s(hAxes, LineWidth=1, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, InteractionsAllowed="none", Tag="filterROI");', roiFcn));
 
                             fieldsList = fieldnames(filterTable.roi(ii).specification);
                             for jj = 1:numel(fieldsList)
                                 roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
                             end
-
-                        otherwise
-                            error('reportLibConnection:Plot:UnexpectedFilterSubtype', 'Unexpected filter subtype "%s"', filterSubtype)
                     end
                 end
+            end
+
+            % (g) Points
+            pointsTable = driveTestAttributes.Points;
+            if ~isempty(pointsTable)
+                markerStyle = driveTestAttributes.PlotDisplayConfig.Points.Marker;
+                markerColor = driveTestAttributes.PlotDisplayConfig.Points.Color;
+                markerSize  = driveTestAttributes.PlotDisplayConfig.Points.Size;
+                plot.DriveTest.Points(axesHandle, pointsTable, markerStyle, markerColor, markerSize)
             end
         end
     end

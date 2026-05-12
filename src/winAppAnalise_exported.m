@@ -207,19 +207,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % 
                     % case 'auxApp.winPlayback.FindPeaksTree'
                     %     play_FindPeaks_delEmission(app)
-                    % 
-                    % % auxApp.winDriveTest
-                    % % auxApp.winRFDataHub
-                    % case {'auxApp.winDriveTest.filter_Tree', 'auxApp.winDriveTest.points_Tree', 'auxApp.winRFDataHub.filter_Tree'}
-                    %     if contains(event.HTMLEventName, 'winDriveTest')
-                    %         auxAppName = 'DRIVETEST';
-                    %     elseif contains(event.HTMLEventName, 'winRFDataHub')
-                    %         auxAppName = 'RFDATAHUB';
-                    %     end
-                    % 
-                    %     hAuxApp = getAppHandle(app.tabGroupController, auxAppName);
-                    %     ipcSecundaryJSEventsHandler(hAuxApp, event)
-                    % 
+                    
+                    % auxApp.winDriveTest
+                    % auxApp.winRFDataHub
+                    case {'auxApp.winDriveTest.FilterTree', 'auxApp.winDriveTest.PointsTree', 'auxApp.winRFDataHub.FilterTree'}
+                        if contains(event.HTMLEventName, 'winDriveTest')
+                            auxAppName = 'DRIVETEST';
+                            
+                        elseif contains(event.HTMLEventName, 'winRFDataHub')
+                            auxAppName = 'RFDATAHUB';
+                        end
+
+                        ipcMainMatlabCallAuxiliarApp(app, auxAppName, 'MATLAB', event.HTMLEventName)
+                    
                     % % DOCKADDKFACTOR / DOCKTIMEFILTERING
                     % case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
                     %     hDockApp  = app.popupContainer.RunningAppInstance;
@@ -392,6 +392,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onReportFlowListChanged'
                                         notifySecondaryApps(app, eventName)
 
+                                    case 'onDriveTestFilterChanged'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -420,6 +423,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     case 'MATLAB'
                         operationType = varargin{1};
                         ipcSecondaryMatlabCallsHandler(hAuxApp, app, operationType, varargin{2:end});
+
                     case 'JS'
                         event = varargin{1};
                         ipcSecondaryJSEventsHandler(hAuxApp, event)
@@ -450,9 +454,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
-                case {'Detection', 'DriveTestFilter', 'DriveTestPoints'}
+                case 'Detection'
                     screenWidth  = 412;
                     screenHeight = 484;
+                case 'DriveTestFilter' % auxApp.winDriveTest
+                    screenWidth  = 412;
+                    screenHeight = 338;
+                case 'DriveTestPoints' % auxApp.winDriveTest
+                    screenWidth  = 412;
+                    screenHeight = 408;
                 case 'DetectionLimits'  % auxApp.winPlayback
                     screenWidth  = 292;
                     screenHeight = 360;

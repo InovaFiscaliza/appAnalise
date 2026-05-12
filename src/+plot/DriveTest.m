@@ -155,14 +155,23 @@ classdef (Abstract) DriveTest
         end
 
         %-----------------------------------------------------------------%
-        function ChannelPower(hAxes, tempBandObj, specRawTable, Color, EdgeAlpha, FaceAlpha)
+        function ChannelPower(hAxes, tempBandObj, specRawTable, color, edgeAlpha, faceAlpha)
+            arguments
+                hAxes
+                tempBandObj
+                specRawTable
+                color = '#ffff12'
+                edgeAlpha = 0
+                faceAlpha = .4
+            end
+
             minY = bounds(specRawTable.ChannelPower);
             set(hAxes, 'XLim', [1, height(specRawTable)+.001], 'YLimMode', 'auto')
 
-            chPowerLine  = area(hAxes, specRawTable.ChannelPower, minY, 'EdgeAlpha', EdgeAlpha, ...
-                                                                        'FaceAlpha', FaceAlpha, ...
-                                                                        'FaceColor', Color,     ...
-                                                                        'EdgeColor', Color,     ...
+            chPowerLine  = area(hAxes, specRawTable.ChannelPower, minY, 'EdgeAlpha', edgeAlpha, ...
+                                                                        'FaceAlpha', faceAlpha, ...
+                                                                        'FaceColor', color,     ...
+                                                                        'EdgeColor', color,     ...
                                                                         'Tag', 'channelPower');
             hAxes.YLim(1) = minY;
             plot.datatip.Template(chPowerLine, 'SweepID+ChannelPower', tempBandObj.LevelUnit)

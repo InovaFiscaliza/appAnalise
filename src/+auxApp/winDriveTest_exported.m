@@ -137,7 +137,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         )
 
         % Controla o estado de atualização do plot:
-        %  -1: mudança de fluxo espectral
+        %  -2: mudança de fluxo espectral
+        %  -1: mudança de emissão
         %   0: finaliza a apresentação da última varredura
         %   1: atualiza alguma característica do plot em andamento
         plotUpdateEvent = 0
@@ -264,8 +265,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                 app.emissionSelectedIdxs(:) = [];
                                 refreshFlowList(app)
 
-                                if app.plotUpdateEvent
-                                    app.plotUpdateEvent = -1;
+                                if app.plotUpdateEvent > 0
+                                    app.plotUpdateEvent = -2;
                                 else
                                     onFlowDropDownValueChanged(app)
                                 end
@@ -295,11 +296,67 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                     app.plotUpdateEvent = 0;
                                 end
 
+                            case 'onDriveTestFilterChanged'
+                                filterType = varargin{2};
+                                filterSubtype = varargin{3};
+
+                                switch filterSubtype
+                                    case 'Threshold'
+                                        initialThreshold = min(app.emissionPoints.raw.ChannelPower);
+
+                                        roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes4);
+                                        roiHandle.Position = [height(app.emissionPoints.raw) initialThreshold; 1 initialThreshold];
+                    
+                                        app.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
+
+                                    case 'PolygonKML'
+                                        kmlObj = app.mainApp.kmlObj;
+                                        kmlFileLayer = varargin{4};
+
+                                        try
+                                            readgeotable(kmlObj, kmlFileLayer)
+                                            for ii = 1:height(kmlObj.GeoTable)
+                                                shapeObj = kmlObj.GeoTable.Shape(ii);
+            
+                                                if isa(shapeObj, 'geopolyshape')
+                                                    roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, shapeObj);
+                                                    app.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
+                                                end
+                                            end
+            
+                                            if ~exist('roiHandle', 'var')
+                                                error([ ...
+                                                    'A pasta "%s", do arquivo "%s", possui apenas objetos do tipo "%s". Um filtro '  ...
+                                                    'geográfico, contudo, precisa ser um polígono.' ...
+                                                ], kmlFileLayer, kmlObj.File, textFormatGUI.cellstr2ListWithQuotes(unique(arrayfun(@(x) class(x), kmlObj.GeoTable.Shape, "UniformOutput", false))))
+                                            end
+            
+                                        catch ME
+                                            ui.Dialog(app.UIFigure, 'error', ME.message);
+                                            return
+                                        end
+
+                                    otherwise % 'Circle' | 'Rectangle' | 'Polygon'
+                                        roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, 'DrawInRealTime');
+                                        if isempty(roiHandle.Position)
+                                            delete(roiHandle)                
+                                            return
+                                        end
+            
+                                        app.filterTable(end+1,:) = {filterType, filterSubtype, struct('handle', roiHandle, 'specification', plot.ROI.specification(roiHandle))};
+                                end
+
+                                if ~strcmp(filterSubtype, 'Threshold') && exist('roiHandle', 'var') && isprop(roiHandle, 'DisplayName')
+                                    roiHandle.DisplayName = 'Contorno';
+                                end
+
+                                replotAfterFilterChange(app)
+
                             case 'auxApp.winDriveTest.FilterTree'
-                                onContextMenuItemClicked(app, struct('ContextObject', app.FilterTree, 'Source', app.DeleteSelectedItem))
+                                onContextMenuItemClicked(app, struct('ContextObject', app.FilterTree.Children(1), 'Source', app.DeleteSelectedItem))
 
                             case 'auxApp.winDriveTest.PointsTree'
-                                onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree, 'Source', app.DeleteSelectedItem))
+                                onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree.Children(1), 'Source', app.DeleteSelectedItem))
 
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -765,8 +822,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             syncScreenSpanControls(app, guardBand.Parameters.Type, guardBand.Parameters.Value)
 
             if isempty(specData) || isempty(emissionIdx)
+                app.filterTable(:, :) = [];
+                app.pointsTable(:, :) = [];
+
                 resetDataBinningControls(app)
                 recomputeEmissionMeasures(app, specData, emissionIdx)
+
                 return
             end
 
@@ -1002,13 +1063,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if ~isempty(app.filterTable)
                 for ii = 1:height(app.filterTable)
                     nodeText = sprintf('%s:%s', app.filterTable.type{ii}, app.filterTable.subtype{ii});
-                    uitreenode(app.FilterTree, 'Text', nodeText, 'NodeData', ii);
+                    uitreenode(app.FilterTree, 'Text', nodeText, 'NodeData', ii, 'ContextMenu', app.ContextMenu);
                 end
-
-                set(app.FilterTree, 'SelectedNodes', app.FilterTree.Children(end), 'Enable', 1)
-                onFilterTreeSelectionChanged(app)
-            else
-                app.FilterTree.Enable = 1;
             end
         end
 
@@ -1248,52 +1304,52 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             if ~isempty(app.filterTable)
                 for ii = 1:height(app.filterTable)
-                    FilterSubtype = app.filterTable.subtype{ii};
+                    filterSubtype = app.filterTable.subtype{ii};
 
-                    switch FilterSubtype
+                    switch filterSubtype
                         case 'PolygonKML'
-                            Latitude  = app.filterTable.roi(ii).specification.Latitude;
-                            Longitude = app.filterTable.roi(ii).specification.Longitude;
-                            shapeObj  = geopolyshape(Latitude, Longitude);
+                            lat = app.filterTable.roi(ii).specification.Latitude;
+                            lng = app.filterTable.roi(ii).specification.Longitude;
+                            shapeObj = geopolyshape(lat, lng);
 
-                            hROI = createFilterRoiGraphic(app, 'DrawProgrammatically', FilterSubtype, app.UIAxes1, shapeObj);
+                            roiHandle = createFilterRoiGraphic(app, filterSubtype, app.UIAxes1, shapeObj);
 
                         otherwise
-                            switch FilterSubtype                        
+                            switch filterSubtype                        
                                 case 'Threshold'
-                                    hAxes = app.UIAxes4;        
+                                    axesHandle = app.UIAxes4;
                                 otherwise
-                                    hAxes = app.UIAxes1;
+                                    axesHandle = app.UIAxes1;
                             end
 
-                            hROI = createFilterRoiGraphic(app, 'DrawProgrammatically', FilterSubtype, hAxes);
+                            roiHandle = createFilterRoiGraphic(app, filterSubtype, axesHandle, 'DrawProgrammatically');
             
                             fieldsList = fields(app.filterTable.roi(ii).specification);
                             for jj = 1:numel(fieldsList)
-                                hROI.(fieldsList{jj}) = app.filterTable.roi(ii).specification.(fieldsList{jj});
+                                roiHandle.(fieldsList{jj}) = app.filterTable.roi(ii).specification.(fieldsList{jj});
                             end
                     end
     
-                    app.filterTable.roi(ii).handle = hROI;
+                    app.filterTable.roi(ii).handle = roiHandle;
                 end
             end
         end
 
         %-----------------------------------------------------------------%
-        function hROI = createFilterRoiGraphic(app, filterSubtype, axesHandle, varargin)
+        function roiHandle = createFilterRoiGraphic(app, filterSubtype, axesHandle, varargin)
             switch filterSubtype
                 case 'Threshold'
-                    hROI = plot.ROI.draw('images.roi.Line', axesHandle, {'Tag', 'filterROI'});
+                    roiHandle = plot.ROI.draw('images.roi.Line', axesHandle, {'Tag', 'filterROI'});
 
                 case 'PolygonKML'
                     shapeObj = varargin{1};
-                    hROI = geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
-                                                         EdgeColor=[0 0.4470 0.7410], ...
-                                                         FaceAlpha=0.05,              ...
-                                                         EdgeAlpha=1,                 ...
-                                                         LineWidth=2.5,               ...
-                                                         PickableParts='none',        ...
-                                                         Tag='filterROI');
+                    roiHandle = geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
+                                                              EdgeColor=[0 0.4470 0.7410], ...
+                                                              FaceAlpha=0.05,              ...
+                                                              EdgeAlpha=1,                 ...
+                                                              LineWidth=.5,                ...
+                                                              PickableParts='none',        ...
+                                                              Tag='filterROI');
 
                 otherwise
                     drawType = varargin{1};
@@ -1325,13 +1381,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         roiNameArgument = 'Rotatable=true, ';
                     end
 
-                    hROI = evalc(sprintf('%s(hAxes, LineWidth=2.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFunction, roiNameArgument));
+                    roiHandle = eval(sprintf('%s(axesHandle, LineWidth=.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFunction, roiNameArgument));
             end
 
-            if ~strcmp(filterSubtype, 'PolygonKML')
-                addlistener(hROI, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, []));
-                addlistener(hROI, 'ROIMoved',             @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, @app.replotAfterFilterChange));
-                addlistener(hROI, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
+            if isprop(roiHandle, 'InteractionsAllowed')
+                roiHandle.InteractionsAllowed = 'none';
+
+                addlistener(roiHandle, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, []));
+                addlistener(roiHandle, 'ROIMoved',             @(src, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, @app.replotAfterFilterChange, src));
+                addlistener(roiHandle, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
             end
         end
 
@@ -1406,13 +1464,23 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function replotAfterFilterChange(app)
+        function replotAfterFilterChange(app, roiHandle)
+            arguments
+                app
+                roiHandle = []
+            end
+
             if app.plotUpdateEvent
                 app.plotUpdateEvent = 0;
             end
     
             [flowIdx, emissionIdx] = getSelectedFlowAndEmissionIndices(app);
             specData = app.mainApp.specData(flowIdx);
+
+            if ~isempty(roiHandle)
+                [~, filterIdx] = ismember(roiHandle, [app.filterTable.roi.handle]);
+                app.filterTable.roi(filterIdx).specification = plot.ROI.specification(roiHandle);
+            end
     
             recomputeEmissionMeasures(app, specData, emissionIdx)
             persistEmissionDisplaySettings(app, specData, emissionIdx)
@@ -1434,7 +1502,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             while app.sweepTimeIdx <= nSweeps
                 switch app.plotUpdateEvent
-                    case -1
+                    case -2
                         app.plotUpdateEvent = 1;
 
                         flowIdx = getSelectedFlowAndEmissionIndices(app);
@@ -1445,6 +1513,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         end
                         
                         nSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
+
+                    case -1
+                        app.plotUpdateEvent = 1;
+                        loadSelectedEmission(app)
 
                     case  0
                         break
@@ -1543,15 +1615,19 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Value changed function: SpectrumFlowList
         function onFlowDropDownValueChanged(app, event)
             
-            flowIdx = getSelectedFlowAndEmissionIndices(app);
-            loadSelectedFlow(app, flowIdx)
-
+            if app.plotUpdateEvent > 0
+                app.plotUpdateEvent = -2;
+            else
+                flowIdx = getSelectedFlowAndEmissionIndices(app);
+                loadSelectedFlow(app, flowIdx)
+            end
+            
         end
 
         % Value changed function: EmissionList
         function onEmissionDropDownValueChanged(app, event)
             
-            if app.plotUpdateEvent
+            if app.plotUpdateEvent > 0
                 app.plotUpdateEvent = -1;
             else
                 loadSelectedEmission(app)
@@ -1841,35 +1917,35 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Menu selected function: DeleteAllEntries, DeleteSelectedItem
         function onContextMenuItemClicked(app, event)
             
-            switch event.ContextObject
-                case app.FilterTree
-                    referenceTable = app.filterTable;
-                    buildTreeFcn   = @buildFilterTree;
-                case app.PointsTree
-                    referenceTable = app.pointsTable;
-                    buildTreeFcn   = @buildPointsTree;
-            end
-
-            if isempty(referenceTable)
-                return
-            end
+            contextObject = event.ContextObject.Parent;
+            idx = [];
 
             switch event.Source
                 case app.DeleteSelectedItem
-                    if isempty(event.ContextObject.SelectedNodes)
+                    if isempty(contextObject.SelectedNodes)
                         return
                     end
-                    idx = arrayfun(@(x) x.NodeData, event.ContextObject.SelectedNodes);
+                    idx = arrayfun(@(x) x.NodeData, contextObject.SelectedNodes);
 
                 case app.DeleteAllEntries
-                    idx = 1:height(referenceTable);
+                    switch contextObject
+                        case app.FilterTree
+                            idx = 1:height(app.filterTable);
+                        case app.PointsTree
+                            idx = 1:height(app.pointsTable);
+                    end
             end 
     
             if ~isempty(idx)
-                arrayfun(@(x) delete(x), [app.filterTable.roi(idx).handle]); 
-                app.referenceTable(idx,:) = [];
-
-                buildTreeFcn(app)
+                switch contextObject
+                    case app.FilterTree
+                        app.filterTable(idx,:) = [];
+                        rebuildFilterTree(app)
+                        replotAfterFilterChange(app)
+                    case app.PointsTree
+                        app.pointsTable(idx,:) = [];
+                        rebuildPointsTree(app)
+                end
             end
 
         end
@@ -1877,35 +1953,45 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Selection changed function: FilterTree
         function onFilterTreeSelectionChanged(app, event)
             
-            if ~isempty(app.FilterTree.SelectedNodes) && all(isvalid([app.filterTable.roi.handle]))
-                idxFilter = app.FilterTree.SelectedNodes.NodeData;        
+            if ~isempty(app.FilterTree.SelectedNodes)
+                filterSelectionIdx = app.FilterTree.SelectedNodes.NodeData;        
     
                 for ii = 1:height(app.filterTable)
-                    hROI = app.filterTable.roi(ii).handle;
-                    hROIClass = class(hROI);
+                    roiHandle = app.filterTable.roi(ii).handle;
+                    roiClass  = class(roiHandle);
 
-                    switch hROIClass
+                    switch roiClass
                         case 'map.graphics.chart.primitive.Polygon'
-                            if ii ~= idxFilter
-                                hROI.LineWidth = .5;
+                            if ii ~= filterSelectionIdx
+                                roiHandle.LineWidth = .5;
                             else
-                                hROI.LineWidth = 2.5;
+                                roiHandle.LineWidth = 2.5;
                             end
 
                         otherwise
-                            if ii ~= idxFilter
-                                set(hROI, LineWidth=.5, InteractionsAllowed='none')
+                            if ii ~= filterSelectionIdx
+                                set(roiHandle, LineWidth=.5, InteractionsAllowed='none')
                             else
-                                switch hROIClass
+                                switch roiClass
                                     case 'images.roi.Line'
-                                        set(hROI, LineWidth=2.5, InteractionsAllowed='translate')
+                                        set(roiHandle, LineWidth=2.5, InteractionsAllowed='translate')
                                     otherwise
-                                        set(hROI, LineWidth=2.5, InteractionsAllowed='all')
+                                        set(roiHandle, LineWidth=2.5, InteractionsAllowed='all')
                                 end
                             end
                     end
                 end
-                uistack(app.filterTable.roi(idxFilter).handle, "top")
+
+                uistack(app.filterTable.roi(filterSelectionIdx).handle, "top")
+
+            else
+                roiHandles = [app.filterTable.roi.handle];
+                for roiHandle = roiHandles
+                    roiHandle.LineWidth = .5;
+                    if isprop(roiHandle, 'InteractionsAllowed')
+                        roiHandle.InteractionsAllowed = 'none';
+                    end
+                end    
             end
             
         end

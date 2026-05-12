@@ -4,8 +4,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure             matlab.ui.Figure
         GridLayout           matlab.ui.container.GridLayout
-        FilterList           matlab.ui.control.ListBox
-        AddFilterButton      matlab.ui.control.Image
+        OkButton             matlab.ui.control.Button
         RadioGroup           matlab.ui.container.ButtonGroup
         KMLFileLayer         matlab.ui.control.DropDown
         KMLOpenFile          matlab.ui.control.Image
@@ -16,9 +15,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
         GeographicOption     matlab.ui.control.RadioButton
         ThresholdOption      matlab.ui.control.RadioButton
         Title                matlab.ui.control.Label
-        ContextMenu          matlab.ui.container.ContextMenu
-        DeleteSelectedItem   matlab.ui.container.Menu
-        DeleteAllEntries     matlab.ui.container.Menu
+        TitleIcon            matlab.ui.control.Image
     end
 
     
@@ -48,7 +45,6 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function initialValues(app)
             updateKMLElements(app)
-            rebuildFilterList(app)
         end
 
         %-----------------------------------------------------------------%
@@ -59,20 +55,10 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
                 [~, fileName, fileExt] = fileparts(app.mainApp.kmlObj.File);
                 app.KMLFilename.Value  = [fileName fileExt];
                 app.KMLFileLayer.Items = kmlObj.LayerNames;
+
             else
                 app.KMLFilename.Value  = '';
                 app.KMLFileLayer.Items = {};
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function rebuildFilterList(app)
-            filterTable = app.callingApp.filterTable;
-
-            if ~isempty(filterTable)
-                set(app.FilterList, 'Items', strcat(filterTable.type, {':'}, filterTable.subtype), 'ContextMenu', app.ContextMenu)
-            else
-                set(app.FilterList, 'Items', {}, 'ContextMenu', [])
             end
         end
     end
@@ -108,11 +94,11 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             
             switch app.RadioGroup.SelectedObject
                 case app.ThresholdOption
-                    app.GeographicType.Enable = 'off';
+                    set([app.GeographicType, app.GeographicTypeLabel], 'Enable', 'off')
                     set(findobj(app.RadioGroup.Children, 'Tag', 'KML'), 'Enable', 'off')
 
                 case app.GeographicOption
-                    app.GeographicType.Enable = 'on';                    
+                    set([app.GeographicType, app.GeographicTypeLabel], 'Enable', 'on')
                     onGeographicTypeValueChanged(app)
             end
 
@@ -168,12 +154,9 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: AddFilterButton
+        % Button pushed function: OkButton
         function onAddFilterButtonClicked(app, event)
             
-            kmlObj = app.mainApp.kmlObj;
-            emissionPoints = app.callingApp.emissionPoints;
-
             switch app.RadioGroup.SelectedObject
                 case app.ThresholdOption
                     if ismember('Level', app.callingApp.filterTable.type)
@@ -187,81 +170,36 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
 
                     filterType = 'Level';
                     filterSubtype = 'Threshold';
-                    initialThreshold = min(app.callingApp.emissionPoints.raw.ChannelPower);
 
-                    hROI = plot_FilterROIObject(app, 'DrawInRealTime', filterSubtype, app.callingApp.UIAxes4);
-                    hROI.Position = [height(emissionPoints.raw) initialThreshold; 1 initialThreshold];
-
-                    app.callingApp.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestFilterChanged', app.callingApp.filterTable)
-
-                case app.GeographicOption
+                otherwise % app.GeographicOption
                     filterType = 'Geographic ROI';
 
                     switch app.GeographicType.Value
                         case 'Arquivo externo KML/KMZ'
                             if isempty(app.KMLFilename.Value)
-                                msgWarning = 'É preciso escolher um arquivo KML/KMZ antes de adicioná-lo como filtro geográfico.';
+                                msgWarning = [ ...
+                                    'É preciso escolher um arquivo KML/KMZ antes de adicioná-lo como ' ...
+                                    'filtro geográfico.' ...
+                                ];
                                 ui.Dialog(app.UIFigure, 'warning', msgWarning);
                                 return
                             end
                             
                             filterSubtype = 'PolygonKML';
 
-                            try
-                                readgeotable(kmlObj, app.KMLFileLayer.Value)
-                                for ii = 1:height(kmlObj.GeoTable)
-                                    shapeObj = kmlObj.GeoTable.Shape(ii);
+                        case 'ROI:Círculo'
+                            filterSubtype = 'Circle';
 
-                                    if isa(shapeObj, 'geopolyshape')
-                                        hROI = plot_FilterROIObject(app, 'DrawInRealTime', filterSubtype, app.callingApp.UIAxes1, shapeObj);
-                                        app.callingApp.filterTable(end+1, :) = {filterType, filterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-                                    end
-                                end
+                        case 'ROI:Retângulo'
+                            filterSubtype = 'Rectangle';
 
-                                if ~exist('hROI', 'var')
-                                    error([ ...
-                                        'A pasta "%s", do arquivo "%s", possui apenas objetos do tipo "%s". Um filtro '  ...
-                                        'geográfico, contudo, precisa ser um polígono.' ...
-                                    ], app.KMLFileLayer.Value, kmlObj.File, textFormatGUI.cellstr2ListWithQuotes(unique(arrayfun(@(x) class(x), kmlObj.GeoTable.Shape, "UniformOutput", false))))
-                                end
-
-                            catch ME
-                                ui.Dialog(app.UIFigure, 'error', ME.message);
-                                return
-                            end
-
-                        otherwise
-                            switch app.GeographicType.Value
-                                case 'ROI:Círculo'
-                                    filterSubtype = 'Circle';
-                                case 'ROI:Retângulo'
-                                    filterSubtype = 'Rectangle';
-                                case 'ROI:Polígono'
-                                    filterSubtype = 'Polygon';
-                            end
-
-                            hROI = plot_FilterROIObject(app, 'DrawInRealTime', filterSubtype, app.CallingApp.UIAxes1);
-
-                            if isempty(hROI.Position)
-                                delete(hROI)                
-                                return
-                            end
-
-                            app.callingApp.filterTable(end+1,:) = {filterType, filterSubtype, struct('handle', hROI, 'specification', plot.ROI.specification(hROI))};
-                    end
-                    
-                    if isprop(hROI, 'DisplayName')
-                        hROI.DisplayName = 'Contorno';
+                        otherwise % 'ROI:Polígono'
+                            filterSubtype = 'Polygon';
                     end
             end
-            
-            % Insere filtro à tabela app.filterTable, redesenhando a árvore
-            % de fitros.
-            rebuildFilterList(app)
 
-            % Atualiza o plot...
-            UpdatePlot(app)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestFilterChanged', filterType, filterSubtype)
+            closeFcn(app)
 
         end
     end
@@ -279,7 +217,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 412 484];
+                app.UIFigure.Position = [100 100 412 338];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -302,19 +240,26 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 18};
-            app.GridLayout.RowHeight = {17, 232, 22, '1x'};
+            app.GridLayout.ColumnWidth = {18, 234, 110};
+            app.GridLayout.RowHeight = {17, 5, 242, 10, 24};
             app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
+
+            % Create TitleIcon
+            app.TitleIcon = uiimage(app.GridLayout);
+            app.TitleIcon.ScaleMethod = 'none';
+            app.TitleIcon.Layout.Row = 1;
+            app.TitleIcon.Layout.Column = 1;
+            app.TitleIcon.ImageSource = 'Filter_18.png';
 
             % Create Title
             app.Title = uilabel(app.GridLayout);
             app.Title.FontSize = 10;
             app.Title.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.Title.Layout.Row = 1;
-            app.Title.Layout.Column = 1;
+            app.Title.Layout.Column = 2;
             app.Title.Text = 'TIPO DE FILTRO';
 
             % Create RadioGroup
@@ -323,8 +268,8 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @onRadioGroupSelectionChanged, true);
             app.RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.RadioGroup.BackgroundColor = [1 1 1];
-            app.RadioGroup.Layout.Row = 2;
-            app.RadioGroup.Layout.Column = [1 2];
+            app.RadioGroup.Layout.Row = 3;
+            app.RadioGroup.Layout.Column = [1 3];
             app.RadioGroup.FontWeight = 'bold';
             app.RadioGroup.FontSize = 10;
 
@@ -334,7 +279,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.ThresholdOption.WordWrap = 'on';
             app.ThresholdOption.FontSize = 11;
             app.ThresholdOption.Interpreter = 'html';
-            app.ThresholdOption.Position = [11 176 349 46];
+            app.ThresholdOption.Position = [11 182 349 46];
             app.ThresholdOption.Value = true;
 
             % Create GeographicOption
@@ -342,13 +287,15 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.GeographicOption.Text = {'<b>GEOGRÁFICO</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Elimina medições coletadas fora de regiões de interesse (ROI).</p>'};
             app.GeographicOption.FontSize = 11;
             app.GeographicOption.Interpreter = 'html';
-            app.GeographicOption.Position = [11 135 309 31];
+            app.GeographicOption.Position = [11 140 309 31];
 
             % Create GeographicTypeLabel
             app.GeographicTypeLabel = uilabel(app.RadioGroup);
             app.GeographicTypeLabel.VerticalAlignment = 'bottom';
             app.GeographicTypeLabel.FontSize = 11;
-            app.GeographicTypeLabel.Position = [30 115 61 16];
+            app.GeographicTypeLabel.FontColor = [0.302 0.302 0.302];
+            app.GeographicTypeLabel.Enable = 'off';
+            app.GeographicTypeLabel.Position = [30 119 61 16];
             app.GeographicTypeLabel.Text = 'Fonte:';
 
             % Create GeographicType
@@ -357,24 +304,29 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.GeographicType.ValueChangedFcn = createCallbackFcn(app, @onGeographicTypeValueChanged, true);
             app.GeographicType.Enable = 'off';
             app.GeographicType.FontSize = 11;
+            app.GeographicType.FontColor = [0.302 0.302 0.302];
             app.GeographicType.BackgroundColor = [1 1 1];
-            app.GeographicType.Position = [29 91 301 22];
+            app.GeographicType.Position = [29 95 301 22];
             app.GeographicType.Value = 'ROI:Círculo';
 
             % Create KMLFilenameLabel
             app.KMLFilenameLabel = uilabel(app.RadioGroup);
+            app.KMLFilenameLabel.Tag = 'KML';
             app.KMLFilenameLabel.VerticalAlignment = 'bottom';
             app.KMLFilenameLabel.FontSize = 11;
-            app.KMLFilenameLabel.Position = [30 67 61 18];
-            app.KMLFilenameLabel.Text = 'Arquivo:';
+            app.KMLFilenameLabel.FontColor = [0.302 0.302 0.302];
+            app.KMLFilenameLabel.Enable = 'off';
+            app.KMLFilenameLabel.Position = [30 71 85 18];
+            app.KMLFilenameLabel.Text = 'Arquivo externo:';
 
             % Create KMLFilename
             app.KMLFilename = uieditfield(app.RadioGroup, 'text');
             app.KMLFilename.Tag = 'KML';
             app.KMLFilename.Editable = 'off';
             app.KMLFilename.FontSize = 11;
+            app.KMLFilename.FontColor = [0.302 0.302 0.302];
             app.KMLFilename.Enable = 'off';
-            app.KMLFilename.Position = [29 42 301 22];
+            app.KMLFilename.Position = [29 46 301 22];
 
             % Create KMLOpenFile
             app.KMLOpenFile = uiimage(app.RadioGroup);
@@ -382,7 +334,7 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.KMLOpenFile.ImageClickedFcn = createCallbackFcn(app, @onKMLOpenFileButtonClicked, true);
             app.KMLOpenFile.Tag = 'KML';
             app.KMLOpenFile.Enable = 'off';
-            app.KMLOpenFile.Position = [340 44 18 18];
+            app.KMLOpenFile.Position = [340 48 18 18];
             app.KMLOpenFile.ImageSource = 'folder-opened-16px.svg';
 
             % Create KMLFileLayer
@@ -391,37 +343,19 @@ classdef dockDriveTestFilter_exported < matlab.apps.AppBase
             app.KMLFileLayer.Tag = 'KML';
             app.KMLFileLayer.Enable = 'off';
             app.KMLFileLayer.FontSize = 11;
+            app.KMLFileLayer.FontColor = [0.302 0.302 0.302];
             app.KMLFileLayer.BackgroundColor = [1 1 1];
-            app.KMLFileLayer.Position = [29 15 301 22];
+            app.KMLFileLayer.Position = [29 19 301 22];
             app.KMLFileLayer.Value = {};
 
-            % Create AddFilterButton
-            app.AddFilterButton = uiimage(app.GridLayout);
-            app.AddFilterButton.ScaleMethod = 'none';
-            app.AddFilterButton.ImageClickedFcn = createCallbackFcn(app, @onAddFilterButtonClicked, true);
-            app.AddFilterButton.Layout.Row = 3;
-            app.AddFilterButton.Layout.Column = 2;
-            app.AddFilterButton.HorizontalAlignment = 'right';
-            app.AddFilterButton.ImageSource = 'Add_16.png';
-
-            % Create FilterList
-            app.FilterList = uilistbox(app.GridLayout);
-            app.FilterList.Items = {};
-            app.FilterList.FontSize = 11;
-            app.FilterList.Layout.Row = 4;
-            app.FilterList.Layout.Column = [1 2];
-            app.FilterList.Value = {};
-
-            % Create ContextMenu
-            app.ContextMenu = uicontextmenu(app.UIFigure);
-
-            % Create DeleteSelectedItem
-            app.DeleteSelectedItem = uimenu(app.ContextMenu);
-            app.DeleteSelectedItem.Text = '❌ Excluir';
-
-            % Create DeleteAllEntries
-            app.DeleteAllEntries = uimenu(app.ContextMenu);
-            app.DeleteAllEntries.Text = '🚫 Excluir todos';
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onAddFilterButtonClicked, true);
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.FontSize = 11;
+            app.OkButton.Layout.Row = 5;
+            app.OkButton.Layout.Column = 3;
+            app.OkButton.Text = 'Incluir filtro';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

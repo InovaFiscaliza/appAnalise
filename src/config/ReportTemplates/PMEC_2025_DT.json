@@ -176,21 +176,37 @@
                     }
                 },
                 {
-                    "Type": "Image",
+                    "Type": "Container",
                     "Data": {
-                        "Origin": "FunctionEvaluation",
-                        "Source": "img_Plot",
-                        "Context": "appAnalise:REPORT:BAND",
-                        "Name": "driveTestRoute",
-                        "Layout": "1",
-                        "Caption": "Rota percorrida durante a monitoração.",
-                        "Settings": {
-                            "Width": "90%",
-                            "Height": "auto"
-                        },
-                        "LineBreak": 0,
-                        "Intro": "{\"Type\":\"ItemN2\",\"Text\":\"Na imagem apresentada a seguir consta a rota percorrida durante a monitoração.\"}",
-                        "Error": ""
+                        "Source": "DriveTestRoute",
+                        "Component": [
+                            {
+                                "Type": "Paragraph",
+                                "Data": {
+                                    "Editable": "false",
+                                    "Text": "Na imagem apresentada a seguir consta a rota percorrida durante a execução da tarefa de monitoração na localidade \"%s\".",
+                                    "Variable": "var_Location"
+                                }
+                            },
+                            {
+                                "Type": "Image",
+                                "Data": {
+                                    "Origin": "FunctionEvaluation",
+                                    "Source": "img_Plot",
+                                    "Context": "appAnalise:REPORT:BAND",
+                                    "Name": "driveTestRoute",
+                                    "Layout": "1",
+                                    "Caption": "Rota percorrida durante a monitoração.",
+                                    "Settings": {
+                                        "Width": "100%",
+                                        "Height": "auto"
+                                    },
+                                    "LineBreak": 0,
+                                    "Intro": "",
+                                    "Error": ""
+                                }
+                            }
+                        ]
                     }
                 }
             ]
@@ -371,9 +387,9 @@
                                 "Data": {
                                     "Origin": "FunctionEvaluation",
                                     "Source": "img_Plot",
-                                    "Context": "appAnalise:REPORT:EMISSION",
-                                    "Name": "minHold+average+maxHold+emission:driveTestHeatmap",
-                                    "Layout": "1:3",
+                                    "Context": "appAnalise:DRIVETEST",
+                                    "Name": "driveTestHeatmap",
+                                    "Layout": "1",
                                     "Caption": "Representação gráfica da emissão sob análise.",
                                     "Settings": {
                                         "Width": "100%",

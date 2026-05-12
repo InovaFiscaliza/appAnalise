@@ -2,6 +2,54 @@ classdef (Abstract) Container
 
     methods (Static = true)
         %-----------------------------------------------------------------%
+        function [reportInfo, htmlReport] = DriveTestRoute(reportInfo, dataOverview, ~, containerSettings, internalFcn_FillWords, internalFcn_Image, internalFcn_Table)
+            bandObj = model.Band('appAnalise:REPORT:BAND', reportInfo.App);
+
+            gpsSummary = struct('lat', {}, 'lng', {});
+            htmlReport = '';
+
+            for ii = 1:numel(dataOverview)
+                analyzedData = dataOverview(ii);
+                specData = analyzedData.InfoSet;
+
+                monitoringType = gpsLib.classifyMonitoringType(specData.GPS);
+                if monitoringType ~= "mobile" || (~isempty(gpsSummary) && any(deg2km(distance([gpsSummary.lat], [gpsSummary.lng], specData.GPS.Latitude, specData.GPS.Longitude)) < .1))
+                    continue
+                end
+                
+                gpsSummary(end+1) = struct('lat', specData.GPS.Latitude, 'lng', specData.GPS.Longitude);
+                
+                updateSpectrumInfo(bandObj, specData);
+                htmlReport = [htmlReport, reportLib.sourceCode.Separator];
+                
+                for jj = 1:numel(containerSettings.Data.Component)
+                    childNode = containerSettings.Data.Component(jj);
+                    childType = containerSettings.Data.Component(jj).Type;
+
+                    switch childType
+                        case {'ItemN2', 'Paragraph'}
+                            vararginArgument = [];
+
+                            for kk = 1:numel(childNode.Data)
+                                if ~isempty(childNode.Data(kk).Variable)
+                                    childNode.Data(kk).Text = internalFcn_FillWords(reportInfo, dataOverview, analyzedData, childNode, kk);
+                                end
+                            end
+
+                        case 'Image'
+                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data)', childType));
+
+                        otherwise 
+                            error('reportLibConnection:Container:UnexpectedContainerElement', 'Unexpected container element "%s"', childType)
+                    end
+
+                    htmlReport = [htmlReport, reportLib.sourceCode.htmlCreation(childNode, vararginArgument)];
+                end
+            end
+        end
+
+
+        %-----------------------------------------------------------------%
         function [reportInfo, htmlReport] = Emissions(reportInfo, dataOverview, analyzedData, containerSettings, internalFcn_FillWords, internalFcn_Image, internalFcn_Table)
             bandObj = model.Band('appAnalise:REPORT:EMISSION', reportInfo.App);
 
@@ -17,7 +65,6 @@ classdef (Abstract) Container
                 end
 
                 updateSpectrumInfo(bandObj, specData, ii);
-
                 htmlReport = [htmlReport, reportLib.sourceCode.Separator];
 
                 for jj = 1:numel(containerSettings.Data.Component)
@@ -25,7 +72,7 @@ classdef (Abstract) Container
                     childType = containerSettings.Data.Component(jj).Type;
 
                     switch childType
-                        case 'Paragraph'
+                        case {'ItemN2', 'Paragraph'}
                             vararginArgument = [];
 
                             for kk = 1:numel(childNode.Data)

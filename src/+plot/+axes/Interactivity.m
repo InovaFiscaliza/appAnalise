@@ -285,7 +285,7 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % ROI
         %-----------------------------------------------------------------%
-        function CustomROIInteractionFcn(event, hMultiAxes, CustomFcnHandle)
+        function CustomROIInteractionFcn(event, hMultiAxes, CustomFcnHandle, varargin)
             % Para que essa função customizada funcione, deve ser passado como
             % argumento de entrada um handle para a função externa (pode ser 
             % um método do callingApp, por exemplo) que efetuará as operações 
@@ -296,7 +296,7 @@ classdef (Abstract) Interactivity
                     plot.axes.Interactivity.DefaultDisable(hMultiAxes)
                 case 'ROIMoved'
                     plot.axes.Interactivity.DefaultEnable(hMultiAxes)
-                    CustomFcnHandle()
+                    CustomFcnHandle(varargin{:})
             end
         end
 

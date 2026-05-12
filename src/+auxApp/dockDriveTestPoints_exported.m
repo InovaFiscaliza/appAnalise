@@ -2,39 +2,25 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        points_Tree                   matlab.ui.container.CheckBoxTree
-        points_AddImage               matlab.ui.control.Image
-        points_AddValuePanel          matlab.ui.container.Panel
-        points_AddValueGrid           matlab.ui.container.GridLayout
-        points_Subtype2Distance       matlab.ui.control.Spinner
-        points_Subtype2DistanceLabel  matlab.ui.control.Label
-        points_Subtype2NPeaks         matlab.ui.control.Spinner
-        points_Subtype2NPeaksLabel    matlab.ui.control.Label
-        points_Subtype2DropDown       matlab.ui.control.DropDown
-        points_Subtype2Label          matlab.ui.control.Label
-        points_Subtype1Distance       matlab.ui.control.NumericEditField
-        points_Subtype1DistanceLabel  matlab.ui.control.Label
-        points_Subtype1Value          matlab.ui.control.EditField
-        points_Subtype1DropDown       matlab.ui.control.DropDown
-        points_Subtype1Label          matlab.ui.control.Label
-        points_RadioGroup             matlab.ui.container.ButtonGroup
-        points_AddFindPeaks           matlab.ui.control.RadioButton
-        points_AddRFDataHub           matlab.ui.control.RadioButton
-        GridLayout                    matlab.ui.container.GridLayout
-        ChannelPanel                  matlab.ui.container.Panel
-        ChannelGrid                   matlab.ui.container.GridLayout
-        BandWidthkHz                  matlab.ui.control.NumericEditField
-        BandWidthkHzLabel             matlab.ui.control.Label
-        FreqCenterMHz                 matlab.ui.control.NumericEditField
-        FreqCenterMHzLabel            matlab.ui.control.Label
-        Toolbar                       matlab.ui.container.GridLayout
-        CancelEdition                 matlab.ui.control.Image
-        ConfirmEdition                matlab.ui.control.Image
-        ToggleEditMode                matlab.ui.control.Image
-        Refresh                       matlab.ui.control.Image
-        Title                         matlab.ui.control.Label
-        Icon                          matlab.ui.control.Image
+        UIFigure                 matlab.ui.Figure
+        GridLayout               matlab.ui.container.GridLayout
+        OkButton                 matlab.ui.control.Button
+        RadioGroup               matlab.ui.container.ButtonGroup
+        PeaksMinDistance         matlab.ui.control.Spinner
+        PeaksMinDistanceLabel    matlab.ui.control.Label
+        PeaksCount               matlab.ui.control.Spinner
+        PeaksCountLabel          matlab.ui.control.Label
+        PeaksDataSource          matlab.ui.control.DropDown
+        PeaksDataSourceLabel     matlab.ui.control.Label
+        PeaksOption              matlab.ui.control.RadioButton
+        StationMaxDistance       matlab.ui.control.NumericEditField
+        StationMaxDistanceLabel  matlab.ui.control.Label
+        StationTypeValue         matlab.ui.control.EditField
+        StationType              matlab.ui.control.DropDown
+        StationTypeLabel         matlab.ui.control.Label
+        StationOption            matlab.ui.control.RadioButton
+        Title                    matlab.ui.control.Label
+        TitleIcon                matlab.ui.control.Image
     end
 
     
@@ -62,42 +48,45 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initialValues(app, flowIdx, emissionIdx)
-            app.ToggleEditMode.UserData.status = false;
-            updatePanel(app, flowIdx, emissionIdx)
-        end
+        function [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, dataSource, numPeaks, minPeaksDistance)
+            pointsIdxs = [];
+            pointsCoordinates = [];
 
-        %-----------------------------------------------------------------%
-        function updatePanel(app, flowIdx, emissionIdx)
-            specData = app.mainApp.specData(flowIdx);
-            emission = specData.UserData.Emissions(emissionIdx, :);
+            switch dataSource
+                case 'Dados brutos'
+                    sourceData = app.callingApp.emissionPoints.raw;
 
-            app.FreqCenterMHz.Value = emission.ChannelAssigned.UserModified.Frequency;
-            app.BandWidthkHz.Value = emission.ChannelAssigned.UserModified.ChannelBW;
-            app.Refresh.Visible = ~isequal(emission.ChannelAssigned.AutoSuggested, emission.ChannelAssigned.UserModified);
-        end
-
-        %-----------------------------------------------------------------%
-        function updateLayout(app, editionStatus)
-            arguments
-                app
-                editionStatus char {mustBeMember(editionStatus, {'on', 'off'})}
+                otherwise % 'Processados'
+                    sourceData = app.callingApp.emissionPoints.binned;
             end
 
-            switch editionStatus
-                case 'on'
-                    app.Toolbar.ColumnWidth(end-1:end) = {18, 18};
-                    app.ToggleEditMode.ImageSource = 'Edit_32Filled.png';
-                    app.ToggleEditMode.UserData.status = true;
+            [~, peakIdxs] = findpeaks(sourceData.ChannelPower, 'SortStr', 'descend');
 
-                case 'off'
-                    app.Toolbar.ColumnWidth(end-1:end) = {0, 0};
-                    app.ToggleEditMode.ImageSource = 'Edit_32.png';
-                    app.ToggleEditMode.UserData.status = false;
+            if ~isempty(peakIdxs)
+                pointsIdxs = peakIdxs(1);
+
+                for ii = 2:numel(peakIdxs)
+                    if numel(pointsIdxs) >= numPeaks
+                        break
+                    end
+
+                    referenceCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
+                    pointsCoordinates = sourceData{peakIdxs(ii), {'Latitude', 'Longitude'}};
+    
+                    pointsDistance = deg2km(distance(referenceCoordinates, pointsCoordinates(end,:))); % em km
+                    if all(pointsDistance >= minPeaksDistance)
+                        pointsIdxs(end+1) = peakIdxs(ii);
+                    end
+                end
+
+                switch dataSource
+                    case 'Dados brutos'
+                        pointsCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
+
+                    otherwise % 'Processados'
+                        pointsCoordinates = sourceData{pointsIdxs, {'Latitude', 'Longitude'}};
+                end
             end
-            
-            set([app.ConfirmEdition, app.CancelEdition], 'Enable',   editionStatus)
-            set([app.FreqCenterMHz,  app.BandWidthkHz],  'Editable', editionStatus)
         end
     end
     
@@ -110,9 +99,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-
                 app.inputArgs = struct('context', context, 'flowIdx', flowIdx, 'emissionIdx', emissionIdx);
-                initialValues(app, flowIdx, emissionIdx)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -127,58 +114,113 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: CancelEdition, ConfirmEdition, Refresh, 
-        % ...and 1 other component
+        % Callback function
         function onButtonClicked(app, event)
             
             context = app.inputArgs.context;
             flowIdx = app.inputArgs.flowIdx;
+            specData = app.mainApp.specData(flowIdx);
             emissionIdx = app.inputArgs.emissionIdx;
 
-            switch event.Source
-                case {app.Refresh, app.ConfirmEdition}
-                    specData = app.mainApp.specData(flowIdx);
+            switch app.RadioGroup.SelectedObject
+                case app.StationOption
+                    entryText = strtrim(app.StationTypeValue.Value);
                     
-                    switch event.Source
-                        case app.Refresh
-                            update(specData, 'UserData:Emissions', 'Refresh', emissionIdx)
+                    if isempty(entryText)
+                        return
+                    end
+                    
+                    global RFDataHub
 
-                        otherwise
-                            userModified = specData.UserData.Emissions.ChannelAssigned(emissionIdx).UserModified;
-                            channelLimits = [ ...
-                                app.FreqCenterMHz.Value - app.BandWidthkHz.Value / 2000, ...
-                                app.FreqCenterMHz.Value + app.BandWidthkHz.Value / 2000 ...
-                            ];
-
-                            if all([abs(userModified.Frequency - app.FreqCenterMHz.Value) < 1e-3, abs(userModified.ChannelBW - app.BandWidthkHz.Value)  < 1e-1]) || ...
-                               (channelLimits(1) < specData.MetaData.FreqStart / 1e+6) || ...
-                               (channelLimits(2) > specData.MetaData.FreqStop / 1e+6)
-                                
-                                onButtonClicked(app, struct('Source', app.CancelEdition))
+                    % Inicialmente, identificam-se os valores da lista
+                    % de entrada.            
+                    switch app.StationType.Value
+                        case 'Índices de registros do RFDataHub'
+                            pointsIdxs = regexp(entryText, '#(\d+)', 'tokens');
+                            if isempty(pointsIdxs)
+                                warningMsg = 'Valor inválido! Deve ser inserida lista de IDs dos registros do RFDataHub. Por exemplo: #1000 #1500 #2000';
+                                ui.Dialog(app.UIFigure, 'warning', warningMsg);
                                 return
                             end
-
-                            update(specData, 'UserData:Emissions', 'Edit', 'Channel', emissionIdx, app.FreqCenterMHz.Value, app.BandWidthkHz.Value, app.mainApp.channelObj)
-                    end
-
-                    updateLayout(app, 'off')
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionChannelChanged', context)
-
-                case app.ToggleEditMode
-                    app.ToggleEditMode.UserData.status = ~app.ToggleEditMode.UserData.status;
+                            pointsIdxs = str2double([pointsIdxs{:}]);
+                            pointsIdxs(pointsIdxs < 1 | pointsIdxs > height(RFDataHub)) = [];
         
-                    if app.ToggleEditMode.UserData.status
-                        updateLayout(app, 'on')
-                        focus(app.FreqCenterMHz)        
-                    else
-                        updateLayout(app, 'off')
+                        otherwise % 'Lista de frequências (MHz)'
+                            freqList = regexp(entryText, '(\d+[.]*\d*)', 'tokens');
+                            if isempty(freqList)
+                                warningMsg = 'Valor inválido! Deve ser inserida lista de frequências em MHz. Por exemplos: 101.1, 101.3, 101.5';
+                                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                                return
+                            end
+                            freqList = cellfun(@(x) str2double(x), [freqList{:}]);
+
+                            % ## ToDo ##
+                            % Criada tabela, de forma que possa ser consumida função utilitária 
+                            % de filtragem "util.TableFiltering". Posteriormente, deve ser
+                            % refatorado esse trecho, de forma que seja consumida a função
+                            % "tableFiltering", do repo "SupportPackages".
+        
+                            filterTempTable = table( ...
+                                'Size', [0, 8], ...
+                                'VariableTypes', {'cell', 'int8', 'int8', 'cell', 'cell', 'int8', 'cell', 'logical'}, ...
+                                'VariableNames', {'Order', 'ID', 'RelatedID', 'Type', 'Operation', 'Column', 'Value', 'Enable'} ...
+                            );
+        
+                            for ii = 1:numel(freqList)
+                                if ii == 1
+                                    order = 'Node';
+                                    relatedID = -1;
+                                else
+                                    order = 'Child';
+                                    relatedID = 1;
+                                end
+
+                                filterTempTable(ii,:) = {order, ii, relatedID, 'Frequência', '=', 1, {freqList(ii)}, true};
+                            end
+
+                            pointsIdxs = find(util.TableFiltering(RFDataHub, filterTempTable));
                     end
 
-                case app.CancelEdition
-                    updateLayout(app, 'off')
+                    % Quais desses registros estão no entorno do local da monitoração?!
+                    if ~isempty(pointsIdxs)
+                        initialNumPoints = numel(pointsIdxs);
+
+                        distanceArray = deg2km(distance( ...
+                            RFDataHub.Latitude(pointsIdxs), RFDataHub.Longitude(pointsIdxs), ...
+                            specData.GPS.Latitude, specData.GPS.Longitude) ...
+                        );
+                        pointsIdxs(distanceArray > app.StationMaxDistance.Value) = [];
+                        
+                        finalNumPoints = numel(pointsIdxs);
+
+                        if finalNumPoints > 0
+                            logMsg = sprintf('Identificada(s) %d estação(ões) de telecomunicações que atende(m) ao critério "%s".', initialNumPoints, app.StationType.Value);
+                            if finalNumPoints ~= initialNumPoints
+                                logMsg = sprintf('%s Contudo, apenas %d atende(m) ao critério de distância máxima ao sensor.', msgLOG, finalNumPoints);
+                            end
+
+                            newRow = {'RFDataHub', struct('Source', app.StationType.Value, 'idxData', pointsIdxs, 'Data', RFDataHub(pointsIdxs,:)), true};
+                            ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRow)
+
+                        else
+                            logMsg = 'Não identificada estação de telecomunicações que atenda ao critério.';
+                        end
+
+                    else
+                        logMsg = 'Não identificada estação de telecomunicações que atenda ao critério.';
+                    end
+
+                otherwise % app.PeaksOption
+                    [pointsIdxs, pointsCoordinates] = geoFindPeaks(app, app.PeaksDataSource.Value, app.PeaksCount.Value, app.PeaksMinDistance.Value/1000);
+                    numPoints = numel(pointsIdxs);
+
+                    newRow = {'FindPeaks', struct('Source', app.PeaksDataSource.Value, 'idxData', pointsIdxs, 'Data', pointsCoordinates), true};
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRow)
+
+                    logMsg = sprintf('Identificado(s) %d ponto(s) que atende(m) ao critério.', numPoints);
             end
 
-            updatePanel(app, flowIdx, emissionIdx)
+            ui.Dialog(app.UIFigure, 'warning', logMsg);
 
         end
     end
@@ -196,7 +238,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 412 138];
+                app.UIFigure.Position = [100 100 412 408];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -219,19 +261,19 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {18, 244, 100};
-            app.GridLayout.RowHeight = {22, 70};
+            app.GridLayout.ColumnWidth = {18, 234, 110};
+            app.GridLayout.RowHeight = {17, 5, 312, 10, 24};
             app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create Icon
-            app.Icon = uiimage(app.GridLayout);
-            app.Icon.ScaleMethod = 'none';
-            app.Icon.Layout.Row = 1;
-            app.Icon.Layout.Column = 1;
-            app.Icon.ImageSource = 'Channel_18.png';
+            % Create TitleIcon
+            app.TitleIcon = uiimage(app.GridLayout);
+            app.TitleIcon.ScaleMethod = 'none';
+            app.TitleIcon.Layout.Row = 1;
+            app.TitleIcon.Layout.Column = 1;
+            app.TitleIcon.ImageSource = 'Pin_18.png';
 
             % Create Title
             app.Title = uilabel(app.GridLayout);
@@ -239,261 +281,153 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
             app.Title.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.Title.Layout.Row = 1;
             app.Title.Layout.Column = 2;
-            app.Title.Text = 'CANAL SOB ANÁLISE';
+            app.Title.Text = 'PONTOS DE INTERESSE';
 
-            % Create Toolbar
-            app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {'1x', 18, 18, 0, 0};
-            app.Toolbar.RowHeight = {'1x'};
-            app.Toolbar.ColumnSpacing = 5;
-            app.Toolbar.Padding = [0 0 0 0];
-            app.Toolbar.Layout.Row = 1;
-            app.Toolbar.Layout.Column = 3;
-            app.Toolbar.BackgroundColor = [1 1 1];
+            % Create RadioGroup
+            app.RadioGroup = uibuttongroup(app.GridLayout);
+            app.RadioGroup.AutoResizeChildren = 'off';
+            app.RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.RadioGroup.BackgroundColor = [1 1 1];
+            app.RadioGroup.Layout.Row = 3;
+            app.RadioGroup.Layout.Column = [1 3];
+            app.RadioGroup.FontWeight = 'bold';
+            app.RadioGroup.FontSize = 10;
 
-            % Create Refresh
-            app.Refresh = uiimage(app.Toolbar);
-            app.Refresh.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
-            app.Refresh.Visible = 'off';
-            app.Refresh.Layout.Row = 1;
-            app.Refresh.Layout.Column = 2;
-            app.Refresh.ImageSource = 'Refresh_18.png';
+            % Create StationOption
+            app.StationOption = uiradiobutton(app.RadioGroup);
+            app.StationOption.Text = {'<b>ESTAÇÕES DE TELECOMUNICAÇÕES</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona estações incluídas no RFDataHub.</font>'};
+            app.StationOption.FontSize = 11;
+            app.StationOption.Interpreter = 'html';
+            app.StationOption.Position = [11 267 278 31];
+            app.StationOption.Value = true;
 
-            % Create ToggleEditMode
-            app.ToggleEditMode = uiimage(app.Toolbar);
-            app.ToggleEditMode.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
-            app.ToggleEditMode.Layout.Row = 1;
-            app.ToggleEditMode.Layout.Column = 3;
-            app.ToggleEditMode.ImageSource = 'Edit_32.png';
+            % Create StationTypeLabel
+            app.StationTypeLabel = uilabel(app.RadioGroup);
+            app.StationTypeLabel.Tag = 'STATION';
+            app.StationTypeLabel.VerticalAlignment = 'bottom';
+            app.StationTypeLabel.FontSize = 11;
+            app.StationTypeLabel.FontColor = [0.302 0.302 0.302];
+            app.StationTypeLabel.Position = [30 246 181 17];
+            app.StationTypeLabel.Text = 'Tipo de registro:';
 
-            % Create ConfirmEdition
-            app.ConfirmEdition = uiimage(app.Toolbar);
-            app.ConfirmEdition.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
-            app.ConfirmEdition.Enable = 'off';
-            app.ConfirmEdition.Layout.Row = 1;
-            app.ConfirmEdition.Layout.Column = 4;
-            app.ConfirmEdition.ImageSource = 'Ok_32Green.png';
+            % Create StationType
+            app.StationType = uidropdown(app.RadioGroup);
+            app.StationType.Items = {'Lista de frequências (MHz)', 'Índices de registros do RFDataHub'};
+            app.StationType.Tag = 'STATION';
+            app.StationType.FontSize = 11;
+            app.StationType.FontColor = [0.302 0.302 0.302];
+            app.StationType.BackgroundColor = [1 1 1];
+            app.StationType.Position = [30 219 330 22];
+            app.StationType.Value = 'Lista de frequências (MHz)';
 
-            % Create CancelEdition
-            app.CancelEdition = uiimage(app.Toolbar);
-            app.CancelEdition.ImageClickedFcn = createCallbackFcn(app, @onButtonClicked, true);
-            app.CancelEdition.Enable = 'off';
-            app.CancelEdition.Layout.Row = 1;
-            app.CancelEdition.Layout.Column = 5;
-            app.CancelEdition.ImageSource = 'Delete_32Red.png';
+            % Create StationTypeValue
+            app.StationTypeValue = uieditfield(app.RadioGroup, 'text');
+            app.StationTypeValue.Tag = 'STATION';
+            app.StationTypeValue.FontSize = 11;
+            app.StationTypeValue.FontColor = [0.302 0.302 0.302];
+            app.StationTypeValue.Tooltip = {'Exemplos:'; '• 101.1, 101.3, 101.5 (Lista de frequências)'; '• #1000 #1500 #2000 (RFDataHub)'};
+            app.StationTypeValue.Position = [30 189 330 22];
 
-            % Create ChannelPanel
-            app.ChannelPanel = uipanel(app.GridLayout);
-            app.ChannelPanel.AutoResizeChildren = 'off';
-            app.ChannelPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.ChannelPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.ChannelPanel.Layout.Row = 2;
-            app.ChannelPanel.Layout.Column = [1 3];
+            % Create StationMaxDistanceLabel
+            app.StationMaxDistanceLabel = uilabel(app.RadioGroup);
+            app.StationMaxDistanceLabel.Tag = 'STATION';
+            app.StationMaxDistanceLabel.WordWrap = 'on';
+            app.StationMaxDistanceLabel.FontSize = 11;
+            app.StationMaxDistanceLabel.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistanceLabel.Position = [30 155 221 28];
+            app.StationMaxDistanceLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
 
-            % Create ChannelGrid
-            app.ChannelGrid = uigridlayout(app.ChannelPanel);
-            app.ChannelGrid.ColumnWidth = {'1x', 110};
-            app.ChannelGrid.RowHeight = {22, 22};
-            app.ChannelGrid.RowSpacing = 5;
-            app.ChannelGrid.BackgroundColor = [1 1 1];
+            % Create StationMaxDistance
+            app.StationMaxDistance = uieditfield(app.RadioGroup, 'numeric');
+            app.StationMaxDistance.Limits = [1 Inf];
+            app.StationMaxDistance.RoundFractionalValues = 'on';
+            app.StationMaxDistance.ValueDisplayFormat = '%d';
+            app.StationMaxDistance.Tag = 'STATION';
+            app.StationMaxDistance.FontSize = 11;
+            app.StationMaxDistance.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistance.Position = [262 160 98 22];
+            app.StationMaxDistance.Value = 30;
 
-            % Create FreqCenterMHzLabel
-            app.FreqCenterMHzLabel = uilabel(app.ChannelGrid);
-            app.FreqCenterMHzLabel.FontSize = 11;
-            app.FreqCenterMHzLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FreqCenterMHzLabel.Layout.Row = 1;
-            app.FreqCenterMHzLabel.Layout.Column = 1;
-            app.FreqCenterMHzLabel.Text = 'Frequência central (MHz):';
+            % Create PeaksOption
+            app.PeaksOption = uiradiobutton(app.RadioGroup);
+            app.PeaksOption.Text = {'<b>POTÊNCIA DO CANAL</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
+            app.PeaksOption.WordWrap = 'on';
+            app.PeaksOption.FontSize = 11;
+            app.PeaksOption.Interpreter = 'html';
+            app.PeaksOption.Position = [12 94 347 46];
 
-            % Create FreqCenterMHz
-            app.FreqCenterMHz = uieditfield(app.ChannelGrid, 'numeric');
-            app.FreqCenterMHz.Limits = [0 Inf];
-            app.FreqCenterMHz.ValueDisplayFormat = '%.3f';
-            app.FreqCenterMHz.Editable = 'off';
-            app.FreqCenterMHz.FontSize = 11;
-            app.FreqCenterMHz.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FreqCenterMHz.Layout.Row = 1;
-            app.FreqCenterMHz.Layout.Column = 2;
+            % Create PeaksDataSourceLabel
+            app.PeaksDataSourceLabel = uilabel(app.RadioGroup);
+            app.PeaksDataSourceLabel.Tag = 'PEAK';
+            app.PeaksDataSourceLabel.VerticalAlignment = 'bottom';
+            app.PeaksDataSourceLabel.FontSize = 11;
+            app.PeaksDataSourceLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksDataSourceLabel.Enable = 'off';
+            app.PeaksDataSourceLabel.Position = [31 73 181 17];
+            app.PeaksDataSourceLabel.Text = 'Fonte da informação:';
 
-            % Create BandWidthkHzLabel
-            app.BandWidthkHzLabel = uilabel(app.ChannelGrid);
-            app.BandWidthkHzLabel.FontSize = 11;
-            app.BandWidthkHzLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.BandWidthkHzLabel.Layout.Row = 2;
-            app.BandWidthkHzLabel.Layout.Column = 1;
-            app.BandWidthkHzLabel.Text = 'Largura (kHz):';
+            % Create PeaksDataSource
+            app.PeaksDataSource = uidropdown(app.RadioGroup);
+            app.PeaksDataSource.Items = {'Dados brutos', 'Processados'};
+            app.PeaksDataSource.Tag = 'PEAK';
+            app.PeaksDataSource.Enable = 'off';
+            app.PeaksDataSource.FontSize = 11;
+            app.PeaksDataSource.FontColor = [0.302 0.302 0.302];
+            app.PeaksDataSource.BackgroundColor = [1 1 1];
+            app.PeaksDataSource.Position = [31 46 220 22];
+            app.PeaksDataSource.Value = 'Dados brutos';
 
-            % Create BandWidthkHz
-            app.BandWidthkHz = uieditfield(app.ChannelGrid, 'numeric');
-            app.BandWidthkHz.Limits = [0 Inf];
-            app.BandWidthkHz.ValueDisplayFormat = '%.1f';
-            app.BandWidthkHz.Editable = 'off';
-            app.BandWidthkHz.FontSize = 11;
-            app.BandWidthkHz.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.BandWidthkHz.Layout.Row = 2;
-            app.BandWidthkHz.Layout.Column = 2;
+            % Create PeaksCountLabel
+            app.PeaksCountLabel = uilabel(app.RadioGroup);
+            app.PeaksCountLabel.Tag = 'PEAK';
+            app.PeaksCountLabel.VerticalAlignment = 'bottom';
+            app.PeaksCountLabel.FontSize = 11;
+            app.PeaksCountLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksCountLabel.Enable = 'off';
+            app.PeaksCountLabel.Position = [262 73 94 17];
+            app.PeaksCountLabel.Text = 'Número de picos:';
 
-            % Create points_RadioGroup
-            app.points_RadioGroup = uibuttongroup(app.UIFigure);
-            app.points_RadioGroup.AutoResizeChildren = 'off';
-            app.points_RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_RadioGroup.BackgroundColor = [1 1 1];
-            app.points_RadioGroup.FontWeight = 'bold';
-            app.points_RadioGroup.FontSize = 10;
-            app.points_RadioGroup.Position = [-336 292 298 92];
+            % Create PeaksCount
+            app.PeaksCount = uispinner(app.RadioGroup);
+            app.PeaksCount.Limits = [1 100];
+            app.PeaksCount.RoundFractionalValues = 'on';
+            app.PeaksCount.ValueDisplayFormat = '%.0f';
+            app.PeaksCount.Tag = 'PEAK';
+            app.PeaksCount.FontSize = 11;
+            app.PeaksCount.FontColor = [0.302 0.302 0.302];
+            app.PeaksCount.Enable = 'off';
+            app.PeaksCount.Position = [262 46 98 22];
+            app.PeaksCount.Value = 1;
 
-            % Create points_AddRFDataHub
-            app.points_AddRFDataHub = uiradiobutton(app.points_RadioGroup);
-            app.points_AddRFDataHub.Text = {'<b>ESTAÇÕES DE TELECOMUNICAÇÕES</b>'; '<p style="color: gray; text-align: justify;">Adiciona estações incluídas no RFDataHub.</font>'};
-            app.points_AddRFDataHub.FontSize = 10;
-            app.points_AddRFDataHub.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_AddRFDataHub.Interpreter = 'html';
-            app.points_AddRFDataHub.Position = [11 58 278 25];
-            app.points_AddRFDataHub.Value = true;
+            % Create PeaksMinDistanceLabel
+            app.PeaksMinDistanceLabel = uilabel(app.RadioGroup);
+            app.PeaksMinDistanceLabel.Tag = 'PEAK';
+            app.PeaksMinDistanceLabel.FontSize = 11;
+            app.PeaksMinDistanceLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistanceLabel.Enable = 'off';
+            app.PeaksMinDistanceLabel.Position = [31 14 204 22];
+            app.PeaksMinDistanceLabel.Text = 'Distância mínima entre picos (metros):';
 
-            % Create points_AddFindPeaks
-            app.points_AddFindPeaks = uiradiobutton(app.points_RadioGroup);
-            app.points_AddFindPeaks.Text = {'<b>POTÊNCIA DO CANAL</b>'; '<p style="color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
-            app.points_AddFindPeaks.WordWrap = 'on';
-            app.points_AddFindPeaks.FontSize = 10;
-            app.points_AddFindPeaks.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_AddFindPeaks.Interpreter = 'html';
-            app.points_AddFindPeaks.Position = [12 7 277 44];
+            % Create PeaksMinDistance
+            app.PeaksMinDistance = uispinner(app.RadioGroup);
+            app.PeaksMinDistance.Step = 100;
+            app.PeaksMinDistance.Limits = [0 10000];
+            app.PeaksMinDistance.RoundFractionalValues = 'on';
+            app.PeaksMinDistance.ValueDisplayFormat = '%.0f';
+            app.PeaksMinDistance.Tag = 'PEAK';
+            app.PeaksMinDistance.FontSize = 11;
+            app.PeaksMinDistance.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistance.Enable = 'off';
+            app.PeaksMinDistance.Position = [262 14 98 22];
+            app.PeaksMinDistance.Value = 1000;
 
-            % Create points_AddValuePanel
-            app.points_AddValuePanel = uipanel(app.UIFigure);
-            app.points_AddValuePanel.AutoResizeChildren = 'off';
-            app.points_AddValuePanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_AddValuePanel.Title = 'aaa';
-            app.points_AddValuePanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
-            app.points_AddValuePanel.Position = [-336 47 298 240];
-
-            % Create points_AddValueGrid
-            app.points_AddValueGrid = uigridlayout(app.points_AddValuePanel);
-            app.points_AddValueGrid.ColumnWidth = {'1x', '1x', '1x'};
-            app.points_AddValueGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22, 22};
-            app.points_AddValueGrid.RowSpacing = 5;
-            app.points_AddValueGrid.Padding = [10 10 10 5];
-            app.points_AddValueGrid.BackgroundColor = [1 1 1];
-
-            % Create points_Subtype1Label
-            app.points_Subtype1Label = uilabel(app.points_AddValueGrid);
-            app.points_Subtype1Label.VerticalAlignment = 'bottom';
-            app.points_Subtype1Label.FontSize = 10;
-            app.points_Subtype1Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype1Label.Layout.Row = 1;
-            app.points_Subtype1Label.Layout.Column = [1 2];
-            app.points_Subtype1Label.Text = 'Tipo de registro:';
-
-            % Create points_Subtype1DropDown
-            app.points_Subtype1DropDown = uidropdown(app.points_AddValueGrid);
-            app.points_Subtype1DropDown.Items = {'Lista de frequências (MHz)', 'Índices de registros do RFDataHub'};
-            app.points_Subtype1DropDown.FontSize = 11;
-            app.points_Subtype1DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype1DropDown.BackgroundColor = [1 1 1];
-            app.points_Subtype1DropDown.Layout.Row = 2;
-            app.points_Subtype1DropDown.Layout.Column = [1 3];
-            app.points_Subtype1DropDown.Value = 'Lista de frequências (MHz)';
-
-            % Create points_Subtype1Value
-            app.points_Subtype1Value = uieditfield(app.points_AddValueGrid, 'text');
-            app.points_Subtype1Value.FontSize = 11;
-            app.points_Subtype1Value.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype1Value.Tooltip = {'Exemplos:'; '• 101.1, 101.3, 101.5 (Lista de frequências)'; '• #1000 #1500 #2000 (RFDataHub)'};
-            app.points_Subtype1Value.Layout.Row = 3;
-            app.points_Subtype1Value.Layout.Column = [1 3];
-
-            % Create points_Subtype1DistanceLabel
-            app.points_Subtype1DistanceLabel = uilabel(app.points_AddValueGrid);
-            app.points_Subtype1DistanceLabel.WordWrap = 'on';
-            app.points_Subtype1DistanceLabel.FontSize = 10;
-            app.points_Subtype1DistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype1DistanceLabel.Layout.Row = 4;
-            app.points_Subtype1DistanceLabel.Layout.Column = [1 2];
-            app.points_Subtype1DistanceLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
-
-            % Create points_Subtype1Distance
-            app.points_Subtype1Distance = uieditfield(app.points_AddValueGrid, 'numeric');
-            app.points_Subtype1Distance.Limits = [1 Inf];
-            app.points_Subtype1Distance.RoundFractionalValues = 'on';
-            app.points_Subtype1Distance.ValueDisplayFormat = '%d';
-            app.points_Subtype1Distance.FontSize = 11;
-            app.points_Subtype1Distance.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype1Distance.Layout.Row = 4;
-            app.points_Subtype1Distance.Layout.Column = 3;
-            app.points_Subtype1Distance.Value = 30;
-
-            % Create points_Subtype2Label
-            app.points_Subtype2Label = uilabel(app.points_AddValueGrid);
-            app.points_Subtype2Label.VerticalAlignment = 'bottom';
-            app.points_Subtype2Label.FontSize = 10;
-            app.points_Subtype2Label.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2Label.Layout.Row = 5;
-            app.points_Subtype2Label.Layout.Column = [1 2];
-            app.points_Subtype2Label.Text = 'Fonte da informação:';
-
-            % Create points_Subtype2DropDown
-            app.points_Subtype2DropDown = uidropdown(app.points_AddValueGrid);
-            app.points_Subtype2DropDown.Items = {'Dados brutos', 'Dados processados (Data Binning)'};
-            app.points_Subtype2DropDown.FontSize = 11;
-            app.points_Subtype2DropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2DropDown.BackgroundColor = [1 1 1];
-            app.points_Subtype2DropDown.Layout.Row = 6;
-            app.points_Subtype2DropDown.Layout.Column = [1 3];
-            app.points_Subtype2DropDown.Value = 'Dados brutos';
-
-            % Create points_Subtype2NPeaksLabel
-            app.points_Subtype2NPeaksLabel = uilabel(app.points_AddValueGrid);
-            app.points_Subtype2NPeaksLabel.FontSize = 10;
-            app.points_Subtype2NPeaksLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2NPeaksLabel.Layout.Row = 7;
-            app.points_Subtype2NPeaksLabel.Layout.Column = [1 2];
-            app.points_Subtype2NPeaksLabel.Text = 'Número de picos:';
-
-            % Create points_Subtype2NPeaks
-            app.points_Subtype2NPeaks = uispinner(app.points_AddValueGrid);
-            app.points_Subtype2NPeaks.Limits = [1 100];
-            app.points_Subtype2NPeaks.RoundFractionalValues = 'on';
-            app.points_Subtype2NPeaks.ValueDisplayFormat = '%.0f';
-            app.points_Subtype2NPeaks.FontSize = 11;
-            app.points_Subtype2NPeaks.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2NPeaks.Layout.Row = 7;
-            app.points_Subtype2NPeaks.Layout.Column = 3;
-            app.points_Subtype2NPeaks.Value = 1;
-
-            % Create points_Subtype2DistanceLabel
-            app.points_Subtype2DistanceLabel = uilabel(app.points_AddValueGrid);
-            app.points_Subtype2DistanceLabel.WordWrap = 'on';
-            app.points_Subtype2DistanceLabel.FontSize = 10;
-            app.points_Subtype2DistanceLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2DistanceLabel.Layout.Row = 8;
-            app.points_Subtype2DistanceLabel.Layout.Column = [1 2];
-            app.points_Subtype2DistanceLabel.Text = 'Distância mínima entre picos (metros):';
-
-            % Create points_Subtype2Distance
-            app.points_Subtype2Distance = uispinner(app.points_AddValueGrid);
-            app.points_Subtype2Distance.Step = 100;
-            app.points_Subtype2Distance.Limits = [0 10000];
-            app.points_Subtype2Distance.RoundFractionalValues = 'on';
-            app.points_Subtype2Distance.ValueDisplayFormat = '%.0f';
-            app.points_Subtype2Distance.FontSize = 11;
-            app.points_Subtype2Distance.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Subtype2Distance.Layout.Row = 8;
-            app.points_Subtype2Distance.Layout.Column = 3;
-            app.points_Subtype2Distance.Value = 1000;
-
-            % Create points_AddImage
-            app.points_AddImage = uiimage(app.UIFigure);
-            app.points_AddImage.ScaleMethod = 'scaledown';
-            app.points_AddImage.HorizontalAlignment = 'right';
-            app.points_AddImage.VerticalAlignment = 'bottom';
-            app.points_AddImage.Position = [-60 34 22 8];
-
-            % Create points_Tree
-            app.points_Tree = uitree(app.UIFigure, 'checkbox');
-            app.points_Tree.FontSize = 10.5;
-            app.points_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.points_Tree.Position = [-336 -155 298 184];
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.FontSize = 11;
+            app.OkButton.Layout.Row = 5;
+            app.OkButton.Layout.Column = 3;
+            app.OkButton.Text = 'Incluir pontos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
