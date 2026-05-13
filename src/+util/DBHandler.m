@@ -67,6 +67,13 @@ classdef DBHandler
 
         end
 
+        function obj = closeConnections(obj)
+            % Encerra explicitamente todas as conexoes abertas pelo handler.
+            obj.ConnRFData = closeSingleConnection(obj, obj.ConnRFData);
+            obj.ConnBPData = closeSingleConnection(obj, obj.ConnBPData);
+            obj.ConnSMData = closeSingleConnection(obj, obj.ConnSMData);
+        end
+
         function output = getStationSummary(obj)
             % Essa função usa a conexão com o banco de dados criada
             % Retorna um array com informação de posição das estações
@@ -481,62 +488,6 @@ classdef DBHandler
             end
         end
 
-        function output = getSpectrumData(obj, filters)
-            % Retorna uma linha por espectro com arquivo oficial associado.
-
-            output = table();
-
-            if isempty(obj.ConnRFData)
-                return;
-            end
-
-            whereConditions = obj.buildSpectrumWhereConditions(filters, true);
-            localitySql = obj.buildSpectrumLocalitySql();
-            [pageSize, offset] = obj.getPaginationInfo(filters);
-
-            sqlQuery = ...
-                "SELECT " + ...
-                "    f.ID_SPECTRUM, " + ...
-                "    f.NA_DESCRIPTION, " + ...
-                "    f.NU_FREQ_START, " + ...
-                "    f.NU_FREQ_END, " + ...
-                "    f.DT_TIME_START, " + ...
-                "    f.DT_TIME_END, " + ...
-                "    e.NA_EQUIPMENT, " + ...
-                "    f.FK_SITE AS ID_SITE, " + ...
-                     localitySql + " AS LOCALITY_LABEL, " + ...
-                "    c.NA_COUNTY AS COUNTY_NAME, " + ...
-                "    st.LC_STATE AS STATE_CODE, " + ...
-                "    repos.ID_FILE, " + ...
-                "    repos.NA_PATH, " + ...
-                "    repos.NA_FILE, " + ...
-                "    repos.NA_EXTENSION, " + ...
-                "    repos.VL_FILE_SIZE_KB " + ...
-                "FROM RFDATA.FACT_SPECTRUM f " + ...
-                "JOIN RFDATA.DIM_SPECTRUM_EQUIPMENT e ON e.ID_EQUIPMENT = f.FK_EQUIPMENT " + ...
-                "JOIN RFDATA.DIM_SPECTRUM_SITE s ON s.ID_SITE = f.FK_SITE " + ...
-                "LEFT JOIN RFDATA.DIM_SITE_DISTRICT d ON d.ID_DISTRICT = s.FK_DISTRICT " + ...
-                "LEFT JOIN RFDATA.DIM_SITE_COUNTY c ON c.ID_COUNTY = s.FK_COUNTY " + ...
-                "LEFT JOIN RFDATA.DIM_SITE_STATE st ON st.ID_STATE = s.FK_STATE " + ...
-                "LEFT JOIN ( " + ...
-                "    SELECT b.FK_SPECTRUM, MAX(dfile.ID_FILE) AS ID_FILE " + ...
-                "    FROM RFDATA.BRIDGE_SPECTRUM_FILE b " + ...
-                "    JOIN RFDATA.DIM_SPECTRUM_FILE dfile ON dfile.ID_FILE = b.FK_FILE " + ...
-                "    WHERE dfile.NA_VOLUME = 'reposfi' " + ...
-                "    GROUP BY b.FK_SPECTRUM " + ...
-                ") latest ON latest.FK_SPECTRUM = f.ID_SPECTRUM " + ...
-                "LEFT JOIN RFDATA.DIM_SPECTRUM_FILE repos ON repos.ID_FILE = latest.ID_FILE " + ...
-                "WHERE 1=1 " + whereConditions + " " + ...
-                "ORDER BY f.DT_TIME_START DESC, f.ID_SPECTRUM DESC " + ...
-                "LIMIT " + string(pageSize + 1) + " OFFSET " + string(offset) + ";";
-
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch
-                output = table();
-            end
-        end
-
         function output = getSpectrumFileData(obj, filters)
             % Retorna uma linha por arquivo do repositório.
 
@@ -583,27 +534,57 @@ classdef DBHandler
             end
         end
 
-        function output = getSpectrumDataCount(obj, filters)
-            % Retorna a quantidade total de linhas da consulta por espectro.
+        function output = getSpectraByFileId(obj, fileId, filters)
+            % Retorna os espectros vinculados a um arquivo específico do repositório.
 
-            output = 0;
+            output = table();
 
             if isempty(obj.ConnRFData)
                 return;
             end
 
+            fileId = obj.toDouble(fileId);
+            if isnan(fileId)
+                return;
+            end
+
+            if nargin < 3 || ~isstruct(filters)
+                filters = struct();
+            end
+
             whereConditions = obj.buildSpectrumWhereConditions(filters, true);
+            localitySql = obj.buildSpectrumLocalitySql();
 
             sqlQuery = ...
-                "SELECT COUNT(*) AS TOTAL_COUNT " + ...
+                "SELECT " + ...
+                "    f.ID_SPECTRUM, " + ...
+                "    f.NA_DESCRIPTION, " + ...
+                "    f.NU_FREQ_START, " + ...
+                "    f.NU_FREQ_END, " + ...
+                "    f.DT_TIME_START, " + ...
+                "    f.DT_TIME_END, " + ...
+                "    f.FK_SITE AS ID_SITE, " + ...
+                     localitySql + " AS LOCALITY_LABEL, " + ...
+                "    c.NA_COUNTY AS COUNTY_NAME, " + ...
+                "    st.LC_STATE AS STATE_CODE, " + ...
+                "    e.NA_EQUIPMENT " + ...
                 "FROM RFDATA.FACT_SPECTRUM f " + ...
-                "WHERE 1=1 " + whereConditions + ";";
+                "JOIN RFDATA.BRIDGE_SPECTRUM_FILE b ON b.FK_SPECTRUM = f.ID_SPECTRUM " + ...
+                "JOIN RFDATA.DIM_SPECTRUM_FILE repos ON repos.ID_FILE = b.FK_FILE " + ...
+                "JOIN RFDATA.DIM_SPECTRUM_EQUIPMENT e ON e.ID_EQUIPMENT = f.FK_EQUIPMENT " + ...
+                "JOIN RFDATA.DIM_SPECTRUM_SITE s ON s.ID_SITE = f.FK_SITE " + ...
+                "LEFT JOIN RFDATA.DIM_SITE_DISTRICT d ON d.ID_DISTRICT = s.FK_DISTRICT " + ...
+                "LEFT JOIN RFDATA.DIM_SITE_COUNTY c ON c.ID_COUNTY = s.FK_COUNTY " + ...
+                "LEFT JOIN RFDATA.DIM_SITE_STATE st ON st.ID_STATE = s.FK_STATE " + ...
+                "WHERE repos.NA_VOLUME = 'reposfi' " + ...
+                "  AND repos.ID_FILE = " + string(round(fileId)) + " " + ...
+                     whereConditions + " " + ...
+                "ORDER BY f.DT_TIME_START DESC, f.ID_SPECTRUM DESC;";
 
             try
-                rows = fetch(obj.ConnRFData, sqlQuery);
-                output = obj.readCountValue(rows);
+                output = fetch(obj.ConnRFData, sqlQuery);
             catch
-                output = 0;
+                output = table();
             end
         end
 
@@ -636,89 +617,32 @@ classdef DBHandler
             end
         end
 
-        function output = getSpectrumFiles(obj, equipmentId, startDate, endDate, page, pageSize)
-            % Retorna arquivos de espectro para um equipamento.
-            % Implementa paginação com offset baseado em page.
-            % Equivale à função get_spectrum_data() do webfusion.
-            
-            arguments
-                obj
-                equipmentId
-                startDate char
-                endDate char
-                page (1,1) double = 1
-                pageSize (1,1) double = 50
-            end
-
-            output = table();
-
-            if isempty(obj.ConnRFData)
-                return;
-            end
-
-            % Validações básicas
-            if page < 1
-                page = 1;
-            end
-            if pageSize < 1
-                pageSize = 50;
-            end
-
-            % Calcular offset para paginação
-            offset = (page - 1) * pageSize;
-
-            % Construção da query com WHERE dinâmico
-            whereConditions = "";
-            
-            if ~isempty(equipmentId)
-                whereConditions = whereConditions + " AND f.FK_EQUIPMENT = " + string(equipmentId);
-            end
-            
-            if ~isempty(startDate)
-                whereConditions = whereConditions + " AND f.DT_TIME_END >= '" + string(startDate) + "'";
-            end
-            
-            if ~isempty(endDate)
-                whereConditions = whereConditions + " AND f.DT_TIME_START <= '" + string(endDate) + " 23:59:59'";
-            end
-
-            sqlQuery = ...
-                "SELECT " + ...
-                "    f.ID_SPECTRUM, " + ...
-                "    f.NA_DESCRIPTION, " + ...
-                "    f.DT_TIME_START, " + ...
-                "    f.DT_TIME_END, " + ...
-                "    f.NU_FREQ_START, " + ...
-                "    f.NU_FREQ_END, " + ...
-                "    e.NA_EQUIPMENT, " + ...
-                "    repos.NA_PATH, " + ...
-                "    repos.NA_FILE, " + ...
-                "    repos.NA_EXTENSION, " + ...
-                "    repos.VL_FILE_SIZE_KB " + ...
-                "FROM RFDATA.FACT_SPECTRUM f " + ...
-                "JOIN RFDATA.DIM_SPECTRUM_EQUIPMENT e ON e.ID_EQUIPMENT = f.FK_EQUIPMENT " + ...
-                "LEFT JOIN ( " + ...
-                "    SELECT b.FK_SPECTRUM, MAX(d.ID_FILE) AS ID_FILE " + ...
-                "    FROM RFDATA.BRIDGE_SPECTRUM_FILE b " + ...
-                "    JOIN RFDATA.DIM_SPECTRUM_FILE d ON d.ID_FILE = b.FK_FILE " + ...
-                "    WHERE d.NA_VOLUME = 'reposfi' " + ...
-                "    GROUP BY b.FK_SPECTRUM " + ...
-                ") latest ON latest.FK_SPECTRUM = f.ID_SPECTRUM " + ...
-                "LEFT JOIN RFDATA.DIM_SPECTRUM_FILE repos ON repos.ID_FILE = latest.ID_FILE " + ...
-                "WHERE 1=1 " + whereConditions + " " + ...
-                "ORDER BY f.DT_TIME_START DESC, f.ID_SPECTRUM DESC " + ...
-                "LIMIT " + string(pageSize) + " OFFSET " + string(offset);
-
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch
-                % Se a query falhar, retorna table vazio
-                output = table();
-            end
-        end
     end
 
     methods (Access = private)
+        function connectionObj = closeSingleConnection(~, connectionObj)
+            % Fecha uma conexao individual com fallback seguro para APIs
+            % diferentes do objeto retornado por mysql().
+            if isempty(connectionObj)
+                return;
+            end
+
+            try
+                close(connectionObj);
+            catch
+                try
+                    connectionObj.close();
+                catch
+                    try
+                        delete(connectionObj);
+                    catch
+                    end
+                end
+            end
+
+            connectionObj = [];
+        end
+
         function output = emptyPointArray(obj)
             output = repmat(obj.newPointStruct(), 0, 1);
         end
@@ -1089,9 +1013,24 @@ classdef DBHandler
         end
 
         function output = buildSQLLikePattern(~, rawValue)
-            output = string(rawValue);
-            output = strip(output);
+            value = rawValue;
 
+            while iscell(value)
+                if isempty(value)
+                    output = "";
+                    return;
+                end
+                value = value{1};
+            end
+
+            output = strip(string(value));
+
+            if isempty(output) || all(ismissing(output))
+                output = "";
+                return;
+            end
+
+            output = output(1);
             if strlength(output) == 0
                 output = "";
                 return;
@@ -1099,7 +1038,7 @@ classdef DBHandler
 
             output = replace(output, "'", "''");
 
-            if ~contains(output, "%") && ~contains(output, "_")
+            if ~any(contains(output, "%")) && ~any(contains(output, "_"))
                 output = "%" + output + "%";
             end
         end

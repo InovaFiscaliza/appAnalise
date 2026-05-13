@@ -7,9 +7,10 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         DockModule                    matlab.ui.container.GridLayout
         dockModule_Close              matlab.ui.control.Image
         dockModule_Undock             matlab.ui.control.Image
-        SubTabGroup                   matlab.ui.container.TabGroup
-        FilesTab                      matlab.ui.container.Tab
+        Panel                         matlab.ui.container.Panel
         FilesMainGrid                 matlab.ui.container.GridLayout
+        referenceRX_Label_3           matlab.ui.control.Label
+        referenceRX_Icon_3            matlab.ui.control.Image
         GridLayout2                   matlab.ui.container.GridLayout
         filesCleanButton              matlab.ui.control.Button
         filesSearchButton             matlab.ui.control.Button
@@ -33,7 +34,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         filesEndDateLabel             matlab.ui.control.Label
         filesStartDateLabel           matlab.ui.control.Label
         filesLocationSelectLabel      matlab.ui.control.Label
-        filesCountLabel               matlab.ui.control.Label
         filesStationFilterPanel       matlab.ui.container.Panel
         filesStationsGrid             matlab.ui.container.GridLayout
         filesLocalityDropDown         matlab.ui.control.DropDown
@@ -42,13 +42,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         filesLocalityLabel            matlab.ui.control.Label
         filesStatusLabel              matlab.ui.control.Label
         filesStateLabel               matlab.ui.control.Label
-        filesDescriptionEditField     matlab.ui.control.EditField
-        filesDescriptionLabel         matlab.ui.control.Label
         filesFrequencyLabel           matlab.ui.control.Label
         filesPeriodLabel              matlab.ui.control.Label
-        filesTitleGrid                matlab.ui.container.GridLayout
-        referenceRX_Label_3           matlab.ui.control.Label
-        referenceRX_Icon_3            matlab.ui.control.Image
         Document                      matlab.ui.container.GridLayout
         popupHTML                     matlab.ui.control.Label
         AxesToolbar                   matlab.ui.container.GridLayout
@@ -57,12 +52,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         axesTool_RegionZoom           matlab.ui.control.Image
         plotPanel                     matlab.ui.container.Panel
         Toolbar                       matlab.ui.container.GridLayout
+        filesCountLabel               matlab.ui.control.Label
         tool_tableNRowsIcon           matlab.ui.control.Image
         tool_ExportButton             matlab.ui.control.Image
         tool_Separator2               matlab.ui.control.Image
         tool_PDFButton                matlab.ui.control.Image
         tool_RFLinkButton             matlab.ui.control.Image
-        tool_TableVisibility          matlab.ui.control.Image
         tool_Separator1               matlab.ui.control.Image
         tool_PanelVisibility          matlab.ui.control.Image
         ContextMenu                   matlab.ui.container.ContextMenu
@@ -172,7 +167,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             elToModify = {
                 app.AxesToolbar;
                 app.tool_PanelVisibility;
-                app.tool_TableVisibility;
                 app.tool_RFLinkButton;
                 app.tool_PDFButton;
                 app.tool_ExportButton;
@@ -191,7 +185,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                     struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                     struct('appName', appName, 'dataTag', app.tool_PanelVisibility.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel')), ...
-                    struct('appName', appName, 'dataTag', app.tool_TableVisibility.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna entre três layouts do conjunto plot+tabela<br>(apenas plot, apenas tabela ou plot+tabela)')), ...
                     struct('appName', appName, 'dataTag', app.tool_RFLinkButton.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Apresenta perfil de terreno entre registro selecionado (TX)<br>e estação de referência (RX)')), ...
                     struct('appName', appName, 'dataTag', app.tool_PDFButton.UserData.id,             'tooltip', struct('defaultPosition', 'top',    'textContent', 'Apresenta documento gerado pelo Mosaico (limitado à radiodifusão)')), ...
                     struct('appName', appName, 'dataTag', app.tool_ExportButton.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta planilha filtrada (.xlsx)')), ...
@@ -209,13 +202,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             initializeRepoSFI(app)
         end
 
+        
         function initializeUIComponents(app)
             if ~strcmp(app.mainApp.executionMode, 'webApp')
                 app.dockModule_Undock.Enable = 1;
             end
 
             % Controles de toolbar inferior
-            app.tool_TableVisibility.UserData.layout    = 1;
             app.tool_RFLinkButton.UserData.status       = false;
             app.tool_PDFButton.UserData.status          = false;
 
@@ -223,11 +216,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             startup_AxesCreation(app)
         end
 
+        
         function applyInitialLayout(app)
             populateStationFilters(app)
             initializeFilesSearchPanel(app)
             refreshFilteredMap(app)
-            restoreMapView(app)
+            applyMapViewport(app, struct(), "fit")
         end
     end
 
@@ -237,37 +231,55 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % Funções de Inicialização
         %-----------------------------------------------------------------%
-
-
         function initializeRepoSFI(app)
-            % Carrega o objeto dbHandler responsável pela leitura dos dados
-            % do banco resumo
+            % Inicializa o dataset principal do RepoSFI a partir do banco resumo.
+            %
+            % A função garante que o handler de acesso a dados esteja disponível,
+            % consulta o payload consolidado do mapa e armazena o resultado em
+            % app.repoSFI no contrato esperado pela interface.
+            %
+            % Quando a consulta não devolve a estrutura esperada, a função aplica um
+            % fallback seguro com coleções vazias para evitar que etapas posteriores
+            % do fluxo precisem tratar ausência de campos.
+        
+            % Garante a existência do handler compartilhado antes de qualquer leitura
+            % do banco de dados.
             if isempty(app.dbHandler)
                 app.dbHandler = util.DBHandler();
             end
-
+        
+            % Lê o dataset consolidado usado pela interface do RepoSFI.
             data = app.dbHandler.getMapDataSet();
-
+        
+            % Só aceita o resultado se ele respeitar o contrato mínimo esperado pelo
+            % restante da aplicação.
             if isstruct(data) && isfield(data, 'points')
                 app.repoSFI = data;
             else
+                % Mantém a estrutura base mesmo em falha ou retorno incompleto, para
+                % preservar a estabilidade dos fluxos que consomem app.repoSFI.
                 app.repoSFI = struct('points', struct([]), 'site_details', struct([]));
             end
         end
 
+       
         function populateStationFilters(app)
-            % Preenche o filtro de estados com base nos pontos disponíveis.
-
+            % Preenche o filtro de estados com base nos pontos carregados no RepoSFI.
+        
+            % Sem o dropdown de destino ou sem os dados base do RepoSFI não existe
+            % contexto suficiente para montar a lista de estados.
             if isempty(app.filesStateDropDown) || isempty(app.repoSFI)
                 return
             end
-
+        
+            % Extrai os códigos de estado disponíveis e remove duplicidades antes de
+            % atualizar a lista exibida ao usuário.
             points = app.repoSFI.points;
             states = [points.state_code];
             statesUnique = unique(states);
-
+        
+            % Mantém uma opção neutra no topo para permitir consulta sem filtro.
             app.filesStateDropDown.Items = [{'Todos os estados'}, statesUnique];
-
         end
 
         %-----------------------------------------------------------------%
@@ -275,35 +287,43 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function startup_AxesCreation(app)
             % Recria o geoaxes no painel e reinstala as interações padrão.
+        
+            % Sem um painel válido não há onde reconstruir o eixo geográfico.
             if isempty(app.plotPanel) || ~isvalid(app.plotPanel)
                 return
             end
-
+        
+            % Limpa qualquer eixo anterior antes de recriar a área de plotagem.
             delete(app.plotPanel.Children)
             app.plotPanel.Visible = 'on';
-
+        
             hParent = tiledlayout(app.plotPanel, 1, 1, "Padding", "none", "TileSpacing", "none");
-
+        
+            % Usa o estilo selecionado na aba de configuração quando disponível.
             initialBasemap = 'streets-light';
             if ~isempty(app.configMapStyleDropDown) && isvalid(app.configMapStyleDropDown)
                 initialBasemap = char(string(app.configMapStyleDropDown.Value));
             end
-
-            % Esta etapa recebe o estilo do mapa obtido no DropDown da Aba
-            % CONFIG
+        
+            % Cria o geoaxes já com o estilo inicial e com os metadados visuais
+            % esperados pelas rotinas de plotagem.
             app.UIAxes = plot.axes.Creation(hParent, 'Geographic', {'Basemap', initialBasemap, ...
                 'Color', [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
                 'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
-
+        
+            % Oculta elementos cartográficos auxiliares para priorizar a leitura dos
+            % dados plotados.
             set(app.UIAxes.LatitudeAxis,  'TickLabels', {}, 'Color', 'none')
             set(app.UIAxes.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
             geolimits(app.UIAxes, 'auto')
             plot.axes.Colormap(app.UIAxes, 'turbo')
-
+        
+            % Reinstala as interações padrão após recriar o eixo.
             plot.axes.Interactivity.DefaultCreation(app.UIAxes, ...
                 [zoomInteraction, panInteraction])
         end
 
+        
         function applySelectedMapStyle(app)
             % Aplica ao geoaxes o estilo de mapa atualmente selecionado na aba
             % de configuração.
@@ -337,11 +357,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
-        function restoreMapView(app)
-            % Reenquadra intencionalmente o mapa para o conjunto filtrado atual.
-            applyMapViewport(app, struct(), "fit")
-        end
-
         function restoreMapInteractions(app)
             % Reinstala as interações padrão que o geoaxes perde após cla().
             if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
@@ -352,8 +367,30 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 [zoomInteraction, panInteraction])
         end
 
+
+        function refreshFilteredMap(app, viewportMode)
+            % Recalcula o recorte ativo e aciona um novo ciclo completo de mapa.
+
+            % Esse helper é a ponte usada pelos callbacks dos filtros da aba
+            % Arquivos para manter sincronizados o dataset filtrado em memória e
+            % a visualização do geoaxes após cada mudança de estado.
+            if nargin < 2
+                % Na maior parte dos filtros o comportamento padrão preserva a
+                % viewport quando isso ainda fizer sentido para a leitura atual.
+                viewportMode = "preserve_if_all_states";
+            end
+
+            % Primeiro atualiza a fonte de verdade consumida pelo mapa; em
+            % seguida, replota usando a estratégia de viewport pedida.
+            updateFilteredRepoSFI(app)
+            plot_Stations(app, viewportMode)
+        end
+
+
         function viewportMode = normalizeViewportMode(~, viewportMode)
             % Normaliza o modo de atualização da viewport do mapa.
+            % Fica estranho dar um zoom quando trocamos apenas o "Apenas
+            % Online" ou "Apenas histórico" esta função evita zooms curtos
             if nargin < 2 || isempty(viewportMode)
                 viewportMode = "preserve_if_all_states";
                 return
@@ -362,54 +399,76 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             viewportMode = string(viewportMode);
         end
 
+
         function output = selectedStateFilter(app)
             % Retorna o estado atualmente selecionado no filtro do mapa.
+        
+            % Usa a opção neutra como fallback quando o dropdown ainda não estiver
+            % disponível ou não for mais válido.
             output = "Todos os estados";
-
+        
             if isempty(app.filesStateDropDown) || ~isvalid(app.filesStateDropDown)
                 return
             end
-
+        
+            % Normaliza a saída para string para simplificar as comparações nas
+            % rotinas de filtragem e viewport.
             output = string(app.filesStateDropDown.Value);
         end
 
+        
         function limits = getCurrentMapLimits(app)
-            % Captura os limites atuais do geoaxes para eventual restauração.
+            % Captura a viewport atual do mapa para uso no fluxo de replotagem.
+            %
+            % Esses limites são lidos antes de `cla(app.UIAxes)` em `plot_Stations`
+            % e depois podem ser reaplicados por `applyMapViewport`, quando fizer
+            % sentido preservar o enquadramento atual.
             limits = struct('latitude', [], 'longitude', []);
-
+        
             if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
                 return
             end
-
+        
+            % Lê os limites atuais do geoaxes no formato esperado pelas rotinas de
+            % preservação de viewport.
             latitudeLimits = double(app.UIAxes.LatitudeLimits);
             longitudeLimits = double(app.UIAxes.LongitudeLimits);
-
-            if numel(latitudeLimits) == 2 && numel(longitudeLimits) == 2 && ...
-                    all(isfinite(latitudeLimits)) && all(isfinite(longitudeLimits))
-                limits.latitude = latitudeLimits;
-                limits.longitude = longitudeLimits;
+        
+            % Só mantém a captura quando o par de limites puder ser reaplicado com
+            % segurança no próximo ciclo de plot.
+            candidateLimits = struct('latitude', latitudeLimits, 'longitude', longitudeLimits);
+            if hasValidMapLimits(app, candidateLimits)
+                limits = candidateLimits;
             end
         end
 
+
         function output = hasValidMapLimits(~, limits)
-            % Valida uma estrutura de limites antes de reaplicá-la ao mapa.
+            % Valida se uma estrutura de limites pode voltar ao fluxo de viewport.
+            %
+            % Essa checagem protege os dois pontos que reaplicam ou preservam
+            % enquadramento no mapa: a captura feita por getCurrentMapLimits e a
+            % decisão tomada depois em applyMapViewport/shouldPreserveMapViewport.
+
+            % O contrato esperado é o mesmo usado no restante do fluxo:
+            % vetores latitude/longitude com dois extremos finitos e span positivo.
             output = isstruct(limits) && isfield(limits, 'latitude') && isfield(limits, 'longitude') && ...
                 numel(limits.latitude) == 2 && numel(limits.longitude) == 2 && ...
                 all(isfinite(limits.latitude)) && all(isfinite(limits.longitude)) && ...
                 diff(limits.latitude) > 0 && diff(limits.longitude) > 0;
         end
 
-        function setMapLimits(app, limits)
-            % Aplica ao geoaxes um par explícito de limites já validados.
-            if ~hasValidMapLimits(app, limits)
-                return
-            end
-
-            geolimits(app.UIAxes, limits.latitude, limits.longitude)
-        end
 
         function applyMapViewport(app, previousLimits, viewportMode)
-            % Decide entre preservar ou recalcular o enquadramento do mapa.
+            % Aplica a regra final de enquadramento após a replotagem do mapa.
+            %
+            % Depois que plot_Stations limpa o eixo com cla(app.UIAxes) e redesenha
+            % os pontos filtrados, esta função decide se a viewport anterior deve
+            % ser restaurada ou se o mapa precisa ser reenquadrado com base no
+            % dataset atual.
+
+            % Normaliza o modo recebido e extrai os pontos já filtrados que
+            % servirão de base para a decisão de preservação ou novo ajuste.
             viewportMode = normalizeViewportMode(app, viewportMode);
             points = struct([]);
 
@@ -417,35 +476,56 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 points = app.filteredRepoSFI.points;
             end
 
+            % Se o contexto atual ainda comporta a viewport anterior, reaplica os
+            % limites capturados antes do cla; caso contrário, recalcula o ajuste.
             if shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
-                setMapLimits(app, previousLimits)
+                geolimits(app.UIAxes, previousLimits.latitude, previousLimits.longitude)
             else
                 fitMapToPoints(app, points)
             end
         end
 
+        
         function output = shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
-            % Preserva a viewport apenas quando isso evita microajustes sem ocultar tudo.
+            % Decide se ainda faz sentido manter a viewport capturada antes do replot.
+            %
+            % Essa função é chamada por applyMapViewport depois que plot_Stations
+            % limpa e redesenha o mapa. A ideia aqui é preservar o enquadramento
+            % anterior só quando isso evita microajustes visuais sem esconder por
+            % completo o conteúdo filtrado atual.
+
             output = false;
 
+            % Se os limites vindos de getCurrentMapLimits já não formam uma
+            % viewport reaplicável, o fluxo cai direto no reenquadramento.
             if ~hasValidMapLimits(app, previousLimits)
                 return
             end
 
             switch normalizeViewportMode(app, viewportMode)
                 case "preserve"
+                    % Modo explícito de preservação: reaplica sempre os limites
+                    % anteriores, desde que eles já tenham passado na validação.
                     output = true;
 
                 case "preserve_if_all_states"
+                    % Quando há filtro de UF ativo, a troca de contexto costuma
+                    % exigir novo enquadramento; por isso esse modo só preserva a
+                    % viewport na visão agregada de todos os estados.
                     if selectedStateFilter(app) ~= "Todos os estados"
                         return
                     end
 
+                    % Sem pontos visíveis após o filtro, manter a viewport anterior
+                    % evita um auto-fit sem referência útil.
                     if isempty(points)
                         output = true;
                         return
                     end
 
+                    % Preserva apenas se ao menos parte do dataset filtrado ainda
+                    % permanecer dentro da janela anterior; caso contrário, o novo
+                    % recorte precisa recentralizar o mapa.
                     lat = double([points.latitude]);
                     lon = double([points.longitude]);
                     isInside = lat >= previousLimits.latitude(1) & lat <= previousLimits.latitude(2) & ...
@@ -454,28 +534,47 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
+        
         function fitMapToPoints(app, points)
-            % Enquadra os pontos com padding estável, sem depender do auto-fit do geoaxes.
+            % Recalcula a viewport do mapa a partir dos pontos atualmente filtrados.
+            %
+            % Esta é a rota usada por applyMapViewport quando a viewport anterior
+            % não deve ser preservada. Em vez de depender do auto-fit do geoaxes,
+            % a função monta manualmente um enquadramento mais estável para o fluxo
+            % de replotagem de plot_Stations.
+
+            % Tem um ajuste empirico aqui pois o geolimit com parametro
+            % "auto" esticava muito a tela quando as estações estavam longe
+            % ao ponto de ficar desconfortável a visualização
+
+            % Sem um geoaxes válido não existe destino para aplicar os novos limites.
             if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
                 return
             end
 
+            % Sem pontos válidos, o melhor fallback é devolver o controle ao ajuste
+            % automático nativo do mapa.
             if isempty(points)
                 geolimits(app.UIAxes, 'auto')
                 return
             end
 
+            % Extrai e saneia as coordenadas que realmente podem participar do
+            % cálculo do enquadramento.
             lat = double([points.latitude]);
             lon = double([points.longitude]);
             validIdx = isfinite(lat) & isfinite(lon);
             lat = lat(validIdx);
             lon = lon(validIdx);
 
+            % Se depois da limpeza não sobrou nenhuma coordenada útil, cai no
+            % mesmo fallback automático.
             if isempty(lat) || isempty(lon)
                 geolimits(app.UIAxes, 'auto')
                 return
             end
 
+            % Parte do retângulo mínimo que contém o conjunto filtrado.
             minLat = min(lat);
             maxLat = max(lat);
             minLon = min(lon);
@@ -483,10 +582,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             centerLat = (minLat + maxLat) / 2;
             centerLon = (minLon + maxLon) / 2;
 
+            % Garante spans mínimos e corrige longitude pela latitude central
+            % para reduzir distorções horizontais do mapa.
             latSpan = max(maxLat - minLat, 0.30);
             cosScale = max(cosd(centerLat), 0.25);
             lonSpan = max(maxLon - minLon, 0.30 / cosScale);
 
+            % Ajusta a janela ao aspect ratio útil do painel, para evitar um fit
+            % apertado demais num eixo mais largo ou mais alto.
             targetAspect = 1.6;
             if ~isempty(app.plotPanel) && isvalid(app.plotPanel)
                 panelPosition = getpixelposition(app.plotPanel, true);
@@ -505,15 +608,20 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 lonSpan = normalizedLonSpan / cosScale;
             end
 
+            % Aplica um padding fixo para que o replot não deixe os pontos colados
+            % nas bordas após mudanças pequenas de filtro.
             latSpan = max(latSpan * 1.18, 0.45);
             lonSpan = max(lonSpan * 1.18, 0.45 / cosScale);
 
             latitudeLimits = centerLat + 0.5 * [-latSpan, latSpan];
             longitudeLimits = centerLon + 0.5 * [-lonSpan, lonSpan];
 
+            % Limita os extremos ao intervalo aceito pelo geoaxes.
             latitudeLimits = max(min(latitudeLimits, 89.5), -89.5);
             longitudeLimits = max(min(longitudeLimits, 180), -180);
 
+            % Se o cálculo degenerar mesmo após os ajustes, evita reaplicar uma
+            % janela inválida e delega o enquadramento ao modo automático.
             if diff(latitudeLimits) <= 0 || diff(longitudeLimits) <= 0
                 geolimits(app.UIAxes, 'auto')
                 return
@@ -522,36 +630,39 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             geolimits(app.UIAxes, latitudeLimits, longitudeLimits)
         end
 
-        %-----------------------------------------------------------------%
-        % Funções de manipulação dos scatters do mapa
-        %-----------------------------------------------------------------%
+        
         function clearPopupSelectionHighlight(app)
-            % Remove o destaque visual associado ao popup atual.
+            % Limpa o highlight visual deixado pela seleção atual do popup.
 
-            % Verificação do geoAxes
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes) || ~isstruct(app.UIAxes.UserData)
+            % Esse helper é usado sempre que o fluxo precisa descartar a
+            % seleção destacada no mapa, como antes de redesenhar o geoaxes em
+            % plot_Stations ou ao fechar explicitamente o popup.
+
+            % Sem um geoaxes válido não existe estado gráfico a limpar.
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
                 return
             end
 
-            % Verifica handle grafico persistido de algum highlight
-            % anterior
-            if isfield(app.UIAxes.UserData, 'popupHighlightHandle')
-                highlightHandle = app.UIAxes.UserData.popupHighlightHandle;
+            % Garante um contrato estável para o UserData do eixo, evitando
+            % remover campos e reduzindo dependência de verificações ad hoc.
+            axesState = getPopupHighlightState(app);
+
+            % Remove apenas os handles gráficos ainda válidos antes de zerar o
+            % estado persistido no eixo.
+            highlightHandle = axesState.popupHighlightHandle;
+            if ~isempty(highlightHandle)
+                highlightHandle = highlightHandle(isgraphics(highlightHandle));
                 if ~isempty(highlightHandle)
-                    highlightHandle = highlightHandle(isgraphics(highlightHandle));
-                    if ~isempty(highlightHandle)
-                        delete(highlightHandle)
-                    end
+                    delete(highlightHandle)
                 end
-                app.UIAxes.UserData = rmfield(app.UIAxes.UserData, 'popupHighlightHandle');
             end
 
-            % Remove campo
-            if isfield(app.UIAxes.UserData, 'popupHighlightSiteIds')
-                app.UIAxes.UserData = rmfield(app.UIAxes.UserData, 'popupHighlightSiteIds');
-            end
+            axesState.popupHighlightHandle = gobjects(0);
+            axesState.popupHighlightSiteIds = zeros(1, 0);
+            app.UIAxes.UserData = axesState;
         end
 
+        
         function updatePopupSelectionHighlight(app, popupSites)
             % Atualiza o destaque visual no mapa para refletir os sites exibidos
             % no popup naquele instante.
@@ -565,8 +676,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 return
             end
 
-            % Limpeza de Highlights antigos
+            % Remove qualquer highlight anterior antes de desenhar o novo.
             clearPopupSelectionHighlight(app);
+
+            % Normaliza o estado persistido do geoaxes para receber os novos
+            % handles e os IDs destacados.
+            axesState = getPopupHighlightState(app);
 
             points = [popupSites.point];
             lat = double([points.latitude]);
@@ -586,10 +701,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             plotHighlightGroup(markerStates == "online_current",   [79, 127, 103] / 255, false);
             plotHighlightGroup(markerStates == "no_host",          [123, 138, 160] / 255, false);
 
-            % Persiste o handle gráfico e os IDs destacados para futura limpeza
-            % ou eventual inspeção de estado.
-            app.UIAxes.UserData.popupHighlightHandle = highlightHandle;
-            app.UIAxes.UserData.popupHighlightSiteIds = [popupSites.siteId];
+            % Persiste os handles e os IDs destacados no estado do eixo sem
+            % alterar a estrutura base de UserData.
+            axesState.popupHighlightHandle = highlightHandle;
+            axesState.popupHighlightSiteIds = [popupSites.siteId];
+            app.UIAxes.UserData = axesState;
 
             function plotHighlightGroup(idx, markerColor, isHistorical)
                 if ~any(idx)
@@ -618,6 +734,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
+        
         function plot_Stations(app, viewportMode)
             % Replota o mapa com base no dataset filtrado já preparado.
             %
@@ -641,6 +758,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % antigos e o novo estado filtrado.
             cla(app.UIAxes);
             app.popupHTML.Visible = "off";
+            clearPopupSelectionHighlight(app)
 
             filteredData = app.filteredRepoSFI;
             if ~isstruct(filteredData) || ~isfield(filteredData, 'points') || ~isfield(filteredData, 'site_details')
@@ -680,12 +798,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             plotGroup(markerStates == "offline_current",  colorOfflineCurrent,  false, 100);
             plotGroup(markerStates == "online_current",   colorOnlineCurrent,   false, 80);
             plotGroup(markerStates == "no_host",          colorNoHost,          false, 100);
-
-            %plot.axes.StackingOrder.execute(app.UIAxes1, 'RFDataHub')
-            % app.restoreView = struct('ID', 'app.UIAxes1', ...
-            %     'xLim', app.UIAxes.LatitudeLimits, ...
-            %     'yLim', app.UIAxes.LongitudeLimits, ...
-            %     'cLim', 'auto');
 
 
             restoreMapInteractions(app)
@@ -746,6 +858,39 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 end
             end
         end
+
+        
+        function output = getPopupHighlightState(app)
+            % Normaliza o estado de highlight persistido no UserData do geoaxes.
+            %
+            % Esse helper centraliza o contrato usado por clearPopupSelectionHighlight
+            % e updatePopupSelectionHighlight, para que o restante do fluxo nunca
+            % precise lidar com ausência dos campos de highlight.
+
+            output = struct();
+
+            % Sem um geoaxes válido não existe estado gráfico persistente a ler.
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
+                return
+            end
+
+            % Reaproveita o UserData atual do eixo quando ele já estiver no formato
+            % de struct esperado pelas rotinas de highlight.
+            if isstruct(app.UIAxes.UserData)
+                output = app.UIAxes.UserData;
+            end
+
+            % Garante os campos usados no fluxo de popup mesmo antes da primeira
+            % seleção ou após um reset visual completo do mapa.
+            if ~isfield(output, 'popupHighlightHandle')
+                output.popupHighlightHandle = gobjects(0);
+            end
+
+            if ~isfield(output, 'popupHighlightSiteIds')
+                output.popupHighlightSiteIds = zeros(1, 0);
+            end
+        end
+
 
         function onPlottedSiteClick(app, src, event)
             % Resolve qual localidade foi clicada no mapa e abre o popup
@@ -812,6 +957,152 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Persiste o contexto do último clique para fluxos posteriores, como
             % abertura sob demanda do dock de arquivos.
             app.currentSiteContext = struct('siteId', siteId, 'mapDataSet', filteredMapData);
+        end
+
+        %-----------------------------------------------------------
+        % Helpers de Seleção do Mapa
+        %-----------------------------------------------------------------%
+        function selectionRadius = getAdaptiveSelectionRadius(~,zoomSpan)
+            % Ajusta o raio de agrupamento conforme a zoom atual do mapa.
+            %
+            % Esse valor é usado em resolveSiteSelection para decidir quando um
+            % clique deve abrir apenas o site resolvido ou incorporar localidades
+            % vizinhas no mesmo popup.
+
+            % Em zoom mais aberto, aumenta a tolerância para capturar pontos
+            % próximos; em zoom fechado, reduz o raio para preservar precisão.
+            if zoomSpan >= 45
+                selectionRadius = max(0.30, zoomSpan * 0.015);
+            elseif zoomSpan >= 20
+                selectionRadius = max(0.20, zoomSpan * 0.012);
+            elseif zoomSpan >= 5
+                selectionRadius = max(0.10, zoomSpan * 0.010);
+            else
+                selectionRadius = max(0.05, zoomSpan * 0.008);
+            end
+        end
+
+
+        function selectionInfo = resolveSiteSelection(app, requestedSiteId, mapDataSet, src, event)
+            % Resolve a seleção efetiva de sites a partir de um clique no mapa.
+            %
+            % Em níveis de zoom mais abertos, um clique pode representar não apenas
+            % o site originalmente identificado, mas também localidades próximas.
+            % A função agrupa esses sites vizinhos para montar um popup coerente
+            % com o contexto visual atual.
+
+            % Estado default: assume seleção simples contendo apenas o site pedido.
+            % Esse fallback é preservado caso qualquer etapa de refinamento falhe.
+            selectionInfo = struct( ...
+                'siteId', requestedSiteId, ...
+                'siteIds', requestedSiteId, ...
+                'isAmbiguous', false, ...
+                'nearbyCount', 1, ...
+                'zoomSpan', NaN);
+
+            % Sem dataset válido ou sem pontos no mapa não há como expandir a seleção.
+            if ~isstruct(mapDataSet) || ~isfield(mapDataSet, 'points') || isempty(mapDataSet.points)
+                return
+            end
+
+            % Confirma que o site solicitado realmente existe entre os pontos visíveis.
+            pointIdx = find([mapDataSet.points.site_id] == requestedSiteId, 1);
+            if isempty(pointIdx)
+                return
+            end
+
+            % Tenta usar a coordenada real do clique.
+            % Se ela não estiver disponível, cai para a posição do site original.
+            [clickLat, clickLon] = extractMapClickCoordinates(app, src, event);
+            if ~isfinite(clickLat) || ~isfinite(clickLon)
+                clickLat = double(mapDataSet.points(pointIdx).latitude);
+                clickLon = double(mapDataSet.points(pointIdx).longitude);
+            end
+
+            % Extrai as coordenadas de todos os pontos candidatos.
+            allLat = double([mapDataSet.points.latitude].');
+            allLon = double([mapDataSet.points.longitude].');
+
+            % O cálculo da ambiguidade depende do estado atual de zoom do mapa.
+            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
+                return
+            end
+
+            % Mede a abertura atual do mapa em latitude e longitude.
+            % A longitude é corrigida pelo cosseno da latitude para reduzir
+            % distorções horizontais.
+            latLimits = app.UIAxes.LatitudeLimits;
+            lonLimits = app.UIAxes.LongitudeLimits;
+            latSpan = abs(diff(latLimits));
+            lonSpan = abs(diff(lonLimits)) * max(cosd(clickLat), 0.25);
+            zoomSpan = max(latSpan, lonSpan);
+
+            % Calcula a distância aproximada de cada ponto ao local do clique.
+            % A mesma correção angular é aplicada no eixo longitudinal.
+            distance = hypot(allLat - clickLat, (allLon - clickLon) .* max(cosd(clickLat), 0.25));
+
+            % Define o raio de agrupamento conforme o nível de zoom atual.
+            % Quanto mais aberto o mapa, maior a tolerância para agrupar sites próximos.
+            selectionRadius = getAdaptiveSelectionRadius(app, zoomSpan);
+            nearbyIdx = find(distance <= selectionRadius);
+
+            % Se nenhum ponto caiu dentro do raio, ao menos mantém o mais próximo.
+            if isempty(nearbyIdx)
+                [~, nearbyIdx] = min(distance);
+            end
+
+            % Ordena os candidatos do mais próximo para o mais distante.
+            % O primeiro passa a ser o site principal da seleção.
+            [~, sortIdx] = sort(distance(nearbyIdx), 'ascend');
+            nearbyIdx = nearbyIdx(sortIdx);
+
+            % Materializa a seleção final em ordem de proximidade ao clique.
+            selectionInfo.siteIds = double([mapDataSet.points(nearbyIdx).site_id]);
+            selectionInfo.siteId = selectionInfo.siteIds(1);
+            selectionInfo.nearbyCount = numel(selectionInfo.siteIds);
+            selectionInfo.zoomSpan = zoomSpan;
+
+            % Considera a seleção ambígua apenas quando há múltiplos sites e o
+            % mapa está suficientemente aberto para justificar o agrupamento.
+            selectionInfo.isAmbiguous = selectionInfo.nearbyCount > 1 && zoomSpan >= 1.0;
+        end
+
+
+        function [clickLat, clickLon] = extractMapClickCoordinates(~, src, event)
+            % Tenta materializar a coordenada geográfica associada ao clique.
+            %
+            % Esse helper atende o fluxo de seleção no mapa, principalmente em
+            % onPlottedSiteClick e resolveSiteSelection, onde a posição exata do
+            % clique ajuda a desempatar qual site ou agrupamento deve alimentar o popup.
+
+            clickLat = NaN;
+            clickLon = NaN;
+
+            try
+                % Caminho preferencial: usa a coordenada informada pelo próprio
+                % evento de clique quando ela vier disponível no geoaxes.
+                if isprop(event, 'IntersectionPoint')
+                    intersectionPoint = event.IntersectionPoint;
+                    if isnumeric(intersectionPoint) && numel(intersectionPoint) >= 2
+                        clickLat = double(intersectionPoint(1));
+                        clickLon = double(intersectionPoint(2));
+                        return
+                    end
+                end
+            catch
+            end
+
+            try
+                % Fallback: quando o evento não expõe a interseção, reaproveita a
+                % primeira coordenada do objeto gráfico clicado.
+                if isprop(src, 'LatitudeData') && isprop(src, 'LongitudeData')
+                    if ~isempty(src.LatitudeData) && ~isempty(src.LongitudeData)
+                        clickLat = double(src.LatitudeData(1));
+                        clickLon = double(src.LongitudeData(1));
+                    end
+                end
+            catch
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -1053,6 +1344,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             %app.popupHTML.Position = [left, bottom, popupWidth, popupHeight];
         end
 
+        
         function contentHeight = estimatePopupSiteHeight(app, point, popupWidth)
             % Estima a altura do cabeçalho de uma localidade no popup.
             %
@@ -1074,6 +1366,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             contentHeight = 12 + titleLines * 16 + 2 + metaLines * 12 + 10;
         end
 
+        
         function contentHeight = estimatePopupStationHeight(app, station, popupWidth)
             % Estima a altura do bloco de uma estação dentro do popup.
             %
@@ -1115,6 +1408,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             contentHeight = 10 + nameLines * 16 + 3 + statusLines * 14 + 3 + locationLines * 15 + lastSeenHeight + 8 + buttonHeight;
         end
 
+        
         function lineCount = estimateWrappedLineCount(~, rawText, availableWidth, fontSize, isBold)
             % Estima quantas linhas um texto ocupará dentro de uma largura limitada.
             %
@@ -1178,6 +1472,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
+        
         function popupSites = collectPopupSites(~, mapDataSet, siteIds)
             % Materializa os sites válidos que serão usados pelo pipeline do popup.
             %
@@ -1223,6 +1518,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
+        
         function output = buildPopupSiteMetaParts(app, point, includeSiteId)
             % Monta a lista de fragmentos textuais que compõem os metadados do site.
             %
@@ -1316,6 +1612,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 char(strjoin(siteSections, '')));
         end
 
+        
         function html = renderPopupSiteHTML(app, popupSite, addTopBorder)
             % Renderiza o bloco HTML de uma localidade dentro do popup.
             %
@@ -1358,6 +1655,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 );
         end
 
+        
         function html = renderPopupStationHTML(app, siteId, station)
             % Renderiza o bloco HTML de uma estação dentro de um site do popup.
             %
@@ -1414,189 +1712,160 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 '</section>'], ...
                 statusColor, stationName, statusColor, statusText, locationText, lastSeenHTML, buttonHTML);
         end
-
-
+        
         %-----------------------------------------------------------------%
-        % Seleção de Estações pelo click do mouse no mapa
+        % Popup helpers
         %-----------------------------------------------------------------%
-        function selectionRadius = getAdaptiveSelectionRadius(~,zoomSpan)
-            % Ajusta o raio de selecao ao nivel de zoom do mapa.
-            if zoomSpan >= 45
-                selectionRadius = max(0.30, zoomSpan * 0.015);
-            elseif zoomSpan >= 20
-                selectionRadius = max(0.20, zoomSpan * 0.012);
-            elseif zoomSpan >= 5
-                selectionRadius = max(0.10, zoomSpan * 0.010);
+        function value = popupNumericValue(~, rawValue)
+            % Normaliza identificadores numéricos opcionais para o HTML do popup.
+
+            % Esse helper atende principalmente renderPopupStationHTML, onde os
+            % data-attributes do botão precisam receber sempre um valor escalar,
+            % mesmo quando equipment_id ou host_id vierem vazios do backend.
+            if isempty(rawValue)
+                value = -1;
+                return
+            end
+
+            % Alguns campos chegam encapsulados em célula; aqui a função reduz o
+            % valor para a primeira carga útil antes da conversão final.
+            if iscell(rawValue)
+                rawValue = rawValue{1};
+            end
+
+            % Mantém -1 como sentinela quando o campo continuar vazio após o
+            % desempacotamento, evitando atributos HTML vazios ou inválidos.
+            if isempty(rawValue)
+                value = -1;
+                return
+            end
+
+            % A saída final é sempre numérica para ser embutida diretamente no
+            % markup gerado pelo popup.
+            value = double(rawValue);
+        end
+
+        
+        function name = chooseName(app, st)
+            % Resolve o nome exibido da estação nos blocos e métricas do popup.
+
+            % A mesma regra é reutilizada em renderPopupStationHTML,
+            % estimatePopupStationHeight e buildPointFromDetail para manter o
+            % texto visível consistente em todo o fluxo.
+            hostName = normalizeTextFromValue(app, st.host_name);
+            equipmentName = normalizeTextFromValue(app, st.equipment_name);
+
+            % Prioriza o host quando ele existir, porque esse é o rótulo mais
+            % específico para a estação no contexto do popup.
+            if strlength(hostName) > 0
+                name = hostName;
+            elseif strlength(equipmentName) > 0
+                % Quando não houver host, reaproveita o nome do equipamento para
+                % não deixar o bloco sem identificação textual.
+                name = equipmentName;
             else
-                selectionRadius = max(0.05, zoomSpan * 0.008);
+                % Fallback final para casos em que o backend não trouxe nenhum dos
+                % dois campos de nome.
+                name = "Estacao";
             end
         end
 
+        
+        function [txt, color] = stationStatus(app, st)
+            % Traduz o estado interno da estação para rótulo e cor do popup.
 
-        function selectionInfo = resolveSiteSelection(app, requestedSiteId, mapDataSet, src, event)
-            % Resolve a seleção efetiva de sites a partir de um clique no mapa.
-            %
-            % Em níveis de zoom mais abertos, um clique pode representar não apenas
-            % o site originalmente identificado, mas também localidades próximas.
-            % A função agrupa esses sites vizinhos para montar um popup coerente
-            % com o contexto visual atual.
-
-            % Estado default: assume seleção simples contendo apenas o site pedido.
-            % Esse fallback é preservado caso qualquer etapa de refinamento falhe.
-            selectionInfo = struct( ...
-                'siteId', requestedSiteId, ...
-                'siteIds', requestedSiteId, ...
-                'isAmbiguous', false, ...
-                'nearbyCount', 1, ...
-                'zoomSpan', NaN);
-
-            % Sem dataset válido ou sem pontos no mapa não há como expandir a seleção.
-            if ~isstruct(mapDataSet) || ~isfield(mapDataSet, 'points') || isempty(mapDataSet.points)
-                return
-            end
-
-            % Confirma que o site solicitado realmente existe entre os pontos visíveis.
-            pointIdx = find([mapDataSet.points.site_id] == requestedSiteId, 1);
-            if isempty(pointIdx)
-                return
-            end
-
-            % Tenta usar a coordenada real do clique.
-            % Se ela não estiver disponível, cai para a posição do site original.
-            [clickLat, clickLon] = extractMapClickCoordinates(app, src, event);
-            if ~isfinite(clickLat) || ~isfinite(clickLon)
-                clickLat = double(mapDataSet.points(pointIdx).latitude);
-                clickLon = double(mapDataSet.points(pointIdx).longitude);
-            end
-
-            % Extrai as coordenadas de todos os pontos candidatos.
-            allLat = double([mapDataSet.points.latitude].');
-            allLon = double([mapDataSet.points.longitude].');
-
-            % O cálculo da ambiguidade depende do estado atual de zoom do mapa.
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
-            % Mede a abertura atual do mapa em latitude e longitude.
-            % A longitude é corrigida pelo cosseno da latitude para reduzir
-            % distorções horizontais.
-            latLimits = app.UIAxes.LatitudeLimits;
-            lonLimits = app.UIAxes.LongitudeLimits;
-            latSpan = abs(diff(latLimits));
-            lonSpan = abs(diff(lonLimits)) * max(cosd(clickLat), 0.25);
-            zoomSpan = max(latSpan, lonSpan);
-
-            % Calcula a distância aproximada de cada ponto ao local do clique.
-            % A mesma correção angular é aplicada no eixo longitudinal.
-            distance = hypot(allLat - clickLat, (allLon - clickLon) .* max(cosd(clickLat), 0.25));
-
-            % Define o raio de agrupamento conforme o nível de zoom atual.
-            % Quanto mais aberto o mapa, maior a tolerância para agrupar sites próximos.
-            selectionRadius = getAdaptiveSelectionRadius(app, zoomSpan);
-            nearbyIdx = find(distance <= selectionRadius);
-
-            % Se nenhum ponto caiu dentro do raio, ao menos mantém o mais próximo.
-            if isempty(nearbyIdx)
-                [~, nearbyIdx] = min(distance);
-            end
-
-            % Ordena os candidatos do mais próximo para o mais distante.
-            % O primeiro passa a ser o site principal da seleção.
-            [~, sortIdx] = sort(distance(nearbyIdx), 'ascend');
-            nearbyIdx = nearbyIdx(sortIdx);
-
-            % Materializa a seleção final em ordem de proximidade ao clique.
-            selectionInfo.siteIds = double([mapDataSet.points(nearbyIdx).site_id]);
-            selectionInfo.siteId = selectionInfo.siteIds(1);
-            selectionInfo.nearbyCount = numel(selectionInfo.siteIds);
-            selectionInfo.zoomSpan = zoomSpan;
-
-            % Considera a seleção ambígua apenas quando há múltiplos sites e o
-            % mapa está suficientemente aberto para justificar o agrupamento.
-            selectionInfo.isAmbiguous = selectionInfo.nearbyCount > 1 && zoomSpan >= 1.0;
-        end
-
-
-        function [clickLat, clickLon] = extractMapClickCoordinates(~, src, event)
-            % Tenta recuperar a coordenada do clique a partir do evento ou do source.
-            clickLat = NaN;
-            clickLon = NaN;
-
-            try
-                if isprop(event, 'IntersectionPoint')
-                    intersectionPoint = event.IntersectionPoint;
-                    if isnumeric(intersectionPoint) && numel(intersectionPoint) >= 2
-                        clickLat = double(intersectionPoint(1));
-                        clickLon = double(intersectionPoint(2));
-                        return
-                    end
-                end
-            catch
-            end
-
-            try
-                if isprop(src, 'LatitudeData') && isprop(src, 'LongitudeData')
-                    if ~isempty(src.LatitudeData) && ~isempty(src.LongitudeData)
-                        clickLat = double(src.LatitudeData(1));
-                        clickLon = double(src.LongitudeData(1));
-                    end
-                end
-            catch
+            % Esse mapeamento alimenta diretamente renderPopupStationHTML e
+            % estimatePopupStationHeight, então texto e cor precisam seguir a
+            % mesma convenção usada no restante do fluxo visual.
+            switch string(st.map_state)
+                case "online_current"
+                    txt = "Online";
+                    color = "#4f7f67";
+                case "online_previous"
+                    txt = "Online historico";
+                    color = "#4f7f67";
+                case "offline_current"
+                    txt = "Offline";
+                    color = "#b88352";
+                case "offline_previous"
+                    txt = "Offline historico";
+                    color = "#b88352";
+                otherwise
+                    % Estados sem host conhecido ou fora do mapeamento caem neste
+                    % tratamento neutro para não quebrar a renderização.
+                    txt = "Sem host";
+                    color = "#7b8aa0";
             end
         end
 
+        function out = esc(app, value)
+            % Escapa o subconjunto mínimo de caracteres sensíveis no HTML do popup.
+
+            % Esse helper é chamado durante a montagem textual do popup para
+            % impedir que nomes, municípios e demais campos livres quebrem o
+            % markup final injetado em popupHTML.
+            out = string(value);
+            out = replace(out, "&", "&amp;");
+            out = replace(out, "<", "&lt;");
+            out = replace(out, ">", "&gt;");
+        end
+
+        
 
         %-----------------------------------------------------------------%
         % Tab de Pesquisa de Arquivos
         %-----------------------------------------------------------------%
         function initializeFilesSearchPanel(app)
-            % Initializes the file search panel and loads base station options.
-            %
-            % Called during applyInitialLayout and on full reset. Safe to call
-            % repeatedly because it clears all transient state before repopulating.
-            %
-            % Side effects: resets all files* controls and clears filesLocalityRows.
+                % Reinicializa a aba Arquivos antes de recarregar estação e localidade.
+                %
+                % Essa preparação roda no layout inicial e também nos fluxos de reset,
+                % para que loadFilesStationOptions e updateFilesLocationOptions partam
+                % sempre de um estado transitório limpo e previsível.
 
             if isempty(app.dbHandler)
                 app.dbHandler = util.DBHandler();
             end
 
+            % Limpa o cache de localidades e zera os filtros que dependem da
+            % seleção corrente antes de reconstruir as opções da interface.
             app.filesLocalityRows        = table();
             app.filesStartDatePicker.Value = NaT;
             app.filesEndDatePicker.Value   = NaT;
             %app.filesFrequencyStartEditField.Value = NaN;
             %app.filesFrequencyEndEditField.Value   = NaN;
-            app.filesDescriptionEditField.Value    = '';
+            %app.filesDescriptionEditField.Value    = '';
 
+            % Recarrega primeiro as estações e, em seguida, as localidades
+            % compatíveis com a seleção inicial vazia.
             loadFilesStationOptions(app)
             updateFilesLocationOptions(app, NaN)
         end
 
 
-
-
         function loadFilesStationOptions(app)
-            % Loads station/equipment options for the repository search dropdown.
+            % Recarrega as opções de estação/equipamento da aba Arquivos.
             %
-            % Queries the full equipment catalog and rebuilds Items/ItemsData.
-            % Preserves the current selection when the refreshed list still
-            % contains it, so a reload triggered by a filter change does not
-            % silently reset the user's choice.
-            %
-            % Note: the former online-only filter (filesOnlineCheckBox) was
-            % removed. filesStatusDropDown is now the single control for
-            % scoping the map and station list by online/offline status.
+            % Essa função recompõe o dropdown principal de busca a partir do
+            % catálogo retornado pelo banco e tenta preservar a seleção atual
+            % quando o valor ainda continua válido após a recarga.
 
+            % Consulta a lista completa de equipamentos disponível para o fluxo
+            % de pesquisa de arquivos.
             rows = app.dbHandler.getSpectrumEquipments();
 
+            % Mantém uma opção neutra no topo para representar ausência de
+            % seleção explícita no dropdown.
             items     = {'Selecione uma estação/equipamento'};
             itemsData = {''};
 
+            % Guarda o valor atual para tentar restaurá-lo depois da reconstrução
+            % da lista.
             selectedValue = string(app.filesStationDropDown.Value);
 
             if istable(rows) && ~isempty(rows)
                 for ii = 1:height(rows)
+                        % Normaliza o identificador e o rótulo visível antes de
+                        % publicar cada opção no componente.
                     equipmentId   = formatNumericId(app, rows.ID_EQUIPMENT(ii));
                     equipmentName = displayRawText(app, rows.NA_EQUIPMENT(ii), '(sem nome)');
                     items{end + 1}     = char(equipmentName); %#ok<AGROW>
@@ -1604,9 +1873,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 end
             end
 
+                % Publica a nova lista no dropdown já com Items e ItemsData em sincronia.
             app.filesStationDropDown.Items     = items;
             app.filesStationDropDown.ItemsData = itemsData;
 
+                % Se a seleção anterior ainda existir, restaura; caso contrário,
+                % volta para o estado neutro da busca.
             if any(strcmp(itemsData, char(selectedValue)))
                 app.filesStationDropDown.Value = char(selectedValue);
             else
@@ -1614,6 +1886,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
+        
         function updateFilesLocationOptions(app, preferredSiteId)
             % Recarrega as localidades disponíveis para o equipamento atualmente
             % selecionado na aba Arquivos.
@@ -1626,7 +1899,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % - atualiza a janela de período disponível
 
             % O dropdown sempre começa com a opção de abrangência total.
-            equipmentId = selectedDropDownNumericValue(app, app.filesStationDropDown);
+            equipmentId = str2double(string(app.filesStationDropDown.Value));
             items = {'Todas as localidades'};
             itemsData = {''};
 
@@ -1667,6 +1940,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             updateFilesAvailablePeriod(app)
         end
 
+        
         function updateFilesAvailablePeriod(app)
             % Atualiza o período inicial e final disponível para a seleção atual
             % de equipamento/localidade na aba Arquivos.
@@ -1683,7 +1957,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 return
             end
 
-            selectedSiteId = selectedDropDownNumericValue(app, app.filesLocationDropDown);
+            selectedSiteId = str2double(string(app.filesLocationDropDown.Value));
             rows = app.filesLocalityRows;
 
             % Se uma localidade específica foi escolhida, restringe o cálculo do
@@ -1707,7 +1981,10 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
-
+        
+        %-----------------------------------------------------------------%
+        % Manipulação do DockRepoFiles
+        %-----------------------------------------------------------------%
         function dockContext = buildFilesDockContext(app)
             % Builds the context payload passed to the files dock on open.
             %
@@ -1718,7 +1995,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             freqStart   = app.filesFrequencyStartEditField.Value;
             freqEnd     = app.filesFrequencyEndEditField.Value;
-            description = strtrim(string(app.filesDescriptionEditField.Value));
+            description = '';
 
             if isempty(freqStart) || ~isfinite(freqStart) || freqStart < 0
                 freqStart = NaN;
@@ -1731,8 +2008,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             [startDate, endDate] = getNormalizedFilterDateRange(app);
 
             dockContext = struct( ...
-                'equipmentId', selectedDropDownNumericValue(app, app.filesStationDropDown), ...
-                'siteId',      selectedDropDownNumericValue(app, app.filesLocationDropDown), ...
+                'equipmentId', str2double(string(app.filesStationDropDown.Value)), ...
+                'siteId',      str2double(string(app.filesLocationDropDown.Value)), ...
                 'hostId',      [], ...
                 'startDate',   startDate, ...
                 'endDate',     endDate, ...
@@ -1742,137 +2019,17 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 );
         end
 
+        
         function openRepoFilesDock(app, dockContext)
+            % Encaminha a abertura do dock de arquivos no padrão do appAnalise.
+
+            % Esse helper centraliza a chamada usada tanto pela pesquisa da aba
+            % Arquivos quanto pelos botões do popup, para que winRepoSFI sempre
+            % entregue ao dock RepoFiles o mesmo contexto de origem.
+
+            % dockContext carrega os filtros e identificadores já resolvidos no
+            % fluxo atual, como site, equipamento, host e demais recortes de busca.
             ipcMainMatlabOpenPopupApp(app.mainApp, app, 'RepoFiles', app.Context, dockContext)
-        end
-
-        function output = selectedDropDownNumericValue(~, dropDownHandle)
-            output = str2double(string(dropDownHandle.Value));
-            if isnan(output)
-                output = NaN;
-            end
-        end
-
-        function output = formatFilesLocalityOption(app, row)
-            output = displayRawText(app, row.LOCALITY_LABEL, '-');
-            county = displayRawText(app, row.COUNTY_NAME, '');
-            stateCode = displayRawText(app, row.STATE_CODE, '');
-
-            suffix = "";
-            if strlength(county) > 0 && strlength(stateCode) > 0
-                suffix = county + "/" + stateCode;
-            elseif strlength(county) > 0
-                suffix = county;
-            elseif strlength(stateCode) > 0
-                suffix = stateCode;
-            end
-
-            if strlength(suffix) > 0 && ~strcmpi(char(output), char(suffix))
-                output = output + " (" + suffix + ")";
-            end
-        end
-
-        function output = displayRawText(~, rawValue, defaultValue)
-            value = rawValue;
-            while iscell(value)
-                if isempty(value)
-                    value = [];
-                    break
-                end
-                value = value{1};
-            end
-
-            if isempty(value)
-                output = string(defaultValue);
-                return
-            end
-
-            if isstring(value)
-                if all(ismissing(value))
-                    output = string(defaultValue);
-                    return
-                end
-                output = strtrim(value(1));
-            elseif ischar(value)
-                output = string(strtrim(value));
-            else
-                output = strtrim(string(value));
-            end
-
-            if strlength(output) == 0
-                output = string(defaultValue);
-            end
-        end
-
-        function output = formatNumericId(~, rawValue)
-            numericValue = str2double(string(rawValue));
-            if isnan(numericValue)
-                output = "";
-            else
-                output = string(round(numericValue));
-            end
-        end
-
-        function output = extractMinDateFromRows(app, rows, fieldName)
-            output = NaT;
-
-            if ~istable(rows) || isempty(rows) || ~ismember(fieldName, rows.Properties.VariableNames)
-                return
-            end
-
-            values = NaT(height(rows), 1);
-            for ii = 1:height(rows)
-                values(ii) = rawToDatetime(app, rows.(fieldName)(ii));
-            end
-
-            values = values(~isnat(values));
-            if ~isempty(values)
-                output = min(values);
-            end
-        end
-
-        function output = extractMaxDateFromRows(app, rows, fieldName)
-            output = NaT;
-
-            if ~istable(rows) || isempty(rows) || ~ismember(fieldName, rows.Properties.VariableNames)
-                return
-            end
-
-            values = NaT(height(rows), 1);
-            for ii = 1:height(rows)
-                values(ii) = rawToDatetime(app, rows.(fieldName)(ii));
-            end
-
-            values = values(~isnat(values));
-            if ~isempty(values)
-                output = max(values);
-            end
-        end
-
-        function output = rawToDatetime(~, rawValue)
-            output = NaT;
-            value = rawValue;
-
-            while iscell(value)
-                if isempty(value)
-                    return
-                end
-                value = value{1};
-            end
-
-            if isempty(value)
-                return
-            end
-
-            try
-                if isdatetime(value)
-                    output = value(1);
-                else
-                    output = datetime(value);
-                end
-            catch
-                output = NaT;
-            end
         end
 
         function openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
@@ -1886,105 +2043,39 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             openRepoFilesDock(app, dockContext)
         end
 
+        
         %-----------------------------------------------------------------%
-        % Popup helpers
+        % Aplica os filtros no conjunto de dados lidos do banco e restringe
+        % o conjunto a ser manipulado pela GUI
         %-----------------------------------------------------------------%
-        function value = popupNumericValue(~, rawValue)
-            % Normaliza campos numericos opcionais para consumo no HTML.
-            if isempty(rawValue)
-                value = -1;
-                return
-            end
-
-            if iscell(rawValue)
-                rawValue = rawValue{1};
-            end
-
-            if isempty(rawValue)
-                value = -1;
-                return
-            end
-
-            value = double(rawValue);
-        end
-
-        function name = chooseName(app, st)
-            % Prioriza host_name; usa equipment_name como fallback.
-            hostName = normalizeTextFromValue(app, st.host_name);
-            equipmentName = normalizeTextFromValue(app, st.equipment_name);
-
-            if strlength(hostName) > 0
-                name = hostName;
-            elseif strlength(equipmentName) > 0
-                name = equipmentName;
-            else
-                name = "Estacao";
-            end
-        end
-
-        function [txt, color] = stationStatus(app, st)
-            % Mapeia o estado da estacao para rotulo e cor do popup.
-            switch string(st.map_state)
-                case "online_current"
-                    txt = "Online";
-                    color = "#4f7f67";
-                case "online_previous"
-                    txt = "Online historico";
-                    color = "#4f7f67";
-                case "offline_current"
-                    txt = "Offline";
-                    color = "#b88352";
-                case "offline_previous"
-                    txt = "Offline historico";
-                    color = "#b88352";
-                otherwise
-                    txt = "Sem host";
-                    color = "#7b8aa0";
-            end
-        end
-
-        function out = esc(app, value)
-            % Escapa caracteres HTML minimos para evitar markup quebrado.
-            out = string(value);
-            out = replace(out, "&", "&amp;");
-            out = replace(out, "<", "&lt;");
-            out = replace(out, ">", "&gt;");
-        end
-
-        function refreshFilteredMap(app, viewportMode)
-            % Atualiza o dataset filtrado e replota o mapa com a regra de viewport informada.
-            if nargin < 2
-                viewportMode = "preserve_if_all_states";
-            end
-
-            updateFilteredRepoSFI(app)
-            plot_Stations(app, viewportMode)
-        end
-
         function updateFilteredRepoSFI(app)
-            % Recalcula o dataset filtrado a partir do estado atual da interface.
+            % Recompõe o dataset filtrado a partir do estado atual da interface.
+
+            % A função centraliza a atualização de app.filteredRepoSFI, que depois
+            % é consumido tanto pelo plot do mapa quanto pelos fluxos de clique e
+            % popup que dependem do snapshot atualmente visível.
             app.filteredRepoSFI = getAppliedFilter(app);
 
+            % Também atualiza o contador textual para manter a interface coerente
+            % com o recorte recém-calculado, mesmo antes do replot terminar.
             if ~isempty(app.filesCountLabel)
                 app.filesCountLabel.Text = sprintf('%d localidade(s) visíveis', numel(app.filteredRepoSFI.points));
             end
         end
 
-        %-----------------------------------------------------------------%
-
-
-
-
-        %-----------------------------------------------------------------%
-        % Filtros e normalizacao
+        
         function filteredData = getAppliedFilter(app)
             % Aplica os filtros ativos da interface e devolve o dataset filtrado.
             %
             % A saída é a fonte única de verdade consumida pelo plot do mapa,
             % popup e seleção de localidades.
 
+            % Começa com a estrutura vazia padrão para garantir um contrato
+            % estável mesmo quando o dataset base ainda não estiver disponível.
             filteredData = struct('points', struct([]), 'site_details', struct([]));
 
+            % Sem o payload principal do RepoSFI não existe base para qualquer
+            % filtragem, então o fallback vazio é mantido.
             if isempty(app.repoSFI) || ~isstruct(app.repoSFI) || ~isfield(app.repoSFI, 'points') || ~isfield(app.repoSFI, 'site_details')
                 return
             end
@@ -1992,18 +2083,23 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             basePoints = app.repoSFI.points;
             baseSiteDetails = app.repoSFI.site_details;
 
+            % Se não houver pontos carregados, também não há recorte a compor.
             if isempty(basePoints)
                 return
             end
 
+            % Prepara coleções vazias tipadas a partir do dataset original para
+            % reconstruir apenas os sites que sobreviverem aos filtros ativos.
             filteredPoints = basePoints([]);
             filteredSiteDetails = baseSiteDetails([]);
 
+            % Inicializa os filtros com os estados neutros da interface.
             stateFilter    = "Todos os estados";
             statusFilter   = "Todos";
             localityFilter = "Todas";
             equipmentFilter = NaN;
 
+            % Lê o estado atual dos controles quando eles já estiverem disponíveis.
             if ~isempty(app.filesStateDropDown)
                 stateFilter = string(app.filesStateDropDown.Value);
             end
@@ -2019,13 +2115,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % When the user selects an equipment in the files search panel, the map
             % acts as a locator: only sites linked to that equipment remain visible.
             if ~isempty(app.filesStationDropDown)
-                equipmentFilter = selectedDropDownNumericValue(app, app.filesStationDropDown);
+                equipmentFilter = str2double(string(app.filesStationDropDown.Value));
             end
 
             [startDt, endDate] = getNormalizedFilterDateRange(app);
             if isnat(endDate)
                 endBefore = NaT;
             else
+                % Usa limite exclusivo no fim da janela para simplificar a
+                % comparação com períodos de vigência das estações.
                 endBefore = endDate + days(1);
             end
             hasDateFilter = ~isnat(startDt) || ~isnat(endBefore);
@@ -2033,6 +2131,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             for ii = 1:numel(basePoints)
                 basePoint = basePoints(ii);
 
+                % Tenta reaproveitar o detalhe na mesma posição do ponto e, se o
+                % alinhamento não existir, faz a busca explícita pelo site_id.
                 if numel(baseSiteDetails) >= ii && baseSiteDetails(ii).site_id == basePoint.site_id
                     detail = baseSiteDetails(ii);
                 else
@@ -2045,6 +2145,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
                 filteredDetail = detail;
 
+                % Só entra no filtro detalhado de estações quando algum recorte de
+                % data, status, localidade ou equipamento estiver realmente ativo.
                 if hasDateFilter || statusFilter ~= "Todos" || localityFilter ~= "Todas" || ~isnan(equipmentFilter)
                     filteredDetail = filterSiteDetailStations(app, detail, statusFilter, localityFilter, equipmentFilter, startDt, endBefore);
                     if isempty(filteredDetail.stations)
@@ -2052,16 +2154,21 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                     end
                 end
 
+                % Reconstroi o ponto público do mapa a partir do detalhe já podado,
+                % preservando coerência entre marcador, popup e seleção.
                 filteredPoint = buildPointFromDetail(app, basePoint, filteredDetail);
 
+                % O filtro por UF atua no nível do ponto agregado já reconstruído.
                 if stateFilter ~= "Todos os estados"
-                    pointStateCode = normalizeText(app, filteredPoint.state_code);
+                    pointStateCode = normalizeTextFromValue(app, filteredPoint.state_code);
                     if strlength(pointStateCode) == 0 || pointStateCode ~= stateFilter
                         continue
                     end
                 end
 
-                if ~pointMatchesStatus(app, filteredPoint, statusFilter)
+                % Os filtros finais validam o estado visual agregado e o tipo de
+                % localidade restante antes de publicar o site no recorte final.
+                if ~statusFilterMatchesMapState(app, filteredPoint.marker_state, statusFilter)
                     continue
                 end
 
@@ -2073,46 +2180,35 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 filteredSiteDetails(end + 1, 1) = filteredDetail; %#ok<AGROW>
             end
 
+            % Publica as coleções resultantes no formato esperado pelo restante do fluxo.
             filteredData.points = filteredPoints;
             filteredData.site_details = filteredSiteDetails;
         end
 
-        function output = getDateFilterValue(app, pickerHandle, mode)
-            % Converte o valor do date picker para o intervalo usado na filtragem.
-            output = NaT;
+        
 
-            if isempty(pickerHandle)
-                return
-            end
-
-            rawValue = pickerHandle.Value;
-            value = normalizeToDatetime(app, rawValue);
-
-            if isnat(value)
-                return
-            end
-
-            value = dateshift(value, 'start', 'day');
-
-            if mode == "end_before"
-                output = value + days(1);
-            else
-                output = value;
-            end
-        end
-
+        
         function [startDate, endDate] = getNormalizedFilterDateRange(app)
             % Normaliza o intervalo selecionado para evitar janelas invertidas.
+
+            % Esse helper é usado por getAppliedFilter e pelos callbacks de data
+            % para manter um contrato consistente entre os date pickers e as
+            % rotinas que avaliam vigência das estações.
             startDate = normalizeToDatetime(app, app.filesStartDatePicker.Value);
             endDate = normalizeToDatetime(app, app.filesEndDatePicker.Value);
 
+            % Se qualquer uma das pontas estiver ausente, preserva o retorno como
+            % NaT para indicar filtro temporal parcial ou inexistente.
             if isnat(startDate) || isnat(endDate)
                 return
             end
 
+            % Remove o componente horário antes de comparar e publicar a janela.
             startDate = dateshift(startDate, 'start', 'day');
             endDate = dateshift(endDate, 'start', 'day');
 
+            % Quando o usuário inverter as datas, corrige o limite final para não
+            % deixar a interface em um estado inconsistente.
             if startDate > endDate
                 endDate = startDate;
                 app.filesEndDatePicker.Value = endDate;
@@ -2120,50 +2216,73 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
              
-
         function output = filterSiteDetailStations(app, detail, statusFilter, localityFilter, equipmentFilter, startDt, endBefore)
-            % Mantem no detalhe apenas as estacoes compativeis com os filtros ativos.
+            % Mantém no detalhe apenas as estações compatíveis com os filtros ativos.
+
+            % Esse helper é chamado por getAppliedFilter quando existe algum
+            % recorte efetivo de data, status, localidade ou equipamento, para
+            % reduzir o site_detail ao subconjunto de estações ainda elegível.
             output = detail;
 
+            % Se o detalhe já vier sem estações, apenas recompõe o estado agregado
+            % vazio no mesmo contrato esperado pelo restante do fluxo.
             if isempty(detail.stations)
                 output = rebuildFilteredSiteDetail(app, output, detail.stations([]));
                 return
             end
 
+            % Parte de uma máscara totalmente permissiva e elimina estação por
+            % estação conforme cada regra de filtro for falhando.
             stations = detail.stations;
             keepMask = true(numel(stations), 1);
 
             for ii = 1:numel(stations)
                 station = stations(ii);
 
+                % A janela temporal é avaliada primeiro, porque costuma ser o
+                % recorte mais restritivo quando há período selecionado.
                 if ~stationMatchesDateFilter(app, station, startDt, endBefore)
                     keepMask(ii) = false;
                     continue
                 end
 
+                % Em seguida aplica o status agregado da estação.
                 if ~stationMatchesStatusFilter(app, station, statusFilter)
                     keepMask(ii) = false;
                     continue
                 end
 
+                % Depois valida se a posição da estação é atual ou histórica,
+                % conforme o filtro de localidade escolhido.
                 if ~stationMatchesLocalityFilter(app, station, localityFilter)
                     keepMask(ii) = false;
                     continue
                 end
 
+                % O filtro por equipamento fecha a triagem no nível individual da estação.
                 if ~stationMatchesEquipmentFilter(app, station, equipmentFilter)
                     keepMask(ii) = false;
                 end
             end
 
+            % Recalcula o estado agregado do site a partir apenas das estações
+            % sobreviventes, mantendo consistência com marcador e popup.
             output = rebuildFilteredSiteDetail(app, output, stations(keepMask));
         end
 
+        
         function output = rebuildFilteredSiteDetail(app, detail, stations)
             % Reconstroi o estado agregado do site a partir das estacoes restantes.
+
+            % Esse helper fecha o ciclo iniciado em filterSiteDetailStations:
+            % depois de podar as estacoes individuais, ele recompõe no
+            % site_detail todos os campos agregados que o restante da interface
+            % usa para marcador, popup e filtros subsequentes.
             output = detail;
             output.stations = stations;
 
+            % Quando nenhuma estacao sobrevive ao recorte, publica o estado
+            % neutro esperado pelo mapa para representar ausencia de host.
             if isempty(output.stations)
                 output.marker_state = "no_host";
                 output.has_online_station = false;
@@ -2172,67 +2291,93 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 return
             end
 
+            % Recalcula o marker_state dominante e os indicadores agregados a
+            % partir apenas das estacoes remanescentes.
             output.marker_state = summarizeSiteMarkerState(app, output.stations);
             stationStates = string({output.stations.map_state});
             output.has_online_station = any(stationStates == "online_current" | stationStates == "online_previous");
             output.has_online_host = output.has_online_station;
+
+            % has_known_host continua refletindo se ainda existe ao menos uma
+            % estacao com host resolvido dentro do subconjunto filtrado.
             output.has_known_host = any(~arrayfun(@(station) isempty(station.host_id), output.stations));
         end
 
+        
         function output = stationMatchesDateFilter(app, station, startDt, endBefore)
             % Avalia se a estacao intercepta a janela temporal ativa.
+
+            % Esse wrapper evita espalhar por filterSiteDetailStations a regra
+            % de curto-circuito para cenarios sem filtro temporal efetivo.
             if isnat(startDt) && isnat(endBefore)
                 output = true;
             else
+                % Quando existe alguma ponta temporal valida, delega o teste de
+                % sobreposicao ao helper especializado de vigencia.
                 output = stationOverlapsDateRange(app, station, startDt, endBefore);
             end
         end
 
-        function output = stationMatchesStatusFilter(~, station, statusFilter)
+        
+        function output = stationMatchesStatusFilter(app, station, statusFilter)
             % Avalia o filtro de status no nivel da estacao.
-            switch string(statusFilter)
-                case "Apenas online"
-                    output = any(string(station.map_state) == ["online_current", "online_previous"]);
-                case "Apenas offline"
-                    output = any(string(station.map_state) == ["offline_current", "offline_previous"]);
-                otherwise
-                    output = true;
-            end
+
+            % A comparacao acontece sobre map_state, que ja carrega a leitura
+            % visual consolidada usada tambem na plotagem dos marcadores.
+            output = statusFilterMatchesMapState(app, station.map_state, statusFilter);
         end
 
+        
         function output = stationMatchesLocalityFilter(~, station, localityFilter)
             % Avalia o filtro de posicao atual ou historica no nivel da estacao.
+
+            % Esse predicado traduz diretamente o valor do dropdown de
+            % localidade para a flag is_current_location da estacao.
             switch string(localityFilter)
                 case "Apenas atuais"
                     output = logical(station.is_current_location);
                 case "Apenas históricas"
                     output = ~logical(station.is_current_location);
                 otherwise
+                    % Sem recorte explicito de localidade, a estacao permanece.
                     output = true;
             end
         end
 
+        
         function output = stationMatchesEquipmentFilter(~, station, equipmentFilter)
             % Avalia o filtro de equipamento no nivel da estacao.
+
+            % O filtro so fica restritivo quando filesStationDropDown conseguiu
+            % resolver um equipment_id numerico valido; fora disso, ele e neutro.
             if isnan(equipmentFilter)
                 output = true;
                 return
             end
 
+            % Compara o identificador da estacao no mesmo formato numerico usado
+            % pelo restante do pipeline de filtros.
             output = str2double(string(station.equipment_id)) == equipmentFilter;
         end
 
 
         function output = stationOverlapsDateRange(app, station, startDt, endBefore)
             % Testa se a estacao teve vigencia dentro da janela selecionada.
+
+            % A funcao normaliza first_seen_at e last_seen_at e trata ambos como
+            % um intervalo de vigencia da estacao para confrontar com a janela
+            % escolhida pelo usuario na aba Arquivos.
             firstSeen = normalizeToDatetime(app, station.first_seen_at);
             lastSeen = normalizeToDatetime(app, station.last_seen_at);
 
+            % Sem nenhuma referencia temporal nao ha como afirmar intersecao.
             if isnat(firstSeen) && isnat(lastSeen)
                 output = false;
                 return
             end
 
+            % Quando uma das pontas vier ausente, reaproveita a outra para manter
+            % um intervalo degenerado, mas ainda comparavel.
             if isnat(firstSeen)
                 intervalStart = lastSeen;
             else
@@ -2245,19 +2390,352 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 intervalEnd = lastSeen;
             end
 
+            % Descarta estacoes cujo periodo termine antes do inicio filtrado.
             if ~isnat(startDt) && intervalEnd < startDt
                 output = false;
                 return
             end
 
+            % O limite superior segue a convencao exclusiva adotada por
+            % getAppliedFilter/getDateFilterValue.
             if ~isnat(endBefore) && intervalStart >= endBefore
                 output = false;
                 return
             end
 
+            % Se nao violou nenhuma das bordas, existe sobreposicao util entre
+            % a vigencia da estacao e a janela pedida.
             output = true;
         end
 
+
+        function output = buildPointFromDetail(app, basePoint, detail)
+            % Reconstroi o ponto publico a partir do detalhe filtrado por data.
+
+            % Depois que getAppliedFilter/refilterSiteDetailStations podam o
+            % detalhe interno do site, este helper recompõe a versão pública do
+            % ponto consumida pelo mapa, preservando apenas os campos realmente
+            % usados fora de site_detail.
+            pointStations = emptyPublicStationArray(app);
+            stationNames = strings(0, 1);
+
+            for ii = 1:numel(detail.stations)
+                % Cada estação remanescente vira uma versão enxuta para compor a
+                % coleção publicada em point.stations.
+                publicStation = buildPublicStation(app, detail.stations(ii));
+                pointStations(end + 1, 1) = publicStation; %#ok<AGROW>
+
+                % Em paralelo, acumula os nomes exibíveis usados por partes da UI
+                % que dependem da lista textual de estações do ponto.
+                stationName = chooseName(app, detail.stations(ii));
+                if strlength(stationName) > 0
+                    stationNames(end + 1, 1) = stationName; %#ok<AGROW>
+                end
+            end
+
+            % Copia o ponto base e substitui somente os campos derivados do
+            % detalhe filtrado para manter o restante dos metadados intacto.
+            output = basePoint;
+            output.stations = pointStations;
+            output.station_names = stationNames;
+            output.marker_state = detail.marker_state;
+            output.has_online_station = detail.has_online_station;
+            output.has_online_host = detail.has_online_host;
+            output.has_known_host = detail.has_known_host;
+        end
+
+        
+        function output = emptyPublicStationArray(~)
+            % Mantem a estrutura esperada pelos pontos publicos do mapa.
+
+            % Esse helper cria a coleção tipada vazia usada como ponto de partida
+            % em buildPointFromDetail, evitando que o campo stations oscile entre
+            % formatos incompatíveis quando o site ficar sem estações visíveis.
+            output = struct( ...
+                'equipment_id', cell(0, 1), ...
+                'equipment_name', cell(0, 1), ...
+                'host_id', cell(0, 1), ...
+                'host_name', cell(0, 1), ...
+                'is_offline', cell(0, 1), ...
+                'is_current_location', cell(0, 1), ...
+                'map_state', cell(0, 1) ...
+                );
+        end
+
+        
+        function output = buildPublicStation(~, station)
+            % Extrai apenas os campos usados fora do detalhe completo do site.
+
+            % O objetivo aqui e reduzir a estacao ao subconjunto realmente
+            % consumido por plotagem, popup e demais fluxos que trabalham com o
+            % ponto publico, sem carregar o payload integral de site_detail.
+            output = struct( ...
+                'equipment_id', station.equipment_id, ...
+                'equipment_name', station.equipment_name, ...
+                'host_id', station.host_id, ...
+                'host_name', station.host_name, ...
+                'is_offline', station.is_offline, ...
+                'is_current_location', station.is_current_location, ...
+                'map_state', station.map_state ...
+                );
+        end
+
+        
+        function output = summarizeSiteMarkerState(app, stations)
+            % Escolhe o estado visual dominante entre as estacoes do site.
+
+            % Essa redução consolida vários map_state individuais em um único
+            % marker_state para o ponto agregado do mapa.
+            if isempty(stations)
+                output = "no_host";
+                return
+            end
+
+            output = "no_host";
+            bestPriority = mapStatePriority(app, output);
+
+            for ii = 1:numel(stations)
+                stationState = string(stations(ii).map_state);
+                statePriority = mapStatePriority(app, stationState);
+
+                % Quanto menor a prioridade numérica, maior o destaque visual que
+                % esse estado deve assumir no marcador agregado.
+                if statePriority < bestPriority
+                    output = stationState;
+                    bestPriority = statePriority;
+                end
+            end
+        end
+
+        
+        function output = mapStatePriority(~, stateKey)
+            % Prioridade menor significa maior destaque visual no mapa.
+
+            % Esse ranking sustenta summarizeSiteMarkerState e define qual estado
+            % deve prevalecer quando um site reúne estacoes com condições mistas.
+            switch string(stateKey)
+                case "online_current"
+                    output = 0;
+                case "online_previous"
+                    output = 1;
+                case "offline_current"
+                    output = 2;
+                case "offline_previous"
+                    output = 3;
+                otherwise
+                    output = 4;
+            end
+        end
+
+        
+        function output = statusFilterMatchesMapState(~, mapState, statusFilter)
+            % Centraliza a leitura do filtro de status sobre qualquer map_state.
+            mapState = string(mapState);
+
+            switch string(statusFilter)
+                case "Apenas online"
+                    output = any(mapState == ["online_current", "online_previous"]);
+                case "Apenas offline"
+                    output = any(mapState == ["offline_current", "offline_previous"]);
+                otherwise
+                    output = true;
+            end
+        end
+
+        
+        function output = detailMatchesLocality(~, detail, localityFilter)
+            % Filtra por localizacao atual ou historica entre as estacoes do site.
+
+            % Esse helper roda depois da poda individual e responde se o site ainda
+            % mantém ao menos uma estação compatível com o recorte de localidade.
+            if isempty(detail.stations)
+                output = false;
+                return
+            end
+
+            currentMask = logical([detail.stations.is_current_location]);
+
+            switch string(localityFilter)
+                case "Apenas atuais"
+                    output = any(currentMask);
+                case "Apenas históricas"
+                    output = any(~currentMask);
+                otherwise
+                    % Sem filtro de localidade, qualquer composição remanescente
+                    % do site continua válida nesta etapa.
+                    output = true;
+            end
+        end
+
+        
+        %-----------------------------------------------------------------
+        % Helpers de Uso Geral
+        %-----------------------------------------------------------------
+        function output = formatFilesLocalityOption(app, row)
+            % Monta o rótulo exibido para cada localidade na aba Arquivos.
+
+            % Essa formatação é usada por updateFilesLocationOptions ao converter
+            % as linhas retornadas do banco em Items do filesLocationDropDown,
+            % preservando um texto legível mesmo quando parte dos campos vier vazia.
+
+            % O nome principal da localidade é a base do rótulo; quando ele não
+            % existir, a função usa '-' como fallback visual neutro.
+            output = displayRawText(app, row.LOCALITY_LABEL, '-');
+            county = displayRawText(app, row.COUNTY_NAME, '');
+            stateCode = displayRawText(app, row.STATE_CODE, '');
+
+            % Município e UF formam um sufixo complementar entre parênteses,
+            % ajudando a distinguir localidades com nomes parecidos.
+            suffix = "";
+            if strlength(county) > 0 && strlength(stateCode) > 0
+                suffix = county + "/" + stateCode;
+            elseif strlength(county) > 0
+                suffix = county;
+            elseif strlength(stateCode) > 0
+                suffix = stateCode;
+            end
+
+            % Evita repetir a mesma informação quando o rótulo principal já
+            % coincide com o texto calculado para o sufixo.
+            if strlength(suffix) > 0 && ~strcmpi(char(output), char(suffix))
+                output = output + " (" + suffix + ")";
+            end
+        end
+
+        
+        function output = displayRawText(app, rawValue, defaultValue)
+            % Normaliza valores textuais heterogêneos para um texto exibível.
+
+            % Esse helper é usado nas rotinas que montam rótulos da aba
+            % Arquivos, como loadFilesStationOptions e formatFilesLocalityOption,
+            % para absorver variações comuns do backend sem espalhar tratamento
+            % de célula, vazio ou missing pelo restante do fluxo.
+
+            output = normalizeTextFromValue(app, rawValue);
+            if strlength(output) == 0
+                output = string(defaultValue);
+            end
+        end
+
+        
+        function output = formatNumericId(~, rawValue)
+            % Converte um identificador bruto para a forma textual usada nos dropdowns.
+
+            % Esse helper é aplicado quando IDs vindos do banco precisam virar
+            % ItemsData em loadFilesStationOptions e updateFilesLocationOptions,
+            % além de servir na normalização de seleções preferenciais antes de
+            % comparar valores publicados na interface.
+
+            % Valores inválidos ou não numéricos voltam como string vazia, que no
+            % restante do fluxo representa ausência de identificador selecionável.
+            numericValue = str2double(string(rawValue));
+            if isnan(numericValue)
+                output = "";
+            else
+                % Mantém o ID em formato inteiro textual para alinhar com o tipo
+                % esperado por ItemsData e pelas comparações com Value do dropdown.
+                output = string(round(numericValue));
+            end
+        end
+
+        
+        function output = extractMinDateFromRows(app, rows, fieldName)
+            % Extrai a menor data válida presente em uma coluna da tabela.
+
+            % Esse helper é usado na atualização do período disponível da aba
+            % Arquivos para consolidar o limite inicial a partir das linhas já
+            % carregadas em app.filesLocalityRows.
+            output = NaT;
+
+            % Sem tabela válida, sem linhas ou sem a coluna pedida não existe
+            % base confiável para calcular o mínimo.
+            if ~istable(rows) || isempty(rows) || ~ismember(fieldName, rows.Properties.VariableNames)
+                return
+            end
+
+            % Converte cada valor bruto da coluna para datetime antes de aplicar
+            % a redução, reaproveitando a normalização centralizada em rawToDatetime.
+            values = NaT(height(rows), 1);
+            for ii = 1:height(rows)
+                values(ii) = rawToDatetime(app, rows.(fieldName)(ii));
+            end
+
+            % Ignora entradas inválidas e só publica resultado quando sobrar ao
+            % menos uma data útil para o cálculo.
+            values = values(~isnat(values));
+            if ~isempty(values)
+                output = min(values);
+            end
+        end
+
+        function output = extractMaxDateFromRows(app, rows, fieldName)
+            % Extrai a maior data válida presente em uma coluna da tabela.
+
+            % A função complementa extractMinDateFromRows no cálculo da janela
+            % temporal exibida na aba Arquivos, definindo o limite final que pode
+            % ser publicado nos date pickers.
+            output = NaT;
+
+            % Se a tabela não trouxer a coluna esperada ou vier vazia, mantém o
+            % fallback NaT para sinalizar ausência de período inferível.
+            if ~istable(rows) || isempty(rows) || ~ismember(fieldName, rows.Properties.VariableNames)
+                return
+            end
+
+            % Normaliza os valores heterogêneos da coluna para datetime antes de
+            % procurar o maior instante realmente utilizável.
+            values = NaT(height(rows), 1);
+            for ii = 1:height(rows)
+                values(ii) = rawToDatetime(app, rows.(fieldName)(ii));
+            end
+
+            % Remove NaT do conjunto e só aplica max quando houver pelo menos uma
+            % data válida remanescente.
+            values = values(~isnat(values));
+            if ~isempty(values)
+                output = max(values);
+            end
+        end
+
+        function output = rawToDatetime(~, rawValue)
+            % Converte valores brutos heterogêneos para datetime escalar.
+
+            % Esse helper sustenta extractMinDateFromRows e extractMaxDateFromRows,
+            % concentrando em um único ponto o tratamento dos formatos vindos do
+            % backend antes de calcular a janela temporal disponível.
+            output = NaT;
+            value = rawValue;
+
+            % Alguns campos chegam encapsulados em célula; a função desempacota
+            % recursivamente até encontrar a carga útil efetiva.
+            while iscell(value)
+                if isempty(value)
+                    return
+                end
+                value = value{1};
+            end
+
+            % Valor vazio continua representando ausência de data útil.
+            if isempty(value)
+                return
+            end
+
+            try
+                % Se já for datetime, reaproveita o primeiro elemento; caso
+                % contrário, delega a interpretação ao construtor padrão.
+                if isdatetime(value)
+                    output = value(1);
+                else
+                    output = datetime(value);
+                end
+            catch
+                % Falhas de conversão permanecem como NaT para que os chamadores
+                % possam simplesmente descartar entradas inválidas.
+                output = NaT;
+            end
+        end
+
+        
         function output = normalizeToDatetime(~, rawValue)
             % Aceita tipos heterogeneos do backend e converte para datetime.
             value = rawValue;
@@ -2330,127 +2808,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             output = NaT;
         end
 
-        function output = buildPointFromDetail(app, basePoint, detail)
-            % Reconstroi o ponto publico a partir do detalhe filtrado por data.
-            pointStations = emptyPublicStationArray(app);
-            stationNames = strings(0, 1);
-
-            for ii = 1:numel(detail.stations)
-                publicStation = buildPublicStation(app, detail.stations(ii));
-                pointStations(end + 1, 1) = publicStation; %#ok<AGROW>
-
-                stationName = chooseName(app, detail.stations(ii));
-                if strlength(stationName) > 0
-                    stationNames(end + 1, 1) = stationName; %#ok<AGROW>
-                end
-            end
-
-            output = basePoint;
-            output.stations = pointStations;
-            output.station_names = stationNames;
-            output.marker_state = detail.marker_state;
-            output.has_online_station = detail.has_online_station;
-            output.has_online_host = detail.has_online_host;
-            output.has_known_host = detail.has_known_host;
-        end
-
-        function output = emptyPublicStationArray(~)
-            % Mantem a estrutura esperada pelos pontos publicos do mapa.
-            output = struct( ...
-                'equipment_id', cell(0, 1), ...
-                'equipment_name', cell(0, 1), ...
-                'host_id', cell(0, 1), ...
-                'host_name', cell(0, 1), ...
-                'is_offline', cell(0, 1), ...
-                'is_current_location', cell(0, 1), ...
-                'map_state', cell(0, 1) ...
-                );
-        end
-
-        function output = buildPublicStation(~, station)
-            % Extrai apenas os campos usados fora do detalhe completo do site.
-            output = struct( ...
-                'equipment_id', station.equipment_id, ...
-                'equipment_name', station.equipment_name, ...
-                'host_id', station.host_id, ...
-                'host_name', station.host_name, ...
-                'is_offline', station.is_offline, ...
-                'is_current_location', station.is_current_location, ...
-                'map_state', station.map_state ...
-                );
-        end
-
-        function output = summarizeSiteMarkerState(app, stations)
-            % Escolhe o estado visual dominante entre as estacoes do site.
-            if isempty(stations)
-                output = "no_host";
-                return
-            end
-
-            output = "no_host";
-            bestPriority = mapStatePriority(app, output);
-
-            for ii = 1:numel(stations)
-                stationState = string(stations(ii).map_state);
-                statePriority = mapStatePriority(app, stationState);
-
-                if statePriority < bestPriority
-                    output = stationState;
-                    bestPriority = statePriority;
-                end
-            end
-        end
-
-        function output = mapStatePriority(~, stateKey)
-            % Prioridade menor significa maior destaque visual no mapa.
-            switch string(stateKey)
-                case "online_current"
-                    output = 0;
-                case "online_previous"
-                    output = 1;
-                case "offline_current"
-                    output = 2;
-                case "offline_previous"
-                    output = 3;
-                otherwise
-                    output = 4;
-            end
-        end
-
-        function output = pointMatchesStatus(~, point, statusFilter)
-            % Filtra pelo estado agregado exibido no marcador.
-            markerState = string(point.marker_state);
-
-            switch string(statusFilter)
-                case "Apenas online"
-                    output = any(markerState == ["online_current", "online_previous"]);
-                case "Apenas offline"
-                    output = any(markerState == ["offline_current", "offline_previous"]);
-                otherwise
-                    output = true;
-            end
-        end
-
-        function output = detailMatchesLocality(~, detail, localityFilter)
-            % Filtra por localizacao atual ou historica entre as estacoes do site.
-            if isempty(detail.stations)
-                output = false;
-                return
-            end
-
-            currentMask = logical([detail.stations.is_current_location]);
-
-            switch string(localityFilter)
-                case "Apenas atuais"
-                    output = any(currentMask);
-                case "Apenas históricas"
-                    output = any(~currentMask);
-                otherwise
-                    output = true;
-            end
-        end
-
-        
 
         function output = normalizeTextFromValue(app, rawValue)
             % Normaliza valores textuais heterogeneos para string escalar limpa.
@@ -2488,13 +2845,22 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
-        function output = normalizeText(app, rawValue)
-            % Alias semantico para manter legibilidade nos pontos de uso.
-            output = normalizeTextFromValue(app, rawValue);
+        function releaseDbHandler(app)
+            % Fecha as conexoes abertas pelo DBHandler antes de destruir o dock.
+            if isempty(app.dbHandler)
+                return
+            end
+
+            try
+                app.dbHandler = app.dbHandler.closeConnections();
+            catch
+            end
+
+            app.dbHandler = [];
         end
+
     end
-
-
+    
 
 
     % Callbacks that handle component events
@@ -2512,14 +2878,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Close request function: UIFigure
         function closeFcn(app, event)
-
+            
+            releaseDbHandler(app)
             ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', app.Context)
             delete(app)
 
         end
 
-        % Callback function
-        function DockModuleGroup_ButtonPushed(app, event)
+        % Image clicked function: dockModule_Close, dockModule_Undock
+        function onDockModuleGroupButtonClicked(app, event)
 
             [idx, auxAppTag, relatedButton] = getAppInfoFromHandle(app.mainApp.tabGroupController, app);
 
@@ -2543,7 +2910,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: tool_PDFButton, tool_PanelVisibility, 
-        % ...and 2 other components
+        % ...and 1 other component
         function Toolbar_InteractionImageClicked(app, event)
 
             switch event.Source
@@ -2557,56 +2924,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                         app.SubTabGroup.Visible = 1;
                         app.Document.Layout.Column = [4 5];
                     end
-
-                case app.tool_TableVisibility
-                    app.tool_TableVisibility.UserData.layout = mod(app.tool_TableVisibility.UserData.layout + 1, 3);
-                    switch app.tool_TableVisibility.UserData.layout
-                        case 0
-                            app.UITable.Visible    = 0;
-                            app.Document.RowHeight = {24,'1x',0,0};
-                        case 1
-                            app.UITable.Visible    = 1;
-                            app.Document.RowHeight = {24,'1x',10,'.4x'};
-                        case 2
-                            app.UITable.Visible    = 1;
-                            app.Document.RowHeight = {0,0,0,'1x'};
-                    end
-
-                case app.tool_PDFButton
-                    app.tool_PDFButton.UserData.status = ~app.tool_PDFButton.UserData.status;
-                    if app.tool_PDFButton.UserData.status
-                        % Se a tabela estiver ocupando toda a tela, então
-                        % muda-se o layout.
-                        if app.tool_TableVisibility.UserData.layout == 2
-                            app.tool_TableVisibility.UserData.layout = 1;
-                            app.Document.RowHeight = {24,'1x',10,'.4x'};
-                        end
-
-                        app.Document.ColumnWidth(4:7) = {10,22,22,'1x'};
-                    else
-                        app.Document.ColumnWidth(4:7) = {0,0,0,0};
-                    end
-                    misc_getChannelReport(app, 'Cache+RealTime')
-
-                case app.tool_RFLinkButton
-                    app.tool_RFLinkButton.UserData.status = ~app.tool_RFLinkButton.UserData.status;
-                    if app.tool_RFLinkButton.UserData.status
-                        % Se a tabela estiver ocupando toda a tela, então
-                        % muda-se o layout. O pause é uma espécie de "drawnow"
-                        % e garante que o plot será realizado corretamente.
-                        if app.tool_TableVisibility.UserData.layout == 2
-                            app.tool_TableVisibility.UserData.layout = 1;
-                            app.Document.RowHeight = {24,'1x',10,'.4x'};
-                            pause(.100)
-                        end
-
-                        app.UIAxes.Layout.TileSpan = [1,2];
-                        set(findobj(app.UIAxes2), 'Visible', 1)
-                    else
-                        app.UIAxes.Layout.TileSpan = [2,2];
-                        set(findobj(app.UIAxes2), 'Visible', 0)
-                    end
-                    plot_createRFLinkPlot(app)
             end
 
         end
@@ -2667,7 +2984,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         % ...and 2 other components
         function onStationFilterChanged(app, event)
 
-            viewportMode = "preserve_if_all_states";
+             viewportMode = "preserve_if_all_states";
 
             if isequal(event.Source, app.filesStateDropDown)
                 viewportMode = "fit";
@@ -2685,7 +3002,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             switch event.Source
                 case app.axesTool_RestoreView
-                    restoreMapView(app)
+                    applyMapViewport(app, struct(), "fit")
 
                 case app.axesTool_RegionZoom
                     plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes, app.axesTool_RegionZoom)
@@ -2699,9 +3016,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Value changed function: filesStationDropDown
         function onStationChanged(app, event)
-            % Selecting a station in the search panel re-filters the map so the
-            % user immediately sees where that equipment's sites are located.
-            % getAppliedFilter reads filesStationDropDown as a map filter (Batch 3).
+           % Recarrega as localidades do equipamento recém-selecionado antes de
+            % replotar o mapa com o novo contexto.
+            updateFilesLocationOptions(app, NaN)
+
+            % O mapa também usa filesStationDropDown como filtro, então a troca
+            % do equipamento precisa refletir imediatamente nos pontos visíveis.
             refreshFilteredMap(app, "fit");
 
         end
@@ -2709,12 +3029,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         % Value changed function: configMapStyleDropDown
         function onMapStyleChanged(app, event)
             applySelectedMapStyle(app);
-
-        end
-
-        % Selection change function: SubTabGroup
-        function onSubTabChanged(app, event)
-            %applyJSCustomizations(app);
 
         end
 
@@ -2739,7 +3053,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesStatusDropDown.Value = 'Todos';
             app.filesLocalityDropDown.Value = 'Todas';
 
-            app.filesDescriptionEditField.Value = '';
+            %app.filesDescriptionEditField.Value = '';
             app.filesFrequencyStartEditField.Value = -1;
             app.filesFrequencyEndEditField.Value = -1;
             app.filesStartDatePicker.Value = NaT;
@@ -2799,7 +3113,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 22, 5, 22, '1x', 18};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 5, 22, '1x', 18};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -2825,20 +3139,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_Separator1.VerticalAlignment = 'bottom';
             app.tool_Separator1.ImageSource = 'LineV.svg';
 
-            % Create tool_TableVisibility
-            app.tool_TableVisibility = uiimage(app.Toolbar);
-            app.tool_TableVisibility.ScaleMethod = 'none';
-            app.tool_TableVisibility.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
-            app.tool_TableVisibility.Layout.Row = [1 3];
-            app.tool_TableVisibility.Layout.Column = 3;
-            app.tool_TableVisibility.ImageSource = 'View_16.png';
-
             % Create tool_RFLinkButton
             app.tool_RFLinkButton = uiimage(app.Toolbar);
             app.tool_RFLinkButton.ScaleMethod = 'none';
             app.tool_RFLinkButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
             app.tool_RFLinkButton.Layout.Row = [1 3];
-            app.tool_RFLinkButton.Layout.Column = 4;
+            app.tool_RFLinkButton.Layout.Column = 3;
             app.tool_RFLinkButton.ImageSource = 'Publish_HTML_16.png';
 
             % Create tool_PDFButton
@@ -2846,7 +3152,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_PDFButton.ScaleMethod = 'none';
             app.tool_PDFButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
             app.tool_PDFButton.Layout.Row = [1 3];
-            app.tool_PDFButton.Layout.Column = 5;
+            app.tool_PDFButton.Layout.Column = 4;
             app.tool_PDFButton.ImageSource = 'Publish_PDF_16.png';
 
             % Create tool_Separator2
@@ -2854,7 +3160,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_Separator2.ScaleMethod = 'none';
             app.tool_Separator2.Enable = 'off';
             app.tool_Separator2.Layout.Row = [1 3];
-            app.tool_Separator2.Layout.Column = 6;
+            app.tool_Separator2.Layout.Column = 5;
             app.tool_Separator2.VerticalAlignment = 'bottom';
             app.tool_Separator2.ImageSource = 'LineV.svg';
 
@@ -2863,7 +3169,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_ExportButton.ScaleMethod = 'none';
             app.tool_ExportButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_exportButtonPushed, true);
             app.tool_ExportButton.Layout.Row = [1 3];
-            app.tool_ExportButton.Layout.Column = 7;
+            app.tool_ExportButton.Layout.Column = 6;
             app.tool_ExportButton.ImageSource = 'Export_16.png';
 
             % Create tool_tableNRowsIcon
@@ -2871,8 +3177,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_tableNRowsIcon.ScaleMethod = 'none';
             app.tool_tableNRowsIcon.Enable = 'off';
             app.tool_tableNRowsIcon.Layout.Row = [1 3];
-            app.tool_tableNRowsIcon.Layout.Column = 9;
+            app.tool_tableNRowsIcon.Layout.Column = 8;
             app.tool_tableNRowsIcon.ImageSource = 'Filter_18.png';
+
+            % Create filesCountLabel
+            app.filesCountLabel = uilabel(app.Toolbar);
+            app.filesCountLabel.HorizontalAlignment = 'right';
+            app.filesCountLabel.FontSize = 11;
+            app.filesCountLabel.Layout.Row = [1 3];
+            app.filesCountLabel.Layout.Column = 7;
+            app.filesCountLabel.Text = '0 localidade(s) visíveis';
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
@@ -2942,84 +3256,39 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.popupHTML.Interpreter = 'html';
             app.popupHTML.Text = '';
 
-            % Create SubTabGroup
-            app.SubTabGroup = uitabgroup(app.GridLayout);
-            app.SubTabGroup.SelectionChangedFcn = createCallbackFcn(app, @onSubTabChanged, true);
-            app.SubTabGroup.Layout.Row = [3 4];
-            app.SubTabGroup.Layout.Column = 2;
-
-            % Create FilesTab
-            app.FilesTab = uitab(app.SubTabGroup);
-            app.FilesTab.Title = 'ARQUIVOS';
+            % Create Panel
+            app.Panel = uipanel(app.GridLayout);
+            app.Panel.AutoResizeChildren = 'off';
+            app.Panel.Layout.Row = [3 4];
+            app.Panel.Layout.Column = 2;
 
             % Create FilesMainGrid
-            app.FilesMainGrid = uigridlayout(app.FilesTab);
-            app.FilesMainGrid.ColumnWidth = {'1x'};
-            app.FilesMainGrid.RowHeight = {48, 22, 22, 88, 22, 61, 22, 61, 22, 61, 22, 22, 22, '1x'};
+            app.FilesMainGrid = uigridlayout(app.Panel);
+            app.FilesMainGrid.ColumnWidth = {18, '1x'};
+            app.FilesMainGrid.RowHeight = {48, 22, 98, 22, 61, 22, 71, 22, 71, 22, '1x'};
             app.FilesMainGrid.RowSpacing = 5;
             app.FilesMainGrid.Padding = [10 10 10 5];
             app.FilesMainGrid.BackgroundColor = [1 1 1];
 
-            % Create filesTitleGrid
-            app.filesTitleGrid = uigridlayout(app.FilesMainGrid);
-            app.filesTitleGrid.ColumnWidth = {22, '1x', 18, 18, 0, 0};
-            app.filesTitleGrid.RowHeight = {18, 18, '1x'};
-            app.filesTitleGrid.ColumnSpacing = 5;
-            app.filesTitleGrid.RowSpacing = 5;
-            app.filesTitleGrid.Padding = [10 10 10 5];
-            app.filesTitleGrid.Layout.Row = 1;
-            app.filesTitleGrid.Layout.Column = 1;
-            app.filesTitleGrid.BackgroundColor = [1 1 1];
-
-            % Create referenceRX_Icon_3
-            app.referenceRX_Icon_3 = uiimage(app.filesTitleGrid);
-            app.referenceRX_Icon_3.Layout.Row = [1 2];
-            app.referenceRX_Icon_3.Layout.Column = 1;
-            app.referenceRX_Icon_3.ImageSource = 'addFiles_32.png';
-
-            % Create referenceRX_Label_3
-            app.referenceRX_Label_3 = uilabel(app.filesTitleGrid);
-            app.referenceRX_Label_3.VerticalAlignment = 'bottom';
-            app.referenceRX_Label_3.FontSize = 11;
-            app.referenceRX_Label_3.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.referenceRX_Label_3.Layout.Row = [1 2];
-            app.referenceRX_Label_3.Layout.Column = 2;
-            app.referenceRX_Label_3.Interpreter = 'html';
-            app.referenceRX_Label_3.Text = {'<b>Pesquisa de Arquivos</b>'; '<font style="font-size: 9px; color: gray;">(Dentro do repoSFI)</font>'};
-
             % Create filesPeriodLabel
             app.filesPeriodLabel = uilabel(app.FilesMainGrid);
             app.filesPeriodLabel.FontSize = 10;
-            app.filesPeriodLabel.Layout.Row = 7;
-            app.filesPeriodLabel.Layout.Column = 1;
+            app.filesPeriodLabel.Layout.Row = 6;
+            app.filesPeriodLabel.Layout.Column = [1 2];
             app.filesPeriodLabel.Text = 'PERÍODO ';
 
             % Create filesFrequencyLabel
             app.filesFrequencyLabel = uilabel(app.FilesMainGrid);
             app.filesFrequencyLabel.FontSize = 10;
-            app.filesFrequencyLabel.Layout.Row = 9;
-            app.filesFrequencyLabel.Layout.Column = 1;
+            app.filesFrequencyLabel.Layout.Row = 8;
+            app.filesFrequencyLabel.Layout.Column = [1 2];
             app.filesFrequencyLabel.Text = 'FREQUÊNCIA (MHz)';
-
-            % Create filesDescriptionLabel
-            app.filesDescriptionLabel = uilabel(app.FilesMainGrid);
-            app.filesDescriptionLabel.FontSize = 10;
-            app.filesDescriptionLabel.Layout.Row = 11;
-            app.filesDescriptionLabel.Layout.Column = 1;
-            app.filesDescriptionLabel.Text = 'PLANO/DESCRIÇÃO';
-
-            % Create filesDescriptionEditField
-            app.filesDescriptionEditField = uieditfield(app.FilesMainGrid, 'text');
-            app.filesDescriptionEditField.FontSize = 11;
-            app.filesDescriptionEditField.Placeholder = 'Digite uma descrição. Exemplo ''%PMEC%''';
-            app.filesDescriptionEditField.Layout.Row = 12;
-            app.filesDescriptionEditField.Layout.Column = 1;
 
             % Create filesStationFilterPanel
             app.filesStationFilterPanel = uipanel(app.FilesMainGrid);
             app.filesStationFilterPanel.BackgroundColor = [1 1 1];
-            app.filesStationFilterPanel.Layout.Row = 4;
-            app.filesStationFilterPanel.Layout.Column = 1;
+            app.filesStationFilterPanel.Layout.Row = 3;
+            app.filesStationFilterPanel.Layout.Column = [1 2];
             app.filesStationFilterPanel.FontSize = 11;
 
             % Create filesStationsGrid
@@ -3027,7 +3296,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesStationsGrid.ColumnWidth = {110, '1x'};
             app.filesStationsGrid.RowHeight = {22, 22, 22};
             app.filesStationsGrid.RowSpacing = 5;
-            app.filesStationsGrid.Padding = [10 10 10 5];
             app.filesStationsGrid.BackgroundColor = [1 1 1];
 
             % Create filesStateLabel
@@ -3081,32 +3349,24 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityDropDown.Layout.Column = 2;
             app.filesLocalityDropDown.Value = 'Todas';
 
-            % Create filesCountLabel
-            app.filesCountLabel = uilabel(app.FilesMainGrid);
-            app.filesCountLabel.FontSize = 11;
-            app.filesCountLabel.Layout.Row = 2;
-            app.filesCountLabel.Layout.Column = 1;
-            app.filesCountLabel.Text = '0 localidade(s) visíveis';
-
             % Create filesLocationSelectLabel
             app.filesLocationSelectLabel = uilabel(app.FilesMainGrid);
             app.filesLocationSelectLabel.FontSize = 10;
-            app.filesLocationSelectLabel.Layout.Row = 3;
-            app.filesLocationSelectLabel.Layout.Column = 1;
+            app.filesLocationSelectLabel.Layout.Row = 2;
+            app.filesLocationSelectLabel.Layout.Column = [1 2];
             app.filesLocationSelectLabel.Text = 'LOCALIDADE/HISTÓRICO';
 
             % Create filesPeriodPanel
             app.filesPeriodPanel = uipanel(app.FilesMainGrid);
             app.filesPeriodPanel.BackgroundColor = [1 1 1];
-            app.filesPeriodPanel.Layout.Row = 8;
-            app.filesPeriodPanel.Layout.Column = 1;
+            app.filesPeriodPanel.Layout.Row = 7;
+            app.filesPeriodPanel.Layout.Column = [1 2];
 
             % Create filesPeriodGrid
             app.filesPeriodGrid = uigridlayout(app.filesPeriodPanel);
             app.filesPeriodGrid.ColumnWidth = {110, '1x'};
             app.filesPeriodGrid.RowHeight = {22, 22};
             app.filesPeriodGrid.RowSpacing = 5;
-            app.filesPeriodGrid.Padding = [10 10 10 5];
             app.filesPeriodGrid.BackgroundColor = [1 1 1];
 
             % Create filesStartDateLabel
@@ -3142,15 +3402,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create filesFrequencyPanel
             app.filesFrequencyPanel = uipanel(app.FilesMainGrid);
             app.filesFrequencyPanel.BackgroundColor = [1 1 1];
-            app.filesFrequencyPanel.Layout.Row = 10;
-            app.filesFrequencyPanel.Layout.Column = 1;
+            app.filesFrequencyPanel.Layout.Row = 9;
+            app.filesFrequencyPanel.Layout.Column = [1 2];
 
             % Create filesFrequencyGrid
             app.filesFrequencyGrid = uigridlayout(app.filesFrequencyPanel);
             app.filesFrequencyGrid.ColumnWidth = {110, '1x'};
             app.filesFrequencyGrid.RowHeight = {22, 22};
             app.filesFrequencyGrid.RowSpacing = 5;
-            app.filesFrequencyGrid.Padding = [10 10 10 5];
             app.filesFrequencyGrid.BackgroundColor = [1 1 1];
 
             % Create filesFrequencyEndLabel
@@ -3163,7 +3422,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create filesFrequencyStartEditField
             app.filesFrequencyStartEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
             app.filesFrequencyStartEditField.AllowEmpty = 'on';
-            app.filesFrequencyStartEditField.FontSize = 11;
+            app.filesFrequencyStartEditField.FontSize = 10.5;
             app.filesFrequencyStartEditField.Layout.Row = 1;
             app.filesFrequencyStartEditField.Layout.Column = 2;
             app.filesFrequencyStartEditField.Value = [];
@@ -3171,7 +3430,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create filesFrequencyEndEditField
             app.filesFrequencyEndEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
             app.filesFrequencyEndEditField.AllowEmpty = 'on';
-            app.filesFrequencyEndEditField.FontSize = 11;
+            app.filesFrequencyEndEditField.FontSize = 10.5;
             app.filesFrequencyEndEditField.Layout.Row = 2;
             app.filesFrequencyEndEditField.Layout.Column = 2;
             app.filesFrequencyEndEditField.Value = [];
@@ -3186,8 +3445,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create filesSensorLocationLabel
             app.filesSensorLocationLabel = uipanel(app.FilesMainGrid);
             app.filesSensorLocationLabel.BackgroundColor = [1 1 1];
-            app.filesSensorLocationLabel.Layout.Row = 6;
-            app.filesSensorLocationLabel.Layout.Column = 1;
+            app.filesSensorLocationLabel.Layout.Row = 5;
+            app.filesSensorLocationLabel.Layout.Column = [1 2];
             app.filesSensorLocationLabel.FontSize = 11;
 
             % Create filesSensorLocationGrid
@@ -3235,9 +3494,9 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create filesStationLabel
             app.filesStationLabel = uilabel(app.FilesMainGrid);
-            app.filesStationLabel.FontSize = 11;
-            app.filesStationLabel.Layout.Row = 5;
-            app.filesStationLabel.Layout.Column = 1;
+            app.filesStationLabel.FontSize = 10;
+            app.filesStationLabel.Layout.Row = 4;
+            app.filesStationLabel.Layout.Column = [1 2];
             app.filesStationLabel.Text = 'ESTAÇÃO';
 
             % Create GridLayout2
@@ -3245,8 +3504,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.GridLayout2.RowHeight = {'1x'};
             app.GridLayout2.RowSpacing = 0;
             app.GridLayout2.Padding = [0 0 0 0];
-            app.GridLayout2.Layout.Row = 13;
-            app.GridLayout2.Layout.Column = 1;
+            app.GridLayout2.Layout.Row = 10;
+            app.GridLayout2.Layout.Column = 2;
             app.GridLayout2.BackgroundColor = [1 1 1];
 
             % Create filesSearchButton
@@ -3265,6 +3524,21 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesCleanButton.Layout.Column = 2;
             app.filesCleanButton.Text = 'Limpar';
 
+            % Create referenceRX_Icon_3
+            app.referenceRX_Icon_3 = uiimage(app.FilesMainGrid);
+            app.referenceRX_Icon_3.Layout.Row = 1;
+            app.referenceRX_Icon_3.Layout.Column = 1;
+            app.referenceRX_Icon_3.ImageSource = 'addFiles_32.png';
+
+            % Create referenceRX_Label_3
+            app.referenceRX_Label_3 = uilabel(app.FilesMainGrid);
+            app.referenceRX_Label_3.FontSize = 11;
+            app.referenceRX_Label_3.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.referenceRX_Label_3.Layout.Row = 1;
+            app.referenceRX_Label_3.Layout.Column = 2;
+            app.referenceRX_Label_3.Interpreter = 'html';
+            app.referenceRX_Label_3.Text = {'<b>Pesquisa de Arquivos</b>'; '<font style="font-size: 9px; color: gray;">(Dentro do repoSFI)</font>'};
+
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
             app.DockModule.RowHeight = {'1x'};
@@ -3278,6 +3552,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
+            app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
             app.dockModule_Undock.Enable = 'off';
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
@@ -3286,6 +3561,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create dockModule_Close
             app.dockModule_Close = uiimage(app.DockModule);
             app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
             app.dockModule_Close.Layout.Row = 1;
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
