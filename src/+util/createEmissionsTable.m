@@ -27,7 +27,7 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
     
         for ii = flowIdxs
             emissionsTempTable = specData(ii).UserData.Emissions;
-    
+            
             emissionsTempTable.Truncated = arrayfun(@(x) x.UserModified.Frequency,     emissionsTempTable.ChannelAssigned);
             if any(~emissionsTempTable.IsTruncated)
                 idxUntruncated = find(~emissionsTempTable.IsTruncated);

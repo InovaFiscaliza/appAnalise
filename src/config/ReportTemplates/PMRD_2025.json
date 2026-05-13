@@ -5,23 +5,20 @@
         "Data": {
             "Editable": "false",
             "Text": "OBJETIVO",
-            "Children": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Atendimento à demanda de fiscalização cadastrada no Fiscaliza sob a <b>Atividade de Inspeção nº %s</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
-                    "Variable": [
-                        {
-                            "Source": "Issue",
-                            "Precision": "%.0f"
-                        },
-                        {
-                            "Source": "RelatedLocations",
-                            "Precision": "%s"
-                        }
-                    ]
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Atendimento à demanda de fiscalização cadastrada no eFiscaliza sob a <b>Atividade de Inspeção nº %.0f</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
+                        "Variable": [
+                            "var_Issue",
+                            "var_RelatedLocations"
+                        ]
+                    }
                 }
-            }
+            ]
         }
     },
     {
@@ -30,12 +27,14 @@
         "Data": {
             "Editable": "false",
             "Text": "INTRODUÇÃO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "O Plano de Monitoração de Radiodifusão (PMRD), criado no ano de 2020, tem como objetivo controlar, de forma preventiva, o uso de faixas de frequência relacionados aos serviços de radiodifusão, com destaque para as indicadas a seguir. Dentre as atividades relacionadas a esse controle, a estimativa da área de atendimento e a avaliação de parâmetros técnicos de estações de radiodifusão, além da identificação e mitigação de espúrios gerados por essas estações."
+                        "Text": "O Plano de Monitoração de Radiodifusão (PMRD), criado no ano de 2020, tem como objetivo controlar, de forma preventiva, o uso de faixas de frequência relacionados aos serviços de radiodifusão, com destaque para as indicadas a seguir. Dentre as atividades relacionadas a esse controle, a estimativa da área de atendimento e a avaliação de parâmetros técnicos de estações de radiodifusão, além da identificação e mitigação de espúrios gerados por essas estações.",
+                        "Variable": []
                     }
                 },
                 {
@@ -43,11 +42,13 @@
                     "Data": [
                         {
                             "Editable": "false",
-                            "Text": "Faixas 54.000 a 88.000 MHz, 176.000 a 214.000 MHz e 470.000 a 698.000 MHz, destinadas aos serviços televisivos."
+                            "Text": "Faixas 54.000 a 88.000 MHz, 176.000 a 214.000 MHz e 470.000 a 698.000 MHz, destinadas aos serviços televisivos.",
+                            "Variable": []
                         },
                         {
                             "Editable": "false",
-                            "Text": "Faixa 76.000 a 108.000 MHz, destinada ao serviço de Radiodifusão Sonora em Frequência Modulada (incluso Radiodifusão Comunitária)."
+                            "Text": "Faixa 76.000 a 108.000 MHz, destinada ao serviço de Radiodifusão Sonora em Frequência Modulada (incluso Radiodifusão Comunitária).",
+                            "Variable": []
                         }
                     ]
                 },
@@ -55,7 +56,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "Neste ano de 2025, o PMRD foi formalizado por meio do <b>Processo nº 53500.100466/2024-15</b>, o qual contempla o Plano de Trabalho (SEI nº 13183357)."
+                        "Text": "Neste ano de 2025, o PMRD foi formalizado por meio do <b>Processo nº 53500.100466/2024-15</b>, o qual contempla o Plano de Trabalho (SEI nº 13183357).",
+                        "Variable": []
                     }
                 }
             ]
@@ -67,23 +69,26 @@
         "Data": {
             "Editable": "false",
             "Text": "METODOLOGIA",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas."
+                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas.",
+                        "Variable": []
                     }
                 },
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Custom",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_MonitoringBandsOverview",
                         "Columns": [
                             "ID",
-                            "Receiver",
                             "Band",
+                            "Receiver",
+                            "LocationSummary",
                             "ObservationTime",
                             "Parameters"
                         ],
@@ -98,21 +103,27 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Sensor",
+                                "ColumnName": "Faixa de frequência",
                                 "Precision": "%s",
                                 "Width": "130px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Faixa de frequência sob análise",
+                                "ColumnName": "Sensor",
                                 "Precision": "%s",
-                                "Width": "130px"
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Local da monitoração",
+                                "Precision": "%s",
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
                                 "ColumnName": "Observação<br>(Período, Varreduras e Tempo de revisita)",
                                 "Precision": "%s",
-                                "Width": "220px"
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
@@ -135,25 +146,23 @@
         "Data": {
             "Editable": "false",
             "Text": "RESULTADOS",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
                         "Text": "%s",
-                        "Variable":
-                        {
-                            "Source": "threadTag",
-                            "Precision": "%s"
-                        }
+                        "Variable": "var_TagFlow"
                     }
                 },
                 {
                     "Type": "Image",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Band",
-                        "Plot": "MinHold+Average+MaxHold+Emission:Waterfall",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
+                        "Name": "minHold+average+maxHold+emission:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
                         "Settings": {
@@ -168,8 +177,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Algorithms",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandAlgorithms",
                         "Columns": [
                             "Algorithm",
                             "Parameters"
@@ -198,13 +207,13 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "EmissionPerBand",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandEmissions",
                         "Columns": [
                             "ID",
                             "Frequency",
                             "Truncated",
-                            "BW_kHz",
+                            "BandWidthkHz",
                             "Level_FreqCenter_Min",
                             "Level_FreqCenter_Mean",
                             "Level_FreqCenter_Max",
@@ -242,19 +251,19 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível mínimo (%LevelUnit%)",
+                                "ColumnName": "Nível mínimo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível médio (%LevelUnit%)",
+                                "ColumnName": "Nível médio (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível máximo (%LevelUnit%)",
+                                "ColumnName": "Nível máximo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
@@ -297,12 +306,13 @@
         "Data": {
             "Editable": "false",
             "Text": "ANÁLISE",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N1_Licenciada",
@@ -389,8 +399,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N2_Fundamental",
@@ -469,8 +479,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N3_Licenciada",
@@ -541,12 +551,12 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Irregular",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionsIrregular",
                         "Columns": [
                             "Frequency",
                             "Truncated",
-                            "BW_kHz",                            
+                            "BandWidthkHz",                            
                             "Regulatory",
                             "Type",
                             "RiskLevel",
@@ -607,7 +617,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "true",
-                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:"
+                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:",
+                        "Variable": []
                     }
                 },
                 {
@@ -615,11 +626,13 @@
                     "Data": [
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         }
                     ]
                 }
@@ -632,13 +645,17 @@
         "Data": {
             "Editable": "false",
             "Text": "CONCLUSÃO",
-            "Children": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Ante o exposto, conclui-se este relatório de atividades."
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Ante o exposto, conclui-se este relatório de atividades.",
+                        "Variable": []
+                    }
                 }
-            }
+            ]
         }
     }
 ]

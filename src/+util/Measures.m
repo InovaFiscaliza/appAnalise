@@ -94,7 +94,7 @@ function Occupancy(specData, flowIdx, emissionIdx, idx1, idx2)
     % INTEGRAÇÃO TEMPORAL INFINITA
     refInfMatrix = specData(flowIdx).UserData.OccupancyCumulativeIntegration(idx1:idx2, :);
     FBOPerSweep = 100 * sum(refInfMatrix)/(idx2 - idx1 + 1);
-    FCOChannel = 100 * sum(any(refInfMatrix)) / width(refInfMatrix);
+    FCOChannel = 100 * sum(any(refInfMatrix, 1)) / width(refInfMatrix);
     FCOFreqCenter = 100 * sum(refInfMatrix(idxMatrixCenter-idx1+1, :)) / width(refInfMatrix);
 
     % INTEGRAÇÃO TEMPORAL FINITA

@@ -5,21 +5,16 @@
         "Data": {
             "Editable": "false",
             "Text": "OBJETIVO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "Atendimento à demanda de fiscalização cadastrada no e-Fiscaliza sob a <b>Atividade de Inspeção nº %s</b>, cujo o objetivo é analisar o espectro da monitoração realizada na localidade de <b>%s</b>, em conjunto com as abordagens realizadas pelos fiscais em campo, durante o acompanhamento de evento de relevância nacional.",
+                        "Text": "Atendimento à demanda de fiscalização cadastrada no eFiscaliza sob a <b>Atividade de Inspeção nº %.0f</b>, cujo o objetivo é analisar o espectro da monitoração realizada na localidade de <b>%s</b>, em conjunto com as abordagens realizadas pelos fiscais em campo, durante o acompanhamento de evento de relevância nacional.",
                         "Variable": [
-                            {
-                                "Source": "Issue",
-                                "Precision": "%.0f"
-                            },
-                            {
-                                "Source": "RelatedLocations",
-                                "Precision": "%s"
-                            }
+                            "var_Issue",
+                            "var_RelatedLocations"
                         ]
                     }
                 },
@@ -27,7 +22,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "true",
-                        "Text": "Trata-se do evento <b>NOME DO EVENTO</b>."
+                        "Text": "Trata-se do evento <b>NOME DO EVENTO</b>.",
+                        "Variable": []
                     }
                 }
             ]
@@ -39,26 +35,30 @@
         "Data": {
             "Editable": "false",
             "Text": "INTRODUÇÃO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "A Fiscalização Centralizada de Espectro em Grandes Eventos, em 2025, é orientada pelo <b>Plano de Ação de Fiscalização (SEI nº 13215915)</b>, que estabelece as diretrizes para o planejamento, execução e conclusão de ações de inspeção nesses eventos."
+                        "Text": "A Fiscalização Centralizada de Espectro em Grandes Eventos, em 2025, é orientada pelo <b>Plano de Ação de Fiscalização (SEI nº 13215915)</b>, que estabelece as diretrizes para o planejamento, execução e conclusão de ações de inspeção nesses eventos.",
+                        "Variable": []
                     }
                 },
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "O principal objetivo da Anatel é garantir a convivência harmônica entre os diversos usuários dos recursos de radiofrequência durante a realização dos eventos. Isso inclui proporcionar aos prestadores de serviços um espectro limpo e livre de interferências prejudiciais, além de produzir informações sobre o seu uso efetivo."
+                        "Text": "O principal objetivo da Anatel é garantir a convivência harmônica entre os diversos usuários dos recursos de radiofrequência durante a realização dos eventos. Isso inclui proporcionar aos prestadores de serviços um espectro limpo e livre de interferências prejudiciais, além de produzir informações sobre o seu uso efetivo.",
+                        "Variable": []
                     }
                 },
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "Para tanto, os fiscais utiliza tanto a abordagem presencial junto aos usuários de radiofrequência, identificando as frequências e equipamentos em uso no evento, quanto a monitoração do espectro de o uso de canais e faixas de frequência relacionadas a serviços críticos, com destaque para os indicados a seguir."
+                        "Text": "Para tanto, os fiscais utiliza tanto a abordagem presencial junto aos usuários de radiofrequência, identificando as frequências e equipamentos em uso no evento, quanto a monitoração do espectro de o uso de canais e faixas de frequência relacionadas a serviços críticos, com destaque para os indicados a seguir.",
+                        "Variable": []
                     }
                 },
                 {
@@ -66,11 +66,13 @@
                     "Data": [
                         {
                             "Editable": "false",
-                            "Text": "Faixas 50 a 80 MHz, 148 a 174 MHz, 363 a 470 MHz, 470 a 700 MHz, 2025 a 2110 MHz, 2200 a 2300 MHz e 6700 a 7410 MHz, comumente utilizadas por aplicações de Uso Temporário do Espectro (UTE)."
+                            "Text": "Faixas 50 a 80 MHz, 148 a 174 MHz, 363 a 470 MHz, 470 a 700 MHz, 2025 a 2110 MHz, 2200 a 2300 MHz e 6700 a 7410 MHz, comumente utilizadas por aplicações de Uso Temporário do Espectro (UTE).",
+                            "Variable": []
                         },
                         {
                             "Editable": "false",
-                            "Text": "Faixas 161.475 a 162.050 MHz, 380 a 382.050 MHz, 388 a 392.050 MHz, 703 a 748 MHz, 758 a 803 MHz, 809 a 819 MHz, 824 a 849 MHz, 854 a 864 MHz, 869 a 894 MHz,  898.500 a 915 MHz, 943.500 a 960 MHz, 1558 a 1610 MHz, 1710 a 1785 MHz, 1805 a 1880 MHz, 1885 a 1895 MHz, 1920 a 1980 MHz, 2110 a 2170 MHz, 2300 a 2400 MHz,  2500 a 2570 MHz, 2620 a 2690 MHz, 3300 a 3800 MHz e 4910 a 4990 MHz, relacionadas a aplicações críticas, como serviços públicos de emergência, de segurança, de navegação por satélite, ou de interesse coletivo."
+                            "Text": "Faixas 161.475 a 162.050 MHz, 380 a 382.050 MHz, 388 a 392.050 MHz, 703 a 748 MHz, 758 a 803 MHz, 809 a 819 MHz, 824 a 849 MHz, 854 a 864 MHz, 869 a 894 MHz,  898.500 a 915 MHz, 943.500 a 960 MHz, 1558 a 1610 MHz, 1710 a 1785 MHz, 1805 a 1880 MHz, 1885 a 1895 MHz, 1920 a 1980 MHz, 2110 a 2170 MHz, 2300 a 2400 MHz,  2500 a 2570 MHz, 2620 a 2690 MHz, 3300 a 3800 MHz e 4910 a 4990 MHz, relacionadas a aplicações críticas, como serviços públicos de emergência, de segurança, de navegação por satélite, ou de interesse coletivo.",
+                            "Variable": []
                         }
                     ]
                 }
@@ -83,23 +85,26 @@
         "Data": {
             "Editable": "false",
             "Text": "METODOLOGIA",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas."
+                        "Text": "A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas.",
+                        "Variable": []
                     }
                 },
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Custom",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_MonitoringBandsOverview",
                         "Columns": [
                             "ID",
-                            "Receiver",
                             "Band",
+                            "Receiver",
+                            "LocationSummary",
                             "ObservationTime",
                             "Parameters"
                         ],
@@ -114,21 +119,27 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Sensor",
+                                "ColumnName": "Faixa de frequência",
                                 "Precision": "%s",
                                 "Width": "130px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Faixa de frequência sob análise",
+                                "ColumnName": "Sensor",
                                 "Precision": "%s",
-                                "Width": "130px"
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Local da monitoração",
+                                "Precision": "%s",
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
                                 "ColumnName": "Observação<br>(Período, Varreduras e Tempo de revisita)",
                                 "Precision": "%s",
-                                "Width": "220px"
+                                "Width": "210px"
                             },
                             {
                                 "Editable": "false",
@@ -146,7 +157,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
-                        "Text": "Quanto à abordagem presencial, os procedimentos adotados pela equipe de fiscalização para o acompanhemtno deste evento foram:"
+                        "Text": "Quanto à abordagem presencial, os procedimentos adotados pela equipe de fiscalização para o acompanhemtno deste evento foram:",
+                        "Variable": []
                     }
                 },
                 {
@@ -154,11 +166,13 @@
                     "Data": [
                         {
                             "Editable": "false",
-                            "Text": "<b>Abordagem Proativa:</b> fiscais inspecionam as empresas para levantamento prévio das frequências em operação, antecipando eventuais cenários de interferência, uso não autorizado no espectro ou emprego de equipamentos não homologados; e ainda"
+                            "Text": "<b>Abordagem Proativa:</b> fiscais inspecionam as empresas para levantamento prévio das frequências em operação, antecipando eventuais cenários de interferência, uso não autorizado no espectro ou emprego de equipamentos não homologados; e ainda",
+                            "Variable": []
                         },
                         {
                             "Editable": "false",
-                            "Text": "<b>Abordagem Reativa:</b> equipe de fiscais aguardam na base de apoio ser demandado para atuar em reclamações de interferência ou uso não autorizado do espectro."
+                            "Text": "<b>Abordagem Reativa:</b> equipe de fiscais aguardam na base de apoio ser demandado para atuar em reclamações de interferência ou uso não autorizado do espectro.",
+                            "Variable": []
                         }
                     ]
                 }
@@ -171,25 +185,23 @@
         "Data": {
             "Editable": "false",
             "Text": "RESULTADOS DA MONITORAÇÃO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",
                         "Text": "%s",
-                        "Variable":
-                        {
-                            "Source": "threadTag",
-                            "Precision": "%s"
-                        }
+                        "Variable": "var_TagFlow"
                     }
                 },
                 {
                     "Type": "Image",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Band",
-                        "Plot": "Persistance+Emission:Waterfall",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
+                        "Name": "persistence+emission:waterfall",
                         "Layout": "1:2",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
                         "Settings": {
@@ -204,8 +216,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Algorithms",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandAlgorithms",
                         "Columns": [
                             "Algorithm",
                             "Parameters"
@@ -234,13 +246,13 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "EmissionPerBand",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandEmissions",
                         "Columns": [
                             "ID",
                             "Frequency",
                             "Truncated",
-                            "BW_kHz",
+                            "BandWidthkHz",
                             "Level_FreqCenter_Min",
                             "Level_FreqCenter_Mean",
                             "Level_FreqCenter_Max",
@@ -278,19 +290,19 @@
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível mínimo (%LevelUnit%)",
+                                "ColumnName": "Nível mínimo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível médio (%LevelUnit%)",
+                                "ColumnName": "Nível médio (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
                             {
                                 "Editable": "false",
-                                "ColumnName": "Nível máximo (%LevelUnit%)",
+                                "ColumnName": "Nível máximo (dB)",
                                 "Precision": "%.1f",
                                 "Width": "70px"
                             },
@@ -333,12 +345,13 @@
         "Data": {
             "Editable": "false",
             "Text": "ANÁLISE DA MONITORAÇÃO",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N1_Licenciada",
@@ -374,7 +387,7 @@
                                 "ColumnName": "Não licenciáveis",
                                 "Precision": "%.0f",
                                 "Multiplier": 1,
-                                "Width": "75px"
+                                "Width": "auto"
                             }
                         ],
                         "LineBreak": 1,
@@ -385,8 +398,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N2_Fundamental",
@@ -405,7 +418,7 @@
                                 "ColumnName": "Faixa de frequência",
                                 "Precision": "%s",
                                 "Multiplier": -1,
-                                "Width": "auto"
+                                "Width": "140px"
                             },
                             {
                                 "Editable": "false",
@@ -454,7 +467,7 @@
                                 "ColumnName": "Pendente de Identificaçao",
                                 "Precision": "%.0f",
                                 "Multiplier": 1,
-                                "Width": "75px"
+                                "Width": "auto"
                             }
                         ],
                         "LineBreak": 1,
@@ -465,8 +478,8 @@
                 {
                     "Type": "Table",
                     "Data": {
-                        "Origin": "Internal",
-                        "Source": "Summary",
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissionSummary",
                         "Columns": [
                             "Banda",
                             "N3_Licenciada",
@@ -484,7 +497,7 @@
                                 "ColumnName": "Faixa de frequência",
                                 "Precision": "%s",
                                 "Multiplier": -1,
-                                "Width": "auto"
+                                "Width": "140px"
                             },
                             {
                                 "Editable": "false",
@@ -526,7 +539,7 @@
                                 "ColumnName": "Potencialidade lesiva alta",
                                 "Precision": "%.0f",
                                 "Multiplier": 1,
-                                "Width": "75px"
+                                "Width": "auto"
                             }
                         ],
                         "LineBreak": 1,
@@ -538,7 +551,8 @@
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "true",
-                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:"
+                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:",
+                        "Variable": []
                     }
                 },
                 {
@@ -546,11 +560,13 @@
                     "Data": [
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "..."
+                            "Text": "...",
+                            "Variable": []
                         }
                     ]
                 }
@@ -563,12 +579,14 @@
         "Data": {
             "Editable": "false",
             "Text": "RESULTADOS DAS ABORDAGENS",
-            "Children": [
+            "Variable": [],
+            "Component": [
                 {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "true",
-                        "Text": "Quanto aos resultados das abordagens, alguns pontos merecem destaques em relação às tratativas durante as intervenções da equipe de fiscalização e tratamento de interferências:"
+                        "Text": "Quanto aos resultados das abordagens, alguns pontos merecem destaques em relação às tratativas durante as intervenções da equipe de fiscalização e tratamento de interferências:",
+                        "Variable": []
                     }
                 },
                 {
@@ -576,19 +594,23 @@
                     "Data": [
                         {
                             "Editable": "true",
-                            "Text": "... <span style=\"color:#0000ff;\">[No Camarote Villa, o responsável técnico Carlos Lago de Queirós (Tel: 71 999999) informou que a própria empresa é detentora dos rádios (Edmilson dos Santos Barbos, CNPJ: 99999999). Possui autorização para apenas duas frequências, no entanto os rádios encontrados estavam configurados para 4 frequências, portanto duas delas não autorizadas. Total de 66 rádios verificados. Frequências não autorizadas: 459.2375 e 459.025MHz. A empresa foi orientada a não usar as frequências não autorizadas.]</span>"
+                            "Text": "... <span style=\"color:#0000ff;\">[No Camarote Villa, o responsável técnico Carlos Lago de Queirós (Tel: 71 999999) informou que a própria empresa é detentora dos rádios (Edmilson dos Santos Barbos, CNPJ: 99999999). Possui autorização para apenas duas frequências, no entanto os rádios encontrados estavam configurados para 4 frequências, portanto duas delas não autorizadas. Total de 66 rádios verificados. Frequências não autorizadas: 459.2375 e 459.025MHz. A empresa foi orientada a não usar as frequências não autorizadas.]</span>",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "... <span style=\"color:#0000ff;\">[Foram contactadas as entidades de segurança e emergência para relatos de eventuais radiointerferências, onde fomos informados não ocorreu qualquer evento interferente.]</span>"
+                            "Text": "... <span style=\"color:#0000ff;\">[Foram contactadas as entidades de segurança e emergência para relatos de eventuais radiointerferências, onde fomos informados não ocorreu qualquer evento interferente.]</span>",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "... <span style=\"color:#0000ff;\">[Ao final do expediente, durante contato institucional no SBT na Barra, foi reportado uma interferência temporária que havia ocorrido 14h00 e cessado 15 minutos depois na faixa de 2GHz. O responsável técnico ficou reportar assim que perceber novamente a interferência, mas não reportou mais nenhum incoveniente.]</span>"
+                            "Text": "... <span style=\"color:#0000ff;\">[Ao final do expediente, durante contato institucional no SBT na Barra, foi reportado uma interferência temporária que havia ocorrido 14h00 e cessado 15 minutos depois na faixa de 2GHz. O responsável técnico ficou reportar assim que perceber novamente a interferência, mas não reportou mais nenhum incoveniente.]</span>",
+                            "Variable": []
                         },
                         {
                             "Editable": "true",
-                            "Text": "... <span style=\"color:#0000ff;\">[Adicione mais itens, edite ou exclua os itens sugeridos anteriores, e mude a cor da fonte para preto.]</span>"
+                            "Text": "... <span style=\"color:#0000ff;\">[Adicione mais itens, edite ou exclua os itens sugeridos anteriores, e mude a cor da fonte para preto.]</span>",
+                            "Variable": []
                         }
                     ]
                 },
@@ -673,13 +695,17 @@
         "Data": {
             "Editable": "false",
             "Text": "CONCLUSÃO",
-            "Children": {
-                "Type": "ItemN2",
-                "Data": {
-                    "Editable": "false",
-                    "Text": "Ante o exposto, conclui-se este relatório de atividades."
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Ante o exposto, conclui-se este relatório de atividades.",
+                        "Variable": []
+                    }
                 }
-            }
+            ]
         }
     }
 ]

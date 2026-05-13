@@ -138,6 +138,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                             case {'onFileListAdded', ...
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
+                                  'onReportFlowListChanged', ...
                                   'onLocationChanged', ...
                                   'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
@@ -318,9 +319,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITable.Data = app.emissionsTable(:, columnNames);
             updateTableStyle(app)
 
-            pause(.100)
             app.UITable.Selection = selectedRow;
             updateSelectedEmissionFormAndPlot(app)
+            pause(.100)
     
             requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
         end
@@ -328,7 +329,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateTableStyle(app)
             removeStyle(app.UITable)
-                
+
             % Destaca registros que tiveram a sua classificação editada...
             editedEmissionIdxs = [];            
             for ii = 1:height(app.emissionsTable)
@@ -339,8 +340,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             end
             
             if ~isempty(editedEmissionIdxs)
-                listOfCells1 = [editedEmissionIdxs, ones(numel(editedEmissionIdxs), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', listOfCells1) 
+                cellList = [editedEmissionIdxs, 2*ones(numel(editedEmissionIdxs), 1)];
+                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
             end
 
             % Destaca registros que apresentam valores inválidos de estações...
@@ -348,8 +349,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % idxInvalidStationNumber = find(arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification) == -1);
             invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
             if ~isempty(invalidStationNumberIdxs)
-                listOfCells2 = [invalidStationNumberIdxs, repmat(2, numel(invalidStationNumberIdxs), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'Circle_18Red.png',  'IconAlignment', 'leftmargin'), 'cell', listOfCells2) 
+                addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'row', invalidStationNumberIdxs) 
             end
         end
 
@@ -358,8 +358,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             if ~isempty(app.emissionsTable)
                 [flowIdx, emissionIdx] = getEmissionIndexes(app);
                 specData = app.mainApp.specData(flowIdx);
+
+                % Destaca célula selecionada...
                 selectedRow = app.UITable.Selection;
-    
+                selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
+                if ~isempty(selectedRowOldStyleIdx)
+                    removeStyle(app.UITable, selectedRowOldStyleIdx)
+                end
+                addStyle(app.UITable, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
+                drawnow
+
                 [htmlContent1, ...
                  htmlContent2, ...
                  emissionTag, ...
@@ -556,14 +564,20 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function createRFLinkPlot(app, selectedRow, idxThread)
+        function createRFLinkPlot(app, selectedRow, flowIdx)
             try
-                specData = app.mainApp.specData(idxThread);
+                specData = app.mainApp.specData(flowIdx);
 
                 % OBJETOS TX e RX
                 [txObj, rxObj] = getRFLinkObjects(app, specData, selectedRow);
     
                 % ELEVAÇÃO DO LINK TX-RX
+                % Validação que possibilitahabilitar o bloqueio de tela apenas 
+                % se a informação de elevação não estiver em cache.
+                if ~IsCached(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
+                    requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+                end
+
                 [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
                 if ~isempty(msgWarning)
                     ui.Dialog(app.UIFigure, 'warning', msgWarning);
@@ -583,16 +597,33 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             catch ME
                 cla(app.UIAxes2)
                 app.UIAxes2.PickableParts = "none";
-                msgWarning = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), { ...
-                    'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
-                    'E PROVÁVEL EMISSOR É LIMITADO ÀS';  ...
-                    'ESTAÇÕES INCLUÍDAS NO RFDATAHUB';   ...
-                    '(EXCETO VISUALIZAÇÃO TEMPORÁRIA)' ...
-                }, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
-                msgWarning.Units = 'normalized';
+
+                if exist('msgWarning', 'var') && ~isempty(msgWarning)
+                    msgText = { ...
+                        'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
+                        'E PROVÁVEL EMISSOR INDISPONÍVEL';  ...
+                        sprintf('(%s)', msgWarning) ...
+                    };
+                else
+                    msgText = { ...
+                        'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
+                        'E PROVÁVEL EMISSOR É LIMITADO ÀS';  ...
+                        'ESTAÇÕES INCLUÍDAS NO RFDATAHUB';   ...
+                        '(EXCETO VISUALIZAÇÃO TEMPORÁRIA)' ...
+                    };
+                end
+
+                msgTextHandle = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), msgText, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
+                msgTextHandle.Units = 'normalized';
+                
                 app.RFLinkWarning.Visible = 0;
             end
+
             app.TXLocationEditConfirm.Enable = 0;
+
+            if strcmp(app.progressDialog.Visible, 'visible')
+                requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+            end
         end
 
         %-----------------------------------------------------------------%

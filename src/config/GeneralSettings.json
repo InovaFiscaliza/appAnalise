@@ -1,5 +1,5 @@
 {
-    "version": 1.32,
+    "version": 1.34,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -101,7 +101,12 @@
                 "dataTips": []
             }
         },
-        "DRIVETEST": [],
+        "DRIVETEST": {
+            "dataBinning": {
+                "binLengthMeters": 100,
+                "aggregationFunction": "rms"
+            }
+        },
         "SIGNALANALYSIS": [],
         "RFDATAHUB": {
             "tx": {
@@ -217,8 +222,8 @@
             "LabelFontSize": 8
         },
         "channelPower": {
-            "EdgeColor": "#FF5CAD",
-            "FaceColor": "#FF5CAD",
+            "EdgeColor": "#ffff12",
+            "FaceColor": "#ffff12",
             "EdgeAlpha": 0,
             "FaceAlpha": 0.4
         },
@@ -323,10 +328,6 @@
         "image": {
             "format": "jpeg",
             "resolutionDpi": 120
-        },
-        "dataBinning": {
-            "binLengthMeters": 100,
-            "aggregationFunction": "mean-linear"
         }
     },
     "eFiscaliza": {

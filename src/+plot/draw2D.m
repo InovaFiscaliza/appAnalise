@@ -3,6 +3,13 @@ classdef (Abstract) draw2D
     methods (Static = true)
         %-----------------------------------------------------------------%
         function plotHandle = OrdinaryLine(axesHandle, plotTag, bandObj, sweepTimeIdx)
+            arguments
+                axesHandle
+                plotTag
+                bandObj
+                sweepTimeIdx = []
+            end
+
             plotHandle = [];
             specData = bandObj.SpecData;
             if isempty(specData)

@@ -9,9 +9,7 @@ classdef (Abstract) DriveTest
                         hAxes.Basemap = 'streets-light';
                     end
 
-                    idxThread  = varargin{1};
-                    specData   = tempBandObj.callingApp.specData(idxThread);
-        
+                    specData   = tempBandObj.SpecData;        
                     gpsPerFile = vertcat(specData.RelatedFiles.GPS{:});
                     gpsMatrix  = vertcat(gpsPerFile.Matrix);
         
@@ -39,7 +37,7 @@ classdef (Abstract) DriveTest
                                                                           'LineStyle',       'none',     ...
                                                                           'PickableParts',   'none',     ...
                                                                           'DisplayName',     'Rota',     ...
-                                                                          'Tag',             'OutRoute');
+                                                                          'Tag',             'routeFailFilter');
                     % InRoute
                     geoplot(hAxes,  InTable.Latitude,  InTable.Longitude, 'Marker',          '.',        ...
                                                                           'Color',           InColor,    ...
@@ -49,7 +47,7 @@ classdef (Abstract) DriveTest
                                                                           'LineStyle',       LineStyle,  ...
                                                                           'PickableParts',   'none',     ...
                                                                           'DisplayName',     'Rota',     ...
-                                                                          'Tag',             'InRoute');
+                                                                          'Tag',             'routePassFilter');
                 otherwise
                     error('UnexpectedCall')
             end
@@ -107,19 +105,120 @@ classdef (Abstract) DriveTest
         end
 
         %-----------------------------------------------------------------%
-        function Filters(app)
-            % Migrar para essa classe funções de auxApp.DriveTest:
-            % - plot_FiltersController(app)
-            % - hROI = plot_FilterROIObject(app, callingFcn, FilterSubtype, hAxes, varargin)
+        function filterTable = FilterRegions(filterTable, geoAxesHandle, cartesianAxesHandle, replotAfterFilterChangeFcn)
+            arguments
+                filterTable
+                geoAxesHandle
+                cartesianAxesHandle
+                replotAfterFilterChangeFcn = []
+            end
+            
+            if ~isempty(filterTable)
+                for ii = 1:height(filterTable)
+                    filterSubtype = filterTable.subtype{ii};
 
-            % Organizar código de forma a ser consumido pelo modo RELATÓRIO,
-            % atualmente em:
-            % - plot.old_axesDraw.DriveTestFilterPlot(hAxes, Parameters, plotType)
-            % 
+                    switch filterSubtype
+                        case 'PolygonKML'
+                            lat = filterTable.roi(ii).specification.Latitude;
+                            lng = filterTable.roi(ii).specification.Longitude;
+                            shapeObj = geopolyshape(lat, lng);
+
+                            roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, geoAxesHandle, replotAfterFilterChangeFcn, shapeObj);
+
+                        otherwise
+                            switch filterSubtype                        
+                                case 'Threshold'
+                                    axesHandle = cartesianAxesHandle;
+                                otherwise
+                                    axesHandle = geoAxesHandle;
+                            end
+
+                            roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, axesHandle, replotAfterFilterChangeFcn, 'DrawProgrammatically');
+            
+                            fieldsList = fields(filterTable.roi(ii).specification);
+                            for jj = 1:numel(fieldsList)
+                                roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
+                            end
+                    end
+    
+                    filterTable.roi(ii).handle = roiHandle;
+                end
+            end
         end
 
         %-----------------------------------------------------------------%
-        function Points(hAxes, pointsTable, MarkerStyle, MarkerColor, MarkerSize)
+        function roiHandle = FilterRoiGraphic(filterSubtype, axesHandle, replotAfterFilterChangeFcn, varargin)
+            switch filterSubtype
+                case 'Threshold'
+                    roiHandle = plot.ROI.draw('images.roi.Line', axesHandle, {'Tag', 'filterROI'});
+
+                case 'PolygonKML'
+                    shapeObj = varargin{1};
+                    roiHandle = geoplot(axesHandle, shapeObj, FaceColor=[0 0.4470 0.7410], ...
+                                                              EdgeColor=[0 0.4470 0.7410], ...
+                                                              FaceAlpha=0.05,              ...
+                                                              EdgeAlpha=1,                 ...
+                                                              LineWidth=.5,                ...
+                                                              PickableParts='none',        ...
+                                                              Tag='filterROI');
+
+                otherwise
+                    drawType = varargin{1};
+                    roiNameArgument = '';
+
+                    switch drawType
+                        case 'DrawInRealTime'
+                            switch filterSubtype
+                                case 'Circle'
+                                    roiFunction = 'drawcircle';
+                                case 'Rectangle'
+                                    roiFunction = 'drawrectangle';
+                                case 'Polygon'
+                                    roiFunction = 'drawpolygon';
+                            end
+
+                        case 'DrawProgrammatically'
+                            switch filterSubtype
+                                case 'Circle'
+                                    roiFunction = 'images.roi.Circle';
+                                case 'Rectangle'
+                                    roiFunction = 'images.roi.Rectangle';
+                                case 'Polygon'
+                                    roiFunction = 'images.roi.Polygon';
+                            end
+                    end
+
+                    if strcmp(filterSubtype, 'Rectangle')
+                        roiNameArgument = 'Rotatable=true, ';
+                    end
+
+                    roiHandle = eval(sprintf('%s(axesHandle, LineWidth=.5, FaceAlpha=0.05, Deletable=0, FaceSelectable=0, %sTag="filterROI");', roiFunction, roiNameArgument));
+            end
+
+            if isprop(roiHandle, 'DisplayName')
+                switch filterSubtype
+                    case 'Threshold'
+                        displayName = 'Filtro de nível';
+                    otherwise
+                        displayName = 'Fitro geográfico';
+                end
+
+                roiHandle.DisplayName = displayName;
+            end
+
+            if isprop(roiHandle, 'InteractionsAllowed')
+                roiHandle.InteractionsAllowed = 'none';
+
+                if ~isempty(replotAfterFilterChangeFcn)
+                    addlistener(roiHandle, 'MovingROI',            @(~, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, []));
+                    addlistener(roiHandle, 'ROIMoved',             @(src, evt)plot.axes.Interactivity.CustomROIInteractionFcn(evt, axesHandle, replotAfterFilterChangeFcn, src));
+                    addlistener(roiHandle, 'ObjectBeingDestroyed', @(src, ~)plot.axes.Interactivity.DeleteROIListeners(src));
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function Points(axesHandle, pointsTable, markerStyle, markerColor, markerSize)
             for ii = 1:height(pointsTable)
                 if ~pointsTable.visible(ii)
                     continue
@@ -127,43 +226,54 @@ classdef (Abstract) DriveTest
             
                 switch pointsTable.type{ii}
                     case 'RFDataHub'
-                        Coordinates = [pointsTable.value(ii).Data.Latitude, pointsTable.value(ii).Data.Longitude];
-                        hStation    = geoplot(hAxes, Coordinates(:,1), Coordinates(:,2), 'LineStyle',       'none',       ...
-                            'Color',           MarkerColor,  ...
-                            'Marker',          MarkerStyle,  ...
-                            'MarkerSize',      MarkerSize,   ...
-                            'MarkerFaceColor', MarkerColor,  ...
-                            'MarkerEdgeColor', MarkerColor,  ...
+                        coordinates = [pointsTable.value(ii).data.Latitude, pointsTable.value(ii).data.Longitude];
+                        stationHandle = geoplot(axesHandle, coordinates(:,1), coordinates(:,2), ...
+                            'LineStyle',       'none',       ...
+                            'Color',           markerColor,  ...
+                            'Marker',          markerStyle,  ...
+                            'MarkerSize',      markerSize,   ...
+                            'MarkerFaceColor', markerColor,  ...
+                            'MarkerEdgeColor', markerColor,  ...
                             'DisplayName',     'Pontos de interesse (RFDataHub)', ...
-                            'Tag',             'Points');
-                        plot.datatip.Template(hStation, 'Coordinates+Frequency', pointsTable.value(ii).Data)
+                            'Tag',             'points');
+                        
+                        plot.datatip.Template(stationHandle, 'Coordinates+Frequency', pointsTable.value(ii).data)
             
-                    case 'FindPeaks'
-                        Coordinates = pointsTable.value(ii).Data;
-                        hFindPeaks  = geoplot(hAxes, Coordinates(:,1), Coordinates(:,2), 'LineStyle',       'none',      ...
-                            'Color',           MarkerColor, ...
-                            'Marker',          MarkerStyle, ...
-                            'MarkerSize',      MarkerSize,  ...
+                    otherwise % 'FindPeaks'
+                        coordinates = pointsTable.value(ii).data;
+                        geoplot(axesHandle, coordinates(:,1), coordinates(:,2), ...
+                            'LineStyle',       'none',      ...
+                            'Color',           markerColor, ...
+                            'Marker',          markerStyle, ...
+                            'MarkerSize',      markerSize,  ...
                             'MarkerFaceColor', 'none',      ...
-                            'MarkerEdgeColor', MarkerColor, ...
+                            'MarkerEdgeColor', markerColor, ...
                             'PickableParts',   'none',      ...
                             'DisplayName',     'Pontos de interesse (FindPeaks)', ...
-                            'Tag',             'Points');
-                        % plot.datatip.Template(hFindPeaks, 'Coordinates', pointsTable.value(ii).Data)
+                            'Tag',             'points');
                 end
             end
         end
 
         %-----------------------------------------------------------------%
-        function ChannelPower(hAxes, tempBandObj, specRawTable, Color, EdgeAlpha, FaceAlpha)
+        function ChannelPower(hAxes, tempBandObj, specRawTable, color, edgeAlpha, faceAlpha)
+            arguments
+                hAxes
+                tempBandObj
+                specRawTable
+                color = '#ffff12'
+                edgeAlpha = 0
+                faceAlpha = .4
+            end
+
             minY = bounds(specRawTable.ChannelPower);
             set(hAxes, 'XLim', [1, height(specRawTable)+.001], 'YLimMode', 'auto')
 
-            chPowerLine  = area(hAxes, specRawTable.ChannelPower, minY, 'EdgeAlpha', EdgeAlpha, ...
-                                                                        'FaceAlpha', FaceAlpha, ...
-                                                                        'FaceColor', Color,     ...
-                                                                        'EdgeColor', Color,     ...
-                                                                        'Tag', 'ChannelPower');
+            chPowerLine  = area(hAxes, specRawTable.ChannelPower, minY, 'EdgeAlpha', edgeAlpha, ...
+                                                                        'FaceAlpha', faceAlpha, ...
+                                                                        'FaceColor', color,     ...
+                                                                        'EdgeColor', color,     ...
+                                                                        'Tag', 'channelPower');
             hAxes.YLim(1) = minY;
             plot.datatip.Template(chPowerLine, 'SweepID+ChannelPower', tempBandObj.LevelUnit)
         end

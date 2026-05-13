@@ -22,8 +22,15 @@ classdef (Abstract) HtmlTextGenerator
             'HierarchyArrow',    struct('unicode', '↳',  'html', '&#x21B3;'), ...
             'Pin',               struct('unicode', '📍', 'html', '&#x1F4CD;'), ...
             'Car',               struct('unicode', '🚗', 'html', '&#x1F697;'), ...
-            'InterrogationMark', struct('unicode', '❓', 'html', '&#x2753;') ...
+            'InterrogationMark', struct('unicode', '❓', 'html', '&#x2753;'), ...
+            'Add',               struct('unicode', '➕', 'html', '&#10133;'), ...
+            'Delete',            struct('unicode', '❌', 'html', '&#x274C;') ...
         );
+
+        checkbox = struct( ...
+            'on',  '<table style="background-color: rgb(237, 237, 237); border-radius: 12px; height: 16px; width: 32px;"><tbody><tr><td></td><td style="background-color: rgb(76, 217, 100); border-radius: 50%;"></td></tr></tbody></table>', ...
+            'off', '<table style="background-color: rgb(237, 237, 237); border-radius: 12px; height: 16px; width: 32px;"><tbody><tr><td style="background-color: rgb(150, 150, 150); border-radius: 50%;"></td><td></td></tr></tbody></table>' ...
+        )
 
         monitoringTypeDict = dictionary( ...
             ["fixed", "mobile", "undetermined"], ...
@@ -146,10 +153,11 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData, appHandleNameInBase)
+        function [htmlContent, dataStruct, initialText] = ThreadMetaData(specData, appHandleNameInBase, generalSettings)
             arguments
                 specData
                 appHandleNameInBase = ''
+                generalSettings = []
             end
 
             threadTag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
@@ -159,7 +167,7 @@ classdef (Abstract) HtmlTextGenerator
             dataStruct = struct('group', 'PARÂMETROS DE AQUISIÇÃO', 'value', rmfield(specData.MetaData, {'DataType'}), 'link', '');
             
             dataStruct.value.FreqStart = sprintf('%d Hz', dataStruct.value.FreqStart);
-            dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);
+            dataStruct.value.FreqStop  = sprintf('%d Hz', dataStruct.value.FreqStop);            
 
             if specData.MetaData.Resolution ~= -1
                 dataStruct.value.Resolution = sprintf('%.1f kHz', dataStruct.value.Resolution/1000);
@@ -181,15 +189,22 @@ classdef (Abstract) HtmlTextGenerator
 
             initialAntennaHeight = calculateAntennaHeight(specData, 1, -1, 'initialValue');
             currentAntennaHeight = specData.UserData.AntennaHeightMeters;
+            if isempty(currentAntennaHeight)
+                currentAntennaHeight = initialAntennaHeight;
+            end
+
             if abs(initialAntennaHeight - currentAntennaHeight) > 1e-1
                 if initialAntennaHeight == -1
-                    initialAntennaHeight = '(Desconhecido)';
+                    antennaHeight = sprintf('<font style="color: red;"><del>Desconhecida</del> → %d metros</font>', currentAntennaHeight);
+                else
+                    antennaHeight = sprintf('<font style="color: red;"><del>%d</del> → %d metros</font>', initialAntennaHeight, currentAntennaHeight);
                 end
-                antennaHeight = sprintf('<font style="color: red;"><del>%s</del> → %d metros</font>', string(initialAntennaHeight), currentAntennaHeight);
-            elseif currentAntennaHeight == -1
-                antennaHeight = '<font style="color: red;">(Desconhecido)</font>';
             else
-                antennaHeight = sprintf('%d metros', currentAntennaHeight);
+                if currentAntennaHeight == -1
+                    antennaHeight = '<font style="color: red;">Desconhecida</font>';
+                else
+                    antennaHeight = sprintf('%d metros', currentAntennaHeight);
+                end            
             end
 
             gpsSummaryToGui = struct( ...
@@ -201,14 +216,13 @@ classdef (Abstract) HtmlTextGenerator
                 'Location', sprintf('%s (Fonte: %s)', specData.GPS.Location, specData.GPS.LocationSource) ...
             );
 
-            if specData.GPS.Status == 0
+            if specData.GPS.Status > 0 && strcmp(specData.GPS.LocationSource, 'Manual')
+                gpsSummaryToGui.Location = sprintf('<font style="color: red;">%s</font>', gpsSummaryToGui.Location);
+            elseif specData.GPS.Status == 0
                 gpsSummaryToGui = rmfield(gpsSummaryToGui, 'Location');
             end
     
-            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui, 'link', '');
-            if ~isempty(appHandleNameInBase)
-                dataStruct(2).link = sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onLocationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase);
-            end
+            dataStruct(2) = struct('group', 'LOCAL DA MONITORAÇÃO', 'value', gpsSummaryToGui, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onLocationEditRequested', generalSettings));
 
             if ~isempty(specData.Hash)
                 dataStruct(end+1) = struct('group', 'HASH', 'value', specData.Hash, 'link', '');
@@ -565,7 +579,14 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlContent = EmissionMetaData(specData, emissionSelected, appHandleNameInBase)
+        function htmlContent = EmissionMetaData(specData, emissionSelected, appHandleNameInBase, generalSettings)
+            arguments
+                specData
+                emissionSelected
+                appHandleNameInBase = ''
+                generalSettings = []
+            end
+
             emissionIdx  = emissionSelected.emissionIdx;
             emissionTag  = emissionSelected.attributes.tag;
             freqCenter   = emissionSelected.attributes.freqCenter;
@@ -594,9 +615,33 @@ classdef (Abstract) HtmlTextGenerator
                         classificationInfo.(classificationField) = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', string(classification.AutoSuggested.(classificationField)), string(classification.UserModified.(classificationField)));                    
                     end
                 end
-    
-                dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onChannelEditRequested''''))'')"> ✏️</a>',        appHandleNameInBase));
-                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', sprintf('<a href="matlab:evalin(''base'', ''ipcSecondaryJSEventsHandler(%s, struct(''''HTMLEventName'''', ''''onClassificationEditRequested''''))'')"> ✏️</a>', appHandleNameInBase));
+
+                measures = specData.UserData.Emissions(emissionIdx, :).Measures;
+                measuresInfo = struct( ...
+                    'FreqCenterLevelRange', sprintf('%.1f a %.1f %s', measures.Level.FreqCenter_Min, measures.Level.FreqCenter_Max, specData.MetaData.LevelUnit), ...
+                    'IntegratedEmissionLevelRange', sprintf('%.1f a %.1f %s (integração)', measures.Level.Channel_Min, measures.Level.Channel_Max, specData.MetaData.LevelUnit), ...
+                    'FreqCenterCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.FreqCenter_Infinite), ...                    
+                    'EmissionCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.Channel_Infinite) ...
+                );
+
+                if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
+                    reportIncludeIcon = util.HtmlTextGenerator.checkbox.on;
+                    reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
+                else
+                    reportIncludeIcon = util.HtmlTextGenerator.checkbox.off;
+                    reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
+                end
+
+                dataStruct(1) = struct('group', 'CANAL',         'value', channelInfo,        'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onChannelEditRequested', generalSettings));
+                dataStruct(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onClassificationEditRequested', generalSettings));
+                
+                dataStruct(3) = struct('group', 'MEDIDAS',       'value', measuresInfo,   'link', [ ...
+                    util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsExportRequested', generalSettings, 'link', 'Export_16.png') ...
+                    '&emsp;', ...
+                    util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsDetailsRequested', generalSettings, 'question', 'info.svg') ...
+                ]);
+
+                dataStruct(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', reportIncludeIcon));
 
             else
                 dataStruct(1) = struct('group', 'INFO', 'value', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');
@@ -828,6 +873,29 @@ classdef (Abstract) HtmlTextGenerator
 
             freeInitialText = sprintf('<font style="color: white; background-color: #336699; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">HOST</font><br><br><font style="font-size: 16px;"><b>%s</b></font><br><br>', hostName);
             htmlContent = textFormatGUI.struct2PrettyPrintList(dataStruct, 'delete', freeInitialText);
+        end
+
+        %-----------------------------------------------------------------%
+        function htmlLink = createEditHTMLLink(appHandleNameInBase, eventName, generalSettings, linkType, imgFileName)
+            arguments
+                appHandleNameInBase 
+                eventName 
+                generalSettings 
+                linkType {mustBeMember(linkType, {'link', 'question', 'edit'})} = 'edit'
+                imgFileName = 'Edit_32.png'
+            end
+
+            htmlLink = '';
+            try
+                if ~isempty(appHandleNameInBase)
+                    if ~isempty(generalSettings) && ~isempty(generalSettings.AppVersion.application.resourceStaticURL)
+                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, imgFileName, generalSettings);
+                    else
+                        htmlLink = ui.TextView.createHTMLLink(linkType, appHandleNameInBase, eventName);
+                    end
+                end
+            catch
+            end
         end
     end
 end

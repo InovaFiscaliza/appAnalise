@@ -484,7 +484,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.Algorithm.BackgroundColor = [1 1 1];
             app.Algorithm.Layout.Row = 4;
             app.Algorithm.Layout.Column = [1 3];
-            app.Algorithm.Value = 'Regiões conectadas';
+            app.Algorithm.Value = 'Detecção por picos';
 
             % Create AlgorithmPanel
             app.AlgorithmPanel = uipanel(app.GridLayout);
@@ -495,7 +495,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create AlgorithmGrid
             app.AlgorithmGrid = uigridlayout(app.AlgorithmPanel);
             app.AlgorithmGrid.ColumnWidth = {110, 110, 110};
-            app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 22, 32, 22};
+            app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
             app.AlgorithmGrid.RowSpacing = 5;
             app.AlgorithmGrid.BackgroundColor = [1 1 1];
 
@@ -548,7 +548,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksTraceLabel.Tag = 'FindPeaks';
             app.FindPeaksTraceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksTraceLabel.FontSize = 11;
-            app.FindPeaksTraceLabel.Visible = 'off';
             app.FindPeaksTraceLabel.Layout.Row = 5;
             app.FindPeaksTraceLabel.Layout.Column = 1;
             app.FindPeaksTraceLabel.Text = {'Tipo de traço:'; '(agregação dados)'};
@@ -557,8 +556,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksTrace = uidropdown(app.AlgorithmGrid);
             app.FindPeaksTrace.Items = {'MinHold', 'Mean', 'MaxHold'};
             app.FindPeaksTrace.Tag = 'FindPeaks';
-            app.FindPeaksTrace.Visible = 'off';
-            app.FindPeaksTrace.FontSize = 10;
+            app.FindPeaksTrace.FontSize = 11;
             app.FindPeaksTrace.BackgroundColor = [1 1 1];
             app.FindPeaksTrace.Layout.Row = 6;
             app.FindPeaksTrace.Layout.Column = 1;
@@ -570,7 +568,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksDistanceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksDistanceLabel.WordWrap = 'on';
             app.FindPeaksDistanceLabel.FontSize = 11;
-            app.FindPeaksDistanceLabel.Visible = 'off';
             app.FindPeaksDistanceLabel.Layout.Row = 5;
             app.FindPeaksDistanceLabel.Layout.Column = 2;
             app.FindPeaksDistanceLabel.Text = 'Distância entre picos (kHz):';
@@ -582,8 +579,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksDistance.RoundFractionalValues = 'on';
             app.FindPeaksDistance.ValueDisplayFormat = '%.0f';
             app.FindPeaksDistance.Tag = 'FindPeaks';
-            app.FindPeaksDistance.FontSize = 10;
-            app.FindPeaksDistance.Visible = 'off';
+            app.FindPeaksDistance.FontSize = 11;
             app.FindPeaksDistance.Layout.Row = 6;
             app.FindPeaksDistance.Layout.Column = 2;
             app.FindPeaksDistance.Value = 25;
@@ -594,7 +590,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksBandWidthLabel.VerticalAlignment = 'bottom';
             app.FindPeaksBandWidthLabel.WordWrap = 'on';
             app.FindPeaksBandWidthLabel.FontSize = 11;
-            app.FindPeaksBandWidthLabel.Visible = 'off';
             app.FindPeaksBandWidthLabel.Layout.Row = 5;
             app.FindPeaksBandWidthLabel.Layout.Column = 3;
             app.FindPeaksBandWidthLabel.Text = {'Largura ocupada'; '(kHz):'};
@@ -606,8 +601,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksBandWidth.RoundFractionalValues = 'on';
             app.FindPeaksBandWidth.ValueDisplayFormat = '%.0f';
             app.FindPeaksBandWidth.Tag = 'FindPeaks';
-            app.FindPeaksBandWidth.FontSize = 10;
-            app.FindPeaksBandWidth.Visible = 'off';
+            app.FindPeaksBandWidth.FontSize = 11;
             app.FindPeaksBandWidth.Layout.Row = 6;
             app.FindPeaksBandWidth.Layout.Column = 3;
             app.FindPeaksBandWidth.Value = 10;
@@ -618,7 +612,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksProminenceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksProminenceLabel.WordWrap = 'on';
             app.FindPeaksProminenceLabel.FontSize = 11;
-            app.FindPeaksProminenceLabel.Visible = 'off';
             app.FindPeaksProminenceLabel.Layout.Row = 7;
             app.FindPeaksProminenceLabel.Layout.Column = 1;
             app.FindPeaksProminenceLabel.Text = {'Proeminência'; '(dB):'};
@@ -630,8 +623,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksProminence.RoundFractionalValues = 'on';
             app.FindPeaksProminence.ValueDisplayFormat = '%.0f';
             app.FindPeaksProminence.Tag = 'FindPeaks';
-            app.FindPeaksProminence.FontSize = 10;
-            app.FindPeaksProminence.Visible = 'off';
+            app.FindPeaksProminence.FontSize = 11;
             app.FindPeaksProminence.Layout.Row = 8;
             app.FindPeaksProminence.Layout.Column = 1;
             app.FindPeaksProminence.Value = 12;
@@ -642,7 +634,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksNumPeaksLabel.VerticalAlignment = 'bottom';
             app.FindPeaksNumPeaksLabel.WordWrap = 'on';
             app.FindPeaksNumPeaksLabel.FontSize = 11;
-            app.FindPeaksNumPeaksLabel.Visible = 'off';
             app.FindPeaksNumPeaksLabel.Layout.Row = 7;
             app.FindPeaksNumPeaksLabel.Layout.Column = 2;
             app.FindPeaksNumPeaksLabel.Text = {'Número máximo '; 'de picos:'};
@@ -654,8 +645,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksNumPeaks.RoundFractionalValues = 'on';
             app.FindPeaksNumPeaks.ValueDisplayFormat = '%.0f';
             app.FindPeaksNumPeaks.Tag = 'FindPeaks';
-            app.FindPeaksNumPeaks.FontSize = 10;
-            app.FindPeaksNumPeaks.Visible = 'off';
+            app.FindPeaksNumPeaks.FontSize = 11;
             app.FindPeaksNumPeaks.Layout.Row = 8;
             app.FindPeaksNumPeaks.Layout.Column = 2;
             app.FindPeaksNumPeaks.Value = 50;
@@ -665,7 +655,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksThresholdLabel.Tag = 'FindPeaks';
             app.FindPeaksThresholdLabel.VerticalAlignment = 'bottom';
             app.FindPeaksThresholdLabel.FontSize = 11;
-            app.FindPeaksThresholdLabel.Visible = 'off';
             app.FindPeaksThresholdLabel.Layout.Row = 7;
             app.FindPeaksThresholdLabel.Layout.Column = 3;
             app.FindPeaksThresholdLabel.Text = {'Threshold'; '(dB):'};
@@ -676,8 +665,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksThreshold.RoundFractionalValues = 'on';
             app.FindPeaksThreshold.ValueDisplayFormat = '%.0f';
             app.FindPeaksThreshold.Tag = 'FindPeaks';
-            app.FindPeaksThreshold.FontSize = 10;
-            app.FindPeaksThreshold.Visible = 'off';
+            app.FindPeaksThreshold.FontSize = 11;
             app.FindPeaksThreshold.Layout.Row = 8;
             app.FindPeaksThreshold.Layout.Column = 3;
             app.FindPeaksThreshold.Value = -Inf;
@@ -697,7 +685,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCClass.Items = {};
             app.FindPeaksPlusOCCClass.Tag = 'FindPeaksPlusOCC';
             app.FindPeaksPlusOCCClass.Visible = 'off';
-            app.FindPeaksPlusOCCClass.FontSize = 10;
+            app.FindPeaksPlusOCCClass.FontSize = 11;
             app.FindPeaksPlusOCCClass.BackgroundColor = [1 1 1];
             app.FindPeaksPlusOCCClass.Layout.Row = 10;
             app.FindPeaksPlusOCCClass.Layout.Column = 1;
@@ -721,7 +709,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCDistance.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCDistance.ValueDisplayFormat = '%.0f';
             app.FindPeaksPlusOCCDistance.Tag = 'FindPeaksPlusOCC';
-            app.FindPeaksPlusOCCDistance.FontSize = 10;
+            app.FindPeaksPlusOCCDistance.FontSize = 11;
             app.FindPeaksPlusOCCDistance.Visible = 'off';
             app.FindPeaksPlusOCCDistance.Layout.Row = 10;
             app.FindPeaksPlusOCCDistance.Layout.Column = 2;
@@ -745,7 +733,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCBandWidth.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCBandWidth.ValueDisplayFormat = '%.0f';
             app.FindPeaksPlusOCCBandWidth.Tag = 'FindPeaksPlusOCC';
-            app.FindPeaksPlusOCCBandWidth.FontSize = 10;
+            app.FindPeaksPlusOCCBandWidth.FontSize = 11;
             app.FindPeaksPlusOCCBandWidth.Visible = 'off';
             app.FindPeaksPlusOCCBandWidth.Layout.Row = 10;
             app.FindPeaksPlusOCCBandWidth.Layout.Column = 3;
@@ -773,7 +761,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCProminence1Label = uilabel(app.FindPeaksPlusOCCGrid1);
             app.FindPeaksPlusOCCProminence1Label.VerticalAlignment = 'bottom';
             app.FindPeaksPlusOCCProminence1Label.WordWrap = 'on';
-            app.FindPeaksPlusOCCProminence1Label.FontSize = 10;
+            app.FindPeaksPlusOCCProminence1Label.FontSize = 11;
             app.FindPeaksPlusOCCProminence1Label.Layout.Row = 1;
             app.FindPeaksPlusOCCProminence1Label.Layout.Column = 1;
             app.FindPeaksPlusOCCProminence1Label.Text = {'Proeminência'; '(dB):'};
@@ -784,7 +772,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCProminence1.Limits = [1 Inf];
             app.FindPeaksPlusOCCProminence1.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCProminence1.ValueDisplayFormat = '%.0f';
-            app.FindPeaksPlusOCCProminence1.FontSize = 10;
+            app.FindPeaksPlusOCCProminence1.FontSize = 11;
             app.FindPeaksPlusOCCProminence1.Layout.Row = 2;
             app.FindPeaksPlusOCCProminence1.Layout.Column = 1;
             app.FindPeaksPlusOCCProminence1.Value = 12;
@@ -812,7 +800,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCProminence2Label = uilabel(app.FindPeaksPlusOCCGrid2);
             app.FindPeaksPlusOCCProminence2Label.VerticalAlignment = 'bottom';
             app.FindPeaksPlusOCCProminence2Label.WordWrap = 'on';
-            app.FindPeaksPlusOCCProminence2Label.FontSize = 10;
+            app.FindPeaksPlusOCCProminence2Label.FontSize = 11;
             app.FindPeaksPlusOCCProminence2Label.Layout.Row = 1;
             app.FindPeaksPlusOCCProminence2Label.Layout.Column = [1 5];
             app.FindPeaksPlusOCCProminence2Label.Text = {'Proeminência'; '(dB):'};
@@ -823,7 +811,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCProminence2.Limits = [1 Inf];
             app.FindPeaksPlusOCCProminence2.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCProminence2.ValueDisplayFormat = '%.0f';
-            app.FindPeaksPlusOCCProminence2.FontSize = 10;
+            app.FindPeaksPlusOCCProminence2.FontSize = 11;
             app.FindPeaksPlusOCCProminence2.Layout.Row = 2;
             app.FindPeaksPlusOCCProminence2.Layout.Column = 1;
             app.FindPeaksPlusOCCProminence2.Value = 30;
@@ -831,7 +819,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create FindPeaksPlusOCCOccupancyLabel
             app.FindPeaksPlusOCCOccupancyLabel = uilabel(app.FindPeaksPlusOCCGrid2);
             app.FindPeaksPlusOCCOccupancyLabel.VerticalAlignment = 'bottom';
-            app.FindPeaksPlusOCCOccupancyLabel.FontSize = 10;
+            app.FindPeaksPlusOCCOccupancyLabel.FontSize = 11;
             app.FindPeaksPlusOCCOccupancyLabel.Layout.Row = 1;
             app.FindPeaksPlusOCCOccupancyLabel.Layout.Column = [3 5];
             app.FindPeaksPlusOCCOccupancyLabel.Interpreter = 'html';
@@ -844,7 +832,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCMinOccupancy.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCMinOccupancy.ValueDisplayFormat = '%.0f';
             app.FindPeaksPlusOCCMinOccupancy.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
-            app.FindPeaksPlusOCCMinOccupancy.FontSize = 10;
+            app.FindPeaksPlusOCCMinOccupancy.FontSize = 11;
             app.FindPeaksPlusOCCMinOccupancy.Layout.Row = 2;
             app.FindPeaksPlusOCCMinOccupancy.Layout.Column = 3;
             app.FindPeaksPlusOCCMinOccupancy.Value = 1;
@@ -856,7 +844,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCMaxOccupancy.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCMaxOccupancy.ValueDisplayFormat = '%.0f';
             app.FindPeaksPlusOCCMaxOccupancy.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
-            app.FindPeaksPlusOCCMaxOccupancy.FontSize = 10;
+            app.FindPeaksPlusOCCMaxOccupancy.FontSize = 11;
             app.FindPeaksPlusOCCMaxOccupancy.Layout.Row = 2;
             app.FindPeaksPlusOCCMaxOccupancy.Layout.Column = 5;
             app.FindPeaksPlusOCCMaxOccupancy.Value = 10;
@@ -867,6 +855,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsOffsetLabel.VerticalAlignment = 'bottom';
             app.ConnectedRegionsOffsetLabel.WordWrap = 'on';
             app.ConnectedRegionsOffsetLabel.FontSize = 11;
+            app.ConnectedRegionsOffsetLabel.Visible = 'off';
             app.ConnectedRegionsOffsetLabel.Layout.Row = 12;
             app.ConnectedRegionsOffsetLabel.Layout.Column = 1;
             app.ConnectedRegionsOffsetLabel.Text = {'Proeminência'; '(dB):'};
@@ -878,7 +867,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsOffset.RoundFractionalValues = 'on';
             app.ConnectedRegionsOffset.ValueDisplayFormat = '%.0f';
             app.ConnectedRegionsOffset.Tag = 'ConnectedRegions';
-            app.ConnectedRegionsOffset.FontSize = 10;
+            app.ConnectedRegionsOffset.FontSize = 11;
+            app.ConnectedRegionsOffset.Visible = 'off';
             app.ConnectedRegionsOffset.Layout.Row = 13;
             app.ConnectedRegionsOffset.Layout.Column = 1;
             app.ConnectedRegionsOffset.Value = 12;
@@ -889,6 +879,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsAreaLabel.VerticalAlignment = 'bottom';
             app.ConnectedRegionsAreaLabel.WordWrap = 'on';
             app.ConnectedRegionsAreaLabel.FontSize = 11;
+            app.ConnectedRegionsAreaLabel.Visible = 'off';
             app.ConnectedRegionsAreaLabel.Layout.Row = 12;
             app.ConnectedRegionsAreaLabel.Layout.Column = 2;
             app.ConnectedRegionsAreaLabel.Text = 'Área mínima acumulada (%):';
@@ -899,7 +890,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsArea.RoundFractionalValues = 'on';
             app.ConnectedRegionsArea.ValueDisplayFormat = '%.0f';
             app.ConnectedRegionsArea.Tag = 'ConnectedRegions';
-            app.ConnectedRegionsArea.FontSize = 10;
+            app.ConnectedRegionsArea.FontSize = 11;
+            app.ConnectedRegionsArea.Visible = 'off';
             app.ConnectedRegionsArea.Layout.Row = 13;
             app.ConnectedRegionsArea.Layout.Column = 2;
             app.ConnectedRegionsArea.Value = 99;
@@ -910,6 +902,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMaxOccupancyLabel.VerticalAlignment = 'bottom';
             app.ConnectedRegionsMaxOccupancyLabel.WordWrap = 'on';
             app.ConnectedRegionsMaxOccupancyLabel.FontSize = 11;
+            app.ConnectedRegionsMaxOccupancyLabel.Visible = 'off';
             app.ConnectedRegionsMaxOccupancyLabel.Layout.Row = 12;
             app.ConnectedRegionsMaxOccupancyLabel.Layout.Column = 3;
             app.ConnectedRegionsMaxOccupancyLabel.Text = 'Ocupação mínima refinamento pico (%)';
@@ -920,7 +913,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMaxOccupancy.RoundFractionalValues = 'on';
             app.ConnectedRegionsMaxOccupancy.ValueDisplayFormat = '%.0f';
             app.ConnectedRegionsMaxOccupancy.Tag = 'ConnectedRegions';
-            app.ConnectedRegionsMaxOccupancy.FontSize = 10;
+            app.ConnectedRegionsMaxOccupancy.FontSize = 11;
+            app.ConnectedRegionsMaxOccupancy.Visible = 'off';
             app.ConnectedRegionsMaxOccupancy.Layout.Row = 13;
             app.ConnectedRegionsMaxOccupancy.Layout.Column = 3;
             app.ConnectedRegionsMaxOccupancy.Value = 99;
@@ -931,6 +925,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOccupancyLabel.VerticalAlignment = 'bottom';
             app.ConnectedRegionsMinOccupancyLabel.WordWrap = 'on';
             app.ConnectedRegionsMinOccupancyLabel.FontSize = 11;
+            app.ConnectedRegionsMinOccupancyLabel.Visible = 'off';
             app.ConnectedRegionsMinOccupancyLabel.Layout.Row = 14;
             app.ConnectedRegionsMinOccupancyLabel.Layout.Column = 1;
             app.ConnectedRegionsMinOccupancyLabel.Text = {'Ocupação mínima'; '(%):'};
@@ -942,7 +937,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOccupancy.RoundFractionalValues = 'on';
             app.ConnectedRegionsMinOccupancy.ValueDisplayFormat = '%.0f';
             app.ConnectedRegionsMinOccupancy.Tag = 'ConnectedRegions';
-            app.ConnectedRegionsMinOccupancy.FontSize = 10;
+            app.ConnectedRegionsMinOccupancy.FontSize = 11;
+            app.ConnectedRegionsMinOccupancy.Visible = 'off';
             app.ConnectedRegionsMinOccupancy.Layout.Row = 15;
             app.ConnectedRegionsMinOccupancy.Layout.Column = 1;
             app.ConnectedRegionsMinOccupancy.Value = 3;
@@ -953,6 +949,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOrientationLabel.VerticalAlignment = 'bottom';
             app.ConnectedRegionsMinOrientationLabel.WordWrap = 'on';
             app.ConnectedRegionsMinOrientationLabel.FontSize = 11;
+            app.ConnectedRegionsMinOrientationLabel.Visible = 'off';
             app.ConnectedRegionsMinOrientationLabel.Layout.Row = 14;
             app.ConnectedRegionsMinOrientationLabel.Layout.Column = 2;
             app.ConnectedRegionsMinOrientationLabel.Text = 'Inclinação absoluta mínima (º):';
@@ -964,7 +961,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOrientation.RoundFractionalValues = 'on';
             app.ConnectedRegionsMinOrientation.ValueDisplayFormat = '%.0f';
             app.ConnectedRegionsMinOrientation.Tag = 'ConnectedRegions';
-            app.ConnectedRegionsMinOrientation.FontSize = 10;
+            app.ConnectedRegionsMinOrientation.FontSize = 11;
+            app.ConnectedRegionsMinOrientation.Visible = 'off';
             app.ConnectedRegionsMinOrientation.Layout.Row = 15;
             app.ConnectedRegionsMinOrientation.Layout.Column = 2;
             app.ConnectedRegionsMinOrientation.Value = 75;

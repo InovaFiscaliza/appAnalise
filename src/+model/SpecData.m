@@ -14,13 +14,13 @@ classdef SpecData < model.SpecDataBase
     %   ├── update ⚠️
     %   ├── hasOccupancyPerBin ⚠️
     %   ├── hasEmissionsInSearchBand ⚠️
-    %   └── calculateAntennaHeight
+    %   ├── calculateAntennaHeight
+    %   └── buildSpectrumReferenceTable
 
     % PRIVATE
     %   ├── checkIfScalar
-    %   ├── occupancyMapping
-    %   └── getSpectrumMergeTable
-
+    %   └── occupancyMapping
+    
     % STATIC
     %   └── identifyMergeType
 
@@ -69,6 +69,7 @@ classdef SpecData < model.SpecDataBase
                 if any(cellfun(@iscellstr, flowRelatedFiles))
                     flowRelatedFiles = vertcat(flowRelatedFiles{:});
                 end
+
                 identicalObjIdx = find(arrayfun(@(x) strcmp(x.Hash, flowHash) & isequal(sort(x.RelatedFiles.File), sort(flowRelatedFiles)), obj), 1);
                 if ~isempty(identicalObjIdx)
                     addInputFileInfo(obj(identicalObjIdx), referenceTable(flowHashIdxs, :))
@@ -143,7 +144,7 @@ classdef SpecData < model.SpecDataBase
                     flowIdx  = obj(ii).InputFiles(jj).Indexes(2);
                     
                     fileName = metaData(fileIdx).File;    
-                    tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData');
+                    tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData', flowIdx);
                     if ~isscalar(tempObj)
                         delete(tempObj(setdiff(1:numel(tempObj), flowIdx)))
                         tempObj = tempObj(flowIdx);
@@ -189,9 +190,14 @@ classdef SpecData < model.SpecDataBase
                 % - "OccupancyFiniteIntegrationCache"
                 % - "OccupancyCumulativeIntegration"
                 if isempty(obj(ii).UserData.PlotDisplayConfig)
-                    obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
                     obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
-                    
+                end
+
+                if isempty(obj(ii).UserData.AntennaHeightMeters)
+                    update(obj(ii), 'UserData:AntennaHeight', 'InitialValue')
+                end
+
+                if isempty(obj(ii).UserData.ChannelLibraryRelatedIndexes)                    
                     if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
                         obj(ii).UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj(ii));
                     end
@@ -229,7 +235,7 @@ classdef SpecData < model.SpecDataBase
                 error('model:SpecData:InvalidMergeRequirements', 'O processo de mesclagem requer ao menos dois fluxos espectrais.')
             end
 
-            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
+            mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
 
             if ~isscalar(unique(mergeTable.Receiver)) || ~isscalar(unique(mergeTable.DataType)) || ~isscalar(unique(mergeTable.LevelUnit))               
                 error('model:SpecData:InvalidMergeRequirements', [ ...
@@ -273,7 +279,7 @@ classdef SpecData < model.SpecDataBase
 
         %-----------------------------------------------------------------%
         function obj = mergeWith(obj, flowIdxs)            
-            mergeTable = getSpectrumMergeTable(obj, flowIdxs);
+            mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
             mergeType = model.SpecData.identifyMergeType(mergeTable);
 
             numFlows = numel(flowIdxs);
@@ -435,6 +441,7 @@ classdef SpecData < model.SpecDataBase
                                                                'UserData:Channel', ...
                                                                'UserData:PlotDisplayConfig', ...
                                                                'UserData:Emissions', ...
+                                                               'UserData:ReportInclude', ...
                                                                'UserData:OccupancyFields', ...
                                                                'UserData:ReportFields', ...
                                                                'UserData:OccupancyFields+ReportFields'})}
@@ -471,6 +478,11 @@ classdef SpecData < model.SpecDataBase
 
                 case 'UserData:AntennaHeight' % Origem: auxApp.dockLocation
                     switch updateType
+                        case 'InitialValue'
+                            for ii = 1:numel(obj)
+                                obj(ii).UserData.AntennaHeightMeters = calculateAntennaHeight(obj, ii, -1, 'initialValue');
+                            end
+
                         case 'Refresh'
                             for ii = 1:numel(obj)
                                 autoAntennaHeight = calculateAntennaHeight(obj, ii, -1, 'refreshValue');
@@ -625,7 +637,7 @@ classdef SpecData < model.SpecDataBase
 
                             for ii = 1:numel(idxList)
                                 idx = height(obj.UserData.Emissions) + 1;
-                                obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated'}) = {freqList(ii), idxList(ii), widthList(ii), true};
+                                obj.UserData.Emissions(idx, {'Frequency', 'FrequencyIdx', 'BandWidthkHz', 'IsTruncated', 'Uuid'}) = {freqList(ii), idxList(ii), widthList(ii), true, matlab.lang.internal.uuid()};
 
                                 defaultChannelEmission = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
 
@@ -729,16 +741,27 @@ classdef SpecData < model.SpecDataBase
                             obj.UserData.Emissions(idx, :) = [];
                             return
 
-                        case 'AuxApp:DriveTest'
+                        case 'AuxAppData:DriveTest'
                             idx = varargin{1};
                             driveTestAttributes = varargin{2};
                             obj.UserData.Emissions.AuxAppData(idx).DriveTest = driveTestAttributes;
+
+                        case 'AuxAppData:DriveTest:ReportInclude'
+                            idx = varargin{1};
+                            obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude = ~obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude;
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                     hasEmissionsInSearchBand(obj)
+
+
+                case 'UserData:ReportInclude'
+                    flowIdxs = updateType;
+                    for ii = 1:numel(obj)
+                        obj(ii).UserData.ReportInclude = ismember(ii, flowIdxs);
+                    end
 
                 case 'UserData:OccupancyFields'
                     checkIfScalar(obj)
@@ -903,6 +926,36 @@ classdef SpecData < model.SpecDataBase
                 antennaHeight = referenceValue;
             end
         end
+
+        %-----------------------------------------------------------------%
+        function referenceTable = buildSpectrumReferenceTable(obj, flowIdxs)
+            numFlows = numel(flowIdxs);
+            referenceTable = table( ...
+                'Size', [numFlows, 11], ...
+                'VariableTypes', {'double', 'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
+                'VariableNames', {'Idx', 'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
+            );
+
+            for ii = 1:numFlows
+                idx = flowIdxs(ii);
+                
+                referenceTable(ii,:) = {
+                    idx, ...
+                    obj(idx).Receiver, ...
+                    obj(idx).MetaData.DataType, ...
+                    obj(idx).MetaData.FreqStart, ...
+                    obj(idx).MetaData.FreqStop, ...
+                    obj(idx).MetaData.LevelUnit, ...
+                    obj(idx).MetaData.DataPoints, ...
+                    (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
+                    obj(idx).MetaData.Resolution, ...
+                    sum(obj(idx).RelatedFiles.NumSweeps), ...
+                    obj(idx).GPS.Count ...
+                };
+            end
+            
+            referenceTable = sortrows(referenceTable, {'FreqStart', 'FreqStop'});
+        end
     end
 
 
@@ -1044,35 +1097,6 @@ classdef SpecData < model.SpecDataBase
                 obj(ii).UserData.OccupancyComputationMode.RelatedHashes = relatedHashes;
                 obj(ii).UserData.OccupancyComputationMode.SelectedHash = selectedHash;
             end
-        end
-
-        %-----------------------------------------------------------------%
-        function mergeTable = getSpectrumMergeTable(obj, flowIdxs)
-            numFlows = numel(flowIdxs);
-            mergeTable = table( ...
-                'Size', [numFlows, 10], ...
-                'VariableTypes', {'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
-                'VariableNames', {'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
-            );
-
-            for ii = 1:numFlows
-                idx = flowIdxs(ii);
-                
-                mergeTable(ii,:) = {
-                    obj(idx).Receiver, ...
-                    obj(idx).MetaData.DataType, ...
-                    obj(idx).MetaData.FreqStart, ...
-                    obj(idx).MetaData.FreqStop, ...
-                    obj(idx).MetaData.LevelUnit, ...
-                    obj(idx).MetaData.DataPoints, ...
-                    (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
-                    obj(idx).MetaData.Resolution, ...
-                    sum(obj(idx).RelatedFiles.NumSweeps), ...
-                    obj(idx).GPS.Count ...
-                };
-            end
-            
-            mergeTable = sortrows(mergeTable, {'FreqStart', 'FreqStop'});
         end
     end
 

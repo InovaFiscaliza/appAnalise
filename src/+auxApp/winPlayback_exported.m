@@ -173,6 +173,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         projectData
+
+        % Armazena o hash da emissão em edição, de forma a mantê-la selecionada 
+        % após alteração das suas características (via tabela ou no próprio plot, 
+        % ajustando a ROI).
+        emissionSelectedHash = ''
     end
 
 
@@ -205,7 +210,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         eventName = varargin{1};
 
                         switch eventName
-                            case {'onFileListAdded', 'onFileListRemoved', 'onFileFilterChanged', 'onSpectralDataReadError'}
+                            case {'onFileListAdded', ...
+                                  'onFileListRemoved', ...
+                                  'onFileFilterChanged', ...
+                                  'onReportFlowListChanged', ...
+                                  'onSpectralDataReadError'}
                                 updateFlowDropDown(app)
 
                                 if app.plotUpdateEvent
@@ -217,14 +226,34 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'onLocationChanged'
                                 updateUIPanelContent(app)
 
-                            case {'onEmissionAdded', 'onEmissionParameterValueChanged', 'onEmissionDeleted'}
+                            case {'onEmissionAdded', ...
+                                  'onEmissionParameterValueChanged', ...
+                                  'onEmissionDeleted'}
                                 updateUIPanelContent(app)
                                 updateEmissionsPlot(app)
             
-                            case {'onTabNavigatorButtonPushed', 'onPlaybackStarted'}
+                            case {'onTabNavigatorButtonPushed', ...
+                                  'onPlaybackStarted'}
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = 0;
                                 end
+
+                            case {'onReportGenerate', 'onFinalReportFileChanged'}
+                                specData = app.bandObj.SpecData;
+                                updateToolbar(app, specData)
+
+                            case 'onFetchIssueDetails'
+                                system   = varargin{1};
+                                issue    = varargin{2};
+                                details  = varargin{3};
+                                msgError = varargin{4};
+
+                                if ~isempty(msgError)
+                                    error(msgError)
+                                end
+
+                                msg = util.HtmlTextGenerator.issueDetails(system, issue, details);
+                                ui.Dialog(app.UIFigure, 'info', msg);
 
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -583,12 +612,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
-                app.axesTool_FlowInfo;
-                app.tool_Play;
-                app.tool_LoopControl;
-                app.tool_TimestampSlider;
-                app.tool_OpenPopupMisc;
-                app.tool_GenerateReport
+                app.axesTool_FlowInfo
             ], 'Enable', nonEmptySpecData)
 
             set([
@@ -604,7 +628,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
-            app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
 
             % DataCursorMode
             % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
@@ -623,6 +646,23 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 app.LimitsYLimLabel.Text = 'dB  ';
             end
+
+            updateToolbar(app, specData)
+        end
+
+        %-----------------------------------------------------------------%
+        function updateToolbar(app, specData)
+            nonEmptySpecData = ~isempty(specData);
+
+            set([
+                app.tool_Play;
+                app.tool_LoopControl;
+                app.tool_TimestampSlider;
+                app.tool_OpenPopupMisc
+            ], 'Enable', nonEmptySpecData)
+
+            app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+            app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
         end
 
         %-----------------------------------------------------------------%
@@ -642,7 +682,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
                 end
 
-                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase);
+                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase, app.mainApp.General);
 
             else
                 app.FlowMetadata.Text = '';
@@ -713,8 +753,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             if hasEmissions
+                [~, emissionSelectedIdx] = ismember(app.emissionSelectedHash, specData.UserData.Emissions.Uuid);
+                if ~emissionSelectedIdx
+                    emissionSelectedIdx = 1;
+                end
+                
                 app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                app.FlowEmissions.Selection = 1;
+                app.FlowEmissions.Selection = emissionSelectedIdx;
+
             else
                 app.FlowEmissions.Data = [];
             end
@@ -890,7 +936,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     updateWaterfallPlot(app)
                 end
         
-                % customPlayback >> DataTips
+                % DataTips
                 if ~isempty(specData.UserData.PlotDisplayConfig.dataTips)
                     dtConfig = specData.UserData.PlotDisplayConfig.dataTips;
                     dtParent = [app.UIAxes1, app.UIAxes2, app.UIAxes3];
@@ -976,6 +1022,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateEmissionsPlot(app)
             delete(findobj(app.UIAxes1, 'Tag', 'emissions', '-or', 'Tag', 'emissionSelected'))
+            app.emissionSelectedHash = '';
 
             specData = app.bandObj.SpecData;
             if isempty(specData)
@@ -988,6 +1035,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             emissionSelectedIdx = app.FlowEmissions.Selection;
+            app.emissionSelectedHash = emissions.Uuid(emissionSelectedIdx);
+
             app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
             emissionSelectedHandle = plot.Emissions.draw(emissionSelectedIdx, app.UIAxes1, app.restoreView, app.bandObj);
 
@@ -1018,18 +1067,38 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         frequencyIdx = freq2idx(app.bandObj, freqCenter * 1e+6);                        
                         bandWidthkHz = app.FlowEmissions.Data.BandWidthkHz(emissionSelectedIdx);
 
-                        update(specData, 'UserData:Emissions', 'Edit', 'Frequency|BandWidth', emissionSelectedIdx, frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
-
-                        [~, freqSortIdxs] = sort(app.FlowEmissions.Data.Frequency);
-                        [~, emissionSelectedIdx] = ismember(emissionSelectedIdx, freqSortIdxs);
-                        
-                        app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
-                        app.FlowEmissions.Selection = emissionSelectedIdx;
-                        FlowEmissionsSelectionChanged(app)
-
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
+                        updateEmissionTable(app, specData, 'Edit', emissionSelectedIdx, 'Frequency|BandWidth', frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
                 end
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateEmissionTable(app, specData, updateType, emissionIdx, varargin)
+            arguments
+                app
+                specData
+                updateType {mustBeMember(updateType, {'Edit', 'Delete'})}
+                emissionIdx
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
+            switch updateType
+                case 'Edit'
+                    parameterName = varargin{1};
+                    update(specData, 'UserData:Emissions', updateType, parameterName, emissionIdx, varargin{2:end})
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
+
+                case 'Delete'
+                    update(specData, 'UserData:Emissions', updateType, emissionIdx)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+            end
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
         end
 
         %-----------------------------------------------------------------%
@@ -1198,6 +1267,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.plotUpdateEvent = 0;
             app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
         end
+
+        %-----------------------------------------------------------------%
+        function reportDispatchOperation(app, eventName, varargin)
+            arguments
+                app
+                eventName {mustBeMember(eventName, {'onReportGenerate', 'onUploadArtifacts'})}
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            if isempty(app.mainApp.eFiscalizaObj) || ~isvalid(app.mainApp.eFiscalizaObj)
+                dialogBox    = struct('id', 'login',    'label', 'Usuário: ', 'type', 'text');
+                dialogBox(2) = struct('id', 'password', 'label', 'Senha: ',   'type', 'password');
+
+                customFormData = struct('UUID', eventName, 'Fields', dialogBox, 'Context', app.Context);
+                if ~isempty(varargin)
+                    customFormData.Varargin = varargin;
+                end
+
+                sendEventToHTMLSource(app.jsBackDoor, 'customForm', customFormData)
+
+            else
+                ipcMainMatlabCallsHandler(app.mainApp, app, eventName, app.Context, varargin{:})
+            end
+        end
     end
     
 
@@ -1288,9 +1384,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function onFlowDropDownValueChanged(app, event)
 
             if exist('event', 'var')
-                previousIdx = event.PreviousValue;
                 [parentTag, dataIndex] = plot.datatip.Search([app.UIAxes1, app.UIAxes2, app.UIAxes3]);
-                update(app.mainApp.specData(previousIdx), 'UserData:PlotDisplayConfig', 'dataTip', parentTag, dataIndex)
+                update(app.mainApp.specData(event.PreviousValue), 'UserData:PlotDisplayConfig', 'dataTip', parentTag, dataIndex)
             end
 
             if app.plotUpdateEvent
@@ -1386,7 +1481,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         hObject = plot.draw2D.OrdinaryLine(app.UIAxes1, plotTag, app.bandObj, app.sweepTimeIdx);
                         plot.datatip.Template(hObject, 'Frequency+Level', app.bandObj.LevelUnit)
                         plot.axes.StackingOrder.execute(app.UIAxes1, app.bandObj.Context)
-            
                         app.plotHandles.(plotTag) = hObject;
 
                     else
@@ -1687,16 +1781,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
-        % Double-clicked callback: FlowOccupancy
-        function FlowOccupancyDoubleClicked(app, event)
-            
-            specData = app.bandObj.SpecData;
-            item = event.InteractionInformation.Item
-            
-        end
-
         % Selection changed function: FlowEmissions
-        function FlowEmissionsSelectionChanged(app, event)
+        function onEmissionsTableSelectionChanged(app, event)
             
             emissionSelectedIdx = app.FlowEmissions.Selection;
 
@@ -1715,9 +1801,59 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Cell edit callback: FlowEmissions
-        function FlowEmissionsCellEdit(app, event)
-            indices = event.Indices;
-            newData = event.NewData;
+        function onEmissionsTableCellEdit(app, event)
+            
+            % A tabela de emissões possui umas 10 colunas, mas aqui, no
+            % modo PLAYBACK, apresenta-se apenas três delas: "Frequency",
+            % "BandWidthkHz" e "Description". As duas primeiras numéricas;
+            % a outra, string.
+
+            emissionIdx  = event.Indices(1);
+            columnIdx    = event.Indices(2);
+            previousData = event.PreviousData;
+            newData      = event.NewData;
+
+            if (isnumeric(newData) && (isnan(newData) || abs(newData-previousData) < 1e-3)) || ...
+               (isstring(newData) && strtrim(newData) == strtrim(previousData))
+                event.Source.Data{emissionIdx, columnIdx} = previousData;
+                return
+            end
+
+            specData = app.bandObj.SpecData;
+
+            switch columnIdx
+                case {1, 2}
+                    parameterName = 'Frequency|BandWidth';
+
+                    frequency = event.Source.Data{emissionIdx, 'Frequency'};
+                    [frequencyIdx, invalidIdx] = freq2idx(app.bandObj, frequency*1e+6);
+                    if invalidIdx
+                        event.Source.Data{emissionIdx, columnIdx} = previousData;
+                        return
+                    end
+
+                    bandWidthkHz = event.Source.Data{emissionIdx, 'BandWidthkHz'};
+                    frequencyLimits = [ ...
+                        frequency - bandWidthkHz/2000, ...
+                        frequency + bandWidthkHz/2000 ...
+                    ];
+
+                    % Ajusta a largura ocupada, fixando a frequência, de forma 
+                    % a não ultrapassar os limites das faixas.
+                    if frequencyLimits(1) < app.bandObj.FreqStart
+                        bandWidthkHz = 2000 * abs(frequency - app.bandObj.FreqStart);
+                    elseif frequencyLimits(2) > app.bandObj.FreqStop
+                        bandWidthkHz = 2000 * abs(frequency - app.bandObj.FreqStop);
+                    end
+
+                    complementaryArgs = {frequencyIdx, frequency, bandWidthkHz, app.mainApp.channelObj};
+                
+                otherwise
+                    parameterName = 'Description';
+                    complementaryArgs = {newData, app.mainApp.channelObj};
+            end
+
+            updateEmissionTable(app, specData, 'Edit', emissionIdx, parameterName, complementaryArgs{:})
             
         end
 
@@ -1732,9 +1868,200 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case app.ContextMenuClassification                    
 
                 case app.ContextMenuDelete
-                    update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+                    updateEmissionTable(app, specData, 'Delete', emissionIdx)
             end
+
+        end
+
+        % Image clicked function: tool_GenerateReport
+        function onToolbarGeneralReportButtonClicked(app, event)
+            
+            context = app.Context;
+            issue = app.projectData.modules.(context).ui.issue;
+            reportVersion = app.projectData.modules.(context).ui.reportVersion;
+            flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+
+            % <VALIDAÇÕES>
+            criticalWarningMsg = '';
+            if ~validateReportRequirements(app.projectData, context, 'reportModel')
+                criticalWarningMsg = 'Pendente escolha do modelo de relatório.';
+
+            elseif isempty(flowIdxs)
+                criticalWarningMsg = 'Inclua ao menos um fluxo espectral na lista de fluxos a processar.';
+
+            elseif app.plotUpdateEvent
+                criticalWarningMsg = 'Interrompa o playback antes de inicializar a análise para gerar o relatório.';
+
+            else
+                invalidCache = false;
+                for ii = flowIdxs
+                    specData = app.mainApp.specData(ii);
+                    if isempty(specData.Data) || numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)
+                        invalidCache = true;
+                        break
+                    end
+                end
+
+                if invalidCache
+                    criticalWarningMsg = 'Navegue ao menos uma vez por cada fluxo espectral a ser processado antes de iniciar a análise para gerar o relatório.';
+                end
+            end
+
+            if ~isempty(criticalWarningMsg)
+                ui.Dialog(app.UIFigure, 'warning', criticalWarningMsg);
+                return
+            end
+
+            nonCriticalWarningMsg = {};
+            if ~validateReportRequirements(app.projectData, context, 'issue')
+                nonCriticalWarningMsg{end+1} = sprintf('• O número da inspeção "%.0f" é inválido.', issue);
+            end
+
+            if ~validateReportRequirements(app.projectData, context, 'unit')
+                nonCriticalWarningMsg{end+1} = '• Unidade geradora do documento precisa ser selecionada.';
+            end
+
+            invalidClassification = false;
+            for ii = flowIdxs
+                specData = app.mainApp.specData(ii);
+                if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, specData.UserData.Emissions.Classification, 'UniformOutput', false))
+                    invalidClassification = true;
+                    break
+                end
+            end
+
+            if invalidClassification
+                nonCriticalWarningMsg{end+1} = '• Há ao menos uma emissão ainda <font style="color: red;">Pendente identificação</font>, o que inviabiliza a geração da versão definitiva do relatório.';
+            end
+
+            if isempty(nonCriticalWarningMsg)
+                switch reportVersion
+                    case 'Definitiva'
+                        msgQuestion = sprintf('Confirma que se trata de monitoração relacionada à Atividade de Inspeção nº %.0f?', issue);
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                        if userSelection == "Não"
+                            return
+                        end
+                        
+                    case 'Preliminar'
+                        % ...
+                end
+
+            else
+                switch reportVersion
+                    case 'Definitiva'
+                        msgInfo = sprintf([ ...
+                                'Foi(ram) identificado(s) a(s) pendência(s):<br>%s' ...
+                                '<br><br>' ...
+                                '<b>Essa(s) pendência(s) precisa(m) ser resolvida(s) ' ...
+                                'antes de ser gerada a versão "Definitiva" do relatório</b>.' ...
+                            ], strjoin(nonCriticalWarningMsg, '<br>') ...
+                        );
+                        ui.Dialog(app.UIFigure, 'warning', msgInfo);
+                        return
+
+                    case 'Preliminar'
+                        msgQuestion = sprintf([ ...
+                                'Foi(ram) identificado(s) a(s) pendência(s):<br>%s' ...
+                                '<br><br>' ...
+                                '<b>Continuar mesmo assim?</b>' ...
+                            ], strjoin(nonCriticalWarningMsg, '<br>') ...
+                        );
+                        selection = ui.Dialog(app.UIFigure, "uiconfirm", msgQuestion, {'Sim', 'Não'}, 1, 2);
+                        if strcmp(selection, 'Não')
+                            return
+                        end
+                end
+            end
+            % </VALIDAÇÕES>
+
+            % <PROCESSO>
+            reportDispatchOperation(app, 'onReportGenerate', flowIdxs)
+            % </PROCESSO>
+
+        end
+
+        % Image clicked function: tool_UploadFinalFile
+        function onToolbarUploadFinalFileButtonClicked(app, event)
+            
+            % <VALIDAÇÕES>
+            context = app.Context;            
+            system = app.projectData.modules.(context).ui.system;
+            issue = app.projectData.modules.(context).ui.issue;
+            generatedHtmlFilePath = getGeneratedDocumentFileName(app.projectData, '.html', context);
+
+            msg = '';
+            if isempty(generatedHtmlFilePath)
+                msg = 'A versão definitiva do relatório ainda não foi gerada.';
+            elseif ~isfile(generatedHtmlFilePath)
+                msg = sprintf('O arquivo "%s" não foi encontrado.', generatedHtmlFilePath);
+            elseif ~isfolder(app.mainApp.General.fileFolder.DataHub_POST)
+                msg = 'Pendente mapear pasta do Sharepoint';
+            elseif ~validateReportRequirements(app.projectData, context, 'issue')
+                msg = sprintf('O número da inspeção "%.0f" é inválido.', issue);
+            elseif ~validateReportRequirements(app.projectData, context, 'unit')
+                msg = 'Unidade geradora do documento precisa ser selecionada.';
+            elseif isempty(system)
+                msg = 'Ambiente do eFiscaliza precisa ser selecionado.';
+            end
+
+            if ~isempty(msg)
+                ui.Dialog(app.UIFigure, 'warning', msg);
+                return
+            end
+
+            selectedECD = getSelectedECD(app);
+
+            storedReportHash  = app.projectData.modules.(context).generatedFiles.id;
+            currentReportHash = model.ProjectBase.computeReportAnalysisResultsHash(selectedECD);
+
+            if ~isequal(storedReportHash, currentReportHash)
+                [~, generatedHtmlFileName, generatedHtmlFileExt] = fileparts(generatedHtmlFilePath);
+                msgQuestion = sprintf([ ...
+                    'O relatório indicado a seguir foi gerado com base em ' ...
+                    'um conjunto específico de arquivos e anotações.<br>%s<br><br>' ...
+                    '<i>Hash</i> no momento da geração:<br>' ...
+                    '%s<br><br>' ...
+                    '<i>Hash</i> atual (após alterações):<br>' ...
+                    '%s<br><br>' ...
+                    'Isso indica que um arquivo diferente foi selecionado ' ...
+                    'ou que alguma anotação foi modificada desde a geração ' ...
+                    'do relatório.<br><br>' ...
+                    '<b>Deseja continuar com o <i>upload</i> mesmo assim?</b>' ...
+                ], [generatedHtmlFileName, generatedHtmlFileExt], textFormatGUI.cellstr2Bullets(strsplit(storedReportHash, ' - ')), textFormatGUI.cellstr2Bullets(strsplit(currentReportHash, ' - ')));
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+
+                if strcmp(userSelection, 'Não')
+                    return
+                end
+            end
+
+            uploadedFiles = getUploadedFiles(app.projectData, context, system, issue);
+            if ~isempty(uploadedFiles)
+                uploadedStatus = extractAfter({uploadedFiles.status}, 'Documento cadastrado no SEI sob o nº ');
+
+                if isscalar(uploadedStatus)
+                    uploadedStatus = uploadedStatus{1};
+                else                    
+                    uploadedStatus = strjoin([{strjoin(uploadedStatus(1:end-1), ', ')}, uploadedStatus(end)], ' e ');
+                end
+
+                msgQuestion = sprintf([ ...
+                    'Já foi realizado <i>upload</i> para o SEI de relatório relacionado ' ...
+                    'à Atividade de Inspeção nº %d - SEI nº %s.<br><br>' ...
+                    'Deseja realizar um novo <i>upload</i> para o SEI?' ...
+                ], issue, uploadedStatus);
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+
+                if strcmp(userSelection, 'Não')
+                    return
+                end
+            end
+            % </VALIDAÇÕES>
+
+            % <PROCESSO>
+            reportDispatchOperation(app, 'onUploadArtifacts')
+            % </PROCESSO>
 
         end
     end
@@ -1874,6 +2201,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_GenerateReport
             app.tool_GenerateReport = uiimage(app.Toolbar);
             app.tool_GenerateReport.ScaleMethod = 'none';
+            app.tool_GenerateReport.ImageClickedFcn = createCallbackFcn(app, @onToolbarGeneralReportButtonClicked, true);
             app.tool_GenerateReport.Enable = 'off';
             app.tool_GenerateReport.Layout.Row = [1 3];
             app.tool_GenerateReport.Layout.Column = 10;
@@ -1882,6 +2210,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create tool_UploadFinalFile
             app.tool_UploadFinalFile = uiimage(app.Toolbar);
             app.tool_UploadFinalFile.ScaleMethod = 'none';
+            app.tool_UploadFinalFile.ImageClickedFcn = createCallbackFcn(app, @onToolbarUploadFinalFileButtonClicked, true);
             app.tool_UploadFinalFile.Enable = 'off';
             app.tool_UploadFinalFile.Layout.Row = [1 3];
             app.tool_UploadFinalFile.Layout.Column = 11;
@@ -2065,12 +2394,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowEmissions
             app.FlowEmissions = uitable(app.FlowPanelGrid);
             app.FlowEmissions.ColumnName = {'FREQUÊNCIA|(MHz)'; 'LARGURA|(kHz)'; 'INFORMAÇÕES|ADICIONAIS'};
-            app.FlowEmissions.ColumnWidth = {95, 95, 190};
+            app.FlowEmissions.ColumnWidth = {95, 95, 106};
             app.FlowEmissions.RowName = {};
             app.FlowEmissions.SelectionType = 'row';
             app.FlowEmissions.ColumnEditable = true;
-            app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @FlowEmissionsCellEdit, true);
-            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @FlowEmissionsSelectionChanged, true);
+            app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @onEmissionsTableCellEdit, true);
+            app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsTableSelectionChanged, true);
             app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Visible = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
@@ -2100,7 +2429,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancy.FontSize = 11;
             app.FlowOccupancy.Layout.Row = [4 8];
             app.FlowOccupancy.Layout.Column = [9 10];
-            app.FlowOccupancy.DoubleClickedFcn = createCallbackFcn(app, @FlowOccupancyDoubleClicked, true);
             app.FlowOccupancy.Value = {};
 
             % Create RightPanel

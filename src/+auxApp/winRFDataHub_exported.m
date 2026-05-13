@@ -60,7 +60,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         referenceRX_Refresh             matlab.ui.control.Image
         referenceRX_Label               matlab.ui.control.Label
         referenceRX_Icon                matlab.ui.control.Image
-        filter_Tree                     matlab.ui.container.CheckBoxTree
+        FilterTree                      matlab.ui.container.CheckBoxTree
         filter_AddImage                 matlab.ui.control.Image
         filter_SecondaryValuePanel      matlab.ui.container.ButtonGroup
         filter_SecondaryValueSubpanel   matlab.ui.container.Panel
@@ -206,11 +206,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     case 'renderer'
                         appEngine.activate(app, app.Role)
 
-                    case 'auxApp.winRFDataHub.filter_Tree'
-                        filter_delFilter(app, struct('Source', app.contextmenu_del))
-
                     otherwise
-                        error('auxApp:winRFDataHub:UnexpectedEvent', 'Unexpected event "%s"', event.HTMLEventName)
+                        ipcMainJSEventsHandler(app.mainApp, event)
                 end
 
             catch ME
@@ -229,6 +226,9 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         switch operationType
                             case 'onRFDataHubUpdate'
                                 closeFcn(app)
+
+                            case 'auxApp.winRFDataHub.FilterTree'
+                                filter_delFilter(app, struct('Source', app.contextmenu_del))
 
                             otherwise
                                 error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
@@ -302,7 +302,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         app.referenceRX_EditionMode;
                         app.referenceRX_EditionConfirm;
                         app.referenceRX_EditionCancel;
-                        app.filter_Tree
+                        app.FilterTree
                     };
                     ui.CustomizationBase.getElementsDataTag(elToModify);
 
@@ -312,7 +312,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.referenceRX_EditionMode.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Habilita ou desabilita edição de características da estação')), ...
                             struct('appName', appName, 'dataTag', app.referenceRX_EditionConfirm.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Confirma edição')), ...
                             struct('appName', appName, 'dataTag', app.referenceRX_EditionCancel.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Cancela edição')), ...
-                            struct('appName', appName, 'dataTag', app.filter_Tree.UserData.id, 'listener', struct('componentName', 'auxApp.winRFDataHub.filter_Tree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
+                            struct('appName', appName, 'dataTag', app.FilterTree.UserData.id, 'listener', struct('componentName', 'auxApp.winRFDataHub.FilterTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
                         });
                     catch
                     end
@@ -1007,8 +1007,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function buildFilterRuleTree(app)
-            if ~isempty(app.filter_Tree.Children)
-                delete(app.filter_Tree.Children)
+            if ~isempty(app.FilterTree.Children)
+                delete(app.FilterTree.Children)
             end
 
             idx1 = find(strcmp(app.FilterRules.Order, 'Node'))';
@@ -1017,7 +1017,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                 for ii = idx1
                     idx2 = find(app.FilterRules.RelatedID == app.FilterRules.ID(ii))';
                     if isempty(idx2)
-                        parentNode = uitreenode(app.filter_Tree, 'Text', sprintf('#%d: RFDataHub.("%s") %s %s', app.FilterRules.ID(ii),                        ...
+                        parentNode = uitreenode(app.FilterTree, 'Text', sprintf('#%d: RFDataHub.("%s") %s %s', app.FilterRules.ID(ii),                        ...
                                                                                                                 app.FilterRules.Type{ii},                      ...
                                                                                                                 app.FilterRules.Operation{ii},                 ...
                                                                                                                 filter_Value(app, app.FilterRules.Value{ii})), ...
@@ -1027,7 +1027,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         end
 
                     else
-                        parentNode = uitreenode(app.filter_Tree, 'Text', '*.*', ...
+                        parentNode = uitreenode(app.FilterTree, 'Text', '*.*', ...
                                                                  'NodeData', [ii, idx2], 'ContextMenu', app.ContextMenu);
                         for jj = [ii, idx2]
                             childNode = uitreenode(parentNode, 'Text', sprintf('#%d: RFDataHub.("%s") %s %s', app.FilterRules.ID(jj),                        ...
@@ -1042,8 +1042,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                         end
                     end
                 end
-                app.filter_Tree.CheckedNodes = checkedNodes;
-                expand(app.filter_Tree, 'all')
+                app.FilterTree.CheckedNodes = checkedNodes;
+                expand(app.FilterTree, 'all')
             end
 
             app.filter_SecondaryReferenceFilter.Items = [{''}, cellstr("#" + string((idx1)))];
@@ -2007,10 +2007,10 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             switch event.Source
                 case app.contextmenu_del
-                    if isempty(app.filter_Tree.SelectedNodes)
+                    if isempty(app.FilterTree.SelectedNodes)
                         return
                     end
-                    idx1 = app.filter_Tree.SelectedNodes.NodeData;
+                    idx1 = app.FilterTree.SelectedNodes.NodeData;
                     
                     % Identifica se algum dos fluxos selecionado é um nó de
                     % filtros, inserindo na lista os seus filhos.
@@ -2026,15 +2026,15 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: filter_Tree
-        function filter_TreeCheckedNodesChanged(app, event)
+        % Callback function: FilterTree
+        function FilterTreeCheckedNodesChanged(app, event)
             
-            hTree             = findobj(app.filter_Tree, '-not', 'Type', 'uicheckboxtree');
+            hTree             = findobj(app.FilterTree, '-not', 'Type', 'uicheckboxtree');
             
             hTreeNode         = arrayfun(@(x) x.NodeData, hTree, 'UniformOutput', false);
             hTreeNodeDataList = unique(horzcat(hTreeNode{:}));
 
-            hCheckedNode      = arrayfun(@(x) x.NodeData, app.filter_Tree.CheckedNodes, 'UniformOutput', false);
+            hCheckedNode      = arrayfun(@(x) x.NodeData, app.FilterTree.CheckedNodes, 'UniformOutput', false);
             hCheckedNodeData  = unique(horzcat(hCheckedNode{:}));
 
             disableIndexList  = setdiff(hTreeNodeDataList, hCheckedNodeData);
@@ -2769,15 +2769,15 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.filter_AddImage.HorizontalAlignment = 'right';
             app.filter_AddImage.ImageSource = 'Add_16.png';
 
-            % Create filter_Tree
-            app.filter_Tree = uitree(app.SubGrid2, 'checkbox');
-            app.filter_Tree.FontSize = 10.5;
-            app.filter_Tree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.filter_Tree.Layout.Row = 7;
-            app.filter_Tree.Layout.Column = [1 2];
+            % Create FilterTree
+            app.FilterTree = uitree(app.SubGrid2, 'checkbox');
+            app.FilterTree.FontSize = 10.5;
+            app.FilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTree.Layout.Row = 7;
+            app.FilterTree.Layout.Column = [1 2];
 
             % Assign Checked Nodes
-            app.filter_Tree.CheckedNodesChangedFcn = createCallbackFcn(app, @filter_TreeCheckedNodesChanged, true);
+            app.FilterTree.CheckedNodesChangedFcn = createCallbackFcn(app, @FilterTreeCheckedNodesChanged, true);
 
             % Create referenceRX_TitleGrid
             app.referenceRX_TitleGrid = uigridlayout(app.SubGrid2);

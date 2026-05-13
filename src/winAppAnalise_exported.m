@@ -80,6 +80,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         
         channelObj
         elevationObj = RF.Elevation
+        kmlObj
 
         rfDataHub
         rfDataHubLOG
@@ -187,6 +188,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     case 'getNavigatorBasicInformation'
                         app.General.AppVersion.browser = event.HTMLEventData;
 
+                    case 'findResourceStaticURL'
+                        resourceStaticURL = event.HTMLEventData;
+                        if ~isempty(resourceStaticURL)
+                            app.General.AppVersion.application.resourceStaticURL = resourceStaticURL;
+                        end
+
                     % winAppAnalise
                     case 'mainApp.FileTree'
                         onFileTreeDeleteRequested(app)
@@ -211,19 +218,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % 
                     % case 'auxApp.winPlayback.FindPeaksTree'
                     %     play_FindPeaks_delEmission(app)
-                    % 
-                    % % auxApp.winDriveTest
-                    % % auxApp.winRFDataHub
-                    % case {'auxApp.winDriveTest.filter_Tree', 'auxApp.winDriveTest.points_Tree', 'auxApp.winRFDataHub.filter_Tree'}
-                    %     if contains(event.HTMLEventName, 'winDriveTest')
-                    %         auxAppName = 'DRIVETEST';
-                    %     elseif contains(event.HTMLEventName, 'winRFDataHub')
-                    %         auxAppName = 'RFDATAHUB';
-                    %     end
-                    % 
-                    %     hAuxApp = getAppHandle(app.tabGroupController, auxAppName);
-                    %     ipcSecundaryJSEventsHandler(hAuxApp, event)
-                    % 
+                    
+                    % auxApp.winDriveTest
+                    % auxApp.winRFDataHub
+                    case {'auxApp.winDriveTest.FilterTree', 'auxApp.winDriveTest.PointsTree', 'auxApp.winRFDataHub.FilterTree'}
+                        if contains(event.HTMLEventName, 'winDriveTest')
+                            auxAppName = 'DRIVETEST';
+                            
+                        elseif contains(event.HTMLEventName, 'winRFDataHub')
+                            auxAppName = 'RFDATAHUB';
+                        end
+
+                        ipcMainMatlabCallAuxiliarApp(app, auxAppName, 'MATLAB', event.HTMLEventName)
+                    
                     % % DOCKADDKFACTOR / DOCKTIMEFILTERING
                     % case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
                     %     hDockApp  = app.popupContainer.RunningAppInstance;
@@ -246,12 +253,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             try
                 switch eventName
                     case 'closeFcn'
-                        auxAppTag    = varargin{1};
+                        auxAppTag = varargin{1};
                         closeModule(app.tabGroupController, auxAppTag, app.General)
 
                     case 'dockButtonPushed'
-                        auxAppTag    = varargin{1};
                         varargout{1} = {app};
+
+                    case 'onUpdateLastVisitedFolder'
+                        filePath = varargin{1};
+                        updateLastVisitedFolder(app, filePath)
 
                     otherwise
                         switch class(callingApp)
@@ -366,20 +376,22 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % DOCKS:OTHERS
-                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ...
-                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ...
-                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ...
-                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ...
-                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ...
-                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ...
-                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ...
-                                  'auxApp.dockFilterByLevel',   'auxApp.dockTimeFiltering_exported',   ...
-                                  'auxApp.dockFiltersByTime',   'auxApp.dockEditLocation_exported',    ...
-                                  'auxApp.dockLocation',        'auxApp.dockAddKFactor_exported',      ...
-                                  'auxApp.dockMiscellaneous',   'auxApp.dockLevelFiltering_exported',  ...
-                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ...
-                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ...
-                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}
+                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ... % SIGNALANALYSIS | DRIVETEST
+                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ... % PLAYBACK
+                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ... % PLAYBACK
+                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ... % PLAYBACK
+                                  'auxApp.dockDriveTestFilter', 'auxApp.dockDriveTestFilter_exported', ... % DRIVETEST
+                                  'auxApp.dockDriveTestPoints', 'auxApp.dockDriveTestPoints_exported', ... % DRIVETEST
+                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ... % ? (PLAYBACK ou REPORTLIB)
+                                  'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockFiltersByTime',   'auxApp.dockFiltersByTime_exported',   ... % ? (talvez a partir de MISC...)
+                                  'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK | DRIVETEST
+                                  'auxApp.dockMiscellaneous',   'auxApp.dockMiscellaneous_exported',   ... % ? (talvez volta a ser módulo "MISC")
+                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % PLAYBACK
+                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK
+                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
 
                                 switch eventName
                                     case {'onEmissionAdded', 'onLocationChanged'}
@@ -387,6 +399,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
+
+                                    case 'onReportFlowListChanged'
+                                        notifySecondaryApps(app, eventName)
+
+                                    case 'onDriveTestFilterChanged'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
+
+                                    case 'onDriveTestPointsAdded'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -416,6 +443,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     case 'MATLAB'
                         operationType = varargin{1};
                         ipcSecondaryMatlabCallsHandler(hAuxApp, app, operationType, varargin{2:end});
+
                     case 'JS'
                         event = varargin{1};
                         ipcSecondaryJSEventsHandler(hAuxApp, event)
@@ -428,13 +456,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
             arguments (Repeating)
                 varargin 
             end
+
+            isFluid = false;
 
             switch auxAppName
                 case 'Calibration'
@@ -446,9 +476,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Classification'
                     screenWidth  = 534;
                     screenHeight = 248;
-                case 'Detection'        % auxApp.winPlayback
+                case 'Detection'
                     screenWidth  = 412;
                     screenHeight = 484;
+                case 'DriveTestFilter' % auxApp.winDriveTest
+                    screenWidth  = 412;
+                    screenHeight = 338;
+                case 'DriveTestPoints' % auxApp.winDriveTest
+                    screenWidth  = 412;
+                    screenHeight = 408;
                 case 'DetectionLimits'  % auxApp.winPlayback
                     screenWidth  = 292;
                     screenHeight = 360;
@@ -468,14 +504,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenWidth  = 412; 
                     screenHeight = 190;
                 case 'Miscellaneous'
-                    screenWidth  = 880;
+                    isFluid = true;
+                    screenWidth  = 880; 
                     screenHeight = 480;
-                case 'ReportLib'
-                    screenWidth  = 460;
-                    screenHeight = 602;
                 case 'RepoFiles'
                     screenWidth  = 940;
                     screenHeight = 580;
+                case 'ReportLib'
+                    screenWidth  = 784;
+                    screenHeight = 594;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
@@ -483,7 +520,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             inputArguments = [{app, callingApp, context}, varargin];
             
             if app.General.operationMode.Debug
-                eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName))
+                currentApp = eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName));
+                currentApp.isDocked = false;
 
             else
                 ui.PopUpContainer(callingApp, screenWidth, screenHeight)
@@ -496,12 +534,17 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     app.popupCurrentApp.GridLayout
                 });
 
+                if isFluid
+                    sizing = struct('type', 'fluid', 'width', 90, 'height', 90);
+                else
+                    sizing = struct('type', 'fixed', 'width', screenWidth, 'height', screenHeight+31);
+                end
+
                 sendEventToHTMLSource(callingApp.jsBackDoor, 'dockContainer', struct( ...
                     'dockAppName', auxDockAppName, ...
                     'dockAppDataTag', app.popupCurrentApp.GridLayout.UserData.id, ...
                     'dockAppContainerDataTag', callingApp.popupContainer.UserData.id, ...
-                    'width', screenWidth, ...
-                    'height', screenHeight+31, ...
+                    'sizing', sizing, ...
                     'context', context, ...
                     'numCanvasElements', numel(findobj(app.popupCurrentApp.Container, 'Type', 'axes')) ...
                 ))
@@ -660,6 +703,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.General = app.General_I;
             app.General.AppVersion = util.getAppVersion(app.rootFolder, MFilePath, tempDir);
             sendEventToHTMLSource(app.jsBackDoor, 'getNavigatorBasicInformation')
+
+            % Ideia é identificar URL de pasta estática servida pelo backend, de 
+            % forma que possam ser inseridas imagens em uilabel (como ui.TextView).
+            try
+                [~, resourceName, resourceExt] = fileparts(app.tool_ReadFiles.ImageSource);
+                sendEventToHTMLSource(app.jsBackDoor, 'findResourceStaticURL', struct('resourceName', [resourceName resourceExt], 'resourceTag', 'img', 'resourceId', app.tool_ReadFiles.UserData.id))
+            catch
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -736,6 +787,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 updateType char {mustBeMember(updateType, {'onFileListAdded', ...
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
+                                                           'onReportFlowListChanged', ...
                                                            'onLocationChanged', ...
                                                            'onEmissionAdded', ...
                                                            'onEmissionParameterValueChanged', ...
@@ -989,7 +1041,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 eventName {mustBeMember(eventName, {'onFetchIssueDetails', 'onReportGenerate', 'onUploadArtifacts'})}
-                context {mustBeMember(context, {'MONITORINGPLAN', 'EXTERNALREQUEST'})}
+                context {mustBeMember(context, {'PLAYBACK'})}
                 credentials
             end
 
@@ -1053,7 +1105,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             createEFiscalizaObject(app, credentials)
             try
-                reportLibConnection.Controller.Run(app, callingApp, context, app.measData(indexes))
+                reportLibConnection.Controller.Run(app, callingApp, context, app.specData(indexes))
                 if app == callingApp
                     updateToolbar(app)
                 else
@@ -1320,59 +1372,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
-                fileFullPath = fullfile(filePath, fileName{ii});
-                [~, ~, fileExt] = fileparts(fileName{ii});
-                relatedFiles = getRelatedFiles(app.metaData);
-
+                fileFullPath = fullfile(filePath, fileName{ii});                
                 if any(strcmpi(fileFullPath, {app.metaData.File}))
                     repeteadFiles{end+1} = fileName{ii};                      
                     continue
                 end
+
+                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General);
                 
-                switch lower(fileExt)                        
-                    case '.mat'
-                        lastwarn('')
-                        load(fileFullPath, '-mat', 'prj_Type', 'prj_RelatedFiles')
-                        [~, warnID] = lastwarn;
-                        
-                        % Um projeto .MAT pode conter informações geradas por mais
-                        % de um arquivo .BIN, por exemplo. Por essa razão, certifica-se
-                        % que nenhum dos arquivos relacionados ao projeto já foram 
-                        % lidos anteriormente.
-                        warningMsg = '';
-                        if strcmp(warnID, 'MATLAB:load:variableNotFound')
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não foi gerado ' ...
-                                'pelo appAnalise ou appColeta.\n•&thinsp;%s' ...
-                            ], fileName{ii});
-                            
-                        elseif any(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true))
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não será lido ' ...
-                                'por já ter sido lido ao menos um arquivo ' ...
-                                'relacionado ao projeto appAnalise.\n•&thinsp;%s\n\n' ...
-                                'Arquivo(s) relacionado(s) ao projeto appAnalise ' ...
-                                'já lido(s):\n%s' ...
-                            ], fileName{ii}, strjoin(cellfun(@(x) sprintf('•&thinsp;%s', x), relatedFiles(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true)), 'UniformOutput', false), '\n'));
-
-                        elseif ~isempty(app.metaData) && strcmp(prj_Type, 'Project data') && ismember('Project data', {app.metaData.Type})
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não será lido ' ...
-                                'porque já foram lidos os metadados de outro ' ...
-                                'projeto appAnalise.\n•&thinsp;%s' ...
-                            ], fileName{ii});
-                        end
-
-                        if ~isempty(warningMsg)
-                            ui.Dialog(app.UIFigure, 'warning', warningMsg);                            
-                            continue
-                        end
-
-                    otherwise % {'.bin', '.dbm', '.sm1809', '.csv'}
-                        prj_Type = 'Spectral data';
-                end
-
-                [app.metaData, msg] = importFile(app.metaData, fileFullPath, prj_Type);
                 if isempty(msg)
                     hasReadNewFiles = true;
                 else
