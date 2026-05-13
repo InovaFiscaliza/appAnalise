@@ -45,9 +45,10 @@ classdef Project < model.ProjectCommon
         end
 
         %-----------------------------------------------------------------%
-        function save(obj, context, prjName, prjFile, outputFileCompressionMode, specData)
+        function save(obj, type, context, prjName, prjFile, outputFileCompressionMode, specData)
             arguments
                 obj
+                type (1,:) char {mustBeMember(type, {'ProjectData', 'SpectralData', 'UserData'})}
                 context (1,:) char {mustBeMember(context, {'PLAYBACK'})}
                 prjName
                 prjFile
@@ -56,8 +57,7 @@ classdef Project < model.ProjectCommon
             end
 
             source    = class.Constants.appName;
-            type      = 'ProjectData';
-            version   = 1;
+            version   = 4;
             userData  = [];
 
             prjHash   = model.ProjectBase.computeProjectHash(prjName, prjFile, obj.modules, obj.issueDetails, obj.entityDetails, specData);
@@ -83,17 +83,17 @@ classdef Project < model.ProjectCommon
         end
 
         %-----------------------------------------------------------------%
-        function [specDataObj, msg] = load(obj, context, fileName, generalSettings, specDataObj)
+        function [specDataObj, msg] = load(obj, context, fileName, readType, generalSettings)
             arguments
                 obj
-                context (1,:) char {mustBeMember(context, {'FILE', 'PLAYBACK'})}
+                context (1,:) char {mustBeMember(context, {'PLAYBACK'})}
                 fileName
+                readType {mustBeMember(readType, {'MetaData', 'SpecData'})}
                 generalSettings
-                specDataObj
             end
 
             try
-                required = {'source', 'version', 'variables'};
+                required = {'source', 'type', 'version', 'variables', 'userData'};
                 varsInFile = who('-file', fileName);
                 if any(~ismember(required, varsInFile))
                     missing = setdiff(required, varsInFile);
@@ -107,7 +107,10 @@ classdef Project < model.ProjectCommon
                 end
     
                 switch prjData.version
-                    case 1
+                    case {1, 2, 3}
+                        error('UnexpectedVersion')
+
+                    case 4
                         restart(obj, {'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'RFDATAHUB'}, 'onProjectLoad', generalSettings)
 
                         obj.name = prjData.variables.name;

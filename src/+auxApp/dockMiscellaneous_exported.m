@@ -338,9 +338,10 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {320, '1x'};
-            app.GridLayout.RowHeight = {22, '1x'};
-            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.ColumnWidth = {320, 10, '1x'};
+            app.GridLayout.RowHeight = {22, 5, '1x'};
+            app.GridLayout.ColumnSpacing = 0;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
@@ -349,14 +350,14 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
             app.play_Tree.Multiselect = 'on';
             app.play_Tree.FontSize = 10;
             app.play_Tree.FontColor = [0.651 0.651 0.651];
-            app.play_Tree.Layout.Row = 2;
+            app.play_Tree.Layout.Row = 3;
             app.play_Tree.Layout.Column = 1;
 
             % Create misc_Panel1
             app.misc_Panel1 = uipanel(app.GridLayout);
             app.misc_Panel1.AutoResizeChildren = 'off';
-            app.misc_Panel1.Layout.Row = 2;
-            app.misc_Panel1.Layout.Column = 2;
+            app.misc_Panel1.Layout.Row = 3;
+            app.misc_Panel1.Layout.Column = 3;
 
             % Create misc_Grid1
             app.misc_Grid1 = uigridlayout(app.misc_Panel1);
@@ -579,7 +580,7 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
             app.OPERAESLabel.VerticalAlignment = 'bottom';
             app.OPERAESLabel.FontSize = 10;
             app.OPERAESLabel.Layout.Row = 1;
-            app.OPERAESLabel.Layout.Column = 2;
+            app.OPERAESLabel.Layout.Column = 3;
             app.OPERAESLabel.Text = 'OPERAÇÕES';
 
             % Show the figure after all components are created

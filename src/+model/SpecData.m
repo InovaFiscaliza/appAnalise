@@ -69,6 +69,7 @@ classdef SpecData < model.SpecDataBase
                 if any(cellfun(@iscellstr, flowRelatedFiles))
                     flowRelatedFiles = vertcat(flowRelatedFiles{:});
                 end
+
                 identicalObjIdx = find(arrayfun(@(x) strcmp(x.Hash, flowHash) & isequal(sort(x.RelatedFiles.File), sort(flowRelatedFiles)), obj), 1);
                 if ~isempty(identicalObjIdx)
                     addInputFileInfo(obj(identicalObjIdx), referenceTable(flowHashIdxs, :))
@@ -143,7 +144,7 @@ classdef SpecData < model.SpecDataBase
                     flowIdx  = obj(ii).InputFiles(jj).Indexes(2);
                     
                     fileName = metaData(fileIdx).File;    
-                    tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData');
+                    tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData', flowIdx);
                     if ~isscalar(tempObj)
                         delete(tempObj(setdiff(1:numel(tempObj), flowIdx)))
                         tempObj = tempObj(flowIdx);

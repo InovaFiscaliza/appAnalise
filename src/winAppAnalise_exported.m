@@ -453,6 +453,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 varargin 
             end
 
+            isFluid = false;
+
             switch auxAppName
                 case 'Calibration'
                     screenWidth  = 480; 
@@ -478,7 +480,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'EmissionChannel'
                     screenWidth  = 412;
                     screenHeight = 138;
-                case {'ExternalFiles', 'Miscellaneous'}
+                case 'ExternalFiles'
                     screenWidth  = 880; 
                     screenHeight = 480;
                 case 'FilterByLevel'
@@ -490,6 +492,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Location'
                     screenWidth  = 412; 
                     screenHeight = 190;
+                case 'Miscellaneous'
+                    isFluid = true;
+                    screenWidth  = 880; 
+                    screenHeight = 480;
                 case 'ReportLib'
                     screenWidth  = 784;
                     screenHeight = 594;
@@ -514,12 +520,17 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     app.popupCurrentApp.GridLayout
                 });
 
+                if isFluid
+                    sizing = struct('type', 'fluid', 'width', 90, 'height', 90);
+                else
+                    sizing = struct('type', 'fixed', 'width', screenWidth, 'height', screenHeight+31);
+                end
+
                 sendEventToHTMLSource(callingApp.jsBackDoor, 'dockContainer', struct( ...
                     'dockAppName', auxDockAppName, ...
                     'dockAppDataTag', app.popupCurrentApp.GridLayout.UserData.id, ...
                     'dockAppContainerDataTag', callingApp.popupContainer.UserData.id, ...
-                    'width', screenWidth, ...
-                    'height', screenHeight+31, ...
+                    'sizing', sizing, ...
                     'context', context, ...
                     'numCanvasElements', numel(findobj(app.popupCurrentApp.Container, 'Type', 'axes')) ...
                 ))
@@ -1323,7 +1334,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     end
                 end
             else
-                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat;*.zip', 'Binários (*.bin,*.dbm,*.mat,*.zip)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
+                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
 
                 if isempty(fileName)
                     return
@@ -1346,59 +1357,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
-                fileFullPath = fullfile(filePath, fileName{ii});
-                [~, ~, fileExt] = fileparts(fileName{ii});
-                relatedFiles = getRelatedFiles(app.metaData);
-
+                fileFullPath = fullfile(filePath, fileName{ii});                
                 if any(strcmpi(fileFullPath, {app.metaData.File}))
                     repeteadFiles{end+1} = fileName{ii};                      
                     continue
                 end
+
+                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General);
                 
-                switch lower(fileExt)                        
-                    case '.mat'
-                        lastwarn('')
-                        load(fileFullPath, '-mat', 'prj_Type', 'prj_RelatedFiles')
-                        [~, warnID] = lastwarn;
-                        
-                        % Um projeto .MAT pode conter informações geradas por mais
-                        % de um arquivo .BIN, por exemplo. Por essa razão, certifica-se
-                        % que nenhum dos arquivos relacionados ao projeto já foram 
-                        % lidos anteriormente.
-                        warningMsg = '';
-                        if strcmp(warnID, 'MATLAB:load:variableNotFound')
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não foi gerado ' ...
-                                'pelo appAnalise ou appColeta.\n•&thinsp;%s' ...
-                            ], fileName{ii});
-                            
-                        elseif any(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true))
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não será lido ' ...
-                                'por já ter sido lido ao menos um arquivo ' ...
-                                'relacionado ao projeto appAnalise.\n•&thinsp;%s\n\n' ...
-                                'Arquivo(s) relacionado(s) ao projeto appAnalise ' ...
-                                'já lido(s):\n%s' ...
-                            ], fileName{ii}, strjoin(cellfun(@(x) sprintf('•&thinsp;%s', x), relatedFiles(contains(relatedFiles, prj_RelatedFiles, 'IgnoreCase', true)), 'UniformOutput', false), '\n'));
-
-                        elseif ~isempty(app.metaData) && strcmp(prj_Type, 'Project data') && ismember('Project data', {app.metaData.Type})
-                            warningMsg = sprintf([ ...
-                                'O arquivo indicado a seguir não será lido ' ...
-                                'porque já foram lidos os metadados de outro ' ...
-                                'projeto appAnalise.\n•&thinsp;%s' ...
-                            ], fileName{ii});
-                        end
-
-                        if ~isempty(warningMsg)
-                            ui.Dialog(app.UIFigure, 'warning', warningMsg);                            
-                            continue
-                        end
-
-                    otherwise % {'.bin', '.dbm', '.zip', '.sm1809', '.csv'}
-                        prj_Type = 'Spectral data';
-                end
-
-                [app.metaData, msg] = importFile(app.metaData, fileFullPath, prj_Type);
                 if isempty(msg)
                     hasReadNewFiles = true;
                 else

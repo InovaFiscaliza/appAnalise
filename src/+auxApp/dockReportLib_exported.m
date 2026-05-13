@@ -275,7 +275,20 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 return
             end
 
-            save(app.projectData, context, projectName, projectFile, app.mainApp.General.reportLib.outputCompressionMode, varargin{:})
+            % Fluxos que irão compor o .MAT englobam, também, os de
+            % ocupação...
+            specDataIdx = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+            specData = app.mainApp.specData(specDataIdx);
+
+            occupancyFlows = arrayfun(@(x) x.UserData.OccupancyComputationMode.RelatedHashes, specData, 'UniformOutput', false);
+            occupancyFlows = horzcat(occupancyFlows{:});
+
+            if ~isempty(occupancyFlows)
+                occupancyFlowsIdxs = find(strcmp(occupancyFlows, {specData.Hash}));
+                specData = [specData, app.mainApp.specData(occupancyFlowsIdxs)];
+            end
+
+            save(app.projectData, 'ProjectData', context, projectName, projectFile, app.mainApp.General.reportLib.outputCompressionMode, specData)
             updatePanel(app, context)
 
         end

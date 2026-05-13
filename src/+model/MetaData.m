@@ -3,7 +3,7 @@ classdef MetaData < handle
     properties
         %-----------------------------------------------------------------%
         File    char
-        Type    char {mustBeMember(Type, {'Spectral data', 'Project data'})} = 'Spectral data'
+        Type    char {mustBeMember(Type, {'SpectralData', 'ProjectData'})} = 'SpectralData'
         Data    model.SpecData
         Samples double
         Memory  double
@@ -12,15 +12,39 @@ classdef MetaData < handle
 
     methods
         %-----------------------------------------------------------------%
-        function [obj, msg] = importFile(obj, fileFullPath, fileType)
+        function [obj, msg] = importFile(obj, fileFullPath, projectData, generalSettings)
             msg = '';
 
             try
                 idx = numel(obj) + 1;
-
                 obj(idx).File = fileFullPath;
+
+                [~, ~, fileExt] = fileparts(fileFullPath);
+
+                % O arquivo .MAT, disponível no RepoSFI, concentra informações de 
+                % um ou mais arquivos .DBM em uma única variável: "out".
+
+                % Além disso, há o .MAT que registra informações do projeto
+                % nas variáveis "source", "type", "version", "variables" e
+                % "userData".
+                
+                varsInFile = {};
+                if strcmpi(fileExt, '.mat')
+                    varsInFile = who('-file', fileFullPath);
+                end
+
+                if ~isempty(varsInFile) && ~contains(varsInFile, 'out')
+                    [specData, fileType, msg] = load(projectData, 'PLAYBACK', fileFullPath, 'MetaData', generalSettings);
+                    if ~isempty(msg)
+                        error(msg)
+                    end
+                else
+                    specData = read(obj(idx).Data, fileFullPath, 'MetaData');
+                    fileType = 'SpectralData';
+                end
+                
                 obj(idx).Type = fileType;
-                obj(idx).Data = read(obj(idx).Data, fileFullPath, 'MetaData');
+                obj(idx).Data = specData;
                 addHashColumnToRelatedFilesTable(obj(idx).Data)
                 obj(idx).Samples = computeSweepNumber(obj(idx).Data);
 
