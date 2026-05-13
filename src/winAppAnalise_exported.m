@@ -230,7 +230,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         end
 
                         ipcMainMatlabCallAuxiliarApp(app, auxAppName, 'MATLAB', event.HTMLEventName)
-                    
+
                     % % DOCKADDKFACTOR / DOCKTIMEFILTERING
                     % case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
                     %     hDockApp  = app.popupContainer.RunningAppInstance;
@@ -479,15 +479,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 case 'Detection'
                     screenWidth  = 412;
                     screenHeight = 484;
+                case 'DetectionLimits'  % auxApp.winPlayback
+                    screenWidth  = 292;
+                    screenHeight = 360;
                 case 'DriveTestFilter' % auxApp.winDriveTest
                     screenWidth  = 412;
                     screenHeight = 338;
                 case 'DriveTestPoints' % auxApp.winDriveTest
                     screenWidth  = 412;
                     screenHeight = 408;
-                case 'DetectionLimits'  % auxApp.winPlayback
-                    screenWidth  = 292;
-                    screenHeight = 360;
                 case 'EmissionChannel'
                     screenWidth  = 412;
                     screenHeight = 138;
@@ -505,14 +505,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     screenHeight = 190;
                 case 'Miscellaneous'
                     isFluid = true;
-                    screenWidth  = 880; 
+                    screenWidth  = 880;
                     screenHeight = 480;
+                case 'ReportLib'
+                    screenWidth  = 460;
+                    screenHeight = 602;
                 case 'RepoFiles'
+                    isFluid = true;
                     screenWidth  = 940;
                     screenHeight = 580;
-                case 'ReportLib'
-                    screenWidth  = 784;
-                    screenHeight = 594;
             end
 
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
@@ -739,7 +740,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
             updateWarningLampVisibility(app)
-
         end
     end
 
@@ -1372,7 +1372,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
-                fileFullPath = fullfile(filePath, fileName{ii});                
+                fileFullPath = fullfile(filePath, fileName{ii});
                 if any(strcmpi(fileFullPath, {app.metaData.File}))
                     repeteadFiles{end+1} = fileName{ii};                      
                     continue

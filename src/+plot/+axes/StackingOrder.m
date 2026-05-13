@@ -13,7 +13,6 @@ classdef (Abstract) StackingOrder
         RFDataHub         = {'FilterROI', 'RFLink', 'TX', 'RX', 'Stations'}                                       % app.UIAxes1   (GeographicAxes)
         
         RFLink            = {'StationLabel', 'Station', 'Link', 'Fresnel', 'FirstObstruction', 'Footnote', 'Terrain'}
-        RepoSFI           = {'CurvaCima', 'CurvaBaixo'}
     end
 
 
@@ -35,9 +34,6 @@ classdef (Abstract) StackingOrder
 
                 case 'RFLink'
                     refStackingOrder = plot.axes.StackingOrder.RFLink;
-
-                case 'RepoSFI'
-                    refStackingOrder = plot.axes.StackingOrder.RepoSFI;
 
                 otherwise
                     error('Unexpected option.')
