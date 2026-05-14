@@ -109,16 +109,34 @@ classdef SpecData < model.SpecDataBase
                 end
             end
 
-            % Reordena fluxos de espectro, além de mapear fluxos de espectro
-            % e ocupação.
+            % Verifica fluxos bloqueados e garante sua presença na tabela de 
+            % referência, mesmo que os arquivos brutos originais tenham sido 
+            % removidos.
+            lockedIdxs = find(cellfun(@(x) ~ismember(x, referenceTable.Hash), {obj.Hash}));
+            if ~isempty(lockedIdxs)
+                for kk = lockedIdxs
+                    referenceTable(end+1, {'Receiver', 'FreqStart', 'FreqStop', 'Hash', 'IsOccupancyFlow'}) = { ...
+                        obj(kk).Receiver, ...
+                        obj(kk).MetaData.FreqStart, ...
+                        obj(kk).MetaData.FreqStop, ...
+                        obj(kk).Hash, ...
+                        ismember(obj(kk).MetaData.DataType, class.Constants.occDataTypes) ...
+                    };
+                end
+                referenceTable = sortrows(referenceTable, {'Receiver', 'FreqStart', 'FreqStop', 'Hash', 'IsOccupancyFlow'});
+                uniqueHashs = unique(referenceTable.Hash, 'stable');
+            end
+
+            % Reordena os fluxos e realiza o mapeamento entre fluxos de 
+            % espectro e ocupação.
             sortedIdxs = cellfun(@(x) find(strcmp(x, {obj.Hash})), uniqueHashs, 'UniformOutput', false);
             sortedIdxs = horzcat(sortedIdxs{:});
             obj = obj(sortedIdxs);
             
             occupancyMapping(obj)
 
-            % Popula espectro dos fluxos para os quais já foi identificado
-            % ao menos uma emissão.
+            % Popula o espectro dos fluxos que já possuem ao menos uma 
+            % emissão identificada.
             emissionDetectedIdxs = find(arrayfun(@(x) ~isempty(x.UserData.Emissions), obj));
             if ~isempty(emissionDetectedIdxs)
                 populateSpectrum(obj(emissionDetectedIdxs), metaData, channelObj, generalSettings)

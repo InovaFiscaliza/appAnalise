@@ -108,7 +108,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                 isValidFilterResult = true;
                 resultSummary = sprintf([ ...
                     'O fluxo espectral analisado contém %d varreduras. O filtro do tipo "%s", com valores %s, foi aplicado, ' ...
-                    'resultando em %d varreduras que atendem ao critério.' ...
+                    'resultando em %d varreduras.' ...
                 ], numInitialSweeps, filterType, filterValueStr, numFinalSweeps);
             end
         end
@@ -205,7 +205,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                         endHour   = round(app.HourStop.Value  + app.MinuteStop.Value  / 60, 3);
                         
                         if beginHour >= endHour
-                            error('A hora do início não pode ser igual ou superior à do fim.')
+                            error('A hora de início não pode ser igual ou posterior à hora de fim.')
                         end
 
                         filterSpecification = struct('Action', 'FilterByTime', 'Type', selectedButton.Tag, 'Value', [beginHour, endHour]);
@@ -216,7 +216,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                         if isempty(daysElements)
                             error('Deve ser selecionado ao menos um dia.')
                         elseif numel(daysElements) == 7
-                            error('Todos os dias estão selecionados, de forma que o filtro não terá serventia.')
+                            error('Todos os dias estão selecionados, portanto o filtro não terá efeito.')
                         end
     
                         daysOfTheWeek = str2double({daysElements.Tag});
