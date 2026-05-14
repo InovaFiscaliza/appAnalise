@@ -1,5 +1,5 @@
 {
-    "version": 1.34,
+    "version": 1.35,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -243,8 +243,8 @@
             },
             "points": {
                 "Marker": "^",
-                "MarkerSize": 9,
-                "MarkerFaceColor": [0, 0, 0]                
+                "MarkerSize": 12,
+                "MarkerFaceColor": "#ffff12"                
             }
         },
         "emission": {

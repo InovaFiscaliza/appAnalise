@@ -112,6 +112,10 @@ classdef MetaData < handle
         function estimatedMemory = computeEstimatedMemory(obj, idx)
             estimatedMemory = 0;
             for ii = 1:numel(obj(idx).Data)
+                if ~isvalid(obj(idx).Data(ii))
+                    continue
+                end
+
                 estimatedMemory = estimatedMemory + 4 * sum(obj(idx).Data(ii).RelatedFiles.NumSweeps) .* obj(idx).Data(ii).MetaData.DataPoints; % Bytes
             end
         end
@@ -132,7 +136,7 @@ classdef MetaData < handle
 
             for ii = 1:numel(obj)
                 for jj = 1:numel(obj(ii).Data)
-                    if ~includeDisabledFlows && ~obj(ii).Data(jj).Enable
+                    if ~isvalid(obj(ii).Data(jj)) || (~includeDisabledFlows && ~obj(ii).Data(jj).Enable)
                         continue
                     end
 

@@ -826,41 +826,42 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 selectedNodes = [];
                 filteredNodes = [];
 
+                flowGroupValidIdxs = arrayfun(@(x) find(isvalid(x.Data)), app.metaData, 'UniformOutput', false);
+
                 for ii = 1:numel(app.metaData)
+                    flowValidIdxs = flowGroupValidIdxs{ii};
+
                     [~, fileName, fileExt] = fileparts(app.metaData(ii).File);
-                    
+
                     fileNode = uitreenode(app.FileTree, ...
                         'Text', [fileName fileExt], ...
-                        'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', 1:numel(app.metaData(ii).Data)), ...
+                        'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', flowValidIdxs), ...
                         'ContextMenu', app.FileTreeContextMenu ...
                     );
 
-                    receiverRawList = {app.metaData(ii).Data.Receiver};
-                    [receiverList, ~, receiverIndex] = unique(receiverRawList);
-
-                    if isscalar(receiverList) && isscalar(app.metaData(ii).Data)
-                        fileNode.NodeData.flowIdx = 1;
-                    end
-
-                    if all(~[app.metaData(ii).Data.Enable])
+                    if all(~[app.metaData(ii).Data(flowValidIdxs).Enable])
                         filteredNodes = [filteredNodes, fileNode];
                     end
+
+                    receiverRawList = {app.metaData(ii).Data(flowValidIdxs).Receiver};
+                    receiverList = unique(receiverRawList);
                     
                     for jj = 1:numel(receiverList)
-                        idx = find(receiverIndex == jj)';
+                        receiver = receiverList{jj};
+                        receiverIdxs = flowValidIdxs(strcmp(receiverRawList, receiver));
 
                         receiverNode = uitreenode(fileNode, ...
-                            'Text', util.layoutTreeNodeText(receiverList{jj}, 'file_TreeBuilding'), ...
-                            'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', idx), ...
-                            'Icon', util.layoutTreeNodeIcon(receiverList{jj}), ...
+                            'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
+                            'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', receiverIdxs), ...
+                            'Icon', util.layoutTreeNodeIcon(receiver), ...
                             'ContextMenu', app.FileTreeContextMenu ...
                         );
 
-                        if all(~[app.metaData(ii).Data(idx).Enable])
+                        if all(~[app.metaData(ii).Data(receiverIdxs).Enable])
                             filteredNodes = [filteredNodes, receiverNode];
                         end                        
 
-                        for kk = idx
+                        for kk = receiverIdxs
                             occupancyFlag = '';
                             if ismember(app.metaData(ii).Data(kk).MetaData.DataType, class.Constants.occDataTypes)
                                 occupancyFlag = ' (Ocupação)';
@@ -1442,9 +1443,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 else
                     delete(app.metaData(fileIdx).Data(flowIdxs))
-                    app.metaData(fileIdx).Data(flowIdxs)    = [];
-                    app.metaData(fileIdx).Samples(flowIdxs) = [];
-                    app.metaData(fileIdx).Memory            = computeEstimatedMemory(app.metaData, fileIdx);
+                    app.metaData(fileIdx).Samples(flowIdxs, :) = 0;
+                    app.metaData(fileIdx).Memory = computeEstimatedMemory(app.metaData, fileIdx);
                 end
             end
             

@@ -725,6 +725,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 specData = app.mainApp.specData(flowIdx);
             end
 
+            app.filterTable(:, :) = [];
+            app.pointsTable(:, :) = [];
+
             % Atualiza app.bandObj, instância de model.Band, que guarda
             % informações derivadas da instância de model.SpecData sob análise.
             % A partir desse momento, a referência ao specData selecionado
@@ -830,9 +833,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             syncScreenSpanControls(app, guardBand.Parameters.Type, guardBand.Parameters.Value)
 
             if isempty(specData) || isempty(emissionIdx)
-                app.filterTable(:, :) = [];
-                app.pointsTable(:, :) = [];
-
                 resetDataBinningControls(app)
                 recomputeEmissionMeasures(app, specData, emissionIdx)
 
@@ -2016,9 +2016,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     hPoints = findobj(app.UIAxes1.Children, 'Tag', 'points');
                     for ii = 1:numel(hPoints)
                         if strcmp(hPoints(ii).MarkerFaceColor, 'none')
-                            set(hPoints(ii), 'Color', selectedColor, 'MarkerEdgeColor', selectedColor)
+                            set(hPoints(ii), 'MarkerEdgeColor', selectedColor)
                         else
-                            set(hPoints(ii), 'Color', selectedColor, 'MarkerFaceColor', selectedColor, 'MarkerEdgeColor', selectedColor)
+                            set(hPoints(ii), 'MarkerFaceColor', imageUtil.deriveFaceColor(selectedColor), 'MarkerEdgeColor', selectedColor)
                         end
                     end
                 
@@ -2665,7 +2665,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create PointsColor
             app.PointsColor = uicolorpicker(app.GeographicAxesPanelGrid);
-            app.PointsColor.Value = [0 0 0];
+            app.PointsColor.Value = [1 1 0.0706];
             app.PointsColor.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
             app.PointsColor.Enable = 'off';
             app.PointsColor.Layout.Row = 8;
@@ -2674,14 +2674,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create PointsSize
             app.PointsSize = uislider(app.GeographicAxesPanelGrid);
-            app.PointsSize.Limits = [6 12];
+            app.PointsSize.Limits = [9 15];
             app.PointsSize.MajorTicks = [];
             app.PointsSize.ValueChangedFcn = createCallbackFcn(app, @onCustomizableParameterValueChanged, true);
-            app.PointsSize.MinorTicks = [6 7 8 9 10 11 12];
+            app.PointsSize.MinorTicks = [9 10 11 12 13 14 15];
             app.PointsSize.Enable = 'off';
             app.PointsSize.Layout.Row = 8;
             app.PointsSize.Layout.Column = 4;
-            app.PointsSize.Value = 9;
+            app.PointsSize.Value = 12;
 
             % Create CartesianAxesPanelIcon
             app.CartesianAxesPanelIcon = uiimage(app.RightPanel);
