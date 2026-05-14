@@ -193,6 +193,33 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         flowIdx = findSpecDataIndex(app);
                         ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Location', app.Context, flowIdx)
 
+                    case 'onFilterRequested'
+                        flowIdx = findSpecDataIndex(app);
+
+                        questionMsg = [ ...
+                            'É possível aplicar filtros para remover varreduras com base ' ...
+                            'em critérios temporais ou de nível.<br><br>' ...
+                            '•&thinsp;Filtro temporal: remove varreduras com base em quando ' ...
+                            'foram coletadas (ex.: data/hora, apenas data, apenas hora ou dia da semana).<br><br>' ...
+                            '•&thinsp;Filtros de nível: remove varreduras com base nos valores das ' ...
+                            'amostras, considerando variação ou limiares (mínimo, máximo ou diferença ' ...
+                            'entre valores).<br><br>Que tipo de filtro deseja configurar?' ...
+                        ];
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Temporal', 'Nível', 'Cancelar'}, 1, 3);
+
+                        switch userSelection
+                            case 'Temporal'
+                                stopPlaybackIfRunning(app)
+                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'FilterByTime', app.Context, flowIdx)
+
+                            case 'Nível'
+                                stopPlaybackIfRunning(app)
+                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'FilterByLevel', app.Context, flowIdx)
+
+                            case 'Cancelar'
+                                return
+                        end
+
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
                 end
@@ -214,6 +241,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
                                   'onReportFlowListChanged', ...
+                                  'onFilterByTimeRequested', ...
                                   'onSpectralDataReadError'}
                                 updateFlowDropDown(app)
 
@@ -234,9 +262,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
                             case {'onTabNavigatorButtonPushed', ...
                                   'onPlaybackStarted'}
-                                if app.plotUpdateEvent
-                                    app.plotUpdateEvent = 0;
-                                end
+                                stopPlaybackIfRunning(app)
 
                             case {'onReportGenerate', 'onFinalReportFileChanged'}
                                 specData = app.bandObj.SpecData;
@@ -290,6 +316,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.tool_LayoutLeft;
                         app.tool_Play;
                         app.tool_LoopControl;
+                        app.tool_OpenPopupMisc;
                         app.tool_OpenPopupProject;
                         app.tool_GenerateReport;
                         app.tool_UploadFinalFile;
@@ -307,6 +334,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,               'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupMisc.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exibe outras operações')), ...
                             struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
                             struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,     'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
                             struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
@@ -1269,6 +1297,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
+        function stopPlaybackIfRunning(app)
+            if app.plotUpdateEvent
+                app.plotUpdateEvent = 0;
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function reportDispatchOperation(app, eventName, varargin)
             arguments
                 app
@@ -1357,17 +1392,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ...and 5 other components
         function onOpenPopupApp(app, event)
             
-            if app.plotUpdateEvent
-                app.plotUpdateEvent = 0;
-            end
-
             switch event.Source
+                case app.FlowChannelEdit
+                    dockAppTag = 'Channels';
                 case app.FlowDetectionLimitsEdit
                     dockAppTag = 'DetectionLimits';
                 case app.FlowEmissionsAdd
                     dockAppTag = 'Detection';
-                case app.FlowChannelEdit
-                    dockAppTag = 'Channels';
                 case app.FlowOccupancyEdit
                     dockAppTag = 'Occupancy';
                 case app.tool_OpenPopupMisc
@@ -1376,6 +1407,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     dockAppTag = 'ReportLib';
             end
 
+            stopPlaybackIfRunning(app)
             ipcMainMatlabOpenPopupApp(app.mainApp, app, dockAppTag, app.Context)
 
         end
@@ -1465,9 +1497,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.plotHandles.clearWrite.Visible = ~app.plotHandles.clearWrite.Visible;
                     end
 
-                    if app.plotUpdateEvent
-                        app.plotUpdateEvent = 0;
-                    end
+                    stopPlaybackIfRunning(app)
 
                 case {app.axesTool_minHold, app.axesTool_average, app.axesTool_maxHold}
                     event.Source.UserData.status = ~event.Source.UserData.status;

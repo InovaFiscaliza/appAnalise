@@ -2,52 +2,49 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                    matlab.ui.Figure
-        GridLayout                  matlab.ui.container.GridLayout
-        NavBar                      matlab.ui.container.GridLayout
-        AppInfo                     matlab.ui.control.Image
-        FigurePosition              matlab.ui.control.Image
-        DataHubLamp                 matlab.ui.control.Image
-        jsBackDoor                  matlab.ui.control.HTML
-        Tab7Button                  matlab.ui.control.StateButton
-        Tab6Button                  matlab.ui.control.StateButton
-        Tab5Button                  matlab.ui.control.StateButton
-        ButtonsSeparator2           matlab.ui.control.Image
-        Tab4Button                  matlab.ui.control.StateButton
-        Tab3Button                  matlab.ui.control.StateButton
-        Tab2Button                  matlab.ui.control.StateButton
-        ButtonsSeparator1           matlab.ui.control.Image
-        Tab1Button                  matlab.ui.control.StateButton
-        AppName                     matlab.ui.control.Label
-        TabGroup                    matlab.ui.container.TabGroup
-        Tab1_File                   matlab.ui.container.Tab
-        Tab1Grid                    matlab.ui.container.GridLayout
-        SubTabGroup                 matlab.ui.container.TabGroup
-        SubTab1                     matlab.ui.container.Tab
-        SubGrid1                    matlab.ui.container.GridLayout
-        FileModuleInfo              matlab.ui.control.Label
-        SubTab2                     matlab.ui.container.Tab
-        SubGrid2                    matlab.ui.container.GridLayout
-        FileFilterTree              matlab.ui.container.Tree
-        FileFilterAdd               matlab.ui.control.Image
-        FileFilterValueList         matlab.ui.control.DropDown
-        FileFilterValueText         matlab.ui.control.EditField
-        FileFilterType              matlab.ui.control.DropDown
-        Toolbar                     matlab.ui.container.GridLayout
-        tool_ReadFiles              matlab.ui.control.Image
-        FileMetadata                matlab.ui.control.Label
-        FileTree                    matlab.ui.container.Tree
-        Tab2_Playback               matlab.ui.container.Tab
-        Tab3_DriveTest              matlab.ui.container.Tab
-        Tab4_SignalAnalysis         matlab.ui.container.Tab
-        Tab6_RFDataHub              matlab.ui.container.Tab
-        Tab7_RepoSFI                matlab.ui.container.Tab
-        Tab8_Config                 matlab.ui.container.Tab
-        FileTreeContextMenu         matlab.ui.container.ContextMenu
-        FileTreeEditButton          matlab.ui.container.Menu
-        FileTreeDeleteButton        matlab.ui.container.Menu
-        FileFilterTreeContextMenu   matlab.ui.container.ContextMenu
-        FileFilterTreeDeleteButton  matlab.ui.container.Menu
+        UIFigure                 matlab.ui.Figure
+        GridLayout               matlab.ui.container.GridLayout
+        NavBar                   matlab.ui.container.GridLayout
+        AppInfo                  matlab.ui.control.Image
+        FigurePosition           matlab.ui.control.Image
+        DataHubLamp              matlab.ui.control.Image
+        jsBackDoor               matlab.ui.control.HTML
+        Tab7Button               matlab.ui.control.StateButton
+        Tab6Button               matlab.ui.control.StateButton
+        Tab5Button               matlab.ui.control.StateButton
+        ButtonsSeparator2        matlab.ui.control.Image
+        Tab4Button               matlab.ui.control.StateButton
+        Tab3Button               matlab.ui.control.StateButton
+        Tab2Button               matlab.ui.control.StateButton
+        ButtonsSeparator1        matlab.ui.control.Image
+        Tab1Button               matlab.ui.control.StateButton
+        AppName                  matlab.ui.control.Label
+        TabGroup                 matlab.ui.container.TabGroup
+        Tab1_File                matlab.ui.container.Tab
+        Tab1Grid                 matlab.ui.container.GridLayout
+        SubTabGroup              matlab.ui.container.TabGroup
+        SubTab1                  matlab.ui.container.Tab
+        SubGrid1                 matlab.ui.container.GridLayout
+        FileModuleInfo           matlab.ui.control.Label
+        SubTab2                  matlab.ui.container.Tab
+        SubGrid2                 matlab.ui.container.GridLayout
+        FileFilterTree           matlab.ui.container.Tree
+        FileFilterAdd            matlab.ui.control.Image
+        FileFilterValueList      matlab.ui.control.DropDown
+        FileFilterValueText      matlab.ui.control.EditField
+        FileFilterType           matlab.ui.control.DropDown
+        Toolbar                  matlab.ui.container.GridLayout
+        tool_ReadFiles           matlab.ui.control.Image
+        FileMetadata             matlab.ui.control.Label
+        FileTree                 matlab.ui.container.Tree
+        Tab2_Playback            matlab.ui.container.Tab
+        Tab3_DriveTest           matlab.ui.container.Tab
+        Tab4_SignalAnalysis      matlab.ui.container.Tab
+        Tab6_RFDataHub           matlab.ui.container.Tab
+        Tab7_RepoSFI             matlab.ui.container.Tab
+        Tab8_Config              matlab.ui.container.Tab
+        ContextMenu              matlab.ui.container.ContextMenu
+        ContextMenuDeleteButton  matlab.ui.container.Menu
     end
 
     
@@ -196,10 +193,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     % winAppAnalise
                     case 'mainApp.FileTree'
-                        onFileTreeDeleteRequested(app)
+                        onContextMenuDeleteOptionClicked(app, struct('ContextObjectTag', 'fileTreeContext'))
 
                     case 'mainApp.FileFilterTree'
-                        onFileFilterDeleteRequested(app)
+                        onContextMenuDeleteOptionClicked(app, struct('ContextObjectTag', 'fileFilterTreeContext'))
                     
                     % Eventos do popup no winRepoSFI
                     case {'repoSFI.openDock', 'repoSFI.mapBackgroundClick', 'repoSFI.closePopup'}
@@ -237,7 +234,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     %     ipcSecundaryJSEventsHandler(hDockApp, event)
 
                     otherwise
-                        error('UnexpectedEvent')
+                        error('winAppAnalise:UnexpectedEvent', 'Unexpected event "%s"', event.HTMLEventName)
                 end
                 drawnow
 
@@ -376,21 +373,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % DOCKS:OTHERS
-                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ? (talvez a partir de MISC...)
-                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ... % SIGNALANALYSIS | DRIVETEST
-                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ... % PLAYBACK
+                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ?
+                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ... % ?
+                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ... % ?
                                   'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ... % PLAYBACK
                                   'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ... % PLAYBACK
                                   'auxApp.dockDriveTestFilter', 'auxApp.dockDriveTestFilter_exported', ... % DRIVETEST
                                   'auxApp.dockDriveTestPoints', 'auxApp.dockDriveTestPoints_exported', ... % DRIVETEST
-                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ... % ? (talvez a partir de MISC...)
-                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ... % ? (PLAYBACK ou REPORTLIB)
-                                  'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % ? (talvez a partir de MISC...)
-                                  'auxApp.dockFiltersByTime',   'auxApp.dockFiltersByTime_exported',   ... % ? (talvez a partir de MISC...)
-                                  'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK | DRIVETEST
-                                  'auxApp.dockMiscellaneous',   'auxApp.dockMiscellaneous_exported',   ... % ? (talvez volta a ser módulo "MISC")
-                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % PLAYBACK
-                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK
+                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ... % DRIVETEST | SIGNALANALYSIS
+                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ... % ?
+                                  'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % PLAYBACK
+                                  'auxApp.dockFilterByTime',    'auxApp.dockFilterByTime_exported',    ... % PLAYBACK
+                                  'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK
+                                  'auxApp.dockMiscellaneous',   'auxApp.dockMiscellaneous_exported',   ... % PLAYBACK (toolbar)
+                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % ?
+                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK (toolbar)
                                   'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
 
                                 switch eventName
@@ -399,6 +396,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
+
+                                    case 'onFilterByTimeRequested'
+                                        flowIdx = varargin{1};
+                                        filterSpecification = varargin{2};
+                                        filterMask = varargin{3};
+
+                                        app.specData(flowIdx) = applyFilter(app.specData(flowIdx), filterSpecification, filterMask);
+                                        notifySecondaryApps(app, eventName, {'SIGNALANALYSIS'})
 
                                     case 'onReportFlowListChanged'
                                         notifySecondaryApps(app, eventName)
@@ -464,69 +469,42 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 varargin 
             end
 
-            isFluid = false;
-
-            switch auxAppName
-                case 'Calibration'
-                    screenWidth  = 480; 
-                    screenHeight = 360;                
-                case 'Channels'          % auxApp.winPlayback
-                    screenWidth  = 412;
-                    screenHeight = 516;
-                case 'Classification'
-                    screenWidth  = 534;
-                    screenHeight = 248;
-                case 'Detection'
-                    screenWidth  = 412;
-                    screenHeight = 484;
-                case 'DetectionLimits'  % auxApp.winPlayback
-                    screenWidth  = 292;
-                    screenHeight = 360;
-                case 'DriveTestFilter' % auxApp.winDriveTest
-                    screenWidth  = 412;
-                    screenHeight = 338;
-                case 'DriveTestPoints' % auxApp.winDriveTest
-                    screenWidth  = 412;
-                    screenHeight = 408;
-                case 'EmissionChannel'
-                    screenWidth  = 412;
-                    screenHeight = 138;
-                case 'ExternalFiles'
-                    screenWidth  = 880; 
-                    screenHeight = 480;
-                case 'FilterByLevel'
-                    screenWidth  = 540; 
-                    screenHeight = 300;
-                case 'FilterByTime'
-                    screenWidth  = 640; 
-                    screenHeight = 480;
-                case 'Location'
-                    screenWidth  = 412; 
-                    screenHeight = 190;
-                case 'Miscellaneous'
-                    isFluid = true;
-                    screenWidth  = 880;
-                    screenHeight = 480;
-                case 'ReportLib'
-                    screenWidth  = 460;
-                    screenHeight = 602;
-                case 'RepoFiles'
-                    isFluid = true;
-                    screenWidth  = 940;
-                    screenHeight = 580;
-            end
-
             requestVisibilityChange(callingApp.progressDialog, 'visible', 'unlocked')
-
             inputArguments = [{app, callingApp, context}, varargin];
-            
+
             if app.General.operationMode.Debug
                 currentApp = eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName));
                 currentApp.isDocked = false;
 
             else
-                ui.PopUpContainer(callingApp, screenWidth, screenHeight)
+                popupSpecifications = table( ...
+                    'Size', [15, 4], ...
+                    'VariableTypes', {'string', 'double', 'double', 'logical'}, ...
+                    'VariableNames', {'AuxAppName', 'Width', 'Height', 'IsFluid'} ...
+                );
+                popupSpecifications( 1, :) = {"Calibration",     480, 360, false}; % Não iniciada revisão
+                popupSpecifications( 2, :) = {"Channels",        412, 516, false}; % Em andamento
+                popupSpecifications( 3, :) = {"Classification",  534, 248, false}; % Não iniciada revisão
+                popupSpecifications( 4, :) = {"Detection",       412, 484, false}; % Em andamento
+                popupSpecifications( 5, :) = {"DetectionLimits", 292, 360, false}; % Em andamento
+                popupSpecifications( 6, :) = {"DriveTestFilter", 412, 338, false};
+                popupSpecifications( 7, :) = {"DriveTestPoints", 412, 408, false};
+                popupSpecifications( 8, :) = {"EmissionChannel", 412, 138, false};
+                popupSpecifications( 9, :) = {"ExternalFiles",   880, 480, false}; % Não iniciada revisão
+                popupSpecifications(10, :) = {"FilterByLevel",   550, 308, false}; % Em andamento
+                popupSpecifications(11, :) = {"FilterByTime",    452, 208, false};
+                popupSpecifications(12, :) = {"Location",        412, 190, false};
+                popupSpecifications(13, :) = {"Miscellaneous",   880, 480, true};  % Em andamento
+                popupSpecifications(14, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
+                popupSpecifications(15, :) = {"ReportLib",       784, 594, false};
+                popupSpecifications(16, :) = {"RepoFiles",       940, 580, true};  % Em andamento (Augusto)
 
+                auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
+                screenWidth = popupSpecifications.Width(auxAppNameIdx);
+                screenHeight = popupSpecifications.Height(auxAppNameIdx);
+                isFluid = popupSpecifications.IsFluid(auxAppNameIdx);
+
+                ui.PopUpContainer(callingApp, screenWidth, screenHeight)
                 auxDockAppName = sprintf('auxApp.dock%s', auxAppName);
                 app.popupCurrentApp = feval([auxDockAppName '_exported'], callingApp.popupContainer, inputArguments{:});
                 
@@ -788,6 +766,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
                                                            'onReportFlowListChanged', ...
+                                                           'onFilterByTimeRequested', ...
                                                            'onLocationChanged', ...
                                                            'onEmissionAdded', ...
                                                            'onEmissionParameterValueChanged', ...
@@ -836,7 +815,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     fileNode = uitreenode(app.FileTree, ...
                         'Text', [fileName fileExt], ...
                         'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', flowValidIdxs), ...
-                        'ContextMenu', app.FileTreeContextMenu ...
+                        'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                     );
 
                     if all(~[app.metaData(ii).Data(flowValidIdxs).Enable])
@@ -854,7 +833,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
                             'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', receiverIdxs), ...
                             'Icon', util.layoutTreeNodeIcon(receiver), ...
-                            'ContextMenu', app.FileTreeContextMenu ...
+                            'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                         );
 
                         if all(~[app.metaData(ii).Data(receiverIdxs).Enable])
@@ -875,7 +854,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             dataNode = uitreenode(receiverNode, ...
                                 'Text', sprintf('ID %d: %.3f – %.3f MHz%s%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, occupancyFlag, gpsStatusIcon), ...
                                 'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
-                                'ContextMenu', app.FileTreeContextMenu ...
+                                'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                             );
 
                             if ~app.metaData(ii).Data(kk).Enable
@@ -932,6 +911,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 for ii = 1:numel(app.metaData)
                     for jj = 1:numel(app.metaData(ii).Data)
+                        if isInvalidData(app.metaData, ii, jj)
+                            continue
+                        end
+
                         updateEnabledState(app.metaData, 'specific-flow', ii, jj, false)
 
                         % DESCRIÇÃO
@@ -1327,6 +1310,74 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         end
 
+        % Menu selected function: ContextMenuDeleteButton
+        function onContextMenuDeleteOptionClicked(app, event)
+            
+            if isprop(event, 'ContextObject')
+                contextObjectTag = event.ContextObject.Tag;
+            else
+                contextObjectTag = event.ContextObjectTag;
+            end
+
+            switch contextObjectTag
+                case 'fileTreeContext'
+                    if isempty(app.FileTree.SelectedNodes)
+                        return
+                    end
+        
+                    referenceTable = table( ...
+                        'Size', [0, 3], ...
+                        'VariableTypes', {'double', 'double', 'cell'}, ...
+                        'VariableNames', {'level', 'fileIdx', 'flowIdxs'} ...
+                    );
+        
+                    for ii = 1:numel(app.FileTree.SelectedNodes)
+                        idx = find(referenceTable.fileIdx == app.FileTree.SelectedNodes(ii).NodeData.fileIdx, 1);
+        
+                        if isempty(idx)
+                            referenceTable(end+1, :)   = {app.FileTree.SelectedNodes(ii).NodeData.level, app.FileTree.SelectedNodes(ii).NodeData.fileIdx, {app.FileTree.SelectedNodes(ii).NodeData.flowIdx}};
+                        else
+                            referenceTable(idx, [1,3]) = {min([referenceTable{idx, 1}, app.FileTree.SelectedNodes(ii).NodeData.level]), {unique([cell2mat(referenceTable{idx, 3}), app.FileTree.SelectedNodes(ii).NodeData.flowIdx])}};
+                        end
+                    end
+        
+                    referenceTable = sortrows(referenceTable, 'fileIdx');
+        
+                    for kk = height(referenceTable):-1:1
+                        fileIdx  = referenceTable.fileIdx(kk);
+                        flowIdxs = referenceTable.flowIdxs{kk};
+        
+                        if referenceTable.level(kk) == 1 || isequal(referenceTable.flowIdxs{kk}, 1:numel(app.metaData(fileIdx).Data))
+                            delete(app.metaData(fileIdx))
+                            app.metaData(fileIdx) = [];
+        
+                        else
+                            delete(app.metaData(fileIdx).Data(flowIdxs))
+                            app.metaData(fileIdx).Samples(flowIdxs, :) = 0;
+                            app.metaData(fileIdx).Memory = computeEstimatedMemory(app.metaData, fileIdx);
+
+                            if all(arrayfun(@(x) ~isvalid(x), app.metaData(fileIdx).Data))
+                                delete(app.metaData(fileIdx))
+                                app.metaData(fileIdx) = [];
+                            end
+                        end
+                    end
+                    
+                    refreshProjectFiles(app, [], 'onFileListRemoved')
+
+                case 'fileFilterTreeContext'
+                    if isempty(app.FileFilterTree.SelectedNodes)
+                        return
+                    end
+        
+                    delete(app.FileFilterTree.SelectedNodes)
+        
+                    previousSelectionIdxs = app.FileTree.UserData.previousSelection;
+                    refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
+            end
+
+        end
+
         % Image clicked function: tool_ReadFiles
         function onFilteTreeAddRequested(app, event)
 
@@ -1408,50 +1459,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         end
 
-        % Menu selected function: FileTreeDeleteButton
-        function onFileTreeDeleteRequested(app, event)
-            
-            if isempty(app.FileTree.SelectedNodes)
-                return
-            end
-
-            referenceTable = table( ...
-                'Size', [0, 3], ...
-                'VariableTypes', {'double', 'double', 'cell'}, ...
-                'VariableNames', {'level', 'fileIdx', 'flowIdxs'} ...
-            );
-
-            for ii = 1:numel(app.FileTree.SelectedNodes)
-                idx = find(referenceTable.fileIdx == app.FileTree.SelectedNodes(ii).NodeData.fileIdx, 1);
-
-                if isempty(idx)
-                    referenceTable(end+1, :)   = {app.FileTree.SelectedNodes(ii).NodeData.level, app.FileTree.SelectedNodes(ii).NodeData.fileIdx, {app.FileTree.SelectedNodes(ii).NodeData.flowIdx}};
-                else
-                    referenceTable(idx, [1,3]) = {min([referenceTable{idx, 1}, app.FileTree.SelectedNodes(ii).NodeData.level]), {unique([cell2mat(referenceTable{idx, 3}), app.FileTree.SelectedNodes(ii).NodeData.flowIdx])}};
-                end
-            end
-
-            referenceTable = sortrows(referenceTable, 'fileIdx');
-
-            for kk = height(referenceTable):-1:1
-                fileIdx  = referenceTable.fileIdx(kk);
-                flowIdxs = referenceTable.flowIdxs{kk};
-
-                if referenceTable.level(kk) == 1 || isequal(referenceTable.flowIdxs{kk}, 1:numel(app.metaData(fileIdx).Data))
-                    delete(app.metaData(fileIdx))
-                    app.metaData(fileIdx) = [];
-
-                else
-                    delete(app.metaData(fileIdx).Data(flowIdxs))
-                    app.metaData(fileIdx).Samples(flowIdxs, :) = 0;
-                    app.metaData(fileIdx).Memory = computeEstimatedMemory(app.metaData, fileIdx);
-                end
-            end
-            
-            refreshProjectFiles(app, [], 'onFileListRemoved')
-
-        end
-
         % Selection changed function: FileTree
         function onFileTreeSelectionChanged(app, event)
             
@@ -1528,21 +1535,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 return
             end
 
-            uitreenode(app.FileFilterTree, 'Text', newFilterText, 'ContextMenu', app.FileFilterTreeContextMenu);
-
-            previousSelectionIdxs = app.FileTree.UserData.previousSelection;
-            refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
-
-        end
-
-        % Menu selected function: FileFilterTreeDeleteButton
-        function onFileFilterDeleteRequested(app, event)
-            
-            if isempty(app.FileFilterTree.SelectedNodes)
-                return
-            end
-
-            delete(app.FileFilterTree.SelectedNodes)
+            uitreenode(app.FileFilterTree, 'Text', newFilterText, 'ContextMenu', app.ContextMenu, 'Tag', 'fileFilterTreeContext');
 
             previousSelectionIdxs = app.FileTree.UserData.previousSelection;
             refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
@@ -1947,27 +1940,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppInfo.Layout.Column = 17;
             app.AppInfo.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'kebab-vertical-24px-white.svg');
 
-            % Create FileTreeContextMenu
-            app.FileTreeContextMenu = uicontextmenu(app.UIFigure);
-            app.FileTreeContextMenu.Tag = 'winAppAnalise';
+            % Create ContextMenu
+            app.ContextMenu = uicontextmenu(app.UIFigure);
+            app.ContextMenu.Tag = 'winAppAnalise';
 
-            % Create FileTreeEditButton
-            app.FileTreeEditButton = uimenu(app.FileTreeContextMenu);
-            app.FileTreeEditButton.Text = '✏️ Editar';
-
-            % Create FileTreeDeleteButton
-            app.FileTreeDeleteButton = uimenu(app.FileTreeContextMenu);
-            app.FileTreeDeleteButton.MenuSelectedFcn = createCallbackFcn(app, @onFileTreeDeleteRequested, true);
-            app.FileTreeDeleteButton.Text = '❌ Excluir';
-
-            % Create FileFilterTreeContextMenu
-            app.FileFilterTreeContextMenu = uicontextmenu(app.UIFigure);
-            app.FileFilterTreeContextMenu.Tag = 'winAppAnalise';
-
-            % Create FileFilterTreeDeleteButton
-            app.FileFilterTreeDeleteButton = uimenu(app.FileFilterTreeContextMenu);
-            app.FileFilterTreeDeleteButton.MenuSelectedFcn = createCallbackFcn(app, @onFileFilterDeleteRequested, true);
-            app.FileFilterTreeDeleteButton.Text = '❌ Excluir';
+            % Create ContextMenuDeleteButton
+            app.ContextMenuDeleteButton = uimenu(app.ContextMenu);
+            app.ContextMenuDeleteButton.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuDeleteOptionClicked, true);
+            app.ContextMenuDeleteButton.Text = '❌ Excluir';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

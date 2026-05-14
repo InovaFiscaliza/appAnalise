@@ -399,16 +399,17 @@ classdef SpecData < model.SpecDataBase
 
             obj.Data{1}(~filterMask)    = [];
             obj.Data{2}(:, ~filterMask) = [];
-            basicStats(obj)
-
             if numel(obj.Data) == 5
                 obj.Data{4}(:, ~filterMask) = [];
                 obj.Data{5}(:, ~filterMask) = [];
             end
 
+            basicStats(obj)
+
             obj.UserData.OccupancyComputationMode.CacheIndex = [];
             computeOccupancyPerBin(obj)
 
+            obj.InputFiles(1).IsUserMerged = true;
             obj.UserData.LOG{end+1} = jsonencode(filterSpecification);
 
             % Por fim, ajusta a informação da propriedade "RelatedFiles", 

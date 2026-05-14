@@ -68,6 +68,11 @@ classdef MetaData < handle
         end
 
         %-----------------------------------------------------------------%
+        function isInvalid = isInvalidData(obj, fileIdx, flowIdx)
+            isInvalid = ~isvalid(obj(fileIdx).Data(flowIdx));
+        end
+
+        %-----------------------------------------------------------------%
         function updateEnabledState(obj, universe, varargin)
             arguments
                 obj
@@ -84,6 +89,10 @@ classdef MetaData < handle
 
                     for ii = 1:numel(obj)
                         for jj = 1:numel(obj(ii).Data)
+                            if isInvalidData(obj, ii, jj)
+                                continue
+                            end
+
                             obj(ii).Data(jj).Enable = status;
                         end
                     end
@@ -92,6 +101,10 @@ classdef MetaData < handle
                     fileIdx = varargin{1};
                     flowIdx = varargin{2};
                     status  = varargin{3};
+
+                    if isInvalidData(obj, fileIdx, flowIdx)
+                        return
+                    end
 
                     obj(fileIdx).Data(flowIdx).Enable = status;
             end
@@ -102,6 +115,10 @@ classdef MetaData < handle
             relatedFiles = {};
             for ii = 1:numel(obj)
                 for jj = 1:numel(obj(ii).Data)
+                    if isInvalidData(obj, ii, jj)
+                        continue
+                    end
+
                     relatedFiles = [relatedFiles; obj(ii).Data(jj).RelatedFiles.File];
                 end
             end
@@ -109,14 +126,14 @@ classdef MetaData < handle
         end
 
         %-----------------------------------------------------------------%
-        function estimatedMemory = computeEstimatedMemory(obj, idx)
+        function estimatedMemory = computeEstimatedMemory(obj, ii)
             estimatedMemory = 0;
-            for ii = 1:numel(obj(idx).Data)
-                if ~isvalid(obj(idx).Data(ii))
+            for jj = 1:numel(obj(ii).Data)
+                if isInvalidData(obj, ii, jj)
                     continue
                 end
 
-                estimatedMemory = estimatedMemory + 4 * sum(obj(idx).Data(ii).RelatedFiles.NumSweeps) .* obj(idx).Data(ii).MetaData.DataPoints; % Bytes
+                estimatedMemory = estimatedMemory + 4 * sum(obj(ii).Data(jj).RelatedFiles.NumSweeps) .* obj(ii).Data(jj).MetaData.DataPoints; % Bytes
             end
         end
 
@@ -136,7 +153,7 @@ classdef MetaData < handle
 
             for ii = 1:numel(obj)
                 for jj = 1:numel(obj(ii).Data)
-                    if ~isvalid(obj(ii).Data(jj)) || (~includeDisabledFlows && ~obj(ii).Data(jj).Enable)
+                    if isInvalidData(obj, ii, jj) || (~includeDisabledFlows && ~obj(ii).Data(jj).Enable)
                         continue
                     end
 

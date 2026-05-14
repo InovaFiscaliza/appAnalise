@@ -2,31 +2,42 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure              matlab.ui.Figure
-        GridLayout            matlab.ui.container.GridLayout
-        btnOK                 matlab.ui.control.Button
-        FilterPanel           matlab.ui.container.Panel
-        FilterGrid            matlab.ui.container.GridLayout
-        ThresholdBottomValue  matlab.ui.control.NumericEditField
-        ThresholdBottomLabel  matlab.ui.control.Label
-        ThresholdTopValue     matlab.ui.control.NumericEditField
-        ThresholdTopLabel     matlab.ui.control.Label
-        ThresholdBottom       matlab.ui.control.CheckBox
-        ThresholdTop          matlab.ui.control.CheckBox
-        ConstantValue         matlab.ui.control.NumericEditField
-        ConstantLabel         matlab.ui.control.Label
-        Constant              matlab.ui.control.CheckBox
-        FilterPanelLabel      matlab.ui.control.Label
+        UIFigure                        matlab.ui.Figure
+        GridLayout                      matlab.ui.container.GridLayout
+        OkButton                        matlab.ui.control.Button
+        RadioGroup                      matlab.ui.container.ButtonGroup
+        AllSamplesAboveThreshold        matlab.ui.control.NumericEditField
+        AllSamplesAboveThresholdLabel   matlab.ui.control.Label
+        AllSamplesAboveThresholdOption  matlab.ui.control.RadioButton
+        AllSamplesBelowThreshold        matlab.ui.control.NumericEditField
+        AllSamplesBelowThresholdLabel   matlab.ui.control.Label
+        AllSamplesBelowThresholdOption  matlab.ui.control.RadioButton
+        SampleDiffBelowTolerance        matlab.ui.control.NumericEditField
+        SampleDiffBelowToleranceLabel   matlab.ui.control.Label
+        SampleDiffBelowToleranceOption  matlab.ui.control.RadioButton
+        Title                           matlab.ui.control.Label
+        TitleIcon                       matlab.ui.control.Image
     end
 
     
     properties (Access = private)
         %-----------------------------------------------------------------%
+        Role = 'secondaryDockApp'
+    end
+
+
+    properties (Access = public)
+        %-----------------------------------------------------------------%
         Container
         isDocked = true
-        idxThreads
-
         mainApp
+        callingApp
+        progressDialog
+    end
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        inputArgs
     end
     
 
@@ -34,10 +45,15 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, idxThreads)
+        function startupFcn(app, mainApp, callingApp, context, flowIdx)
             
-            app.mainApp = mainApp;
-            app.idxThreads = idxThreads;
+            try
+                appEngine.boot(app, app.Role, mainApp, callingApp)
+                app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
+            end
             
         end
 
@@ -48,8 +64,34 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             
         end
 
-        % Button pushed function: btnOK
-        function OKButtonPushed(app, event)
+        % Selection changed function: RadioGroup
+        function onRadioGroupSelectionChanged(app, event)
+            
+            sampleDiffBelowToleranceElements = findobj(app.RadioGroup.Children, 'Tag', 'SampleDiffBelowTolerance');
+            allSamplesBelowThresholdElements = findobj(app.RadioGroup.Children, 'Tag', 'AllSamplesBelowThreshold');
+            allSamplesAboveThresholdElements = findobj(app.RadioGroup.Children, 'Tag', 'AllSamplesAboveThreshold');
+
+            switch app.RadioGroup.SelectedObject
+                case app.SampleDiffBelowToleranceOption
+                    set(sampleDiffBelowToleranceElements, 'Enable', 'on')
+                    set(allSamplesBelowThresholdElements, 'Enable', 'off')
+                    set(allSamplesAboveThresholdElements, 'Enable', 'off')
+
+                case app.AllSamplesBelowThresholdOption
+                    set(sampleDiffBelowToleranceElements, 'Enable', 'off')
+                    set(allSamplesBelowThresholdElements, 'Enable', 'on')
+                    set(allSamplesAboveThresholdElements, 'Enable', 'off')
+
+                case app.AllSamplesAboveThresholdOption
+                    set(sampleDiffBelowToleranceElements, 'Enable', 'off')
+                    set(allSamplesBelowThresholdElements, 'Enable', 'off')
+                    set(allSamplesAboveThresholdElements, 'Enable', 'on')
+            end
+
+        end
+
+        % Button pushed function: OkButton
+        function onOkButtonClicked(app, event)
             
             pushedButtonTag = event.Source.Tag;
             switch pushedButtonTag
@@ -58,7 +100,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
                     fcnHandleFlag = false;
                     
                     if app.Constant.Value
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' maxLevel-minLevel < %f', app.ConstantValue.Value)];
+                        fcnHandleStr  = [fcnHandleStr, sprintf(' maxLevel-minLevel < %f', app.SampleDiffBelowTolerance.Value)];
                         fcnHandleFlag = true;
                     end
 
@@ -66,7 +108,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
                         if fcnHandleFlag
                             fcnHandleStr = [fcnHandleStr, ' |'];
                         end
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix < %.1f, 1)', app.ThresholdTopValue.Value)];
+                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix < %.1f, 1)', app.AllSamplesBelowThreshold.Value)];
                         fcnHandleFlag = true;
                     end                    
 
@@ -74,7 +116,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
                         if fcnHandleFlag
                             fcnHandleStr = [fcnHandleStr, ' |'];
                         end
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix > %.1f, 1)', app.ThresholdBottomValue.Value)];
+                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix > %.1f, 1)', app.AllSamplesAboveThreshold.Value)];
                         fcnHandleFlag = true;
                     end
 
@@ -102,34 +144,6 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             closeFcn(app)
 
         end
-
-        % Value changed function: Constant, ThresholdBottom, ThresholdTop
-        function CheckBoxValueChanged(app, event)
-            
-            switch event.Source
-                case app.Constant
-                    if app.Constant.Value
-                        app.ConstantValue.Enable = 1;
-                    else
-                        app.ConstantValue.Enable = 0;
-                    end
-
-                case app.ThresholdTop
-                    if app.ThresholdTop.Value
-                        app.ThresholdTopValue.Enable = 1;
-                    else
-                        app.ThresholdTopValue.Enable = 0;
-                    end
-                
-                case app.ThresholdBottom
-                    if app.ThresholdBottom.Value
-                        app.ThresholdBottomValue.Enable = 1;
-                    else
-                        app.ThresholdBottomValue.Enable = 0;
-                    end
-            end
-
-        end
     end
 
     % Component initialization
@@ -145,7 +159,7 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 540 300];
+                app.UIFigure.Position = [100 100 550 308];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -168,114 +182,110 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {405, 90};
-            app.GridLayout.RowHeight = {22, 206, 22};
+            app.GridLayout.ColumnWidth = {18, 372, 110};
+            app.GridLayout.RowHeight = {17, 5, 212, 10, 24};
             app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
-            app.GridLayout.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create FilterPanelLabel
-            app.FilterPanelLabel = uilabel(app.GridLayout);
-            app.FilterPanelLabel.VerticalAlignment = 'bottom';
-            app.FilterPanelLabel.FontSize = 10;
-            app.FilterPanelLabel.Layout.Row = 1;
-            app.FilterPanelLabel.Layout.Column = 1;
-            app.FilterPanelLabel.Text = 'FILTRAGEM POR NÍVEIS';
+            % Create TitleIcon
+            app.TitleIcon = uiimage(app.GridLayout);
+            app.TitleIcon.ScaleMethod = 'none';
+            app.TitleIcon.Layout.Row = 1;
+            app.TitleIcon.Layout.Column = 1;
+            app.TitleIcon.ImageSource = 'Filter_18.png';
 
-            % Create FilterPanel
-            app.FilterPanel = uipanel(app.GridLayout);
-            app.FilterPanel.AutoResizeChildren = 'off';
-            app.FilterPanel.Layout.Row = 2;
-            app.FilterPanel.Layout.Column = [1 2];
+            % Create Title
+            app.Title = uilabel(app.GridLayout);
+            app.Title.FontSize = 10;
+            app.Title.Layout.Row = 1;
+            app.Title.Layout.Column = 2;
+            app.Title.Text = 'FILTRAGEM DE NÍVEL';
 
-            % Create FilterGrid
-            app.FilterGrid = uigridlayout(app.FilterPanel);
-            app.FilterGrid.ColumnWidth = {14, 60, 90, '1x'};
-            app.FilterGrid.RowHeight = {26, 22, 5, 22, 22, 5, 22, 22};
-            app.FilterGrid.ColumnSpacing = 3;
-            app.FilterGrid.RowSpacing = 5;
-            app.FilterGrid.BackgroundColor = [0.9804 0.9804 0.9804];
+            % Create RadioGroup
+            app.RadioGroup = uibuttongroup(app.GridLayout);
+            app.RadioGroup.AutoResizeChildren = 'off';
+            app.RadioGroup.SelectionChangedFcn = createCallbackFcn(app, @onRadioGroupSelectionChanged, true);
+            app.RadioGroup.BackgroundColor = [1 1 1];
+            app.RadioGroup.Layout.Row = 3;
+            app.RadioGroup.Layout.Column = [1 3];
 
-            % Create Constant
-            app.Constant = uicheckbox(app.FilterGrid);
-            app.Constant.ValueChangedFcn = createCallbackFcn(app, @CheckBoxValueChanged, true);
-            app.Constant.Text = 'Excluir varreduras em que a diferença absoluta entre os valores máximo e mínimo é inferior a um threshold.';
-            app.Constant.WordWrap = 'on';
-            app.Constant.FontSize = 11;
-            app.Constant.Layout.Row = 1;
-            app.Constant.Layout.Column = [1 4];
-            app.Constant.Value = true;
+            % Create SampleDiffBelowToleranceOption
+            app.SampleDiffBelowToleranceOption = uiradiobutton(app.RadioGroup);
+            app.SampleDiffBelowToleranceOption.Text = 'Excluir varreduras em que a diferença absoluta entre os valores máximo e mínimo das amostras seja inferior a uma tolerância.';
+            app.SampleDiffBelowToleranceOption.WordWrap = 'on';
+            app.SampleDiffBelowToleranceOption.FontSize = 11;
+            app.SampleDiffBelowToleranceOption.Position = [11 169 495 28];
+            app.SampleDiffBelowToleranceOption.Value = true;
 
-            % Create ConstantLabel
-            app.ConstantLabel = uilabel(app.FilterGrid);
-            app.ConstantLabel.FontSize = 11;
-            app.ConstantLabel.Layout.Row = 2;
-            app.ConstantLabel.Layout.Column = 2;
-            app.ConstantLabel.Text = 'Threshold:';
+            % Create SampleDiffBelowToleranceLabel
+            app.SampleDiffBelowToleranceLabel = uilabel(app.RadioGroup);
+            app.SampleDiffBelowToleranceLabel.Tag = 'SampleDiffBelowTolerance';
+            app.SampleDiffBelowToleranceLabel.FontSize = 11;
+            app.SampleDiffBelowToleranceLabel.Position = [28 141 60 22];
+            app.SampleDiffBelowToleranceLabel.Text = 'Tolerância:';
 
-            % Create ConstantValue
-            app.ConstantValue = uieditfield(app.FilterGrid, 'numeric');
-            app.ConstantValue.FontSize = 11;
-            app.ConstantValue.Layout.Row = 2;
-            app.ConstantValue.Layout.Column = 3;
-            app.ConstantValue.Value = 1e-05;
+            % Create SampleDiffBelowTolerance
+            app.SampleDiffBelowTolerance = uieditfield(app.RadioGroup, 'numeric');
+            app.SampleDiffBelowTolerance.Tag = 'SampleDiffBelowTolerance';
+            app.SampleDiffBelowTolerance.FontSize = 11;
+            app.SampleDiffBelowTolerance.Position = [91 141 90 22];
+            app.SampleDiffBelowTolerance.Value = 1e-05;
 
-            % Create ThresholdTop
-            app.ThresholdTop = uicheckbox(app.FilterGrid);
-            app.ThresholdTop.ValueChangedFcn = createCallbackFcn(app, @CheckBoxValueChanged, true);
-            app.ThresholdTop.Text = 'Excluir varreduras em que os valores de todas as suas amostras são inferiores a um threshold.';
-            app.ThresholdTop.FontSize = 11;
-            app.ThresholdTop.Layout.Row = 4;
-            app.ThresholdTop.Layout.Column = [1 4];
+            % Create AllSamplesBelowThresholdOption
+            app.AllSamplesBelowThresholdOption = uiradiobutton(app.RadioGroup);
+            app.AllSamplesBelowThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam inferiores a um limiar.';
+            app.AllSamplesBelowThresholdOption.FontSize = 11;
+            app.AllSamplesBelowThresholdOption.Position = [11 101 491 22];
 
-            % Create ThresholdBottom
-            app.ThresholdBottom = uicheckbox(app.FilterGrid);
-            app.ThresholdBottom.ValueChangedFcn = createCallbackFcn(app, @CheckBoxValueChanged, true);
-            app.ThresholdBottom.Text = 'Excluir varreduras em que os valores de todas as suas amostras são superiores a um threshold.';
-            app.ThresholdBottom.FontSize = 11;
-            app.ThresholdBottom.Layout.Row = 7;
-            app.ThresholdBottom.Layout.Column = [1 4];
+            % Create AllSamplesBelowThresholdLabel
+            app.AllSamplesBelowThresholdLabel = uilabel(app.RadioGroup);
+            app.AllSamplesBelowThresholdLabel.Tag = 'AllSamplesBelowThreshold';
+            app.AllSamplesBelowThresholdLabel.FontSize = 11;
+            app.AllSamplesBelowThresholdLabel.Enable = 'off';
+            app.AllSamplesBelowThresholdLabel.Position = [28 77 60 22];
+            app.AllSamplesBelowThresholdLabel.Text = 'Limiar:';
 
-            % Create ThresholdTopLabel
-            app.ThresholdTopLabel = uilabel(app.FilterGrid);
-            app.ThresholdTopLabel.FontSize = 11;
-            app.ThresholdTopLabel.Layout.Row = 5;
-            app.ThresholdTopLabel.Layout.Column = 2;
-            app.ThresholdTopLabel.Text = 'Threshold:';
+            % Create AllSamplesBelowThreshold
+            app.AllSamplesBelowThreshold = uieditfield(app.RadioGroup, 'numeric');
+            app.AllSamplesBelowThreshold.Tag = 'AllSamplesBelowThreshold';
+            app.AllSamplesBelowThreshold.FontSize = 11;
+            app.AllSamplesBelowThreshold.Enable = 'off';
+            app.AllSamplesBelowThreshold.Position = [91 77 90 22];
+            app.AllSamplesBelowThreshold.Value = -100;
 
-            % Create ThresholdTopValue
-            app.ThresholdTopValue = uieditfield(app.FilterGrid, 'numeric');
-            app.ThresholdTopValue.FontSize = 11;
-            app.ThresholdTopValue.Enable = 'off';
-            app.ThresholdTopValue.Layout.Row = 5;
-            app.ThresholdTopValue.Layout.Column = 3;
-            app.ThresholdTopValue.Value = -100;
+            % Create AllSamplesAboveThresholdOption
+            app.AllSamplesAboveThresholdOption = uiradiobutton(app.RadioGroup);
+            app.AllSamplesAboveThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam superiores a um limiar.';
+            app.AllSamplesAboveThresholdOption.FontSize = 11;
+            app.AllSamplesAboveThresholdOption.Position = [11 37 491 22];
 
-            % Create ThresholdBottomLabel
-            app.ThresholdBottomLabel = uilabel(app.FilterGrid);
-            app.ThresholdBottomLabel.FontSize = 11;
-            app.ThresholdBottomLabel.Layout.Row = 8;
-            app.ThresholdBottomLabel.Layout.Column = 2;
-            app.ThresholdBottomLabel.Text = 'Threshold:';
+            % Create AllSamplesAboveThresholdLabel
+            app.AllSamplesAboveThresholdLabel = uilabel(app.RadioGroup);
+            app.AllSamplesAboveThresholdLabel.Tag = 'AllSamplesAboveThreshold';
+            app.AllSamplesAboveThresholdLabel.FontSize = 11;
+            app.AllSamplesAboveThresholdLabel.Enable = 'off';
+            app.AllSamplesAboveThresholdLabel.Position = [28 10 60 22];
+            app.AllSamplesAboveThresholdLabel.Text = 'Limiar:';
 
-            % Create ThresholdBottomValue
-            app.ThresholdBottomValue = uieditfield(app.FilterGrid, 'numeric');
-            app.ThresholdBottomValue.FontSize = 11;
-            app.ThresholdBottomValue.Enable = 'off';
-            app.ThresholdBottomValue.Layout.Row = 8;
-            app.ThresholdBottomValue.Layout.Column = 3;
-            app.ThresholdBottomValue.Value = -100;
+            % Create AllSamplesAboveThreshold
+            app.AllSamplesAboveThreshold = uieditfield(app.RadioGroup, 'numeric');
+            app.AllSamplesAboveThreshold.Tag = 'AllSamplesAboveThreshold';
+            app.AllSamplesAboveThreshold.FontSize = 11;
+            app.AllSamplesAboveThreshold.Enable = 'off';
+            app.AllSamplesAboveThreshold.Position = [91 10 90 22];
 
-            % Create btnOK
-            app.btnOK = uibutton(app.GridLayout, 'push');
-            app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @OKButtonPushed, true);
-            app.btnOK.Tag = 'OK';
-            app.btnOK.IconAlignment = 'right';
-            app.btnOK.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.btnOK.Layout.Row = 3;
-            app.btnOK.Layout.Column = 2;
-            app.btnOK.Text = 'OK';
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onOkButtonClicked, true);
+            app.OkButton.Tag = 'OK';
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.OkButton.FontSize = 11;
+            app.OkButton.Layout.Row = 5;
+            app.OkButton.Layout.Column = 3;
+            app.OkButton.Text = 'Aplicar filtro';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

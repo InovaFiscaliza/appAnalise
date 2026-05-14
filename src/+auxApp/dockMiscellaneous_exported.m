@@ -2,35 +2,27 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                  matlab.ui.Figure
-        GridLayout                matlab.ui.container.GridLayout
-        OPERAESLabel              matlab.ui.control.Label
-        FLUXOSESPECTRAISLabel     matlab.ui.control.Label
-        misc_Panel1               matlab.ui.container.Panel
-        misc_Grid1                matlab.ui.container.GridLayout
-        Image_2                   matlab.ui.control.Image
-        Image                     matlab.ui.control.Image
-        misc_DeleteAllLabel       matlab.ui.control.Label
-        misc_DeleteAll            matlab.ui.control.Button
-        misc_AddCorrectionLabel   matlab.ui.control.Label
-        misc_AddCorrection        matlab.ui.control.Button
-        misc_EditLocationLabel    matlab.ui.control.Label
-        misc_EditLocation         matlab.ui.control.Button
-        misc_LevelFilteringLabel  matlab.ui.control.Label
-        misc_LevelFiltering       matlab.ui.control.Button
-        misc_TimeFilteringLabel   matlab.ui.control.Label
-        misc_TimeFiltering        matlab.ui.control.Button
-        misc_ImportLabel          matlab.ui.control.Label
-        misc_Import               matlab.ui.control.Button
-        misc_ExportLabel          matlab.ui.control.Label
-        misc_Export               matlab.ui.control.Button
-        misc_MergeLabel           matlab.ui.control.Label
-        misc_Merge                matlab.ui.control.Button
-        misc_DuplicateLabel       matlab.ui.control.Label
-        misc_Duplicate            matlab.ui.control.Button
-        misc_SaveLabel            matlab.ui.control.Label
-        misc_Save                 matlab.ui.control.Button
-        play_Tree                 matlab.ui.container.Tree
+        UIFigure                     matlab.ui.Figure
+        GridLayout                   matlab.ui.container.GridLayout
+        RadioGroup                   matlab.ui.container.ButtonGroup
+        PeaksOption_5                matlab.ui.control.RadioButton
+        PeaksOption_4                matlab.ui.control.RadioButton
+        PeaksOption_3                matlab.ui.control.RadioButton
+        PeaksMinDistanceMeters       matlab.ui.control.Spinner
+        PeaksMinDistanceMetersLabel  matlab.ui.control.Label
+        PeaksCount                   matlab.ui.control.Spinner
+        PeaksCountLabel              matlab.ui.control.Label
+        PeaksDataSource              matlab.ui.control.DropDown
+        PeaksDataSourceLabel         matlab.ui.control.Label
+        StationMaxDistanceKm         matlab.ui.control.NumericEditField
+        StationMaxDistanceKmLabel    matlab.ui.control.Label
+        StationTypeValue             matlab.ui.control.EditField
+        StationType                  matlab.ui.control.DropDown
+        StationTypeLabel             matlab.ui.control.Label
+        StationOption                matlab.ui.control.RadioButton
+        OPERAESLabel                 matlab.ui.control.Label
+        FLUXOSESPECTRAISLabel        matlab.ui.control.Label
+        SpectrumFlowTree             matlab.ui.container.CheckBoxTree
     end
 
     
@@ -58,42 +50,39 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function buildFlowTree(app, idx)
-            arguments
-                app 
-                idx = []
+        function buildTree(app)
+            if ~isempty(app.SpectrumFlowTree.Children)
+                delete(app.SpectrumFlowTree.Children)
             end
 
-            if isempty(idx)
-                idx = Index(app);
-            end
+            if ~isempty(app.mainApp.specData)
+                [receiverList, ~, receiverListIdxs] = unique({app.mainApp.specData.Receiver});
+                checkedNodes = [];
+    
+                for ii = 1:numel(receiverList)
+                    receiverIdxs  = find(receiverListIdxs == ii)';
+                    occupancyIdxs = arrayfun(@(x) ismember(x.MetaData.DataType, class.Constants.occDataTypes), app.mainApp.specData(receiverIdxs));
+                    receiverIdxs(occupancyIdxs) = [];
 
-            if ~isempty(app.report_Tree.Children)
-                delete(app.report_Tree.Children);
-            end            
-            
-            idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
-            [receiverList, ~, ic] = unique({app.specData(idxThreads).Receiver});
+                    if isempty(receiverIdxs)
+                        continue
+                    end
 
-            for ii = 1:numel(receiverList)
-                idx2 = find(ic == ii)';
-                parentNode = uitreenode(app.report_Tree, 'Text',     receiverList{ii}, ...
-                                                         'NodeData', idxThreads(idx2), ...
-                                                         'Icon',     util.layoutTreeNodeIcon(receiverList{ii}));                
-                for jj = idx2
-                    idx3 = idxThreads(jj);
-                    childNode = uitreenode(parentNode, 'Text', misc_nodeTreeText(app, idx3), ...
-                                                       'NodeData', idx3);
-                    if ~isempty(app.specData(idx3).UserData.reportExternalFiles)
-                        childNode.Icon = 'attach_32.png';
+                    receiverNode = uitreenode(app.SpectrumFlowTree, 'Text',  util.layoutTreeNodeText(receiverList{ii}, 'play_TreeBuilding'), ...
+                                                                    'NodeData', receiverIdxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
+
+                    for jj = receiverIdxs
+                        treeNode = uitreenode(receiverNode, 'Text', sprintf('%.3f - %.3f MHz', app.mainApp.specData(jj).MetaData.FreqStart / 1e6, app.mainApp.specData(jj).MetaData.FreqStop  / 1e6), ...
+                                                            'NodeData', jj, 'Tag', 'BAND');
+
+                        if app.mainApp.specData(jj).UserData.ReportInclude
+                            checkedNodes = [checkedNodes; treeNode];
+                        end
                     end
                 end
-            end
-            expand(app.report_Tree, 'all')
 
-            if ~isempty(idx)
-                idxSelectedTree = findobj(app.report_Tree.Children, 'NodeData', idx);
-                app.report_Tree.SelectedNodes = idxSelectedTree(end);
+                app.SpectrumFlowTree.CheckedNodes = checkedNodes;
+                expand(app.SpectrumFlowTree, 'all')
             end
         end
 
@@ -140,7 +129,7 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function idx = Index(app)
-            if ~isempty(app.play_Tree.SelectedNodes) && isscalar(app.play_Tree.SelectedNodes.NodeData)
+            if ~isempty(app.SpectrumFlowTree.SelectedNodes) && isscalar(app.SpectrumFlowTree.SelectedNodes.NodeData)
                 idx = app.report_Tree.SelectedNodes.NodeData;
             else
                 idx = [];
@@ -315,7 +304,7 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 880 480];
+                app.UIFigure.Position = [100 100 880 908];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -345,227 +334,11 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create play_Tree
-            app.play_Tree = uitree(app.GridLayout);
-            app.play_Tree.Multiselect = 'on';
-            app.play_Tree.FontSize = 10;
-            app.play_Tree.FontColor = [0.651 0.651 0.651];
-            app.play_Tree.Layout.Row = 3;
-            app.play_Tree.Layout.Column = 1;
-
-            % Create misc_Panel1
-            app.misc_Panel1 = uipanel(app.GridLayout);
-            app.misc_Panel1.AutoResizeChildren = 'off';
-            app.misc_Panel1.Layout.Row = 3;
-            app.misc_Panel1.Layout.Column = 3;
-
-            % Create misc_Grid1
-            app.misc_Grid1 = uigridlayout(app.misc_Panel1);
-            app.misc_Grid1.ColumnWidth = {3, 28, 3, 3, 28, 3, 3, 28, 3, 3, 3, 28, 3, 3, 28, 3, 3, 28, 3, 3, 28, 3, 3, 3, 28, 3, 3, 28, 3};
-            app.misc_Grid1.RowHeight = {1, 34, 26, 1, 34, 26, '1x', 34, 26};
-            app.misc_Grid1.ColumnSpacing = 5;
-            app.misc_Grid1.RowSpacing = 5;
-            app.misc_Grid1.Padding = [10 10 10 5];
-            app.misc_Grid1.BackgroundColor = [1 1 1];
-
-            % Create misc_Save
-            app.misc_Save = uibutton(app.misc_Grid1, 'push');
-            app.misc_Save.Icon = 'save.svg';
-            app.misc_Save.BackgroundColor = [1 1 1];
-            app.misc_Save.FontSize = 10;
-            app.misc_Save.Tooltip = {''};
-            app.misc_Save.Layout.Row = 2;
-            app.misc_Save.Layout.Column = 2;
-            app.misc_Save.Text = '';
-
-            % Create misc_SaveLabel
-            app.misc_SaveLabel = uilabel(app.misc_Grid1);
-            app.misc_SaveLabel.HorizontalAlignment = 'center';
-            app.misc_SaveLabel.WordWrap = 'on';
-            app.misc_SaveLabel.FontSize = 10;
-            app.misc_SaveLabel.Layout.Row = 3;
-            app.misc_SaveLabel.Layout.Column = [1 3];
-            app.misc_SaveLabel.Text = {'Salvar'; 'fluxo(s)'};
-
-            % Create misc_Duplicate
-            app.misc_Duplicate = uibutton(app.misc_Grid1, 'push');
-            app.misc_Duplicate.Icon = 'copy-20px.svg';
-            app.misc_Duplicate.BackgroundColor = [1 1 1];
-            app.misc_Duplicate.FontSize = 10;
-            app.misc_Duplicate.Tooltip = {''};
-            app.misc_Duplicate.Layout.Row = 2;
-            app.misc_Duplicate.Layout.Column = 5;
-            app.misc_Duplicate.Text = '';
-
-            % Create misc_DuplicateLabel
-            app.misc_DuplicateLabel = uilabel(app.misc_Grid1);
-            app.misc_DuplicateLabel.HorizontalAlignment = 'center';
-            app.misc_DuplicateLabel.WordWrap = 'on';
-            app.misc_DuplicateLabel.FontSize = 10;
-            app.misc_DuplicateLabel.Layout.Row = 3;
-            app.misc_DuplicateLabel.Layout.Column = [4 6];
-            app.misc_DuplicateLabel.Text = {'Duplicar'; 'fluxo(s)'};
-
-            % Create misc_Merge
-            app.misc_Merge = uibutton(app.misc_Grid1, 'push');
-            app.misc_Merge.Icon = 'Merge_18.png';
-            app.misc_Merge.BackgroundColor = [1 1 1];
-            app.misc_Merge.FontSize = 10;
-            app.misc_Merge.Tooltip = {''};
-            app.misc_Merge.Layout.Row = 2;
-            app.misc_Merge.Layout.Column = 8;
-            app.misc_Merge.Text = '';
-
-            % Create misc_MergeLabel
-            app.misc_MergeLabel = uilabel(app.misc_Grid1);
-            app.misc_MergeLabel.HorizontalAlignment = 'center';
-            app.misc_MergeLabel.WordWrap = 'on';
-            app.misc_MergeLabel.FontSize = 10;
-            app.misc_MergeLabel.Layout.Row = 3;
-            app.misc_MergeLabel.Layout.Column = [7 9];
-            app.misc_MergeLabel.Text = {'Mesclar'; 'fluxos'};
-
-            % Create misc_Export
-            app.misc_Export = uibutton(app.misc_Grid1, 'push');
-            app.misc_Export.Icon = 'Export_16.png';
-            app.misc_Export.BackgroundColor = [1 1 1];
-            app.misc_Export.FontSize = 10;
-            app.misc_Export.Tooltip = {''};
-            app.misc_Export.Layout.Row = 2;
-            app.misc_Export.Layout.Column = 25;
-            app.misc_Export.Text = '';
-
-            % Create misc_ExportLabel
-            app.misc_ExportLabel = uilabel(app.misc_Grid1);
-            app.misc_ExportLabel.HorizontalAlignment = 'center';
-            app.misc_ExportLabel.WordWrap = 'on';
-            app.misc_ExportLabel.FontSize = 10;
-            app.misc_ExportLabel.Layout.Row = 3;
-            app.misc_ExportLabel.Layout.Column = [24 26];
-            app.misc_ExportLabel.Text = {'Exportar'; 'análise'};
-
-            % Create misc_Import
-            app.misc_Import = uibutton(app.misc_Grid1, 'push');
-            app.misc_Import.Icon = 'Import_16.png';
-            app.misc_Import.BackgroundColor = [1 1 1];
-            app.misc_Import.FontSize = 10;
-            app.misc_Import.Tooltip = {''};
-            app.misc_Import.Layout.Row = 2;
-            app.misc_Import.Layout.Column = 28;
-            app.misc_Import.Text = '';
-
-            % Create misc_ImportLabel
-            app.misc_ImportLabel = uilabel(app.misc_Grid1);
-            app.misc_ImportLabel.HorizontalAlignment = 'center';
-            app.misc_ImportLabel.WordWrap = 'on';
-            app.misc_ImportLabel.FontSize = 10;
-            app.misc_ImportLabel.Layout.Row = 3;
-            app.misc_ImportLabel.Layout.Column = [27 29];
-            app.misc_ImportLabel.Text = {'Importar'; 'análise'};
-
-            % Create misc_TimeFiltering
-            app.misc_TimeFiltering = uibutton(app.misc_Grid1, 'push');
-            app.misc_TimeFiltering.Icon = 'Filter_18.png';
-            app.misc_TimeFiltering.BackgroundColor = [1 1 1];
-            app.misc_TimeFiltering.Tooltip = {''};
-            app.misc_TimeFiltering.Layout.Row = 2;
-            app.misc_TimeFiltering.Layout.Column = 15;
-            app.misc_TimeFiltering.Text = '';
-
-            % Create misc_TimeFilteringLabel
-            app.misc_TimeFilteringLabel = uilabel(app.misc_Grid1);
-            app.misc_TimeFilteringLabel.HorizontalAlignment = 'center';
-            app.misc_TimeFilteringLabel.WordWrap = 'on';
-            app.misc_TimeFilteringLabel.FontSize = 10;
-            app.misc_TimeFilteringLabel.Layout.Row = 3;
-            app.misc_TimeFilteringLabel.Layout.Column = [14 16];
-            app.misc_TimeFilteringLabel.Text = 'Filtro temporal';
-
-            % Create misc_LevelFiltering
-            app.misc_LevelFiltering = uibutton(app.misc_Grid1, 'push');
-            app.misc_LevelFiltering.Icon = 'clear_breakpoints_16.png';
-            app.misc_LevelFiltering.BackgroundColor = [1 1 1];
-            app.misc_LevelFiltering.Tooltip = {''};
-            app.misc_LevelFiltering.Layout.Row = 2;
-            app.misc_LevelFiltering.Layout.Column = 18;
-            app.misc_LevelFiltering.Text = '';
-
-            % Create misc_LevelFilteringLabel
-            app.misc_LevelFilteringLabel = uilabel(app.misc_Grid1);
-            app.misc_LevelFilteringLabel.HorizontalAlignment = 'center';
-            app.misc_LevelFilteringLabel.WordWrap = 'on';
-            app.misc_LevelFilteringLabel.FontSize = 10;
-            app.misc_LevelFilteringLabel.Layout.Row = 3;
-            app.misc_LevelFilteringLabel.Layout.Column = [17 19];
-            app.misc_LevelFilteringLabel.Text = {'Filtro'; 'nível'};
-
-            % Create misc_EditLocation
-            app.misc_EditLocation = uibutton(app.misc_Grid1, 'push');
-            app.misc_EditLocation.Icon = 'Pin_32.png';
-            app.misc_EditLocation.BackgroundColor = [1 1 1];
-            app.misc_EditLocation.Tooltip = {''};
-            app.misc_EditLocation.Layout.Row = 2;
-            app.misc_EditLocation.Layout.Column = 12;
-            app.misc_EditLocation.Text = '';
-
-            % Create misc_EditLocationLabel
-            app.misc_EditLocationLabel = uilabel(app.misc_Grid1);
-            app.misc_EditLocationLabel.HorizontalAlignment = 'center';
-            app.misc_EditLocationLabel.WordWrap = 'on';
-            app.misc_EditLocationLabel.FontSize = 10;
-            app.misc_EditLocationLabel.Layout.Row = 3;
-            app.misc_EditLocationLabel.Layout.Column = [11 13];
-            app.misc_EditLocationLabel.Text = {'Editar'; 'Local'};
-
-            % Create misc_AddCorrection
-            app.misc_AddCorrection = uibutton(app.misc_Grid1, 'push');
-            app.misc_AddCorrection.Icon = 'RFFilter_32.png';
-            app.misc_AddCorrection.BackgroundColor = [1 1 1];
-            app.misc_AddCorrection.Tooltip = {''};
-            app.misc_AddCorrection.Layout.Row = 2;
-            app.misc_AddCorrection.Layout.Column = 21;
-            app.misc_AddCorrection.Text = '';
-
-            % Create misc_AddCorrectionLabel
-            app.misc_AddCorrectionLabel = uilabel(app.misc_Grid1);
-            app.misc_AddCorrectionLabel.HorizontalAlignment = 'center';
-            app.misc_AddCorrectionLabel.WordWrap = 'on';
-            app.misc_AddCorrectionLabel.FontSize = 10;
-            app.misc_AddCorrectionLabel.Layout.Row = 3;
-            app.misc_AddCorrectionLabel.Layout.Column = [20 22];
-            app.misc_AddCorrectionLabel.Text = {'Aplicar'; 'correção'};
-
-            % Create misc_DeleteAll
-            app.misc_DeleteAll = uibutton(app.misc_Grid1, 'push');
-            app.misc_DeleteAll.Icon = 'Trash_32.png';
-            app.misc_DeleteAll.BackgroundColor = [1 1 1];
-            app.misc_DeleteAll.Tooltip = {''};
-            app.misc_DeleteAll.Layout.Row = 8;
-            app.misc_DeleteAll.Layout.Column = 2;
-            app.misc_DeleteAll.Text = '';
-
-            % Create misc_DeleteAllLabel
-            app.misc_DeleteAllLabel = uilabel(app.misc_Grid1);
-            app.misc_DeleteAllLabel.HorizontalAlignment = 'center';
-            app.misc_DeleteAllLabel.WordWrap = 'on';
-            app.misc_DeleteAllLabel.FontSize = 10;
-            app.misc_DeleteAllLabel.Layout.Row = 9;
-            app.misc_DeleteAllLabel.Layout.Column = [1 3];
-            app.misc_DeleteAllLabel.Text = 'Reiniciar análise';
-
-            % Create Image
-            app.Image = uiimage(app.misc_Grid1);
-            app.Image.Enable = 'off';
-            app.Image.Layout.Row = [2 3];
-            app.Image.Layout.Column = 10;
-            app.Image.ImageSource = 'LineV.svg';
-
-            % Create Image_2
-            app.Image_2 = uiimage(app.misc_Grid1);
-            app.Image_2.Enable = 'off';
-            app.Image_2.Layout.Row = [2 3];
-            app.Image_2.Layout.Column = 23;
-            app.Image_2.ImageSource = 'LineV.svg';
+            % Create SpectrumFlowTree
+            app.SpectrumFlowTree = uitree(app.GridLayout, 'checkbox');
+            app.SpectrumFlowTree.FontSize = 11;
+            app.SpectrumFlowTree.Layout.Row = 3;
+            app.SpectrumFlowTree.Layout.Column = 1;
 
             % Create FLUXOSESPECTRAISLabel
             app.FLUXOSESPECTRAISLabel = uilabel(app.GridLayout);
@@ -582,6 +355,160 @@ classdef dockMiscellaneous_exported < matlab.apps.AppBase
             app.OPERAESLabel.Layout.Row = 1;
             app.OPERAESLabel.Layout.Column = 3;
             app.OPERAESLabel.Text = 'OPERAÇÕES';
+
+            % Create RadioGroup
+            app.RadioGroup = uibuttongroup(app.GridLayout);
+            app.RadioGroup.AutoResizeChildren = 'off';
+            app.RadioGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.RadioGroup.BackgroundColor = [1 1 1];
+            app.RadioGroup.Layout.Row = 3;
+            app.RadioGroup.Layout.Column = 3;
+            app.RadioGroup.FontWeight = 'bold';
+            app.RadioGroup.FontSize = 10;
+
+            % Create StationOption
+            app.StationOption = uiradiobutton(app.RadioGroup);
+            app.StationOption.Text = {'<b>MESCLA FLUXOS ESPECTRAIS</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona estações incluídas no RFDataHub.</font>'};
+            app.StationOption.FontSize = 11;
+            app.StationOption.Interpreter = 'html';
+            app.StationOption.Position = [11 796 278 31];
+            app.StationOption.Value = true;
+
+            % Create StationTypeLabel
+            app.StationTypeLabel = uilabel(app.RadioGroup);
+            app.StationTypeLabel.Tag = 'STATION';
+            app.StationTypeLabel.VerticalAlignment = 'bottom';
+            app.StationTypeLabel.FontSize = 11;
+            app.StationTypeLabel.FontColor = [0.302 0.302 0.302];
+            app.StationTypeLabel.Position = [30 775 181 17];
+            app.StationTypeLabel.Text = 'Tipo de registro:';
+
+            % Create StationType
+            app.StationType = uidropdown(app.RadioGroup);
+            app.StationType.Items = {'Lista de frequências (MHz)', 'Índices de registros do RFDataHub'};
+            app.StationType.Tag = 'STATION';
+            app.StationType.FontSize = 11;
+            app.StationType.FontColor = [0.302 0.302 0.302];
+            app.StationType.BackgroundColor = [1 1 1];
+            app.StationType.Position = [30 748 330 22];
+            app.StationType.Value = 'Lista de frequências (MHz)';
+
+            % Create StationTypeValue
+            app.StationTypeValue = uieditfield(app.RadioGroup, 'text');
+            app.StationTypeValue.Tag = 'STATION';
+            app.StationTypeValue.FontSize = 11;
+            app.StationTypeValue.FontColor = [0.302 0.302 0.302];
+            app.StationTypeValue.Tooltip = {'Exemplos:'; '• 101.1, 101.3, 101.5 (Lista de frequências)'; '• #1000 #1500 #2000 (RFDataHub)'};
+            app.StationTypeValue.Position = [30 718 330 22];
+
+            % Create StationMaxDistanceKmLabel
+            app.StationMaxDistanceKmLabel = uilabel(app.RadioGroup);
+            app.StationMaxDistanceKmLabel.Tag = 'STATION';
+            app.StationMaxDistanceKmLabel.WordWrap = 'on';
+            app.StationMaxDistanceKmLabel.FontSize = 11;
+            app.StationMaxDistanceKmLabel.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistanceKmLabel.Position = [30 684 221 28];
+            app.StationMaxDistanceKmLabel.Text = 'Distância máxima entre estação e local da monitoração (km):';
+
+            % Create StationMaxDistanceKm
+            app.StationMaxDistanceKm = uieditfield(app.RadioGroup, 'numeric');
+            app.StationMaxDistanceKm.Limits = [1 Inf];
+            app.StationMaxDistanceKm.RoundFractionalValues = 'on';
+            app.StationMaxDistanceKm.ValueDisplayFormat = '%d';
+            app.StationMaxDistanceKm.Tag = 'STATION';
+            app.StationMaxDistanceKm.FontSize = 11;
+            app.StationMaxDistanceKm.FontColor = [0.302 0.302 0.302];
+            app.StationMaxDistanceKm.Position = [262 689 98 22];
+            app.StationMaxDistanceKm.Value = 30;
+
+            % Create PeaksDataSourceLabel
+            app.PeaksDataSourceLabel = uilabel(app.RadioGroup);
+            app.PeaksDataSourceLabel.Tag = 'PEAKS';
+            app.PeaksDataSourceLabel.VerticalAlignment = 'bottom';
+            app.PeaksDataSourceLabel.FontSize = 11;
+            app.PeaksDataSourceLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksDataSourceLabel.Enable = 'off';
+            app.PeaksDataSourceLabel.Position = [31 602 181 17];
+            app.PeaksDataSourceLabel.Text = 'Fonte da informação:';
+
+            % Create PeaksDataSource
+            app.PeaksDataSource = uidropdown(app.RadioGroup);
+            app.PeaksDataSource.Items = {'Dados brutos', 'Processados'};
+            app.PeaksDataSource.Tag = 'PEAKS';
+            app.PeaksDataSource.Enable = 'off';
+            app.PeaksDataSource.FontSize = 11;
+            app.PeaksDataSource.FontColor = [0.302 0.302 0.302];
+            app.PeaksDataSource.BackgroundColor = [1 1 1];
+            app.PeaksDataSource.Position = [31 575 220 22];
+            app.PeaksDataSource.Value = 'Dados brutos';
+
+            % Create PeaksCountLabel
+            app.PeaksCountLabel = uilabel(app.RadioGroup);
+            app.PeaksCountLabel.Tag = 'PEAKS';
+            app.PeaksCountLabel.VerticalAlignment = 'bottom';
+            app.PeaksCountLabel.FontSize = 11;
+            app.PeaksCountLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksCountLabel.Enable = 'off';
+            app.PeaksCountLabel.Position = [262 602 94 17];
+            app.PeaksCountLabel.Text = 'Número de picos:';
+
+            % Create PeaksCount
+            app.PeaksCount = uispinner(app.RadioGroup);
+            app.PeaksCount.Limits = [1 100];
+            app.PeaksCount.RoundFractionalValues = 'on';
+            app.PeaksCount.ValueDisplayFormat = '%.0f';
+            app.PeaksCount.Tag = 'PEAKS';
+            app.PeaksCount.FontSize = 11;
+            app.PeaksCount.FontColor = [0.302 0.302 0.302];
+            app.PeaksCount.Enable = 'off';
+            app.PeaksCount.Position = [262 575 98 22];
+            app.PeaksCount.Value = 1;
+
+            % Create PeaksMinDistanceMetersLabel
+            app.PeaksMinDistanceMetersLabel = uilabel(app.RadioGroup);
+            app.PeaksMinDistanceMetersLabel.Tag = 'PEAKS';
+            app.PeaksMinDistanceMetersLabel.FontSize = 11;
+            app.PeaksMinDistanceMetersLabel.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistanceMetersLabel.Enable = 'off';
+            app.PeaksMinDistanceMetersLabel.Position = [31 543 204 22];
+            app.PeaksMinDistanceMetersLabel.Text = 'Distância mínima entre picos (metros):';
+
+            % Create PeaksMinDistanceMeters
+            app.PeaksMinDistanceMeters = uispinner(app.RadioGroup);
+            app.PeaksMinDistanceMeters.Step = 100;
+            app.PeaksMinDistanceMeters.Limits = [0 10000];
+            app.PeaksMinDistanceMeters.RoundFractionalValues = 'on';
+            app.PeaksMinDistanceMeters.ValueDisplayFormat = '%.0f';
+            app.PeaksMinDistanceMeters.Tag = 'PEAKS';
+            app.PeaksMinDistanceMeters.FontSize = 11;
+            app.PeaksMinDistanceMeters.FontColor = [0.302 0.302 0.302];
+            app.PeaksMinDistanceMeters.Enable = 'off';
+            app.PeaksMinDistanceMeters.Position = [262 543 98 22];
+            app.PeaksMinDistanceMeters.Value = 1000;
+
+            % Create PeaksOption_3
+            app.PeaksOption_3 = uiradiobutton(app.RadioGroup);
+            app.PeaksOption_3.Text = {'<b>CURVA DE CORREÇÃO</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
+            app.PeaksOption_3.WordWrap = 'on';
+            app.PeaksOption_3.FontSize = 11;
+            app.PeaksOption_3.Interpreter = 'html';
+            app.PeaksOption_3.Position = [18 626 347 46];
+
+            % Create PeaksOption_4
+            app.PeaksOption_4 = uiradiobutton(app.RadioGroup);
+            app.PeaksOption_4.Text = {'<b>EXPORTA ANÁLISE</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
+            app.PeaksOption_4.WordWrap = 'on';
+            app.PeaksOption_4.FontSize = 11;
+            app.PeaksOption_4.Interpreter = 'html';
+            app.PeaksOption_4.Position = [11 243 347 46];
+
+            % Create PeaksOption_5
+            app.PeaksOption_5 = uiradiobutton(app.RadioGroup);
+            app.PeaksOption_5.Text = {'<b>IMPORTA ANÁLISE</b>'; '<p style="font-size: 10px; color: gray; text-align: justify;">Adiciona locais em que o sensor captou o canal sob análise com seus maiores níveis de potência.</font>'};
+            app.PeaksOption_5.WordWrap = 'on';
+            app.PeaksOption_5.FontSize = 11;
+            app.PeaksOption_5.Interpreter = 'html';
+            app.PeaksOption_5.Position = [34 140 347 46];
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
