@@ -233,7 +233,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         emissionIdx = app.emissionSelectedIdxs.emissionIdx;
                         update(specData, 'UserData:Emissions', 'AuxAppData:DriveTest:ReportInclude', emissionIdx)
 
-                        refreshEmissionList(app)
+                        refreshEmissionDropDown(app)
                         refreshEmissionMetadataPanel(app, specData)
 
                     otherwise
@@ -264,7 +264,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                                   'onEmissionDeleted', ...
                                   'onSpectralDataReadError'}
                                 app.emissionSelectedIdxs(:) = [];
-                                refreshFlowList(app)
+                                refreshFlowDropDown(app)
 
                                 if app.plotUpdateEvent > 0
                                     app.plotUpdateEvent = -2;
@@ -490,7 +490,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            refreshFlowList(app)
+            refreshFlowDropDown(app)
             onFlowDropDownValueChanged(app)
         end
     end
@@ -567,8 +567,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function refreshFlowList(app)
+        function refreshFlowDropDown(app)
             specData = app.mainApp.specData;
+
+            % Aberto, em 10/03/2026, reporte de BUG relacionado ao uidropdown, 
+            % quando aplicado estilo "html". Ao apagar lista, o MATLAB não
+            % apaga o valor atual do elemento na GUI. Assim que resolver
+            % isso, basta inserir o addStyle uma única vez, não precisando
+            % removê-lo.
 
             if ~isempty(specData)
                 if isempty(app.SpectrumFlowList.StyleConfigurations)
@@ -597,8 +603,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         if ~isempty(specData(jj).UserData) && specData(jj).UserData.ReportInclude
                             reportStatus = '&emsp;&#x1F7E2;';
                         end
+
+                        lockStatus = '';
+                        if specData(jj).IsUserModified
+                            lockStatus = '&emsp;&#x1F512;&#xFE0E;';
+                        end
             
-                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s', receiverName, freqStart, freqStop, reportStatus);
+                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s%s', receiverName, freqStart, freqStop, reportStatus, lockStatus);
                         itemsData(end+1) = jj;
                     end
                 end
@@ -647,7 +658,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                     delete(app.mainApp.specData(flowIdx))
                     app.mainApp.specData(flowIdx) = [];
-                    refreshFlowList(app)
+                    refreshFlowDropDown(app)
 
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
                     return
@@ -660,12 +671,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % outros são reinicializados quando alterada a emissão.
             resetPlotState(app, specData, 'onFlowDropDownValueChanged')
 
-            refreshEmissionList(app)
+            refreshEmissionDropDown(app)
             onEmissionDropDownValueChanged(app)
         end
 
         %-----------------------------------------------------------------%
-        function refreshEmissionList(app)
+        function refreshEmissionDropDown(app)
             if isempty(app.mainApp.specData)
                 app.EmissionList.Items = {};
                 return

@@ -198,17 +198,17 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                         if isnat(beginTimestamp) || isnat(endTimestamp) || (beginTimestamp > endTimestamp)
                             error('Período de observação inválido.')
                         end
-                        filterSpecification = struct('Type', selectedButton.Tag, 'Value', [beginTimestamp, endTimestamp]);
+                        filterSpecification = struct('Action', 'FilterByTime', 'Type', selectedButton.Tag, 'Value', [beginTimestamp, endTimestamp]);
     
                     case app.OnlyTimeOption
-                        beginHour = app.HourStart.Value + app.MinuteStart.Value / 60;
-                        endHour   = app.HourStop.Value  + app.MinuteStop.Value  / 60;
+                        beginHour = round(app.HourStart.Value + app.MinuteStart.Value / 60, 3);
+                        endHour   = round(app.HourStop.Value  + app.MinuteStop.Value  / 60, 3);
                         
                         if beginHour >= endHour
                             error('A hora do início não pode ser igual ou superior à do fim.')
                         end
 
-                        filterSpecification = struct('Type', selectedButton.Tag, 'Value', [beginHour, endHour]);
+                        filterSpecification = struct('Action', 'FilterByTime', 'Type', selectedButton.Tag, 'Value', [beginHour, endHour]);
     
                     case app.DayOfTheWeekOption
                         daysElements = findobj(app.FilterValuesGrid.Children, 'Type', 'uicheckbox', 'Value', true);
@@ -220,7 +220,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                         end
     
                         daysOfTheWeek = str2double({daysElements.Tag});
-                        filterSpecification = struct('Type', selectedButton.Tag, 'Value', daysOfTheWeek);
+                        filterSpecification = struct('Action', 'FilterByTime', 'Type', selectedButton.Tag, 'Value', daysOfTheWeek);
                 end
 
                 [isValidFilterResult, matchMask, resultSummary] = computeFilterMatchIndexes(app, specData, filterSpecification);
@@ -232,6 +232,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                         return
                     end
 
+                    filterSpecification.Result = replace(resultSummary, 'contém', 'continha');
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onFilterByTimeRequested', flowIdx, filterSpecification, matchMask)
 
                 else

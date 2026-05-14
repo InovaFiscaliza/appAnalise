@@ -36,11 +36,13 @@ classdef SpecData < model.SpecDataBase
 
         % "InputFiles" armazena informações dos arquivos que compõem specData.
         % Dentre os seus campos, "Indexes" registra o mapeamento metaData x specData,
-        % e "IsUserMerged" registra se o fluxo foi gerado por mesclagem MANUAL via 
-        % GUI. Ressalta-se, contudo, que os fluxos com mesmo Hash podem ser 
+        % e "IsUserModified" registra se o fluxo está bloqueado por ter sido gerado 
+        % por mesclagem MANUAL via GUI ou por ter sido objeto de filtragem. 
+        % Ressalta-se, contudo, que os fluxos com mesmo Hash podem ser 
         % mesclados automaticamente, a depender da distância limite definida 
         % em arquivo de configuração ".\src\config\GeneralSettings.json".
-        InputFiles struct = struct('File', {}, 'Indexes', {}, 'Hash', {}, 'IsUserMerged', {})
+        InputFiles struct = struct('File', {}, 'Indexes', {}, 'Hash', {})
+        IsUserModified = false
     
         % "UserData" contém informações relacionadas à GUI, incluindo a lista
         % de emissões e customizações de plot.
@@ -409,7 +411,7 @@ classdef SpecData < model.SpecDataBase
             obj.UserData.OccupancyComputationMode.CacheIndex = [];
             computeOccupancyPerBin(obj)
 
-            obj.InputFiles(1).IsUserMerged = true;
+            obj.IsUserModified = true;
             obj.UserData.LOG{end+1} = jsonencode(filterSpecification);
 
             % Por fim, ajusta a informação da propriedade "RelatedFiles", 
@@ -424,10 +426,9 @@ classdef SpecData < model.SpecDataBase
                 else
                     beginTime   = obj.Data{1}(sweepsIdxs(1));
                     endTime     = obj.Data{1}(sweepsIdxs(end));
-                    nSweeps     = numel(sweepsIdxs);
-                    revisitTime = seconds(endTime-beginTime)/(nSweeps-1);
-
-                    obj.RelatedFiles(ii, {'BeginTime', 'EndTime', 'NumSweeps', 'RevisitTime'}) = {beginTime, endTime, nSweeps, revisitTime};
+                    numSweeps     = numel(sweepsIdxs);
+                    revisitTime = seconds(endTime-beginTime)/(numSweeps-1);
+                    obj.RelatedFiles(ii, {'BeginTime', 'EndTime', 'NumSweeps', 'RevisitTime'}) = {beginTime, endTime, numSweeps, revisitTime};
                 end
             end
         end
@@ -971,8 +972,8 @@ classdef SpecData < model.SpecDataBase
         %-----------------------------------------------------------------%
         function obj = deleteObsoleteFlows(obj, referenceTable, uniqueHashs, uniqueHashIdxs)
             % Exclui fluxos de specData cujos arquivos de suporte não existem mais.
-            % Exceção aos fluxos mesclados manualmente pelo usuário (IsUserMerged),
-            % que são criados e apagados APENAS pela GUI.
+            % Exceção aos fluxos mesclados/filtrados manualmente pelo usuário 
+            % (IsUserModified), que são criados e apagados APENAS pela GUI.
             %
             % Para cada fluxo não mesclado:
             %   - Se o Hash não existe mais em uniqueHashs, apaga o fluxo
@@ -983,7 +984,7 @@ classdef SpecData < model.SpecDataBase
             % InputFiles será reconstruído na segunda etapa de syncCollection.
 
             for ii = numel(obj):-1:1
-                if any([obj(ii).InputFiles.IsUserMerged])
+                if obj(ii).IsUserModified
                     continue
                 end
 
@@ -1032,6 +1033,10 @@ classdef SpecData < model.SpecDataBase
             flowLng = referenceTable.Longitude(refTableIdx);
             
             for ii = objIdxs
+                if obj(ii).IsUserModified
+                    continue
+                end
+
                 if all(ismember(newFlowRelatedFiles.Hash, obj(ii).RelatedFiles.Hash))
                     candidateIdx = ii;
                     return
@@ -1058,8 +1063,7 @@ classdef SpecData < model.SpecDataBase
                 obj.InputFiles(end+1) = struct( ...
                     'File', filteredReferenceTable.File{ii}, ...
                     'Indexes', [filteredReferenceTable.Idx{ii}{1}(1), filteredReferenceTable.Idx{ii}{1}(2)], ...
-                    'Hash', filteredReferenceTable.Hash{ii}, ...
-                    'IsUserMerged', false ...
+                    'Hash', filteredReferenceTable.Hash{ii} ...
                 );
             end
         end

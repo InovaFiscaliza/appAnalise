@@ -243,7 +243,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                   'onReportFlowListChanged', ...
                                   'onFilterByTimeRequested', ...
                                   'onSpectralDataReadError'}
-                                updateFlowDropDown(app)
+                                refreshFlowDropDown(app)
 
                                 if app.plotUpdateEvent
                                     app.plotUpdateEvent = -1;
@@ -350,7 +350,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
 
                     try
-                        ui.TextView.startup(app.jsBackDoor, app.FlowMetadata,  appName, struct('class', {{'textview--borderless'}}));
+                        ui.TextView.startup(app.jsBackDoor, app.FlowMetadata,  appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
                     catch
                     end
 
@@ -389,7 +389,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            updateFlowDropDown(app)
+            refreshFlowDropDown(app)
             onFlowDropDownValueChanged(app)
         end
     end
@@ -505,7 +505,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## LAYOUT ##
         %-----------------------------------------------------------------%
-        function updateFlowDropDown(app)
+        function refreshFlowDropDown(app)
             specData = app.mainApp.specData;
 
             % Aberto, em 10/03/2026, reporte de BUG relacionado ao uidropdown, 
@@ -542,8 +542,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         if ~isempty(specData(jj).UserData) && specData(jj).UserData.ReportInclude
                             reportStatus = '&emsp;&#x1F7E2;';
                         end
+
+                        lockStatus = '';
+                        if specData(jj).IsUserModified
+                            lockStatus = '&emsp;&#x1F512;&#xFE0E;';
+                        end
             
-                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s%s', receiverName, freqStart, freqStop, occupancyStatus, reportStatus);
+                        items{end+1} = sprintf('%s<br>└── %.3f&ensp;a&ensp;%.3f MHz%s%s%s', receiverName, freqStart, freqStop, occupancyStatus, reportStatus, lockStatus);
                         itemsData(end+1) = jj;
                     end
                 end
@@ -592,7 +597,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     delete(app.mainApp.specData(idx))
                     app.mainApp.specData(idx) = [];
-                    updateFlowDropDown(app)
+                    refreshFlowDropDown(app)
 
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
                     return
