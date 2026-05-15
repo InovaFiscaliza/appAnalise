@@ -441,7 +441,7 @@ classdef SpecData < model.SpecDataBase
             computeOccupancyPerBin(obj)
 
             obj.IsUserModified = true;
-            obj.UserData.LOG{end+1} = jsonencode(filterSpecification);
+            obj.UserData.LOG{end+1} = matlab.jsonencode(filterSpecification);
 
             % Por fim, ajusta a informação da propriedade "RelatedFiles", 
             % que armazena o período de observação de cada arquivo, o número 
