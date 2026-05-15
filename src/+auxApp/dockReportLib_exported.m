@@ -629,8 +629,10 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create eFiscalizaSystemLabel
             app.eFiscalizaSystemLabel = uilabel(app.eFiscalizaGrid);
+            app.eFiscalizaSystemLabel.VerticalAlignment = 'top';
+            app.eFiscalizaSystemLabel.WordWrap = 'on';
             app.eFiscalizaSystemLabel.FontSize = 11;
-            app.eFiscalizaSystemLabel.Layout.Row = 1;
+            app.eFiscalizaSystemLabel.Layout.Row = [1 2];
             app.eFiscalizaSystemLabel.Layout.Column = 1;
             app.eFiscalizaSystemLabel.Text = 'Ambiente do sistema de gestão à fiscalização:';
 

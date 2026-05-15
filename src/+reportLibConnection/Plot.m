@@ -395,7 +395,7 @@ classdef (Abstract) Plot
 
             if isempty(axesHandle.Legend)
                 pause(1)
-                lgd = legend(axesHandle, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                lgd = legend(axesHandle, 'Location', 'southwest', 'Color', [.94,.94,.94], 'BackgroundAlpha', 0.9, 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
                 lgd.Title.FontSize = 8.5;
             end
             set(axesHandle.Legend.Title, 'Visible', 'on', 'String', emissionTag)

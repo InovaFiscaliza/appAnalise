@@ -1193,7 +1193,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     if ~isempty(specData)
                         if isempty(app.UIAxes1.Legend)
                             pause(1)
-                            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
+                            lgd = legend(app.UIAxes1, 'Location', 'southwest', 'Color', [.94,.94,.94], 'BackgroundAlpha', 0.9, 'EdgeColor', [.9,.9,.9], 'NumColumns', 1, 'LineWidth', .5, 'FontSize', 7.5, 'PickableParts', 'none');
                             lgd.Title.FontSize = 8.5;
                         end
                         set(app.UIAxes1.Legend.Title, 'Visible', 'on', 'String', app.emissionSelectedIdxs.attributes.tag)
@@ -1778,11 +1778,40 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 return
             end
 
+            if numel(specData.Data) > 3
+                % algorithm = 'aoA';
+                
+                questionMsg = 'Os dados possuem informação de azimute, de forma que pode ser aplicada não apenas o poa, mas também o aoa, na estimativa do local de geração da emissão sob análise?<br><br> Qual técnica deseja simular?';
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'poA', 'aoA', 'Cancelar'}, 1, 3);
+                if userSelection == "Cancelar"
+                    return
+                end
+
+                algorithm = userSelection;
+
+            else
+                algorithm = 'poA';
+            end
+
             frequencyCenterMHz = specData.UserData.Emissions.Frequency(emissionIdx);
             bandWidthkHz = specData.UserData.Emissions.BandWidthkHz(emissionIdx);
 
-            [estimatedLatitude, estimatedLongitude, uncertaintyRadius] = RF.Geolocation.poA(specData, frequencyCenterMHz, bandWidthkHz);
-            RF.Geolocation.drawResults(app.UIAxes1, estimatedLatitude, estimatedLongitude, uncertaintyRadius)
+            try
+                [~, estimatedLatitude, estimatedLongitude, uncertaintyRadius] = evalc(sprintf('RF.Geolocation.%s(specData, frequencyCenterMHz, bandWidthkHz);', algorithm));
+    
+                if isnan(uncertaintyRadius) || uncertaintyRadius < 0
+                    uncertaintyRadius = 500;
+                end
+    
+                if isnan(estimatedLatitude) || isnan(estimatedLongitude)
+                    error('Dados insuficientes para estimar o local de geração da emissão.')
+                end
+
+                RF.Geolocation.drawResults(app.UIAxes1, estimatedLatitude, estimatedLongitude, uncertaintyRadius)
+
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
 
         end
 
