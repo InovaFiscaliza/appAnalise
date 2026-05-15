@@ -6,15 +6,15 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
         GridLayout                      matlab.ui.container.GridLayout
         OkButton                        matlab.ui.control.Button
         RadioGroup                      matlab.ui.container.ButtonGroup
-        AllSamplesAboveThreshold        matlab.ui.control.NumericEditField
-        AllSamplesAboveThresholdLabel   matlab.ui.control.Label
-        AllSamplesAboveThresholdOption  matlab.ui.control.RadioButton
-        AllSamplesBelowThreshold        matlab.ui.control.NumericEditField
-        AllSamplesBelowThresholdLabel   matlab.ui.control.Label
-        AllSamplesBelowThresholdOption  matlab.ui.control.RadioButton
-        SampleDiffBelowTolerance        matlab.ui.control.NumericEditField
-        SampleDiffBelowToleranceLabel   matlab.ui.control.Label
-        SampleDiffBelowToleranceOption  matlab.ui.control.RadioButton
+        RemoveAllAboveThreshold         matlab.ui.control.NumericEditField
+        RemoveAllAboveThresholdLabel    matlab.ui.control.Label
+        RemoveAllAboveThresholdOption   matlab.ui.control.RadioButton
+        RemoveAllBelowThreshold         matlab.ui.control.NumericEditField
+        RemoveAllBelowThresholdLabel    matlab.ui.control.Label
+        RemoveAllBelowThresholdOption   matlab.ui.control.RadioButton
+        RemoveRangeBelowTolerance       matlab.ui.control.NumericEditField
+        RemoveRangeBelowToleranceLabel  matlab.ui.control.Label
+        RemoveRangeBelowToleranceOption  matlab.ui.control.RadioButton
         Title                           matlab.ui.control.Label
         TitleIcon                       matlab.ui.control.Image
     end
@@ -35,9 +35,60 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
         progressDialog
     end
 
+
     properties (Access = private)
         %-----------------------------------------------------------------%
         inputArgs
+    end
+
+
+    methods (Access = private)
+        %-----------------------------------------------------------------%
+        function [isValidFilterResult, matchMask, resultSummary] = computeFilterMatchIndexes(~, specData, filterSpecification)
+            filterType = filterSpecification.Type;
+            
+            filterRuleStr = filterSpecification.Rule;
+            filterRule = eval(filterRuleStr);
+
+            matrix = specData.Data{2};
+
+            switch filterType
+                case 'RemoveRangeBelowTolerance'
+                    [minLevel, maxLevel] = bounds(matrix);
+                    matchMask = filterRule(minLevel, maxLevel);
+
+                case {'RemoveAllBelowThreshold', 'RemoveAllAboveThreshold'}
+                    matchMask = filterRule(matrix);
+
+                otherwise
+                    error('auxApp:dockFilterByTime:UnexpectedFilterType', 'Unexpected filter type "%s"', filterType)
+            end
+            
+            numInitialSweeps = width(matrix);
+            numFinalSweeps = numInitialSweeps - sum(matchMask);
+
+            if numInitialSweeps == numFinalSweeps
+                isValidFilterResult = false;
+                resultSummary = sprintf([ ...
+                    'O fluxo espectral analisado contém %d varreduras. O filtro do tipo "%s", com regra %s, foi aplicado, ' ...
+                    'mas nenhuma varredura atende ao critério.' ...
+                ], numInitialSweeps, filterType, filterRuleStr);
+            
+            elseif numFinalSweeps == 0
+                isValidFilterResult = false;
+                resultSummary = sprintf([ ...
+                    'O fluxo espectral analisado contém %d varreduras. O filtro do tipo "%s", com regra %s, foi aplicado, ' ...
+                    'mas todas as varreduras atendem ao critério.' ...
+                ], numInitialSweeps, filterType, filterRuleStr);
+            
+            else
+                isValidFilterResult = true;
+                resultSummary = sprintf([ ...
+                    'O fluxo espectral analisado contém %d varreduras. O filtro do tipo "%s", com regra %s, foi aplicado, ' ...
+                    'resultando em %d varreduras.' ...
+                ], numInitialSweeps, filterType, filterRuleStr, numFinalSweeps);
+            end
+        end
     end
     
 
@@ -67,25 +118,25 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
         % Selection changed function: RadioGroup
         function onRadioGroupSelectionChanged(app, event)
             
-            sampleDiffBelowToleranceElements = findobj(app.RadioGroup.Children, 'Tag', 'SampleDiffBelowTolerance');
-            allSamplesBelowThresholdElements = findobj(app.RadioGroup.Children, 'Tag', 'AllSamplesBelowThreshold');
-            allSamplesAboveThresholdElements = findobj(app.RadioGroup.Children, 'Tag', 'AllSamplesAboveThreshold');
+            rangeBelowToleranceElements = findobj(app.RadioGroup.Children, 'Tag', 'RemoveRangeBelowTolerance');
+            allBelowThresholdElements   = findobj(app.RadioGroup.Children, 'Tag', 'RemoveAllBelowThreshold');
+            allAboveThresholdElements   = findobj(app.RadioGroup.Children, 'Tag', 'RemoveAllAboveThreshold');
 
             switch app.RadioGroup.SelectedObject
-                case app.SampleDiffBelowToleranceOption
-                    set(sampleDiffBelowToleranceElements, 'Enable', 'on')
-                    set(allSamplesBelowThresholdElements, 'Enable', 'off')
-                    set(allSamplesAboveThresholdElements, 'Enable', 'off')
+                case app.RemoveRangeBelowToleranceOption
+                    set(rangeBelowToleranceElements, 'Enable', 'on')
+                    set(allBelowThresholdElements,   'Enable', 'off')
+                    set(allAboveThresholdElements,   'Enable', 'off')
 
-                case app.AllSamplesBelowThresholdOption
-                    set(sampleDiffBelowToleranceElements, 'Enable', 'off')
-                    set(allSamplesBelowThresholdElements, 'Enable', 'on')
-                    set(allSamplesAboveThresholdElements, 'Enable', 'off')
+                case app.RemoveAllBelowThresholdOption
+                    set(rangeBelowToleranceElements, 'Enable', 'off')
+                    set(allBelowThresholdElements,   'Enable', 'on')
+                    set(allAboveThresholdElements,   'Enable', 'off')
 
-                case app.AllSamplesAboveThresholdOption
-                    set(sampleDiffBelowToleranceElements, 'Enable', 'off')
-                    set(allSamplesBelowThresholdElements, 'Enable', 'off')
-                    set(allSamplesAboveThresholdElements, 'Enable', 'on')
+                case app.RemoveAllAboveThresholdOption
+                    set(rangeBelowToleranceElements, 'Enable', 'off')
+                    set(allBelowThresholdElements,   'Enable', 'off')
+                    set(allAboveThresholdElements,   'Enable', 'on')
             end
 
         end
@@ -93,55 +144,41 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
         % Button pushed function: OkButton
         function onOkButtonClicked(app, event)
             
-            pushedButtonTag = event.Source.Tag;
-            switch pushedButtonTag
-                case 'OK'
-                    fcnHandleStr  = '@(matrix, minLevel, maxLevel)';
-                    fcnHandleFlag = false;
-                    
-                    if app.Constant.Value
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' maxLevel-minLevel < %f', app.SampleDiffBelowTolerance.Value)];
-                        fcnHandleFlag = true;
-                    end
+            flowIdx = app.inputArgs.flowIdx;
+            specData = app.mainApp.specData(flowIdx);
 
-                    if app.ThresholdTop.Value
-                        if fcnHandleFlag
-                            fcnHandleStr = [fcnHandleStr, ' |'];
-                        end
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix < %.1f, 1)', app.AllSamplesBelowThreshold.Value)];
-                        fcnHandleFlag = true;
-                    end                    
+            filterSpecification = struct('Action', 'FilterByLevel', 'Type', '', 'Rule', '', 'Result', '');
 
-                    if app.ThresholdBottom.Value
-                        if fcnHandleFlag
-                            fcnHandleStr = [fcnHandleStr, ' |'];
-                        end
-                        fcnHandleStr  = [fcnHandleStr, sprintf(' all(matrix > %.1f, 1)', app.AllSamplesAboveThreshold.Value)];
-                        fcnHandleFlag = true;
-                    end
+            switch app.RadioGroup.SelectedObject
+                case app.RemoveRangeBelowToleranceOption
+                    filterSpecification.Type = 'RemoveRangeBelowTolerance';
+                    filterSpecification.Rule = sprintf('@(minLevel, maxLevel) maxLevel-minLevel < %d', app.RemoveRangeBelowTolerance.Value);
 
-                    if ~fcnHandleFlag
-                        ui.Dialog(app.mainApp.UIFigure, 'warning', 'Deve ser selecionado ao menos um dos tipos de análise.');
-                        return
-                    end
+                case app.RemoveAllBelowThresholdOption
+                    filterSpecification.Type = 'RemoveAllBelowThreshold';
+                    filterSpecification.Rule = sprintf('@(matrix) all(matrix < %d, 1)', app.RemoveAllBelowThreshold.Value);
 
-                    [editedData, filteringLog] = util.levelFiltering(...
-                        app.mainApp.specData, ...
-                        app.idxThreads, ...
-                        fcnHandleStr ...
-                    );
-
-                    ui.Dialog(app.mainApp.UIFigure, 'info', strjoin(filteringLog, '\n\n'));
-                    updateFlag = ~isempty(editedData);
-                    args = {editedData, 'copy'};
-
-                case 'Close'
-                    updateFlag = false;
-                    args = {};
+                case app.RemoveAllAboveThresholdOption
+                    filterSpecification.Type = 'RemoveAllAboveThreshold';
+                    filterSpecification.Rule = sprintf('@(matrix) all(matrix > %d, 1)', app.RemoveAllAboveThreshold.Value);
             end
 
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'MISCELLANEOUS:LEVELFILTERING', updateFlag, false, args{:})
-            closeFcn(app)
+            [isValidFilterResult, matchMask, resultSummary] = computeFilterMatchIndexes(app, specData, filterSpecification);
+
+            if isValidFilterResult
+                questionMsg = sprintf('%s<br><br>Deseja aplicar esse filtro?', resultSummary);
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
+                if userSelection == "Não"
+                    return
+                end
+
+                filterSpecification.Result = replace(resultSummary, 'contém', 'continha');
+                ipcMainMatlabCallsHandler(app.mainApp, app, 'onFilterByLevelRequested', flowIdx, filterSpecification, matchMask, 'remove')
+
+            else
+                warningMsg = sprintf('%s<br><br>Por essa razão, não se pode aplicar esse filtro.', resultSummary);
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+            end
 
         end
     end
@@ -211,70 +248,77 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             app.RadioGroup.Layout.Row = 3;
             app.RadioGroup.Layout.Column = [1 3];
 
-            % Create SampleDiffBelowToleranceOption
-            app.SampleDiffBelowToleranceOption = uiradiobutton(app.RadioGroup);
-            app.SampleDiffBelowToleranceOption.Text = 'Excluir varreduras em que a diferença absoluta entre os valores máximo e mínimo das amostras seja inferior a uma tolerância.';
-            app.SampleDiffBelowToleranceOption.WordWrap = 'on';
-            app.SampleDiffBelowToleranceOption.FontSize = 11;
-            app.SampleDiffBelowToleranceOption.Position = [11 169 495 28];
-            app.SampleDiffBelowToleranceOption.Value = true;
+            % Create RemoveRangeBelowToleranceOption
+            app.RemoveRangeBelowToleranceOption = uiradiobutton(app.RadioGroup);
+            app.RemoveRangeBelowToleranceOption.Text = 'Excluir varreduras em que a diferença absoluta entre os valores máximo e mínimo das amostras seja inferior a uma tolerância.';
+            app.RemoveRangeBelowToleranceOption.WordWrap = 'on';
+            app.RemoveRangeBelowToleranceOption.FontSize = 11;
+            app.RemoveRangeBelowToleranceOption.Position = [11 169 495 28];
+            app.RemoveRangeBelowToleranceOption.Value = true;
 
-            % Create SampleDiffBelowToleranceLabel
-            app.SampleDiffBelowToleranceLabel = uilabel(app.RadioGroup);
-            app.SampleDiffBelowToleranceLabel.Tag = 'SampleDiffBelowTolerance';
-            app.SampleDiffBelowToleranceLabel.FontSize = 11;
-            app.SampleDiffBelowToleranceLabel.Position = [28 141 60 22];
-            app.SampleDiffBelowToleranceLabel.Text = 'Tolerância:';
+            % Create RemoveRangeBelowToleranceLabel
+            app.RemoveRangeBelowToleranceLabel = uilabel(app.RadioGroup);
+            app.RemoveRangeBelowToleranceLabel.Tag = 'RemoveRangeBelowTolerance';
+            app.RemoveRangeBelowToleranceLabel.FontSize = 11;
+            app.RemoveRangeBelowToleranceLabel.Position = [28 141 60 22];
+            app.RemoveRangeBelowToleranceLabel.Text = 'Tolerância:';
 
-            % Create SampleDiffBelowTolerance
-            app.SampleDiffBelowTolerance = uieditfield(app.RadioGroup, 'numeric');
-            app.SampleDiffBelowTolerance.Tag = 'SampleDiffBelowTolerance';
-            app.SampleDiffBelowTolerance.FontSize = 11;
-            app.SampleDiffBelowTolerance.Position = [91 141 90 22];
-            app.SampleDiffBelowTolerance.Value = 1e-05;
+            % Create RemoveRangeBelowTolerance
+            app.RemoveRangeBelowTolerance = uieditfield(app.RadioGroup, 'numeric');
+            app.RemoveRangeBelowTolerance.Limits = [1 100];
+            app.RemoveRangeBelowTolerance.RoundFractionalValues = 'on';
+            app.RemoveRangeBelowTolerance.ValueDisplayFormat = '%d';
+            app.RemoveRangeBelowTolerance.Tag = 'RemoveRangeBelowTolerance';
+            app.RemoveRangeBelowTolerance.FontSize = 11;
+            app.RemoveRangeBelowTolerance.Position = [91 141 90 22];
+            app.RemoveRangeBelowTolerance.Value = 1;
 
-            % Create AllSamplesBelowThresholdOption
-            app.AllSamplesBelowThresholdOption = uiradiobutton(app.RadioGroup);
-            app.AllSamplesBelowThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam inferiores a um limiar.';
-            app.AllSamplesBelowThresholdOption.FontSize = 11;
-            app.AllSamplesBelowThresholdOption.Position = [11 101 491 22];
+            % Create RemoveAllBelowThresholdOption
+            app.RemoveAllBelowThresholdOption = uiradiobutton(app.RadioGroup);
+            app.RemoveAllBelowThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam inferiores a um limiar.';
+            app.RemoveAllBelowThresholdOption.FontSize = 11;
+            app.RemoveAllBelowThresholdOption.Position = [11 101 491 22];
 
-            % Create AllSamplesBelowThresholdLabel
-            app.AllSamplesBelowThresholdLabel = uilabel(app.RadioGroup);
-            app.AllSamplesBelowThresholdLabel.Tag = 'AllSamplesBelowThreshold';
-            app.AllSamplesBelowThresholdLabel.FontSize = 11;
-            app.AllSamplesBelowThresholdLabel.Enable = 'off';
-            app.AllSamplesBelowThresholdLabel.Position = [28 77 60 22];
-            app.AllSamplesBelowThresholdLabel.Text = 'Limiar:';
+            % Create RemoveAllBelowThresholdLabel
+            app.RemoveAllBelowThresholdLabel = uilabel(app.RadioGroup);
+            app.RemoveAllBelowThresholdLabel.Tag = 'RemoveAllBelowThreshold';
+            app.RemoveAllBelowThresholdLabel.FontSize = 11;
+            app.RemoveAllBelowThresholdLabel.Enable = 'off';
+            app.RemoveAllBelowThresholdLabel.Position = [28 77 60 22];
+            app.RemoveAllBelowThresholdLabel.Text = 'Limiar:';
 
-            % Create AllSamplesBelowThreshold
-            app.AllSamplesBelowThreshold = uieditfield(app.RadioGroup, 'numeric');
-            app.AllSamplesBelowThreshold.Tag = 'AllSamplesBelowThreshold';
-            app.AllSamplesBelowThreshold.FontSize = 11;
-            app.AllSamplesBelowThreshold.Enable = 'off';
-            app.AllSamplesBelowThreshold.Position = [91 77 90 22];
-            app.AllSamplesBelowThreshold.Value = -100;
+            % Create RemoveAllBelowThreshold
+            app.RemoveAllBelowThreshold = uieditfield(app.RadioGroup, 'numeric');
+            app.RemoveAllBelowThreshold.RoundFractionalValues = 'on';
+            app.RemoveAllBelowThreshold.ValueDisplayFormat = '%d';
+            app.RemoveAllBelowThreshold.Tag = 'RemoveAllBelowThreshold';
+            app.RemoveAllBelowThreshold.FontSize = 11;
+            app.RemoveAllBelowThreshold.Enable = 'off';
+            app.RemoveAllBelowThreshold.Position = [91 77 90 22];
+            app.RemoveAllBelowThreshold.Value = -100;
 
-            % Create AllSamplesAboveThresholdOption
-            app.AllSamplesAboveThresholdOption = uiradiobutton(app.RadioGroup);
-            app.AllSamplesAboveThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam superiores a um limiar.';
-            app.AllSamplesAboveThresholdOption.FontSize = 11;
-            app.AllSamplesAboveThresholdOption.Position = [11 37 491 22];
+            % Create RemoveAllAboveThresholdOption
+            app.RemoveAllAboveThresholdOption = uiradiobutton(app.RadioGroup);
+            app.RemoveAllAboveThresholdOption.Text = 'Excluir varreduras em que todos os valores de suas amostras sejam superiores a um limiar.';
+            app.RemoveAllAboveThresholdOption.FontSize = 11;
+            app.RemoveAllAboveThresholdOption.Position = [11 37 491 22];
 
-            % Create AllSamplesAboveThresholdLabel
-            app.AllSamplesAboveThresholdLabel = uilabel(app.RadioGroup);
-            app.AllSamplesAboveThresholdLabel.Tag = 'AllSamplesAboveThreshold';
-            app.AllSamplesAboveThresholdLabel.FontSize = 11;
-            app.AllSamplesAboveThresholdLabel.Enable = 'off';
-            app.AllSamplesAboveThresholdLabel.Position = [28 10 60 22];
-            app.AllSamplesAboveThresholdLabel.Text = 'Limiar:';
+            % Create RemoveAllAboveThresholdLabel
+            app.RemoveAllAboveThresholdLabel = uilabel(app.RadioGroup);
+            app.RemoveAllAboveThresholdLabel.Tag = 'RemoveAllAboveThreshold';
+            app.RemoveAllAboveThresholdLabel.FontSize = 11;
+            app.RemoveAllAboveThresholdLabel.Enable = 'off';
+            app.RemoveAllAboveThresholdLabel.Position = [28 10 60 22];
+            app.RemoveAllAboveThresholdLabel.Text = 'Limiar:';
 
-            % Create AllSamplesAboveThreshold
-            app.AllSamplesAboveThreshold = uieditfield(app.RadioGroup, 'numeric');
-            app.AllSamplesAboveThreshold.Tag = 'AllSamplesAboveThreshold';
-            app.AllSamplesAboveThreshold.FontSize = 11;
-            app.AllSamplesAboveThreshold.Enable = 'off';
-            app.AllSamplesAboveThreshold.Position = [91 10 90 22];
+            % Create RemoveAllAboveThreshold
+            app.RemoveAllAboveThreshold = uieditfield(app.RadioGroup, 'numeric');
+            app.RemoveAllAboveThreshold.RoundFractionalValues = 'on';
+            app.RemoveAllAboveThreshold.ValueDisplayFormat = '%d';
+            app.RemoveAllAboveThreshold.Tag = 'RemoveAllAboveThreshold';
+            app.RemoveAllAboveThreshold.FontSize = 11;
+            app.RemoveAllAboveThreshold.Enable = 'off';
+            app.RemoveAllAboveThreshold.Position = [91 10 90 22];
 
             % Create OkButton
             app.OkButton = uibutton(app.GridLayout, 'push');

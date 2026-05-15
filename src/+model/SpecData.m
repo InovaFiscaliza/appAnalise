@@ -414,14 +414,25 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function obj = applyFilter(obj, filterSpecification, filterMask)
+        function obj = applyFilter(obj, filterSpecification, matchMask, maskMode)
+            arguments
+                obj
+                filterSpecification
+                matchMask
+                maskMode {mustBeMember(maskMode, {'keep', 'remove'})} = 'keep'
+            end
+
+            if strcmp(maskMode, 'remove')
+                matchMask = ~matchMask;
+            end
+
             checkIfScalar(obj)
 
-            obj.Data{1}(~filterMask)    = [];
-            obj.Data{2}(:, ~filterMask) = [];
+            obj.Data{1}(~matchMask)    = [];
+            obj.Data{2}(:, ~matchMask) = [];
             if numel(obj.Data) == 5
-                obj.Data{4}(:, ~filterMask) = [];
-                obj.Data{5}(:, ~filterMask) = [];
+                obj.Data{4}(:, ~matchMask) = [];
+                obj.Data{5}(:, ~matchMask) = [];
             end
 
             basicStats(obj)

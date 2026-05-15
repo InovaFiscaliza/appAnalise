@@ -233,7 +233,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                     end
 
                     filterSpecification.Result = replace(resultSummary, 'contém', 'continha');
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onFilterByTimeRequested', flowIdx, filterSpecification, matchMask)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onFilterByTimeRequested', flowIdx, filterSpecification, matchMask, 'keep')
 
                 else
                     warningMsg = sprintf('%s<br><br>Por essa razão, não se pode aplicar esse filtro.', resultSummary);

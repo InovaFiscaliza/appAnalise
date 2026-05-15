@@ -397,12 +397,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
 
-                                    case 'onFilterByTimeRequested'
+                                    case {'onFilterByLevelRequested', 'onFilterByTimeRequested'}
                                         flowIdx = varargin{1};
                                         filterSpecification = varargin{2};
-                                        filterMask = varargin{3};
+                                        matchMask = varargin{3};
+                                        maskMode = varargin{4};
 
-                                        app.specData(flowIdx) = applyFilter(app.specData(flowIdx), filterSpecification, filterMask);
+                                        app.specData(flowIdx) = applyFilter(app.specData(flowIdx), filterSpecification, matchMask, maskMode);
                                         notifySecondaryApps(app, eventName, {'SIGNALANALYSIS'})
 
                                     case 'onReportFlowListChanged'
@@ -766,6 +767,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
                                                            'onReportFlowListChanged', ...
+                                                           'onFilterByLevelRequested', ...
                                                            'onFilterByTimeRequested', ...
                                                            'onLocationChanged', ...
                                                            'onEmissionAdded', ...
