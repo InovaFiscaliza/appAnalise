@@ -1240,20 +1240,25 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 return
             end
 
-            % if ~strcmp(app.executionMode, 'webApp')
-            %     projectName = char(app.report_ProjectName.Value);
-            %     if ~isempty(projectName) && app.report_ProjectWarnIcon.Visible
-            %         msgQuestion = sprintf(['O projeto aberto - registrado no arquivo <b>"%s"</b> - foi alterado.\n\n' ...
-            %                                'Deseja descartar essas alterações? Caso não, favor salvá-las no modo RELATÓRIO.'], projectName);
-            %     else
-            %         msgQuestion = 'Deseja fechar o aplicativo?';
-            %     end
-            % 
-            %     userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
-            %     if userSelection == "Não"
-            %         return
-            %     end
-            % end
+            msgQuestion = '';
+            if checkIfUpdateNeeded(app.projectData, app.specData)
+                msgQuestion = sprintf([ ...
+                    'O projeto "%s" foi modificado (nome, arquivo de saída, '      ...
+                    'lista de arquivos de entrada ou anotações das estações). '    ...
+                    'Caso o aplicativo seja encerrado agora, todas as alterações ' ...
+                    'serão descartadas.\n\nDeseja realmente fechar o aplicativo?'  ...
+                    ], app.projectData.name);
+
+            elseif ~strcmp(app.executionMode, 'webApp')
+                msgQuestion = 'Deseja fechar o aplicativo?';
+            end
+
+            if ~isempty(msgQuestion)                
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                if userSelection == "Não"
+                    return
+                end
+            end
 
             % Aspectos gerais (comum em todos os apps):
             appEngine.beforeDeleteApp(app.progressDialog, app.General_I.fileFolder.tempPath, app.tabGroupController, app.executionMode)
