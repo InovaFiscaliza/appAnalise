@@ -1297,7 +1297,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     focus(findobj(app.NavBar.Children, 'Type', 'uistatebutton', 'Value', true))
 
                 case app.AppInfo
-                    appInfo = util.HtmlTextGenerator.AppInfo( ...
+                    appInfo = util.HtmlTextGenerator.getAppInfo( ...
                         app.General, ...
                         app.rootFolder, ...
                         app.executionMode, ...
@@ -1491,13 +1491,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 expand(app.FileTree.Children(fileIdxs), 'all')
                 scroll(app.FileTree, app.FileTree.SelectedNodes(end))
 
-                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.SelectedFile(app.metaData, fileIdxs, flowIdxs));
+                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, flowIdxs));
             else
                 initializeFileTreeSelectionIdx(app)
 
                 if ~isempty(app.FileTree.SelectedNodes)
                     nodeData = [app.FileTree.SelectedNodes.NodeData];
-                    ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.SelectedFile(app.metaData, fileIdxs, nodeData))
+                    ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, nodeData))
                 else
                     ui.TextView.update(app.FileMetadata, '');
                 end

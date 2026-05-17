@@ -8,6 +8,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         SpectrumFlowTreeLabel   matlab.ui.control.Label
         reportPanel             matlab.ui.container.Panel
         reportGrid              matlab.ui.container.GridLayout
+        prjOpenFileButton_4     matlab.ui.control.Image
         reportEntityPanel       matlab.ui.container.Panel
         reportEntityGrid        matlab.ui.container.GridLayout
         reportEntityName        matlab.ui.control.EditField
@@ -708,7 +709,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create reportGrid
             app.reportGrid = uigridlayout(app.reportPanel);
-            app.reportGrid.ColumnWidth = {'1x', 150, 150};
+            app.reportGrid.ColumnWidth = {'1x', 150, 150, 18};
             app.reportGrid.RowHeight = {17, 22, 22, 15, '1x'};
             app.reportGrid.RowSpacing = 5;
             app.reportGrid.BackgroundColor = [1 1 1];
@@ -728,7 +729,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportModel.FontSize = 11;
             app.reportModel.BackgroundColor = [1 1 1];
             app.reportModel.Layout.Row = 2;
-            app.reportModel.Layout.Column = [1 3];
+            app.reportModel.Layout.Column = [1 4];
             app.reportModel.Value = '';
 
             % Create reportVersionLabel
@@ -746,7 +747,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportVersion.FontSize = 11;
             app.reportVersion.BackgroundColor = [1 1 1];
             app.reportVersion.Layout.Row = 3;
-            app.reportVersion.Layout.Column = 3;
+            app.reportVersion.Layout.Column = [3 4];
             app.reportVersion.Value = 'Preliminar';
 
             % Create reportEntityPanelLabel
@@ -761,7 +762,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportEntityPanel = uipanel(app.reportGrid);
             app.reportEntityPanel.AutoResizeChildren = 'off';
             app.reportEntityPanel.Layout.Row = 5;
-            app.reportEntityPanel.Layout.Column = [1 3];
+            app.reportEntityPanel.Layout.Column = [1 4];
 
             % Create reportEntityGrid
             app.reportEntityGrid = uigridlayout(app.reportEntityPanel);
@@ -830,6 +831,14 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportEntityName.FontSize = 11;
             app.reportEntityName.Layout.Row = 4;
             app.reportEntityName.Layout.Column = [1 3];
+
+            % Create prjOpenFileButton_4
+            app.prjOpenFileButton_4 = uiimage(app.reportGrid);
+            app.prjOpenFileButton_4.Tooltip = {'Abre projeto'};
+            app.prjOpenFileButton_4.Layout.Row = 1;
+            app.prjOpenFileButton_4.Layout.Column = 4;
+            app.prjOpenFileButton_4.VerticalAlignment = 'bottom';
+            app.prjOpenFileButton_4.ImageSource = 'attach_32.png';
 
             % Create SpectrumFlowTreeLabel
             app.SpectrumFlowTreeLabel = uilabel(app.GridLayout);

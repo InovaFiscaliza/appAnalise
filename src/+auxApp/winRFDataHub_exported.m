@@ -1735,7 +1735,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             end
 
             % Painel HTML
-            ui.TextView.update(app.stationInfo, util.HtmlTextGenerator.Station(app.rfDataHub, idxRFDataHub, app.rfDataHubLOG, app.mainApp.General));
+            ui.TextView.update(app.stationInfo, util.HtmlTextGenerator.getStationInfo(app.rfDataHub, idxRFDataHub, app.rfDataHubLOG, app.mainApp.General));
             app.stationInfoImage.Visible = 'off';
 
             % Painel PDF

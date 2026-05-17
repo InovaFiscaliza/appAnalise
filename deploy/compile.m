@@ -40,7 +40,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
     end
 
     % Abre projeto do "appAnalise", caso fechado, o que mapeia as pastas do
-    % projeto, possibilitar chamar class.Constants.appRelease, por exemplo.
+    % projeto, possibilitando chamar class.Constants.appName, por exemplo.
     try
         prjInfo = currentProject;
 
@@ -160,8 +160,8 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
 
     if isfolder(deployApp)
         appName    = class.Constants.appName;
-        appRelease = class.Constants.appRelease;
         appVersion = class.Constants.appVersion;
+        appRelease = matlabRelease.Release;
 
         desktopFinalFolder = fullfile(finalFolder, 'desktop');
 

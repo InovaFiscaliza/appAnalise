@@ -1071,7 +1071,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function refreshEmissionMetadataPanel(app, specData)
-            htmlContent = util.HtmlTextGenerator.EmissionMetaData(specData, app.emissionSelectedIdxs, app.AppHandleNameInBase, app.mainApp.General);
+            emissionIdx = app.emissionSelectedIdxs.emissionIdx;
+            htmlContent = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context, app.AppHandleNameInBase, app.mainApp.General);
             ui.TextView.update(app.EmissionMetadata, htmlContent);
         end
 

@@ -83,6 +83,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowOccupancyLabel             matlab.ui.control.Label
         FlowEmissions                  matlab.ui.control.Table
         FlowEmissionsAdd               matlab.ui.control.Image
+        FlowEmissionsImport            matlab.ui.control.Image
         FlowEmissionsLabel             matlab.ui.control.Label
         FlowDetectionLimits            matlab.ui.control.ListBox
         FlowDetectionLimitsEdit        matlab.ui.control.Image
@@ -113,6 +114,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         ContextMenu                    matlab.ui.container.ContextMenu
         ContextMenuClassification      matlab.ui.container.Menu
         ContextMenuDelete              matlab.ui.container.Menu
+        ContextMenuDeleteAll           matlab.ui.container.Menu
     end
 
     
@@ -219,6 +221,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'Cancelar'
                                 return
                         end
+
+                    case 'onCalibrationRequested'
+                        uialert(app.UIFigure, 'onCalibrationRequested', '')
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -718,7 +723,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
                 end
 
-                app.FlowMetadata.Text = util.HtmlTextGenerator.ThreadMetaData(specData, app.AppHandleNameInBase, app.mainApp.General);
+                app.FlowMetadata.Text = util.HtmlTextGenerator.getSelectedFlowMetadata(specData, app.AppHandleNameInBase, app.mainApp.General);
 
             else
                 app.FlowMetadata.Text = '';
@@ -1113,7 +1118,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             arguments
                 app
                 specData
-                updateType {mustBeMember(updateType, {'Edit', 'Delete'})}
+                updateType {mustBeMember(updateType, {'Edit', 'Delete', 'DeleteAll'})}
                 emissionIdx
             end
 
@@ -1129,8 +1134,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     update(specData, 'UserData:Emissions', updateType, parameterName, emissionIdx, varargin{2:end})
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
 
-                case 'Delete'
-                    update(specData, 'UserData:Emissions', updateType, emissionIdx)
+                case {'Delete', 'DeleteAll'}
+                    update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
             end
 
@@ -1447,10 +1452,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             panelSubtitles = {'Metadados', 'Canais', 'Emissões', 'Ocupação'};
             panelBtnStatus = [false true; true true; true true; true false];
             columnWidths = {
-                {'1x',0,0,0,0,0,0,0,0,0,0};
-                {0,10,'1x',18,10,0,0,0,0,0,0};
-                {0,0,0,0,10,'1x',18,10,0,0,0};
-                {0,0,0,0,0,0,0,10,'1x',18,10}
+                {'1x',0,0,0,0,0,0,0,0,0,0,0,0};
+                {0,10,'1x',18,10,0,0,0,0,0,0,0,0};
+                {0,0,0,0,10,'1x',22,5,22,10,0,0,0}
+                {0,0,0,0,0,0,0,0,0,10,'1x',18,10}
             };
 
             currentIndex = app.FlowAttributesPanelVisibleIdx.UserData.index;
@@ -1582,7 +1587,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                 case app.axesTool_FlowInfo
                     if ~isempty(specData)
-                        flowAnalysis = util.HtmlTextGenerator.ThreadAnalysis(specData);
+                        flowAnalysis = util.HtmlTextGenerator.computeFlowAnalysis(specData);
                         ui.Dialog(app.UIFigure, 'info', flowAnalysis);
                     end
             end
@@ -1819,6 +1824,30 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
+        % Image clicked function: FlowEmissionsImport
+        function onEmissionsImportButtonClicked(app, event)
+            
+            if numel(idx) < numel(app.specData)
+                msgQuestion   = 'Você deseja importar a lista de emissões apenas para os fluxos espectrais selecionados ou para todos os fluxos espectrais?';
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Apenas seleção', 'Todos', 'Cancelar'}, 1, 3);
+                switch userSelection
+                    case 'Todos'
+                        idx = 1:numel(app.specData);
+                    case 'Cancelar'
+                        return
+                end
+            end
+
+            [fileFullPath, fileFolder] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.mat', 'appAnalise (*.mat)'}, app.General.fileFolder.lastVisited);
+            if isempty(fileFullPath)
+                return
+            end
+            misc_updateLastVisitedFolder(app, fileFolder)
+            
+            util.importAnalysis(app, app.specData(idx), fileFullPath);
+
+        end
+
         % Selection changed function: FlowEmissions
         function onEmissionsTableSelectionChanged(app, event)
             
@@ -1896,7 +1925,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Menu selected function: ContextMenuClassification, 
-        % ...and 1 other component
+        % ...and 2 other components
         function onContextMenuOptionClicked(app, event)
             
             [flowIdx, emissionIdx] = findSpecDataIndex(app);
@@ -2217,7 +2246,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_OpenPopupMisc.Enable = 'off';
             app.tool_OpenPopupMisc.Layout.Row = [1 3];
             app.tool_OpenPopupMisc.Layout.Column = 7;
-            app.tool_OpenPopupMisc.ImageSource = 'miscellaneous-18px.png';
+            app.tool_OpenPopupMisc.ImageSource = 'Merge_18.png';
 
             % Create tool_Separator2
             app.tool_Separator2 = uiimage(app.Toolbar);
@@ -2344,7 +2373,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 5, 22, 5, '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
@@ -2419,13 +2448,22 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsLabel.Layout.Column = 6;
             app.FlowEmissionsLabel.Text = 'EMISSÕES';
 
+            % Create FlowEmissionsImport
+            app.FlowEmissionsImport = uiimage(app.FlowPanelGrid);
+            app.FlowEmissionsImport.ScaleMethod = 'none';
+            app.FlowEmissionsImport.ImageClickedFcn = createCallbackFcn(app, @onEmissionsImportButtonClicked, true);
+            app.FlowEmissionsImport.Enable = 'off';
+            app.FlowEmissionsImport.Layout.Row = 2;
+            app.FlowEmissionsImport.Layout.Column = 7;
+            app.FlowEmissionsImport.ImageSource = 'Import_16.png';
+
             % Create FlowEmissionsAdd
             app.FlowEmissionsAdd = uiimage(app.FlowPanelGrid);
             app.FlowEmissionsAdd.ScaleMethod = 'none';
             app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowEmissionsAdd.Enable = 'off';
             app.FlowEmissionsAdd.Layout.Row = 2;
-            app.FlowEmissionsAdd.Layout.Column = 7;
+            app.FlowEmissionsAdd.Layout.Column = 9;
             app.FlowEmissionsAdd.VerticalAlignment = 'bottom';
             app.FlowEmissionsAdd.ImageSource = 'search-sparkle.svg';
 
@@ -2441,7 +2479,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Visible = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
-            app.FlowEmissions.Layout.Column = [6 7];
+            app.FlowEmissions.Layout.Column = [6 9];
             app.FlowEmissions.FontSize = 11;
 
             % Create FlowOccupancyLabel
@@ -2449,7 +2487,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancyLabel.VerticalAlignment = 'bottom';
             app.FlowOccupancyLabel.FontSize = 10;
             app.FlowOccupancyLabel.Layout.Row = 2;
-            app.FlowOccupancyLabel.Layout.Column = 9;
+            app.FlowOccupancyLabel.Layout.Column = 11;
             app.FlowOccupancyLabel.Text = 'OCUPAÇÃO';
 
             % Create FlowOccupancyEdit
@@ -2457,7 +2495,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancyEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowOccupancyEdit.Enable = 'off';
             app.FlowOccupancyEdit.Layout.Row = 2;
-            app.FlowOccupancyEdit.Layout.Column = 10;
+            app.FlowOccupancyEdit.Layout.Column = 12;
             app.FlowOccupancyEdit.VerticalAlignment = 'bottom';
             app.FlowOccupancyEdit.ImageSource = 'Edit_32.png';
 
@@ -2466,7 +2504,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancy.Items = {};
             app.FlowOccupancy.FontSize = 11;
             app.FlowOccupancy.Layout.Row = [4 8];
-            app.FlowOccupancy.Layout.Column = [9 10];
+            app.FlowOccupancy.Layout.Column = [11 12];
             app.FlowOccupancy.Value = {};
 
             % Create RightPanel
@@ -3127,6 +3165,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.ContextMenuDelete.Enable = 'off';
             app.ContextMenuDelete.Separator = 'on';
             app.ContextMenuDelete.Text = '❌ Excluir';
+
+            % Create ContextMenuDeleteAll
+            app.ContextMenuDeleteAll = uimenu(app.ContextMenu);
+            app.ContextMenuDeleteAll.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
+            app.ContextMenuDeleteAll.Enable = 'off';
+            app.ContextMenuDeleteAll.Text = '❌ Excluir tudo';
             
             % Assign app.ContextMenu
             app.FlowEmissions.ContextMenu = app.ContextMenu;

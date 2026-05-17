@@ -372,7 +372,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                  htmlContent2, ...
                  emissionTag, ...
                  userDescription, ...
-                 stationInfo] = util.HtmlTextGenerator.Emission(specData, emissionIdx);
+                 stationInfo] = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context);
     
                 ui.TextView.update(app.EmissionTitle, htmlContent1);
                 ui.TextView.update(app.LOG, htmlContent2);
@@ -406,7 +406,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.RiskLevel.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.RiskLevel;
     
                 % PLOT CONFIG PANEL
-                app.TXLocationEditConfirm.UserData = stationInfo;
+                app.TXLocationEditConfirm.UserData.details = stationInfo;
                 updateCoordinatesPanelContent(app)
     
                 % PLOT
@@ -529,7 +529,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateCoordinatesPanelContent(app)
-            stationInfo = app.TXLocationEditConfirm.UserData;
+            stationInfo = app.TXLocationEditConfirm.UserData.details;
 
             app.TXLatitude.Value  = double(stationInfo.Latitude);
             app.TXLongitude.Value = double(stationInfo.Longitude);
@@ -881,7 +881,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 % Caso a estação não conste em RFDataHub, o método query
                 % chamado anteriormente retornará um erro. Mas caso
                 % encontre, confirma-se com o usuário a edição.
-                msgQuestion = util.HtmlTextGenerator.EmissionEditionConfirmation(specData, emissionIdx, stationInfo);
+                msgQuestion = util.HtmlTextGenerator.checkEmissionEditConfirmation(specData, emissionIdx, stationInfo);
                 userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
 
                 switch userSelection
@@ -1046,32 +1046,62 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 %---------------------------------------------------------%
                 case app.tool_ExportJSONFile
-                    if app.tool_EmissionReportListLimit.Value
-                        idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.mainApp.specData));
-                    else
-                        idxThreads = 1:numel(app.mainApp.specData);
-                    end
-
-                    emissionSummaryTable   = util.createEmissionsTable(app.mainApp.specData, idxThreads, 'SIGNALANALYSIS: JSONFile');
-                    emissionFiscalizaTable = reportLibConnection.table.fiscalizaJsonFile(app.mainApp.specData, idxThreads, emissionSummaryTable);
+                    msgQuestion = 'Deseja exportar JSON com todas as emissões apresentadas em tabela, ou JSON no formato que sobe para o Sharepoint, de forma que possa ser importado no appEventos?';
+                    userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Emissões', 'Para importar no AppEventos', 'Cancelar'}, 1, 3);
     
-                    nameFormatMap   = {'*.json', 'appAnalise (*.json)'};
-                    defaultFilename = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'preReport');
-                    JSONFullPath    = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultFilename);
+                    switch userSelection
+                        case 'Cancelar'
+                            return
 
-                    if isempty(JSONFullPath)
-                        return
+                        case 'Emissões'
+                            if numel(idx) < numel(app.specData)
+                                msgQuestion   = 'Você deseja exportar a lista de emissões apenas dos fluxos espectrais selecionados ou de todos os fluxos espectrais?';
+                                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Apenas seleção', 'Todos', 'Cancelar'}, 1, 3);
+                                switch userSelection
+                                    case 'Todos'
+                                        idx = 1:numel(app.specData);
+                                    case 'Cancelar'
+                                        return
+                                end
+                            end
+                
+                            nameFormatMap = {'*.mat', 'appAnalise (*.mat)'};
+                            defaultName   = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'UserData', -1); 
+                            fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
+                            if isempty(fileFullPath)
+                                return
+                            end
+
+                            model.fileWriter.MAT(fileFullPath, '.mat', 'UserData', app.specData(idx));
+    
+                        case 'Para importar no AppEventos'
+                            if app.tool_EmissionReportListLimit.Value
+                                idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.mainApp.specData));
+                            else
+                                idxThreads = 1:numel(app.mainApp.specData);
+                            end
+        
+                            emissionSummaryTable   = util.createEmissionsTable(app.mainApp.specData, idxThreads, 'SIGNALANALYSIS: JSONFile');
+                            emissionFiscalizaTable = reportLibConnection.table.fiscalizaJsonFile(app.mainApp.specData, idxThreads, emissionSummaryTable);
+            
+                            nameFormatMap   = {'*.json', 'appAnalise (*.json)'};
+                            defaultFilename = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'preReport');
+                            JSONFullPath    = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultFilename);
+        
+                            if isempty(JSONFullPath)
+                                return
+                            end
+        
+                            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+                            
+                            try
+                                writematrix(emissionFiscalizaTable, JSONFullPath, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
+                            catch ME
+                                ui.Dialog(app.UIFigure, 'error', ME.message);
+                            end
+        
+                            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
                     end
-
-                    requestVisibilityChange(app.progressDialog, 'visible', 'locked')
-                    
-                    try
-                        writematrix(emissionFiscalizaTable, JSONFullPath, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
-                    catch ME
-                        ui.Dialog(app.UIFigure, 'error', ME.message);
-                    end
-
-                    requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
                 %---------------------------------------------------------%
                 case app.tool_ControlPanelVisibility
@@ -1135,7 +1165,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
             app.Document.ColumnWidth = {5, 13, 5, 44, '1x', '1x', 18, 3};
-            app.Document.RowHeight = {22, 5, '1x', 14, 24, 216};
+            app.Document.RowHeight = {22, 5, '1x', 12, 24, 216};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
             app.Document.Padding = [0 0 0 0];
