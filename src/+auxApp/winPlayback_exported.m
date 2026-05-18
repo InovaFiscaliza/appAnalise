@@ -104,7 +104,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_GenerateReport            matlab.ui.control.Image
         tool_OpenPopupProject          matlab.ui.control.Image
         tool_Separator2                matlab.ui.control.Image
-        tool_OpenPopupMisc             matlab.ui.control.Image
+        tool_OpenPopupMerge            matlab.ui.control.Image
         tool_TimestampLabel            matlab.ui.control.Label
         tool_TimestampSlider           matlab.ui.control.Slider
         tool_LoopControl               matlab.ui.control.Image
@@ -200,30 +200,35 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                         questionMsg = [ ...
                             'É possível aplicar filtros para remover varreduras com base ' ...
-                            'em critérios temporais ou de nível.<br><br>' ...
+                            'em critérios temporais ou de nível. E, além disso, é possível aplicar ' ...
+                            'uma curva de calibração.<br><br>' ...
                             '•&thinsp;Filtro temporal: remove varreduras com base em quando ' ...
-                            'foram coletadas (ex.: data/hora, apenas data, apenas hora ou dia da semana).<br><br>' ...
+                            'foram coletadas (ex.: data ou dia da semana).<br><br>' ...
                             '•&thinsp;Filtros de nível: remove varreduras com base nos valores das ' ...
                             'amostras, considerando variação ou limiares (mínimo, máximo ou diferença ' ...
-                            'entre valores).<br><br>Que tipo de filtro deseja configurar?' ...
+                            'entre valores).<br><br>' ...
+                            '•&thinsp;Calibração: aplica uma curva de calibração da medida, mudando, ou não, ' ...
+                            'a unidade de medida.<br><br>' ...
+                            'O que deseja configurar?' ...
                         ];
-                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Temporal', 'Nível', 'Cancelar'}, 1, 3);
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Filtro temporal', 'Filtro nível', 'Calibração', 'Cancelar'}, 1, 4);
 
                         switch userSelection
-                            case 'Temporal'
+                            case 'Filtro temporal'
                                 stopPlaybackIfRunning(app)
                                 ipcMainMatlabOpenPopupApp(app.mainApp, app, 'FilterByTime', app.Context, flowIdx)
 
-                            case 'Nível'
+                            case 'Filtro nível'
                                 stopPlaybackIfRunning(app)
                                 ipcMainMatlabOpenPopupApp(app.mainApp, app, 'FilterByLevel', app.Context, flowIdx)
+
+                            case 'Calibração'
+                                stopPlaybackIfRunning(app)
+                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'Calibration', app.Context, flowIdx)
 
                             case 'Cancelar'
                                 return
                         end
-
-                    case 'onCalibrationRequested'
-                        uialert(app.UIFigure, 'onCalibrationRequested', '')
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -245,6 +250,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case {'onFileListAdded', ...
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
+                                  'onFlowMergeRequested', ...
                                   'onReportFlowListChanged', ...
                                   'onFilterByLevelRequested', ...
                                   'onFilterByTimeRequested', ...
@@ -323,7 +329,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.tool_LayoutLeft;
                         app.tool_Play;
                         app.tool_LoopControl;
-                        app.tool_OpenPopupMisc;
+                        app.tool_OpenPopupMerge;
                         app.tool_OpenPopupProject;
                         app.tool_GenerateReport;
                         app.tool_UploadFinalFile;
@@ -342,7 +348,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
                             struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,               'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
-                            struct('appName', appName, 'dataTag', app.tool_OpenPopupMisc.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exibe outras operações')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupMerge.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exibe outras operações')), ...
                             struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
                             struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,     'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
                             struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
@@ -358,7 +364,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
 
                     try
-                        ui.TextView.startup(app.jsBackDoor, app.FlowMetadata,  appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
+                        ui.TextView.startup(app.jsBackDoor, app.FlowMetadata, appName, struct('class', {{'textview--borderless', 'textview--wordbreak'}}));
                     catch
                     end
 
@@ -699,7 +705,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.tool_Play;
                 app.tool_LoopControl;
                 app.tool_TimestampSlider;
-                app.tool_OpenPopupMisc
+                app.tool_OpenPopupMerge
             ], 'Enable', nonEmptySpecData)
 
             app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
@@ -1414,8 +1420,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     dockAppTag = 'Detection';
                 case app.FlowOccupancyEdit
                     dockAppTag = 'Occupancy';
-                case app.tool_OpenPopupMisc
-                    dockAppTag = 'Miscellaneous';
+                case app.tool_OpenPopupMerge
+                    dockAppTag = 'FlowMerge';
                 case app.tool_OpenPopupProject
                     dockAppTag = 'ReportLib';
             end
@@ -2239,14 +2245,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'22 de 328 '; '22/02/2022 08:00:00 '};
 
-            % Create tool_OpenPopupMisc
-            app.tool_OpenPopupMisc = uiimage(app.Toolbar);
-            app.tool_OpenPopupMisc.ScaleMethod = 'none';
-            app.tool_OpenPopupMisc.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
-            app.tool_OpenPopupMisc.Enable = 'off';
-            app.tool_OpenPopupMisc.Layout.Row = [1 3];
-            app.tool_OpenPopupMisc.Layout.Column = 7;
-            app.tool_OpenPopupMisc.ImageSource = 'Merge_18.png';
+            % Create tool_OpenPopupMerge
+            app.tool_OpenPopupMerge = uiimage(app.Toolbar);
+            app.tool_OpenPopupMerge.ScaleMethod = 'none';
+            app.tool_OpenPopupMerge.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
+            app.tool_OpenPopupMerge.Enable = 'off';
+            app.tool_OpenPopupMerge.Layout.Row = [1 3];
+            app.tool_OpenPopupMerge.Layout.Column = 7;
+            app.tool_OpenPopupMerge.ImageSource = 'Merge_18.png';
 
             % Create tool_Separator2
             app.tool_Separator2 = uiimage(app.Toolbar);

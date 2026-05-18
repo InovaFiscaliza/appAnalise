@@ -23,94 +23,32 @@ classdef dockCalibration_exported < matlab.apps.AppBase
     
     properties (Access = private)
         %-----------------------------------------------------------------%
+        Role = 'secondaryDockApp'
+    end
+
+
+    properties (Access = public)
+        %-----------------------------------------------------------------%
         Container
         isDocked = true
-        jsBackDoor
-
         mainApp
-        rootFolder
-        specData
+        callingApp
+        progressDialog
+    end
+
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        inputArgs
         referenceData
     end
 
 
-    methods
-        function ipcSecundaryJSEventsHandler(app, event, varargin)
-            try
-                switch event.HTMLEventName
-                    case 'renderer'
-                        startup_Controller(app, varargin{:})                        
-                    case 'auxApp.dockAddKFactor.kFactorTree'
-                        FieldValueChanged(app, struct('Source', app.ContextMenu_del))
-                    otherwise
-                        error('UnexpectedEvent')
-                end
-
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
-            end
-        end
-    end
-
-
     methods (Access = private)
         %-----------------------------------------------------------------%
-        % JSBACKDOOR: CUSTOMIZAÇÃO GUI (ESTÉTICA/COMPORTAMENTAL)
-        %-----------------------------------------------------------------%
-        function jsBackDoor_Initialization(app, varargin)
-            app.jsBackDoor = uihtml(app.UIFigure, "HTMLSource",           appEngine.util.jsBackDoorHTMLSource(),                              ...
-                                                  "HTMLEventReceivedFcn", @(~, evt)ipcSecundaryJSEventsHandler(app, evt, varargin{:}), ...
-                                                  "Visible",              "off");
-        end
-
-        %-----------------------------------------------------------------%
-        function jsBackDoor_Customizations(app)
-            elToModify = {app.kFactorTree};
-            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-            if ~isempty(elDataTag)
-                appName = class(app);
-                
-                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', {                                                                                       ...
-                    struct('appName', appName, 'dataTag', elDataTag{1}, 'listener', struct('componentName', 'auxApp.dockAddKFactor.kFactorTree', 'keyEvents', {{'Delete', 'Backspace'}})) ...
-                });
-            end
-        end
-    end
-
-    methods (Access = private)
-        %-----------------------------------------------------------------%
-        % INICIALIZAÇÃO
-        %-----------------------------------------------------------------%
-        function startup_timerCreation(app, idxThread)            
-            % A criação desse timer tem como objetivo garantir uma renderização 
-            % mais rápida dos componentes principais da GUI, possibilitando a 
-            % visualização da sua tela inicialpelo usuário. Trata-se de aspecto 
-            % essencial quando o app é compilado como webapp.
-
-            app.timerObj = timer("ExecutionMode", "fixedSpacing", ...
-                                 "StartDelay",    1.5,            ...
-                                 "Period",        .1,             ...
-                                 "TimerFcn",      @(~,~)app.startup_timerFcn(idxThread));
-            start(app.timerObj)
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_timerFcn(app, idxThread)
-            if ui.FigureRenderStatus(app.UIFigure)
-                stop(app.timerObj)
-                delete(app.timerObj)
-
-                jsBackDoor_Initialization(app, idxThread)
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function startup_Controller(app, idxThread)
-            drawnow
-            jsBackDoor_Customizations(app)
-
+        function initialValues(app, idxThread)
             [projectFolder, ...
-             programDataFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
+             programDataFolder] = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
             try
                 kFactorTable = jsondecode(fileread(fullfile(programDataFolder, 'Calibration.json')));
             catch
@@ -124,10 +62,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             Layout(app)            
         end
-    end
 
-
-    methods (Access = private)
         %-----------------------------------------------------------------%
         function editionFlag = checkEdition(app)
             idxThread = app.referenceData.idxThread;
@@ -182,11 +117,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
                 ui.Dialog(app.UIFigure, 'warning', ME.message);
             end
         end
-
-        %-----------------------------------------------------------------%
-        function callingMainApp(app, updateFlag, returnFlag)
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'MISCELLANEOUS', updateFlag, returnFlag)
-        end
     end
     
 
@@ -194,17 +124,16 @@ classdef dockCalibration_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, idxThreads)
+        function startupFcn(app, mainApp, callingApp, context, flowIdx)
             
-            app.mainApp    = mainApp;
-            app.rootFolder = mainApp.rootFolder;
-            app.specData   = mainApp.specData;
+            try
+                appEngine.boot(app, app.Role, mainApp, callingApp)
 
-            if app.isDocked
-                app.jsBackDoor = mainApp.jsBackDoor;
-                startup_Controller(app, idxThreads)
-            else
-                startup_timerCreation(app, idxThreads)
+                app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
+                % initialValues(app)
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
             
         end
@@ -212,7 +141,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcnCallFromPopupApp', 'mainApp', 'auxApp.dockAddKFactor')
             delete(app)
             
         end

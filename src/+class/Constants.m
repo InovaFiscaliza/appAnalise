@@ -3,7 +3,6 @@ classdef (Abstract) Constants
     properties (Constant)
         %-----------------------------------------------------------------%
         appName       = 'appAnalise'
-        appRelease    = 'R2024a'
         appVersion    = 'alpha_1.00.0'
 
         windowSize    = [1244, 660]
@@ -11,8 +10,8 @@ classdef (Abstract) Constants
 
         Interactions  = {'datacursor', 'zoomin', 'restoreview'}
 
-        yMinLimRange  = 80                                                  % Minimum y-Axis limit range
-        yMaxLimRange  = 100                                                 % Maximum y-Axis limit range
+        yMinLimRange  = 80 % Minimum y-Axis limit range
+        yMaxLimRange  = 100 % Maximum y-Axis limit range
 
         specDataTypes = [1, 2, 4, 7, 60, 61, 63, 64, 67, 68, 167, 168, 1000, 1809];
         occDataTypes  = [8, 62, 65, 69];
@@ -21,18 +20,26 @@ classdef (Abstract) Constants
         floatDiffTol  = 1e-5
 
         nMaxWaterFallPoints   = 1474560
-        nMaxPersistancePoints = 51200512                                    % nMaxPointsFSW * nMaxPersistanceOption (GUI) = 100001 * 512
+        nMaxPersistancePoints = 51200512 % nMaxPointsFSW * nMaxPersistanceOption (GUI) = 100001 * 512
         ElevationTolerance    = .85
     end
 
     
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [upYLim, strUnit] = yAxisUpLimit(Unit)
-            switch lower(Unit)
-                case 'dbm';                    upYLim = -20; strUnit = 'dBm';
-                case {'dbµv', 'dbμv', 'dbuv'}; upYLim =  87; strUnit = 'dBµV';
-                case {'dbµv/m', 'dbμv/m'};     upYLim = 100; strUnit = 'dBµV/m';
+        function [yUpLimit, normUnit] = yAxisUpLimit(unit)
+            switch lower(unit)
+                case 'dbm'
+                    yUpLimit = -20; 
+                    normUnit = 'dBm';
+                
+                case {'dbµv', 'dbμv', 'dbuv'}
+                    yUpLimit =  87;
+                    normUnit = 'dBµV';
+
+                case {'dbµv/m', 'dbμv/m'}
+                    yUpLimit = 100;
+                    normUnit = 'dBµV/m';
             end
         end
 
@@ -104,6 +111,7 @@ classdef (Abstract) Constants
                       "FreqCenterCumulativeOccupancy", ...
                       "EmissionCumulativeOccupancy", ...
                       "EmissionType"];
+
             values = ["Algoritmo", ...
                       "Altura da antena", ...
                       "Azimute", ...

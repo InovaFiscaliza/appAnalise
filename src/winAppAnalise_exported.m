@@ -385,7 +385,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                   'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % PLAYBACK
                                   'auxApp.dockFilterByTime',    'auxApp.dockFilterByTime_exported',    ... % PLAYBACK
                                   'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK
-                                  'auxApp.dockMiscellaneous',   'auxApp.dockMiscellaneous_exported',   ... % PLAYBACK (toolbar)
+                                  'auxApp.dockFlowMerge',       'auxApp.dockFlowMerge_exported',       ... % PLAYBACK (toolbar)
                                   'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % ?
                                   'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK (toolbar)
                                   'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
@@ -408,6 +408,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                     case 'onReportFlowListChanged'
                                         notifySecondaryApps(app, eventName)
+
+                                    case 'onFlowMergeRequested'
+                                        requestVisibilityChange(callingApp.progressDialog, 'visible', 'locked')
+
+                                        flowIdxs = varargin{1};
+                                        app.specData = mergeWith(app.specData, flowIdxs);
+                                        notifySecondaryApps(app, eventName)
+
+                                        requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')
+
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
 
                                     case 'onDriveTestFilterChanged'
                                         if callingApp.isDocked
@@ -462,7 +477,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'Location', 'Miscellaneous', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -494,8 +509,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications( 9, :) = {"ExternalFiles",   880, 480, false}; % Não iniciada revisão
                 popupSpecifications(10, :) = {"FilterByLevel",   550, 308, false}; % Em andamento
                 popupSpecifications(11, :) = {"FilterByTime",    452, 208, false};
-                popupSpecifications(12, :) = {"Location",        412, 190, false};
-                popupSpecifications(13, :) = {"Miscellaneous",   880, 480, true};  % Em andamento
+                popupSpecifications(12, :) = {"FlowMerge",       880, 480, true};
+                popupSpecifications(13, :) = {"Location",        412, 190, false};                
                 popupSpecifications(14, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
                 popupSpecifications(15, :) = {"ReportLib",       784, 594, false};
                 popupSpecifications(16, :) = {"RepoFiles",       940, 580, true};  % Em andamento (Augusto)
@@ -769,6 +784,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onReportFlowListChanged', ...
                                                            'onFilterByLevelRequested', ...
                                                            'onFilterByTimeRequested', ...
+                                                           'onFlowMergeRequested', ...
                                                            'onLocationChanged', ...
                                                            'onEmissionAdded', ...
                                                            'onEmissionParameterValueChanged', ...

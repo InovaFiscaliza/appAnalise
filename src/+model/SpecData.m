@@ -9,22 +9,26 @@ classdef SpecData < model.SpecDataBase
     %   │   │── read                        (model.SpecDataBase)
     %   │   │── basicStats                  (model.SpecDataBase)
     %   │   └── computeOccupancyPerBin
+    %   ├── addHashColumnToRelatedFilesTable
+    %   ├── validateFlowMergeRequest
     %   ├── mergeWith
     %   ├── applyFilter
     %   ├── update ⚠️
-    %   ├── hasOccupancyPerBin ⚠️
+    %   ├── computeOccupancyPerBin ⚠️
     %   ├── hasEmissionsInSearchBand ⚠️
     %   ├── calculateAntennaHeight
     %   └── buildSpectrumReferenceTable
 
     % PRIVATE
     %   ├── checkIfScalar
+    %   ├── deleteObsoleteFlows
+    %   ├── findMergeableFlow
+    %   ├── addInputFileInfo
     %   └── occupancyMapping
     
     % STATIC
-    %   └── identifyMergeType
-
-    % ⚠️: Pendente revisão
+    %   ├── identifyMergeType
+    %   └── hasTimestampOverlap
 
     properties
         %-----------------------------------------------------------------%
@@ -250,55 +254,71 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function msg = validateMergeRequirements(obj, flowIdxs)
-            if isscalar(flowIdxs)
-                error('model:SpecData:InvalidMergeRequirements', 'O processo de mesclagem requer ao menos dois fluxos espectrais.')
+        function [status, msg] = validateFlowMergeRequest(obj, flowIdxs)
+            if numel(flowIdxs) < 2
+                status = false;
+                msg = 'O processo de mesclagem requer ao menos dois fluxos espectrais.';
+                return
             end
 
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
+            
+            receiverList  = unique(mergeTable.Receiver);
+            dataTypeList  = unique(mergeTable.DataType);
+            levelUnitList = unique(mergeTable.LevelUnit);
 
-            if ~isscalar(unique(mergeTable.Receiver)) || ~isscalar(unique(mergeTable.DataType)) || ~isscalar(unique(mergeTable.LevelUnit))               
-                error('model:SpecData:InvalidMergeRequirements', [ ...
-                    'Os fluxos espectrais a mesclar não atendem aos requisitos dos dois tipos de mesclagem implantados no <i>app</i>, quais sejam:\n\n'    ...
-                    '• Tipo "co-channel": os fluxos devem possuir os campos "FreqStart", "FreqStop", "LevelUnit", "DataPoints" e "DataType" idênticos;\n\n' ...
-                    '• Tipo "adjacent-channel": os fluxos devem estar relacionados a faixas de frequências adjacentes, podendo ter sobreposição espectral entre fluxos, além de possuírem os campos "LevelUnit", "NumSweeps" e "DataType" idênticos.'
-                ])
+            blockingWarning = {};
+            if ~isscalar(receiverList)
+                blockingWarning{end+1} = sprintf('Os fluxos precisam estar relacionados a um mesmo receptor. Receptores encontrados: %s.', textFormatGUI.cellstr2FriendlyListWithQuotes(receiverList));
+            end
+
+            if ~isscalar(dataTypeList)
+                blockingWarning{end+1} = sprintf('Os fluxos precisam estar relacionados a um mesmo tipo de dado espectral. Tipos encontrados: [%s].', strjoin(string(dataTypeList), ', '));
+            end
+
+            if ~isscalar(levelUnitList)
+                blockingWarning{end+1} = sprintf('Os fluxos precisam estar relacionados a um mesmo tipo de unidade de nível espectral. Unidades encontradas: %s.', textFormatGUI.cellstr2FriendlyListWithQuotes(levelUnitList));
             end
 
             if any(mergeTable.NumCoordinates == 0)
-                error('model:SpecData:MissingMonitoringLocation', 'Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.')
+                blockingWarning{end+1} = 'Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.';
+            end
+
+            if ~isempty(blockingWarning)
+                status = false;
+                msg = sprintf('Foi evidenciada <font style="color: red;">incompatibilidade</font> entre os fluxos espectrais selecionados para mesclagem.<br>%s', textFormatGUI.cellstr2Bullets(blockingWarning));
+                return
             end
 
             resolutionList = unique(mergeTable.Resolution);
             stepWidthList  = unique(mergeTable.StepWidth);
 
-            msg = {};
+            nonBlockingWarning = {};
             if ~isscalar(resolutionList) && ~isscalar(stepWidthList)
-                msg = arrayfun(@(x,y,z,w) sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW), %.3f kHz (passo)', x, y, z, w), mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000, mergeTable.StepWidth/1000, 'UniformOutput', false);
+                nonBlockingWarning = arrayfun(@(x,y,z,w) sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW), %.3f kHz (passo)', x, y, z, w), mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000, mergeTable.StepWidth/1000, 'UniformOutput', false);
+
             elseif ~isscalar(resolutionList)
-                msg = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW)',                   x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000,                            'UniformOutput', false);
+                nonBlockingWarning = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (RBW)',                   x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.Resolution/1000,                            'UniformOutput', false);
+                
             elseif ~isscalar(stepWidthList)
-                msg = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (passo)',                 x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.StepWidth/1000,                             'UniformOutput', false);
+                nonBlockingWarning = arrayfun(@(x,y,z)   sprintf('• <b>%.3f - %.3f MHz</b>: %.3f kHz (passo)',                 x, y, z),    mergeTable.FreqStart/1e+6, mergeTable.FreqStop/1e+6, mergeTable.StepWidth/1000,                             'UniformOutput', false);
             end
 
-            % % ToDo: Migrar trecho p/ auxApp.winMisc...
+            status = true;
+            if ~isempty(nonBlockingWarning)
+                msg = sprintf('%s<br><br>%s<br>%s', ...
+                    'Embora seja possível prosseguir com a mesclagem, foi identificada variação entre os fluxos espectrais selecionados em relação à resolução ou passo da varredura.', ...
+                    'A seguir, são listados os valores de resolução e passo da varredura para cada fluxo espectral selecionado:', ...
+                    strjoin(nonBlockingWarning, '<br>') ...
+                );
 
-            % if ~isempty(msg)
-            %     msg = sprintf([ ...
-            %         'Os fluxos espectrais a mesclar possuem valores diferentes de resolução ou passo da varredura.\n\n' ...
-            %         '<font style="font-size: 11px;">%s</font>\n\nDeseja continuar esse processo de mesclagem, o que '   ...
-            %         'resultará em um fluxo que armazenará como metadados os maiores valores de resolução e passo da varredura?' ...
-            %     ], strjoin(msg, '\n'));
-            % 
-            %     userSelection = ui.Dialog(hFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
-            %     if userSelection == "Não"
-            %         return
-            %     end
-            % end
+            else
+                msg = 'Os fluxos espectrais selecionados são compatíveis para mesclagem.';
+            end
         end
 
         %-----------------------------------------------------------------%
-        function obj = mergeWith(obj, flowIdxs)            
+        function obj = mergeWith(obj, flowIdxs)
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
             mergeType = model.SpecData.identifyMergeType(mergeTable);
 
@@ -391,7 +411,7 @@ classdef SpecData < model.SpecDataBase
             end
 
             obj(flowIdxs(idx)).MetaData.Resolution = max(unique(mergeTable.Resolution));
-            obj(flowIdxs(idx)).Data{2}  = levelMatrix;
+            obj(flowIdxs(idx)).Data{2} = levelMatrix;
             
             if isAzimuthTask
                 obj(flowIdxs(idx)).Data{4} = azimuthMatrix;
@@ -402,6 +422,9 @@ classdef SpecData < model.SpecDataBase
 
             obj(flowIdxs(idx)).UserData.OccupancyComputationMode.CacheIndex = [];
             computeOccupancyPerBin(obj(flowIdxs(idx)))
+
+            obj(flowIdxs(idx)).IsUserModified = true;
+            obj(flowIdxs(idx)).UserData.LOG{end+1} = matlab.jsonencode(struct('Action', 'Merge', 'Type', mergeType));
 
             % Exclui fluxos...
             othersIndex = setdiff(1:numFlows, idx);
@@ -453,10 +476,10 @@ classdef SpecData < model.SpecDataBase
                 if isempty(sweepsIdxs)
                     obj.RelatedFiles(ii, :) = [];
                 else
-                    beginTime   = obj.Data{1}(sweepsIdxs(1));
-                    endTime     = obj.Data{1}(sweepsIdxs(end));
-                    numSweeps     = numel(sweepsIdxs);
-                    revisitTime = seconds(endTime-beginTime)/(numSweeps-1);
+                    beginTime = obj.Data{1}(sweepsIdxs(1));
+                    endTime = obj.Data{1}(sweepsIdxs(end));
+                    numSweeps = numel(sweepsIdxs);
+                    revisitTime = seconds(endTime - beginTime)/(numSweeps - 1);
                     obj.RelatedFiles(ii, {'BeginTime', 'EndTime', 'NumSweeps', 'RevisitTime'}) = {beginTime, endTime, numSweeps, revisitTime};
                 end
             end

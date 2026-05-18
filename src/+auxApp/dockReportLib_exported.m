@@ -159,7 +159,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                                                                     'NodeData', receiverIdxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
 
                     for jj = receiverIdxs
-                        treeNode = uitreenode(receiverNode, 'Text', sprintf('%.3f - %.3f MHz', app.mainApp.specData(jj).MetaData.FreqStart / 1e6, app.mainApp.specData(jj).MetaData.FreqStop  / 1e6), ...
+                        treeNode = uitreenode(receiverNode, 'Text', util.HtmlTextGenerator.createTag('Flow', app.mainApp.specData(jj)), ...
                                                             'NodeData', jj, 'Tag', 'BAND');
 
                         if app.mainApp.specData(jj).UserData.ReportInclude

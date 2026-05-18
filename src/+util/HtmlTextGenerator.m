@@ -2,32 +2,22 @@ classdef (Abstract) HtmlTextGenerator
 
     % ## util.HtmlTextGenerator (appAnalise) ##
     % PUBLIC
-    %   ├── winAppAnalise (mainApp)
-    %   │   ├── getAppInfo
-    %   │   ├── getSelectedFileInfo
-    %   │   └── issueDetails
-    %   ├── auxApp.winConfig (CONFIG)
-    %   │   ├── getAppInfo
-    %   │   └── checkAvailableUpdate
-    %   ├── auxApp.winPlayback (PLAYBACK)
-    %   │   ├── getSelectedFlowMetadata
-    %   │   └── computeFlowAnalysis
-    %   ├── auxApp.winDriveTest (DRIVETEST)
-    %   │   └── getSelectedEmissionMetaData
-    %   ├── auxApp.winSignalAnalysis (SIGNALANALYSIS)
-    %   │   ├── getSelectedEmissionMetaData
-    %   │   └── checkEmissionEditConfirmation
-    %   ├── auxApp.winRFDataHub (RFDATAHUB)
-    %   │   └── getStationInfo
-    %   └── auxApp.dockReportLib
-    %       ├── issueDetails
-    %       └── entityDetails
+    %   ├── getAppInfo                    ⇐ winAppAnalise | auxApp.winConfig
+    %   ├── getSelectedFileInfo           ⇐ winAppAnalise
+    %   ├── getSelectedFlowMetadata       ⇐ auxApp.winPlayback
+    %   ├── computeFlowAnalysis           ⇐ auxApp.winPlayback
+    %   ├── getSelectedEmissionMetaData   ⇐ auxApp.winSignalAnalysis | auxApp.winDriveTest
+    %   ├── checkEmissionEditConfirmation ⇐ auxApp.winPlayback
+    %   ├── checkAvailableUpdate          ⇐ auxApp.winConfig
+    %   ├── getStationInfo                ⇐ auxApp.winRFDataHub
+    %   ├── issueDetails                  ⇐ winAppAnalise | auxApp.dockReportLib
+    %   ├── entityDetails                 ⇐ auxApp.dockReportLib
+    %   └── createTag                     ⇐ auxApp.dockReportLib | auxApp.dockFlowMerge
 
     % PRIVATE
     %   ├── makeDisplayEntry
     %   ├── receiverBadge
     %   ├── monitoringTypeIcon
-    %   ├── createTag
     %   ├── observationPeriod
     %   └── createEditHTMLLink
 
@@ -656,9 +646,6 @@ classdef (Abstract) HtmlTextGenerator
             htmlContent = warningMsg;
         end
 
-
-        %-----------------------------------------------------------------%
-        % AUXAPP.RFDATAHUB
         %-----------------------------------------------------------------%
         function htmlContent = getStationInfo(rfDataHub, idxRFDataHub, rfDataHubLOG, generalSettings)
             % stationTag
@@ -772,6 +759,28 @@ classdef (Abstract) HtmlTextGenerator
             htmlIntro = sprintf('<font style="font-size: 16px;"><b>%s</b></font><br><br>', id);
             htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro, 'popup');
         end
+
+        %-----------------------------------------------------------------%
+        function tag = createTag(type, varargin)
+            arguments
+                type {mustBeMember(type, {'Flow', 'Emission'})}
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            switch type
+                case 'Flow'
+                    specData = varargin{1};
+                    tag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+
+                otherwise % 'Emission'
+                    frequencyMHz = varargin{1};
+                    bandWidthkHz = varargin{2};
+                    tag = sprintf('%.3f MHz ⌂ %.1f kHz', frequencyMHz, bandWidthkHz);
+            end
+        end
     end
 
 
@@ -803,28 +812,6 @@ classdef (Abstract) HtmlTextGenerator
                     icon = util.HtmlTextGenerator.UNICODE_TO_HTML_HEX_MAP.('Car').html;
                 otherwise
                     icon = util.HtmlTextGenerator.UNICODE_TO_HTML_HEX_MAP.('InterrogationMark').html;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function tag = createTag(type, varargin)
-            arguments
-                type {mustBeMember(type, {'Flow', 'Emission'})}
-            end
-
-            arguments (Repeating)
-                varargin
-            end
-
-            switch type
-                case 'Flow'
-                    specData = varargin{1};
-                    tag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
-
-                otherwise % 'Emission'
-                    frequencyMHz = varargin{1};
-                    bandWidthkHz = varargin{2};
-                    tag = sprintf('%.3f MHz ⌂ %.1f kHz', frequencyMHz, bandWidthkHz);
             end
         end
 
