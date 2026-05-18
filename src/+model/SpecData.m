@@ -425,6 +425,7 @@ classdef SpecData < model.SpecDataBase
 
             obj(flowIdxs(idx)).IsUserModified = true;
             obj(flowIdxs(idx)).UserData.LOG{end+1} = matlab.jsonencode(struct('Action', 'Merge', 'Type', mergeType));
+            obj(flowIdxs(idx)).UserData.PlotDisplayConfig.limits.frequency.current = [];
 
             % Exclui fluxos...
             othersIndex = setdiff(1:numFlows, idx);
