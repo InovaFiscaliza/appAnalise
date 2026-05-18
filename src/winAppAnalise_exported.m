@@ -313,6 +313,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case {'onSpectralDataReadError', 'onEmissionDeleted', 'onEmissionParameterValueChanged'}
                                         notifySecondaryApps(app, eventName)
 
+                                    case 'onFlowUnlockRequested'
+                                        refreshProjectFiles(app, [], 'onFlowUnlockRequested')
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -413,7 +416,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         requestVisibilityChange(callingApp.progressDialog, 'visible', 'locked')
 
                                         flowIdxs = varargin{1};
-                                        app.specData = mergeWith(app.specData, flowIdxs);
+                                        app.specData = mergeWith(app.specData, flowIdxs, app.General);
                                         notifySecondaryApps(app, eventName)
 
                                         requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')
@@ -766,7 +769,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 previousSelectionIdxs
                 updateType char {mustBeMember(updateType, {'onFileListAdded', ...
                                                            'onFileListRemoved', ...
-                                                           'onFileFilterChanged'})}
+                                                           'onFileFilterChanged', ...
+                                                           'onFlowUnlockRequested'})}
             end
 
             buildFileTree(app, previousSelectionIdxs)
@@ -782,6 +786,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
                                                            'onReportFlowListChanged', ...
+                                                           'onFlowUnlockRequested', ...
                                                            'onFilterByLevelRequested', ...
                                                            'onFilterByTimeRequested', ...
                                                            'onFlowMergeRequested', ...

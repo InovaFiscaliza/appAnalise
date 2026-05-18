@@ -230,6 +230,22 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 return
                         end
 
+                    case 'onFlowUnlockRequested'
+                        questionMsg = [ ...
+                            'Este fluxo está bloqueado por ter sido modificado manualmente, por meio ' ...
+                            'de operações de filtragem ou mesclagem. Ao desbloqueá-lo, ele poderá ser ' ...
+                            'alterado ou removido automaticamente.<br><br>Deseja continuar?'
+                        ];
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
+
+                        if userSelection == "Não"
+                            return
+                        end
+
+                        specData = app.bandObj.SpecData;
+                        update(specData, 'IsUserModified', 'Unlock')
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onFlowUnlockRequested', app.Context)
+
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
                 end
@@ -252,6 +268,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                   'onFileFilterChanged', ...
                                   'onFlowMergeRequested', ...
                                   'onReportFlowListChanged', ...
+                                  'onFlowUnlockRequested', ...
                                   'onFilterByLevelRequested', ...
                                   'onFilterByTimeRequested', ...
                                   'onSpectralDataReadError'}

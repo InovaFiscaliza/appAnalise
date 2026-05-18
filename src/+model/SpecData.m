@@ -9,6 +9,7 @@ classdef SpecData < model.SpecDataBase
     %   │   │── read                        (model.SpecDataBase)
     %   │   │── basicStats                  (model.SpecDataBase)
     %   │   └── computeOccupancyPerBin
+    %   ├── generateFlowHash
     %   ├── addHashColumnToRelatedFilesTable
     %   ├── validateFlowMergeRequest
     %   ├── mergeWith
@@ -90,7 +91,7 @@ classdef SpecData < model.SpecDataBase
                     % Tenta encontrar um fluxo existente para mesclar
                     candidateObjIdx = findMergeableFlow(obj, flowHash, referenceTable, jj, newFlowRelatedFiles, generalSettings);
                     
-                    if ~isempty(candidateObjIdx)
+                    if candidateObjIdx > 0
                         % Mescla com fluxo existente
                         idx = candidateObjIdx;
 
@@ -100,6 +101,10 @@ classdef SpecData < model.SpecDataBase
 
                         obj(idx).Data = {};
                         obj(idx).GPS = rmfield(gpsLib.summary(cell2mat(obj(idx).RelatedFiles.GPS)), 'Matrix');
+
+                    elseif candidateObjIdx < 0
+                        % Fluxo bloqueado
+                        continue
 
                     else
                         % Cria novo fluxo
@@ -233,6 +238,12 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
+        function hash = generateFlowHash(obj, generalSettings)
+            hashSource = model.SpecDataBase.comparableMetaData(obj, generalSettings);
+            hash = Hash.sha1(jsonencode(hashSource));
+        end
+
+        %-----------------------------------------------------------------%
         function addHashColumnToRelatedFilesTable(obj)
             % Criada coluna "Hash", facilitando atualização de instância de 
             % model.SpecData.
@@ -318,7 +329,7 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function obj = mergeWith(obj, flowIdxs)
+        function obj = mergeWith(obj, flowIdxs, generalSettings)
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
             mergeType = model.SpecData.identifyMergeType(mergeTable);
 
@@ -365,12 +376,14 @@ classdef SpecData < model.SpecDataBase
                     obj(flowIdxs(idx)).RelatedFiles = relatedFiles;
 
                 case {'adjacent-channel', 'gap-adjacent-channel'}
-                    stepWidthRef = mode(mergeTable.StepWidth);
+                    refStepWidth = mode(mergeTable.StepWidth);
                     [refNumSweeps, idx] = min(mergeTable.NumSweeps);
-                    levelMatrix   = [];
+                    refExtrapolationValue = min(arrayfun(@(x) min(x.Data{3}(:, 2)), obj(flowIdxs)));
+
+                    levelMatrix = [];
 
                     for ii = 1:numFlows
-                        newDataPoints = round((mergeTable.FreqStop(ii) - mergeTable.FreqStart(ii))/stepWidthRef + 1);
+                        newDataPoints = round((mergeTable.FreqStop(ii) - mergeTable.FreqStart(ii))/refStepWidth + 1);
                         
                         x  = linspace(mergeTable.FreqStart(ii), mergeTable.FreqStop(ii), mergeTable.DataPoints(ii));
                         xq = linspace(mergeTable.FreqStart(ii), mergeTable.FreqStop(ii), newDataPoints);
@@ -378,7 +391,7 @@ classdef SpecData < model.SpecDataBase
                         if ii > 1
                             if (mergeTable.FreqStart(ii) ~= mergeTable.FreqStop(ii-1)) && ~isequal(unique(mergeTable.FreqStart(2:end)-mergeTable.FreqStop(1:end-1)), unique(mergeTable.StepWidth))
                                 newFreqStart = mergeTable.FreqStop(ii-1);
-                                newDataPoints = round((mergeTable.FreqStop(ii) - newFreqStart)/stepWidthRef + 1);
+                                newDataPoints = round((mergeTable.FreqStop(ii) - newFreqStart)/refStepWidth + 1);
     
                                 xq = linspace(newFreqStart, mergeTable.FreqStop(ii), newDataPoints);
                             end                            
@@ -388,10 +401,8 @@ classdef SpecData < model.SpecDataBase
                             newDataMatrix = obj(flowIdxs(ii)).Data{2}(:, 1:refNumSweeps);
                         else
                             newDataMatrix = zeros(newDataPoints, refNumSweeps, 'single');
-
                             for jj = 1:refNumSweeps
-                                refMinValue = min(obj(flowIdxs(ii)).Data{2}(:, jj));
-                                newDataMatrix(:,jj) = interp1(x, obj(flowIdxs(ii)).Data{2}(:, jj), xq, "linear", refMinValue);
+                                newDataMatrix(:, jj) = interp1(x, obj(flowIdxs(ii)).Data{2}(:, jj), xq, "linear", refExtrapolationValue);
                             end
                         end
 
@@ -420,20 +431,27 @@ classdef SpecData < model.SpecDataBase
 
             basicStats(obj(flowIdxs(idx)))
 
+            % Uma possível mudança de DataPoints, FreqStart, FreqStop ou Resolution
+            % demanda a atualização do "Hash" do fluxo. O fluxo resultante da
+            % mesclagem fica bloqueado ("IsUserModified") e outros campos de 
+            % "UserData" são inicializados.
+            flowHashList = cellfun(@(x) strsplit(x, ' '), {obj(flowIdxs).Hash}, 'UniformOutput', false);
+            flowHash = strjoin(unique(horzcat(flowHashList{:})), ' ');
+            obj(flowIdxs(idx)).Hash = flowHash;
+            update(obj(flowIdxs(idx)), 'IsUserModified', 'Lock')
+
             obj(flowIdxs(idx)).UserData.OccupancyComputationMode.CacheIndex = [];
             computeOccupancyPerBin(obj(flowIdxs(idx)))
 
-            obj(flowIdxs(idx)).IsUserModified = true;
             obj(flowIdxs(idx)).UserData.LOG{end+1} = matlab.jsonencode(struct('Action', 'Merge', 'Type', mergeType));
             obj(flowIdxs(idx)).UserData.PlotDisplayConfig.limits.frequency.current = [];
 
-            % Exclui fluxos...
+            % Por fim, os fluxos secundários são excluídos e é feito um novo 
+            % mapeamento entre os fluxos de espectro com fluxos de ocupação.
             othersIndex = setdiff(1:numFlows, idx);
             delete(obj(flowIdxs(othersIndex)))
             obj(flowIdxs(othersIndex)) = [];
 
-            % Remapeia fluxos de espectro com fluxos de ocupação, caso
-            % aplicável.
             occupancyMapping(obj)
         end
 
@@ -464,7 +482,7 @@ classdef SpecData < model.SpecDataBase
             obj.UserData.OccupancyComputationMode.CacheIndex = [];
             computeOccupancyPerBin(obj)
 
-            obj.IsUserModified = true;
+            update(obj, 'IsUserModified', 'Lock')
             obj.UserData.LOG{end+1} = matlab.jsonencode(filterSpecification);
 
             % Por fim, ajusta a informação da propriedade "RelatedFiles", 
@@ -491,6 +509,7 @@ classdef SpecData < model.SpecDataBase
             arguments
                 obj
                 propertyName char {mustBeMember(propertyName, {'GPS', ...
+                                                               'IsUserModified', ...
                                                                'UserData:AntennaHeight', ...
                                                                'UserData:BandLimits', ...
                                                                'UserData:Channel', ...
@@ -526,6 +545,18 @@ classdef SpecData < model.SpecDataBase
                                 obj(ii).GPS.Location = varargin{1};
                                 obj(ii).GPS.LocationSource = 'Manual';
                             end
+
+                        otherwise 
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
+                    end
+
+                case 'IsUserModified'
+                    switch updateType
+                        case 'Lock'
+                            obj.IsUserModified = true;
+
+                        case 'Unlock'
+                            obj.IsUserModified = false;
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
@@ -1075,9 +1106,9 @@ classdef SpecData < model.SpecDataBase
             % Critério de mesclagem: mesmo hash + proximidade geográfica 
             % (< maxCoLocationDistanceMeters) + timestamps não sobrepostos.
             
-            candidateIdx = [];
+            candidateIdx = 0;
             
-            objIdxs = find(strcmp({obj.Hash}, flowHash));
+            objIdxs = find(contains({obj.Hash}, flowHash));
             if isempty(objIdxs)
                 return
             end
@@ -1087,6 +1118,10 @@ classdef SpecData < model.SpecDataBase
             
             for ii = objIdxs
                 if obj(ii).IsUserModified
+                    if all(ismember(newFlowRelatedFiles.File, obj(ii).RelatedFiles.File))
+                        candidateIdx = -1;
+                    end
+
                     continue
                 end
 

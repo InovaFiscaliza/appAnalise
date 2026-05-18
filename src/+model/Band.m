@@ -276,12 +276,8 @@ classdef Band < handle
             dataType = specData.MetaData.DataType;
 
             if ismember(dataType, class.Constants.specDataTypes)
-                minArray = sort(specData.Data{3}(xLimitDownIdx:xLimitUpIdx, 1));
-                maxArray = sort(specData.Data{3}(xLimitDownIdx:xLimitUpIdx, 3), 'descend');
-
-                nSamples = ceil(.01*numel(minArray));
-                minValue = median(minArray(1:nSamples));
-                maxValue = median(maxArray(1:nSamples));
+                minValue = prctile(specData.Data{3}(xLimitDownIdx:xLimitUpIdx, 1), 5);
+                maxValue = max(specData.Data{3}(xLimitDownIdx:xLimitUpIdx, 3));
 
                 yLimitDown = minValue - mod(minValue, 5);
                 yLimitUp = maxValue - mod(maxValue, 10) + 10;
