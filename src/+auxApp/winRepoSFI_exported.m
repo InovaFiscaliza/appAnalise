@@ -2,67 +2,53 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        GridLayout                    matlab.ui.container.GridLayout
-        DockModule                    matlab.ui.container.GridLayout
-        dockModule_Close              matlab.ui.control.Image
-        dockModule_Undock             matlab.ui.control.Image
-        Panel                         matlab.ui.container.Panel
-        FilesMainGrid                 matlab.ui.container.GridLayout
-        referenceRX_Label_3           matlab.ui.control.Label
-        referenceRX_Icon_3            matlab.ui.control.Image
-        GridLayout2                   matlab.ui.container.GridLayout
-        filesCleanButton              matlab.ui.control.Button
-        filesSearchButton             matlab.ui.control.Button
-        filesStationLabel             matlab.ui.control.Label
-        filesSensorLocationLabel      matlab.ui.container.Panel
-        filesSensorLocationGrid       matlab.ui.container.GridLayout
-        filesStationDropDown          matlab.ui.control.DropDown
-        filesLocationDropDown         matlab.ui.control.DropDown
-        filesLocationLabel            matlab.ui.control.Label
-        filesSensorLabel              matlab.ui.control.Label
-        filesFrequencyPanel           matlab.ui.container.Panel
-        filesFrequencyGrid            matlab.ui.container.GridLayout
-        filesFrequencyStartLabel      matlab.ui.control.Label
-        filesFrequencyEndEditField    matlab.ui.control.NumericEditField
-        filesFrequencyStartEditField  matlab.ui.control.NumericEditField
-        filesFrequencyEndLabel        matlab.ui.control.Label
-        filesPeriodPanel              matlab.ui.container.Panel
-        filesPeriodGrid               matlab.ui.container.GridLayout
-        filesEndDatePicker            matlab.ui.control.DatePicker
-        filesStartDatePicker          matlab.ui.control.DatePicker
-        filesEndDateLabel             matlab.ui.control.Label
-        filesStartDateLabel           matlab.ui.control.Label
-        filesLocationSelectLabel      matlab.ui.control.Label
-        filesStationFilterPanel       matlab.ui.container.Panel
-        filesStationsGrid             matlab.ui.container.GridLayout
-        filesLocalityDropDown         matlab.ui.control.DropDown
-        filesStatusDropDown           matlab.ui.control.DropDown
-        filesStateDropDown            matlab.ui.control.DropDown
-        filesLocalityLabel            matlab.ui.control.Label
-        filesStatusLabel              matlab.ui.control.Label
-        filesStateLabel               matlab.ui.control.Label
-        filesFrequencyLabel           matlab.ui.control.Label
-        filesPeriodLabel              matlab.ui.control.Label
-        Document                      matlab.ui.container.GridLayout
-        popupHTML                     matlab.ui.control.Label
-        AxesToolbar                   matlab.ui.container.GridLayout
-        configMapStyleDropDown        matlab.ui.control.DropDown
-        axesTool_RestoreView          matlab.ui.control.Image
-        axesTool_RegionZoom           matlab.ui.control.Image
-        plotPanel                     matlab.ui.container.Panel
-        Toolbar                       matlab.ui.container.GridLayout
-        filesCountLabel               matlab.ui.control.Label
-        tool_tableNRowsIcon           matlab.ui.control.Image
-        tool_ExportButton             matlab.ui.control.Image
-        tool_Separator2               matlab.ui.control.Image
-        tool_PDFButton                matlab.ui.control.Image
-        tool_RFLinkButton             matlab.ui.control.Image
-        tool_Separator1               matlab.ui.control.Image
-        tool_PanelVisibility          matlab.ui.control.Image
-        ContextMenu                   matlab.ui.container.ContextMenu
-        contextmenu_del               matlab.ui.container.Menu
-        contextmenu_delAll            matlab.ui.container.Menu
+        UIFigure                  matlab.ui.Figure
+        GridLayout                matlab.ui.container.GridLayout
+        DockModule                matlab.ui.container.GridLayout
+        dockModule_Close          matlab.ui.control.Image
+        dockModule_Undock         matlab.ui.control.Image
+        SubTabGroup               matlab.ui.container.Panel
+        FilesMainGrid             matlab.ui.container.GridLayout
+        filesCleanButton          matlab.ui.control.Button
+        filesSearchButton         matlab.ui.control.Button
+        referenceRX_Label_3       matlab.ui.control.Label
+        referenceRX_Icon_3        matlab.ui.control.Image
+        filesStationLabel         matlab.ui.control.Label
+        filesSensorLocationLabel  matlab.ui.container.Panel
+        filesSensorLocationGrid   matlab.ui.container.GridLayout
+        filesStationDropDown      matlab.ui.control.DropDown
+        filesSensorLabel          matlab.ui.control.Label
+        filesPeriodPanel          matlab.ui.container.Panel
+        filesPeriodGrid           matlab.ui.container.GridLayout
+        filesEndDatePicker        matlab.ui.control.DatePicker
+        filesStartDatePicker      matlab.ui.control.DatePicker
+        filesEndDateLabel         matlab.ui.control.Label
+        filesStartDateLabel       matlab.ui.control.Label
+        filesLocationSelectLabel  matlab.ui.control.Label
+        filesStationFilterPanel   matlab.ui.container.Panel
+        filesStationsGrid         matlab.ui.container.GridLayout
+        filesLocationDropDown     matlab.ui.control.DropDown
+        filesLocationLabel        matlab.ui.control.Label
+        filesLocalityDropDown     matlab.ui.control.DropDown
+        filesStatusDropDown       matlab.ui.control.DropDown
+        filesStateDropDown        matlab.ui.control.DropDown
+        filesLocalityLabel        matlab.ui.control.Label
+        filesStatusLabel          matlab.ui.control.Label
+        filesStateLabel           matlab.ui.control.Label
+        filesPeriodLabel          matlab.ui.control.Label
+        Document                  matlab.ui.container.GridLayout
+        popupHTML                 matlab.ui.control.Label
+        AxesToolbar               matlab.ui.container.GridLayout
+        configMapStyleDropDown    matlab.ui.control.DropDown
+        axesTool_RestoreView      matlab.ui.control.Image
+        axesTool_RegionZoom       matlab.ui.control.Image
+        plotPanel                 matlab.ui.container.Panel
+        Toolbar                   matlab.ui.container.GridLayout
+        filesCountLabel           matlab.ui.control.Label
+        tool_PanelVisibility      matlab.ui.control.Image
+        ContextMenu               matlab.ui.container.ContextMenu
+        contextmenu_del           matlab.ui.container.Menu
+        contextmenu_delAll        matlab.ui.container.Menu
     end
 
 
@@ -97,6 +83,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         dbHandler
         filesLocalityRows = table()
+        repoFilesDock = []
     end
 
 
@@ -115,6 +102,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                         equipmentId = str2double(string(payload.equipmentId));
                         hostId = str2double(string(payload.hostId));
 
+                        closePopup(app);
                         openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
 
                     case 'repoSFI.mapBackgroundClick'
@@ -129,7 +117,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 end
 
             catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
+                ui.Dialog(app.UIFigure, 'error', getReport(ME));
             end
         end
 
@@ -148,6 +136,18 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                                 error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
                         end
 
+                    case {'auxApp.dockRepoFiles', 'dockRepoFiles_exported'}
+                        operationType = varargin{1};
+                        app.repoFilesDock = callingApp;
+
+                        switch operationType
+                            case 'onDockFilterChanged'
+                                syncFiltersFromDock(app, varargin{2})
+
+                            otherwise
+                                % Operações desconhecidas do dock são ignoradas silenciosamente.
+                        end
+
                     otherwise
                         error('auxApp:winRFDataHub:UnexpectedCaller', 'Unexpected caller "%s"', class(callingApp))
                 end
@@ -162,14 +162,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Applies JavaScript customizations to the unified search panel.
             % Previously tracked per-tab initialization; now applies setup for the
             % single FilterTab only.
+            if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
+                return
+            end
+            app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
 
             appName = class(app);
             elToModify = {
                 app.AxesToolbar;
                 app.tool_PanelVisibility;
-                app.tool_RFLinkButton;
-                app.tool_PDFButton;
-                app.tool_ExportButton;
                 app.dockModule_Undock;
                 app.dockModule_Close;
                 app.popupHTML
@@ -184,10 +185,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                     struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                    struct('appName', appName, 'dataTag', app.tool_PanelVisibility.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel')), ...
-                    struct('appName', appName, 'dataTag', app.tool_RFLinkButton.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Apresenta perfil de terreno entre registro selecionado (TX)<br>e estação de referência (RX)')), ...
-                    struct('appName', appName, 'dataTag', app.tool_PDFButton.UserData.id,             'tooltip', struct('defaultPosition', 'top',    'textContent', 'Apresenta documento gerado pelo Mosaico (limitado à radiodifusão)')), ...
-                    struct('appName', appName, 'dataTag', app.tool_ExportButton.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta planilha filtrada (.xlsx)')), ...
+                    struct('appName', appName, 'dataTag', app.tool_PanelVisibility.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel')), ... 
                     struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,          'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
                     struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,           'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                     });
@@ -207,10 +205,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             if ~strcmp(app.mainApp.executionMode, 'webApp')
                 app.dockModule_Undock.Enable = 1;
             end
-
-            % Controles de toolbar inferior
-            app.tool_RFLinkButton.UserData.status       = false;
-            app.tool_PDFButton.UserData.status          = false;
 
             % Incializa geoaxes - mapa grafico
             startup_AxesCreation(app)
@@ -1831,8 +1825,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityRows        = table();
             app.filesStartDatePicker.Value = NaT;
             app.filesEndDatePicker.Value   = NaT;
-            %app.filesFrequencyStartEditField.Value = NaN;
-            %app.filesFrequencyEndEditField.Value   = NaN;
             %app.filesDescriptionEditField.Value    = '';
 
             % Recarrega primeiro as estações e, em seguida, as localidades
@@ -1849,9 +1841,19 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % catálogo retornado pelo banco e tenta preservar a seleção atual
             % quando o valor ainda continua válido após a recarga.
 
-            % Consulta a lista completa de equipamentos disponível para o fluxo
-            % de pesquisa de arquivos.
-            rows = app.dbHandler.getSpectrumEquipments();
+            % Constrói filtros a partir das seleções ativas de estado e localidade
+            % para restringir os equipamentos ao contexto atual do painel.
+            eqFilters = struct();
+            stateCode = selectedStateFilter(app);
+            if stateCode ~= "Todos os estados"
+                eqFilters.stateCode = char(stateCode);
+            end
+            eqDistrictId = str2double(string(app.filesLocationDropDown.Value));
+            if ~isnan(eqDistrictId)
+                eqFilters.districtId = eqDistrictId;
+            end
+
+            rows = app.dbHandler.getSpectrumEquipments(eqFilters);
 
             % Mantém uma opção neutra no topo para representar ausência de
             % seleção explícita no dropdown.
@@ -1887,7 +1889,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         
-        function updateFilesLocationOptions(app, preferredSiteId)
+        function updateFilesLocationOptions(app, preferredDistrictId)
             % Recarrega as localidades disponíveis para o equipamento atualmente
             % selecionado na aba Arquivos.
             %
@@ -1907,31 +1909,44 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % em outras rotinas, como atualização de período.
             app.filesLocalityRows = table();
 
-            % Só há localidades para carregar quando existe um equipamento válido.
-            if ~isnan(equipmentId)
-                app.filesLocalityRows = app.dbHandler.getSpectrumLocalities(equipmentId);
+            % Constrói filtros a partir das seleções ativas de estado e equipamento.
+            locFilters = struct();
+            locStateCode = selectedStateFilter(app);
+            if locStateCode ~= "Todos os estados"
+                locFilters.stateCode = char(locStateCode);
+            end
 
-                % Converte as linhas retornadas em Items/ItemsData do dropdown.
-                if istable(app.filesLocalityRows) && ~isempty(app.filesLocalityRows)
-                    for ii = 1:height(app.filesLocalityRows)
-                        siteId = formatNumericId(app, app.filesLocalityRows.ID_SITE(ii));
-                        localityLabel = formatFilesLocalityOption(app, app.filesLocalityRows(ii, :));
+            % Sempre consulta o banco: sem filtros ativos retorna todas as
+            % localidades disponíveis, permitindo que o usuário desfaça filtros
+            % sem colapsar a lista para apenas a opção neutra.
+            app.filesLocalityRows = app.dbHandler.getSpectrumLocalities(equipmentId, locFilters);
 
-                        items{end + 1} = char(localityLabel); %#ok<AGROW>
-                        itemsData{end + 1} = char(siteId); %#ok<AGROW>
-                    end
+            % Converte as linhas retornadas em Items/ItemsData do dropdown.
+            if istable(app.filesLocalityRows) && ~isempty(app.filesLocalityRows)
+                for ii = 1:height(app.filesLocalityRows)
+                    districtId = formatNumericId(app, app.filesLocalityRows.ID_DISTRICT(ii));
+                    localityLabel = formatFilesLocalityOption(app, app.filesLocalityRows(ii, :));
+
+                    items{end + 1} = char(localityLabel); %#ok<AGROW>
+                    itemsData{end + 1} = char(districtId); %#ok<AGROW>
                 end
             end
 
             % Publica as opções calculadas no componente visual.
+            % Ordena alfabeticamente mantendo 'Todas as localidades' sempre na 1ª posição.
+            if numel(items) > 1
+                [sortedLabels, sortIdx] = sort(items(2:end));
+                items    = [items(1),     sortedLabels];
+                itemsData = [itemsData(1), itemsData(sortIdx + 1)];
+            end
             app.filesLocationDropDown.Items = items;
             app.filesLocationDropDown.ItemsData = itemsData;
 
             % Tenta selecionar a localidade preferencial, quando ela ainda existir
             % na lista recém-carregada; caso contrário, volta para a opção geral.
-            preferredSiteId = formatNumericId(app, preferredSiteId);
-            if strlength(preferredSiteId) > 0 && any(strcmp(itemsData, char(preferredSiteId)))
-                app.filesLocationDropDown.Value = char(preferredSiteId);
+            preferredDistrictId = formatNumericId(app, preferredDistrictId);
+            if strlength(preferredDistrictId) > 0 && any(strcmp(itemsData, char(preferredDistrictId)))
+                app.filesLocationDropDown.Value = char(preferredDistrictId);
             else
                 app.filesLocationDropDown.Value = '';
             end
@@ -1957,14 +1972,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 return
             end
 
-            selectedSiteId = str2double(string(app.filesLocationDropDown.Value));
+            selectedDistrictId = str2double(string(app.filesLocationDropDown.Value));
             rows = app.filesLocalityRows;
 
             % Se uma localidade específica foi escolhida, restringe o cálculo do
-            % período apenas às linhas associadas a esse site.
-            if ~isnan(selectedSiteId) && ismember('ID_SITE', rows.Properties.VariableNames)
-                siteValues = str2double(string(rows.ID_SITE));
-                rows = rows(siteValues == selectedSiteId, :);
+            % período apenas às linhas associadas a esse distrito.
+            if ~isnan(selectedDistrictId) && ismember('ID_DISTRICT', rows.Properties.VariableNames)
+                districtValues = str2double(string(rows.ID_DISTRICT));
+                rows = rows(districtValues == selectedDistrictId, :);
             end
 
             % Extrai a menor data inicial e a maior data final do subconjunto ativo.
@@ -1993,25 +2008,24 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % runs a spectrum-aware query returning one row per repository file;
             % there is no longer a mode switch in this payload.
 
-            freqStart   = app.filesFrequencyStartEditField.Value;
-            freqEnd     = app.filesFrequencyEndEditField.Value;
+            freqStart   = NaN;
+            freqEnd     = NaN;
             description = '';
-
-            if isempty(freqStart) || ~isfinite(freqStart) || freqStart < 0
-                freqStart = NaN;
-            end
-
-            if isempty(freqEnd) || ~isfinite(freqEnd) || freqEnd < 0
-                freqEnd = NaN;
-            end
 
             [startDate, endDate] = getNormalizedFilterDateRange(app);
 
+            % Passa o estado (UF) selecionado para que o dock possa pesquisar
+            % por estado mesmo quando nenhum equipamento estiver escolhido.
+            stateCodeCtx = char(selectedStateFilter(app));
+            if strcmp(stateCodeCtx, 'Todos os estados')
+                stateCodeCtx = '';
+            end
+
             dockContext = struct( ...
                 'equipmentId', str2double(string(app.filesStationDropDown.Value)), ...
-                'siteId',      str2double(string(app.filesLocationDropDown.Value)), ...
-                'hostId',      [], ...
-                'startDate',   startDate, ...
+                'districtId',  str2double(string(app.filesLocationDropDown.Value)), ...
+                'stateCode',   stateCodeCtx, ...
+                'hostId',      [], ...                'startDate',   startDate, ...
                 'endDate',     endDate, ...
                 'freqStart',   freqStart, ...
                 'freqEnd',     freqEnd, ...
@@ -2034,10 +2048,27 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         function openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
             % Abre o dock de arquivos usando os identificadores da estacao clicada.
+            %
+            % O stateCode é resolvido a partir do dataset filtrado atual para que
+            % o dock inicialize os filtros de equipamento e localidade corretamente.
+
+            stateCode  = '';
+            districtId = NaN;
+            points = app.filteredRepoSFI.points;
+            if ~isempty(points)
+                pointIdx = find([points.site_id] == siteId, 1);
+                if ~isempty(pointIdx)
+                    stateCode  = char(normalizeTextFromValue(app, points(pointIdx).state_code));
+                    districtId = points(pointIdx).district_id;
+                end
+            end
+
             dockContext = struct( ...
-                'siteId', siteId, ...
+                'siteId',      siteId, ...
                 'equipmentId', equipmentId, ...
-                'hostId', hostId ...
+                'hostId',      hostId, ...
+                'stateCode',   stateCode, ...
+                'districtId',  districtId ...
                 );
 
             openRepoFilesDock(app, dockContext)
@@ -2118,6 +2149,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 equipmentFilter = str2double(string(app.filesStationDropDown.Value));
             end
 
+            % Distrito selecionado: quando preenchido, restringe o mapa apenas
+            % aos sites cujo district_id bata com o valor escolhido.
+            districtFilter = NaN;
+            if ~isempty(app.filesLocationDropDown)
+                districtFilter = str2double(string(app.filesLocationDropDown.Value));
+            end
+
             [startDt, endDate] = getNormalizedFilterDateRange(app);
             if isnat(endDate)
                 endBefore = NaT;
@@ -2162,6 +2200,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 if stateFilter ~= "Todos os estados"
                     pointStateCode = normalizeTextFromValue(app, filteredPoint.state_code);
                     if strlength(pointStateCode) == 0 || pointStateCode ~= stateFilter
+                        continue
+                    end
+                end
+
+                % Filtro por distrito: descarta pontos cujo district_id não
+                % coincide com o valor selecionado no filesLocationDropDown.
+                if ~isnan(districtFilter)
+                    pointDistrictId = filteredPoint.district_id;
+                    if isempty(pointDistrictId) || pointDistrictId ~= districtFilter
                         continue
                     end
                 end
@@ -2599,7 +2646,10 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % coincide com o texto calculado para o sufixo.
             if strlength(suffix) > 0 && ~strcmpi(char(output), char(suffix))
                 output = output + " (" + suffix + ")";
+                output = sort(output);
             end
+
+            
         end
 
         
@@ -2859,7 +2909,304 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.dbHandler = [];
         end
 
+        function refreshDependentDropdowns(app)
+            % Reconstrói filesStationDropDown, filesLocationDropDown e período a
+            % partir dos dados do mapa em memória (app.repoSFI), aplicando os
+            % filtros de estado, status e tipo de localidade atualmente ativos.
+            %
+            % Essa função é invocada quando um filtro que não possui equivalente
+            % direto no banco (status online/offline, posição atual/histórica)
+            % muda de valor, permitindo que os demais seletores se ajustem em
+            % cascata sem nova consulta ao banco de dados.
+
+            % Guarda seleções anteriores para tentar restaurá-las após o rebuild.
+            prevEquipId = string(app.filesStationDropDown.Value);
+            prevSiteId  = string(app.filesLocationDropDown.Value);
+
+            equipItems = {'Selecione uma estação/equipamento'};
+            equipData  = {''};
+            siteItems  = {'Todas as localidades'};
+            siteData   = {''};
+            seenEquipIds = {};
+            seenSiteIds  = {};
+            allDates     = NaT(0, 1);
+
+            hasData = ~isempty(app.repoSFI) && isstruct(app.repoSFI) && ...
+                      isfield(app.repoSFI, 'points') && ~isempty(app.repoSFI.points);
+
+            if hasData
+                stateFilter    = selectedStateFilter(app);
+                statusFilter   = string(app.filesStatusDropDown.Value);
+                localityFilter = string(app.filesLocalityDropDown.Value);
+
+                basePoints      = app.repoSFI.points;
+                baseSiteDetails = app.repoSFI.site_details;
+
+                for ii = 1:numel(basePoints)
+                    point = basePoints(ii);
+
+                    % Filtro de estado: descarta pontos fora da UF selecionada.
+                    if stateFilter ~= "Todos os estados"
+                        if normalizeTextFromValue(app, point.state_code) ~= stateFilter
+                            continue
+                        end
+                    end
+
+                    % Busca o detalhe do site pelo alinhamento posicional ou por ID.
+                    if numel(baseSiteDetails) >= ii && baseSiteDetails(ii).site_id == point.site_id
+                        detail = baseSiteDetails(ii);
+                    else
+                        didx = find([baseSiteDetails.site_id] == point.site_id, 1);
+                        if isempty(didx), continue; end
+                        detail = baseSiteDetails(didx);
+                    end
+
+                    siteContributed = false;
+                    for jj = 1:numel(detail.stations)
+                        st = detail.stations(jj);
+
+                        % Filtro de status: verifica map_state da estação.
+                        if ~statusFilterMatchesMapState(app, st.map_state, statusFilter)
+                            continue
+                        end
+
+                        % Filtro de tipo de localidade: verifica is_current_location.
+                        switch localityFilter
+                            case "Apenas atuais"
+                                if ~logical(st.is_current_location), continue, end
+                            case "Apenas históricas"
+                                if logical(st.is_current_location), continue, end
+                        end
+
+                        siteContributed = true;
+
+                        % Coleta o equipamento, evitando duplicatas.
+                        if ~isempty(st.equipment_id)
+                            eqIdStr = char(string(round(double(st.equipment_id))));
+                            if ~any(strcmp(seenEquipIds, eqIdStr))
+                                seenEquipIds{end+1} = eqIdStr; %#ok<AGROW>
+                                eqName = char(normalizeTextFromValue(app, st.equipment_name));
+                                if isempty(eqName), eqName = '(sem nome)'; end
+                                equipItems{end+1} = eqName;  %#ok<AGROW>
+                                equipData{end+1}  = eqIdStr; %#ok<AGROW>
+                            end
+                        end
+
+                        % Acumula datas de vigência para calcular o período disponível.
+                        fs = normalizeToDatetime(app, st.first_seen_at);
+                        ls = normalizeToDatetime(app, st.last_seen_at);
+                        if ~isnat(fs), allDates(end+1, 1) = fs; end %#ok<AGROW>
+                        if ~isnat(ls), allDates(end+1, 1) = ls; end %#ok<AGROW>
+                    end
+
+                    % Registra o site quando ao menos uma estação passou nos filtros.
+                    if siteContributed
+                        siteIdStr = char(string(round(double(point.site_id))));
+                        if ~any(strcmp(seenSiteIds, siteIdStr))
+                            seenSiteIds{end+1} = siteIdStr; %#ok<AGROW>
+                            siteLabel = formatSiteLabelFromPoint(app, point);
+                            siteItems{end+1} = char(siteLabel); %#ok<AGROW>
+                            siteData{end+1}  = siteIdStr;       %#ok<AGROW>
+                        end
+                    end
+                end
+            end
+
+            % Ordena alfabeticamente mantendo a opção neutra sempre na 1ª posição.
+            if numel(equipItems) > 1
+                [sortedEq, sortIdxEq] = sort(equipItems(2:end));
+                equipItems = [equipItems(1), sortedEq];
+                equipData  = [equipData(1),  equipData(sortIdxEq + 1)];
+            end
+            if numel(siteItems) > 1
+                [sortedSite, sortIdxSite] = sort(siteItems(2:end));
+                siteItems = [siteItems(1), sortedSite];
+                siteData  = [siteData(1),  siteData(sortIdxSite + 1)];
+            end
+
+            % Publica os equipamentos, restaurando a seleção anterior quando válida.
+            app.filesStationDropDown.Items     = equipItems;
+            app.filesStationDropDown.ItemsData = equipData;
+            if any(strcmp(equipData, char(prevEquipId)))
+                app.filesStationDropDown.Value = char(prevEquipId);
+            else
+                app.filesStationDropDown.Value = '';
+            end
+
+            % Publica as localidades, restaurando a seleção anterior quando válida.
+            app.filesLocationDropDown.Items     = siteItems;
+            app.filesLocationDropDown.ItemsData = siteData;
+            if strlength(prevSiteId) > 0 && any(strcmp(siteData, char(prevSiteId)))
+                app.filesLocationDropDown.Value = char(prevSiteId);
+            else
+                app.filesLocationDropDown.Value = '';
+            end
+
+            % Limpa o cache de localidades do BD para evitar inconsistências
+            % com os dados derivados em memória.
+            app.filesLocalityRows = table();
+
+            % Atualiza o período a partir das datas coletadas das estações filtradas.
+            app.filesStartDatePicker.Value = NaT;
+            app.filesEndDatePicker.Value   = NaT;
+            validDates = allDates(~isnat(allDates));
+            if ~isempty(validDates)
+                app.filesStartDatePicker.Value = min(validDates);
+                app.filesEndDatePicker.Value   = max(validDates);
+            end
     end
+
+    function label = formatSiteLabelFromPoint(app, point)
+            % Monta o rótulo de uma localidade a partir de um ponto do mapa.
+            %
+            % Espelha formatFilesLocalityOption mas opera sobre a estrutura
+            % de ponto do app.repoSFI em vez de sobre uma linha de tabela do BD.
+            mainLabel = displayRawText(app, point.site_label, '-');
+            county    = displayRawText(app, point.county_name, '');
+            stCode    = displayRawText(app, point.state_code,  '');
+
+            suffix = "";
+            if strlength(county) > 0 && strlength(stCode) > 0
+                suffix = county + "/" + stCode;
+            elseif strlength(county) > 0
+                suffix = county;
+            elseif strlength(stCode) > 0
+                suffix = stCode;
+            end
+
+            if strlength(suffix) > 0 && ~strcmpi(char(mainLabel), char(suffix))
+                label = mainLabel + " (" + suffix + ")";
+            else
+                label = mainLabel;
+            end
+    end
+
+    function syncFiltersFromDock(app, filters)
+            % Sincroniza os seletores do painel de filtros com os valores vindos
+            % do dockRepoFiles.
+            %
+            % A atualização programática de .Value em MATLAB UI não dispara
+            % ValueChangedFcn, portanto não há risco de cascata de callbacks.
+            % Quando o estado (UF) muda, as listas de equipamentos e localidades
+            % precisam ser recarregadas do banco antes de restaurar os valores.
+
+            stateChanged = false;
+
+            % Estado (UF) ------------------------------------------------
+            if isfield(filters, 'stateCode')
+                stateVal   = char(filters.stateCode);
+                targetState = stateVal;
+                if isempty(stateVal)
+                    targetState = 'Todos os estados';
+                end
+                if ~strcmp(char(string(app.filesStateDropDown.Value)), targetState)
+                    if isempty(stateVal) || any(strcmp(app.filesStateDropDown.Items, stateVal))
+                        app.filesStateDropDown.Value = targetState;
+                        stateChanged = true;
+                    end
+                end
+            end
+
+            % Quando o estado mudou, recarrega as listas dependentes do banco
+            % para que ItemsData de equipamento e localidade fiquem coerentes
+            % com a nova UF antes de tentar restaurar as seleções do dock.
+            if stateChanged
+                loadFilesStationOptions(app)
+            end
+
+            % Equipamento / estação --------------------------------------
+            if isfield(filters, 'equipmentId')
+                if isnan(filters.equipmentId)
+                    if any(strcmp(app.filesStationDropDown.ItemsData, ''))
+                        app.filesStationDropDown.Value = '';
+                    end
+                else
+                    equipId = char(string(round(filters.equipmentId)));
+                    if any(strcmp(app.filesStationDropDown.ItemsData, equipId))
+                        app.filesStationDropDown.Value = equipId;
+                    end
+                end
+            end
+
+            % Localidade -------------------------------------------------
+            % Quando o estado mudou, usa updateFilesLocationOptions para
+            % recarregar os distritos do banco já com o filtro de UF correto,
+            % passando o districtId preferido para restauração automática.
+            % Caso contrário, restaura o valor diretamente na lista existente.
+            preferredDistrictId = NaN;
+            if isfield(filters, 'districtId') && ~isnan(filters.districtId)
+                preferredDistrictId = filters.districtId;
+            end
+
+            if stateChanged
+                updateFilesLocationOptions(app, preferredDistrictId)
+                % updateFilesLocationOptions já chama updateFilesAvailablePeriod
+            else
+                if isfield(filters, 'districtId')
+                    if isnan(filters.districtId)
+                        if any(strcmp(app.filesLocationDropDown.ItemsData, ''))
+                            app.filesLocationDropDown.Value = '';
+                        end
+                    else
+                        distId = char(string(round(filters.districtId)));
+                        if any(strcmp(app.filesLocationDropDown.ItemsData, distId))
+                            app.filesLocationDropDown.Value = distId;
+                        end
+                    end
+                end
+            end
+
+            % Datas ------------------------------------------------------
+            % Definidas após updateFilesLocationOptions para sobrescrever
+            % qualquer reset de período feito por updateFilesAvailablePeriod.
+            if isfield(filters, 'startDate') && isdatetime(filters.startDate) && ~isnat(filters.startDate)
+                app.filesStartDatePicker.Value = filters.startDate;
+            end
+            if isfield(filters, 'endDate') && isdatetime(filters.endDate) && ~isnat(filters.endDate)
+                app.filesEndDatePicker.Value = filters.endDate;
+            end
+
+            % Atualiza o mapa com os filtros recém-sincronizados.
+            refreshFilteredMap(app, "preserve_if_all_states")
+        
+    
+    end
+
+    function notifyDockFiltersChanged(app)
+            % Propaga os filtros atuais do winRepoSFI para o dockRepoFiles aberto.
+            %
+            % Chamado pelos callbacks de mudança de filtro para manter os seletores
+            % do dock sincronizados com o estado corrente do mapa. Análogo ao
+            % sentido inverso já implementado em notifyCallingAppFiltersChanged.
+            if isempty(app.repoFilesDock) || ~isvalid(app.repoFilesDock)
+                return
+            end
+            if ~ismethod(app.repoFilesDock, 'ipcSecondaryMatlabCallsHandler')
+                return
+            end
+
+            stateVal = char(app.filesStateDropDown.Value);
+            if strcmp(stateVal, 'Todos os estados')
+                stateVal = '';
+            end
+
+            filters = struct( ...
+                'stateCode',   stateVal, ...
+                'equipmentId', str2double(string(app.filesStationDropDown.Value)), ...
+                'districtId',  str2double(string(app.filesLocationDropDown.Value)), ...
+                'startDate',   app.filesStartDatePicker.Value, ...
+                'endDate',     app.filesEndDatePicker.Value ...
+            );
+
+            try
+                app.repoFilesDock.ipcSecondaryMatlabCallsHandler(app, 'onRepoSFIFilterChanged', filters);
+            catch
+            end
+        end
+
+    end
+
+    
     
 
 
@@ -2909,8 +3256,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_PDFButton, tool_PanelVisibility, 
-        % ...and 1 other component
+        % Image clicked function: tool_PanelVisibility
         function Toolbar_InteractionImageClicked(app, event)
 
             switch event.Source
@@ -2925,30 +3271,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                         app.Document.Layout.Column = [4 5];
                     end
             end
-
-        end
-
-        % Image clicked function: tool_ExportButton
-        function Toolbar_exportButtonPushed(app, event)
-
-            nameFormatMap = {'*.xlsx', 'Excel (*.xlsx)'};
-            defaultName   = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'RFDataHub', -1);
-            fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
-            if isempty(fileFullPath)
-                return
-            end
-
-            app.progressDialog.Visible = 'visible';
-
-            try
-                idxRFDataHubArray = app.UITable.UserData;
-                tempRFDataHub = model.RFDataHub.ColumnNames(app.rfDataHub(idxRFDataHubArray,1:29), 'eng2port');
-                writetable(tempRFDataHub, fileFullPath, 'WriteMode', 'overwritesheet')
-            catch ME
-                ui.Dialog(app.UIFigure, 'warning', getReport(ME));
-            end
-
-            app.progressDialog.Visible = 'hidden';
 
         end
 
@@ -2987,7 +3309,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
              viewportMode = "preserve_if_all_states";
 
             if isequal(event.Source, app.filesStateDropDown)
+                % Estado mudou: usa consulta ao BD para listas precisas de espectro.
                 viewportMode = "fit";
+                loadFilesStationOptions(app)
+                updateFilesLocationOptions(app, NaN)
+                notifyDockFiltersChanged(app)
+            else
+                % Status ou tipo de localidade mudou: filtra em memória pois essas
+                % propriedades (map_state, is_current_location) não estão no BD.
+                refreshDependentDropdowns(app)
             end
 
             refreshFilteredMap(app, viewportMode)
@@ -3016,13 +3346,17 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Value changed function: filesStationDropDown
         function onStationChanged(app, event)
-           % Recarrega as localidades do equipamento recém-selecionado antes de
-            % replotar o mapa com o novo contexto.
-            updateFilesLocationOptions(app, NaN)
+             % Tenta preservar a localidade atualmente selecionada: ela pode
+            % continuar válida para a nova estação. updateFilesLocationOptions
+            % descartará silenciosamente se não fizer parte da nova lista.
+            currentDistrict = app.filesLocationDropDown.Value;
+            updateFilesLocationOptions(app, currentDistrict)
 
             % O mapa também usa filesStationDropDown como filtro, então a troca
             % do equipamento precisa refletir imediatamente nos pontos visíveis.
             refreshFilteredMap(app, "fit");
+            notifyDockFiltersChanged(app)
+
 
         end
 
@@ -3034,8 +3368,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Value changed function: filesLocationDropDown
         function onLocationChanged(app, event)
+           % Localidade mudou: recarrega estações que passaram por esse local.
+            loadFilesStationOptions(app)
             updateFilesAvailablePeriod(app);
             refreshFilteredMap(app, "preserve_if_all_states");
+            notifyDockFiltersChanged(app)
         end
 
         % Value changed function: filesEndDatePicker, filesStartDatePicker
@@ -3043,6 +3380,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
            % Reaplica o filtro após consolidar um intervalo temporal válido.
             getNormalizedFilterDateRange(app);
             refreshFilteredMap(app, "preserve_if_all_states")
+            notifyDockFiltersChanged(app)
             
         end
 
@@ -3054,8 +3392,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityDropDown.Value = 'Todas';
 
             %app.filesDescriptionEditField.Value = '';
-            app.filesFrequencyStartEditField.Value = -1;
-            app.filesFrequencyEndEditField.Value = -1;
             app.filesStartDatePicker.Value = NaT;
             app.filesEndDatePicker.Value = NaT;
 
@@ -3065,6 +3401,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             closePopup(app)
             refreshFilteredMap(app, "fit")
+            notifyDockFiltersChanged(app)
         end
     end
 
@@ -3109,7 +3446,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
@@ -3130,62 +3467,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.tool_PanelVisibility.Layout.Column = 1;
             app.tool_PanelVisibility.ImageSource = 'layout-sidebar-left.svg';
 
-            % Create tool_Separator1
-            app.tool_Separator1 = uiimage(app.Toolbar);
-            app.tool_Separator1.ScaleMethod = 'none';
-            app.tool_Separator1.Enable = 'off';
-            app.tool_Separator1.Layout.Row = [1 3];
-            app.tool_Separator1.Layout.Column = 2;
-            app.tool_Separator1.VerticalAlignment = 'bottom';
-            app.tool_Separator1.ImageSource = 'LineV.svg';
-
-            % Create tool_RFLinkButton
-            app.tool_RFLinkButton = uiimage(app.Toolbar);
-            app.tool_RFLinkButton.ScaleMethod = 'none';
-            app.tool_RFLinkButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
-            app.tool_RFLinkButton.Layout.Row = [1 3];
-            app.tool_RFLinkButton.Layout.Column = 3;
-            app.tool_RFLinkButton.ImageSource = 'Publish_HTML_16.png';
-
-            % Create tool_PDFButton
-            app.tool_PDFButton = uiimage(app.Toolbar);
-            app.tool_PDFButton.ScaleMethod = 'none';
-            app.tool_PDFButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
-            app.tool_PDFButton.Layout.Row = [1 3];
-            app.tool_PDFButton.Layout.Column = 4;
-            app.tool_PDFButton.ImageSource = 'Publish_PDF_16.png';
-
-            % Create tool_Separator2
-            app.tool_Separator2 = uiimage(app.Toolbar);
-            app.tool_Separator2.ScaleMethod = 'none';
-            app.tool_Separator2.Enable = 'off';
-            app.tool_Separator2.Layout.Row = [1 3];
-            app.tool_Separator2.Layout.Column = 5;
-            app.tool_Separator2.VerticalAlignment = 'bottom';
-            app.tool_Separator2.ImageSource = 'LineV.svg';
-
-            % Create tool_ExportButton
-            app.tool_ExportButton = uiimage(app.Toolbar);
-            app.tool_ExportButton.ScaleMethod = 'none';
-            app.tool_ExportButton.ImageClickedFcn = createCallbackFcn(app, @Toolbar_exportButtonPushed, true);
-            app.tool_ExportButton.Layout.Row = [1 3];
-            app.tool_ExportButton.Layout.Column = 6;
-            app.tool_ExportButton.ImageSource = 'Export_16.png';
-
-            % Create tool_tableNRowsIcon
-            app.tool_tableNRowsIcon = uiimage(app.Toolbar);
-            app.tool_tableNRowsIcon.ScaleMethod = 'none';
-            app.tool_tableNRowsIcon.Enable = 'off';
-            app.tool_tableNRowsIcon.Layout.Row = [1 3];
-            app.tool_tableNRowsIcon.Layout.Column = 8;
-            app.tool_tableNRowsIcon.ImageSource = 'Filter_18.png';
-
             % Create filesCountLabel
             app.filesCountLabel = uilabel(app.Toolbar);
             app.filesCountLabel.HorizontalAlignment = 'right';
             app.filesCountLabel.FontSize = 11;
             app.filesCountLabel.Layout.Row = [1 3];
-            app.filesCountLabel.Layout.Column = 7;
+            app.filesCountLabel.Layout.Column = [7 8];
             app.filesCountLabel.Text = '0 localidade(s) visíveis';
 
             % Create Document
@@ -3256,45 +3543,37 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.popupHTML.Interpreter = 'html';
             app.popupHTML.Text = '';
 
-            % Create Panel
-            app.Panel = uipanel(app.GridLayout);
-            app.Panel.AutoResizeChildren = 'off';
-            app.Panel.Layout.Row = [3 4];
-            app.Panel.Layout.Column = 2;
+            % Create SubTabGroup
+            app.SubTabGroup = uipanel(app.GridLayout);
+            app.SubTabGroup.AutoResizeChildren = 'off';
+            app.SubTabGroup.Layout.Row = [3 4];
+            app.SubTabGroup.Layout.Column = 2;
 
             % Create FilesMainGrid
-            app.FilesMainGrid = uigridlayout(app.Panel);
-            app.FilesMainGrid.ColumnWidth = {18, '1x'};
-            app.FilesMainGrid.RowHeight = {48, 22, 98, 22, 61, 22, 71, 22, 71, 22, '1x'};
+            app.FilesMainGrid = uigridlayout(app.SubTabGroup);
+            app.FilesMainGrid.ColumnWidth = {49, 49, '1x'};
+            app.FilesMainGrid.RowHeight = {48, 22, 125, 22, 35, 22, 71, 6, 49};
             app.FilesMainGrid.RowSpacing = 5;
-            app.FilesMainGrid.Padding = [10 10 10 5];
             app.FilesMainGrid.BackgroundColor = [1 1 1];
 
             % Create filesPeriodLabel
             app.filesPeriodLabel = uilabel(app.FilesMainGrid);
             app.filesPeriodLabel.FontSize = 10;
             app.filesPeriodLabel.Layout.Row = 6;
-            app.filesPeriodLabel.Layout.Column = [1 2];
+            app.filesPeriodLabel.Layout.Column = [1 3];
             app.filesPeriodLabel.Text = 'PERÍODO ';
-
-            % Create filesFrequencyLabel
-            app.filesFrequencyLabel = uilabel(app.FilesMainGrid);
-            app.filesFrequencyLabel.FontSize = 10;
-            app.filesFrequencyLabel.Layout.Row = 8;
-            app.filesFrequencyLabel.Layout.Column = [1 2];
-            app.filesFrequencyLabel.Text = 'FREQUÊNCIA (MHz)';
 
             % Create filesStationFilterPanel
             app.filesStationFilterPanel = uipanel(app.FilesMainGrid);
             app.filesStationFilterPanel.BackgroundColor = [1 1 1];
             app.filesStationFilterPanel.Layout.Row = 3;
-            app.filesStationFilterPanel.Layout.Column = [1 2];
+            app.filesStationFilterPanel.Layout.Column = [1 3];
             app.filesStationFilterPanel.FontSize = 11;
 
             % Create filesStationsGrid
             app.filesStationsGrid = uigridlayout(app.filesStationFilterPanel);
             app.filesStationsGrid.ColumnWidth = {110, '1x'};
-            app.filesStationsGrid.RowHeight = {22, 22, 22};
+            app.filesStationsGrid.RowHeight = {22, 22, 22, 22};
             app.filesStationsGrid.RowSpacing = 5;
             app.filesStationsGrid.BackgroundColor = [1 1 1];
 
@@ -3308,14 +3587,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Create filesStatusLabel
             app.filesStatusLabel = uilabel(app.filesStationsGrid);
             app.filesStatusLabel.FontSize = 11;
-            app.filesStatusLabel.Layout.Row = 2;
+            app.filesStatusLabel.Layout.Row = 3;
             app.filesStatusLabel.Layout.Column = 1;
             app.filesStatusLabel.Text = 'Status';
 
             % Create filesLocalityLabel
             app.filesLocalityLabel = uilabel(app.filesStationsGrid);
             app.filesLocalityLabel.FontSize = 11;
-            app.filesLocalityLabel.Layout.Row = 3;
+            app.filesLocalityLabel.Layout.Row = 4;
             app.filesLocalityLabel.Layout.Column = 1;
             app.filesLocalityLabel.Text = 'Registro de Posição';
 
@@ -3335,7 +3614,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesStatusDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationFilterChanged, true);
             app.filesStatusDropDown.FontSize = 10.5;
             app.filesStatusDropDown.BackgroundColor = [1 1 1];
-            app.filesStatusDropDown.Layout.Row = 2;
+            app.filesStatusDropDown.Layout.Row = 3;
             app.filesStatusDropDown.Layout.Column = 2;
             app.filesStatusDropDown.Value = 'Todos';
 
@@ -3345,22 +3624,39 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationFilterChanged, true);
             app.filesLocalityDropDown.FontSize = 10.5;
             app.filesLocalityDropDown.BackgroundColor = [1 1 1];
-            app.filesLocalityDropDown.Layout.Row = 3;
+            app.filesLocalityDropDown.Layout.Row = 4;
             app.filesLocalityDropDown.Layout.Column = 2;
             app.filesLocalityDropDown.Value = 'Todas';
+
+            % Create filesLocationLabel
+            app.filesLocationLabel = uilabel(app.filesStationsGrid);
+            app.filesLocationLabel.FontSize = 11;
+            app.filesLocationLabel.Layout.Row = 2;
+            app.filesLocationLabel.Layout.Column = 1;
+            app.filesLocationLabel.Text = 'Distrito';
+
+            % Create filesLocationDropDown
+            app.filesLocationDropDown = uidropdown(app.filesStationsGrid);
+            app.filesLocationDropDown.Items = {'Todas as localidades'};
+            app.filesLocationDropDown.ValueChangedFcn = createCallbackFcn(app, @onLocationChanged, true);
+            app.filesLocationDropDown.FontSize = 10.5;
+            app.filesLocationDropDown.BackgroundColor = [1 1 1];
+            app.filesLocationDropDown.Layout.Row = 2;
+            app.filesLocationDropDown.Layout.Column = 2;
+            app.filesLocationDropDown.Value = 'Todas as localidades';
 
             % Create filesLocationSelectLabel
             app.filesLocationSelectLabel = uilabel(app.FilesMainGrid);
             app.filesLocationSelectLabel.FontSize = 10;
             app.filesLocationSelectLabel.Layout.Row = 2;
-            app.filesLocationSelectLabel.Layout.Column = [1 2];
+            app.filesLocationSelectLabel.Layout.Column = [1 3];
             app.filesLocationSelectLabel.Text = 'LOCALIDADE/HISTÓRICO';
 
             % Create filesPeriodPanel
             app.filesPeriodPanel = uipanel(app.FilesMainGrid);
             app.filesPeriodPanel.BackgroundColor = [1 1 1];
             app.filesPeriodPanel.Layout.Row = 7;
-            app.filesPeriodPanel.Layout.Column = [1 2];
+            app.filesPeriodPanel.Layout.Column = [1 3];
 
             % Create filesPeriodGrid
             app.filesPeriodGrid = uigridlayout(app.filesPeriodPanel);
@@ -3399,54 +3695,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesEndDatePicker.Layout.Row = 2;
             app.filesEndDatePicker.Layout.Column = 2;
 
-            % Create filesFrequencyPanel
-            app.filesFrequencyPanel = uipanel(app.FilesMainGrid);
-            app.filesFrequencyPanel.BackgroundColor = [1 1 1];
-            app.filesFrequencyPanel.Layout.Row = 9;
-            app.filesFrequencyPanel.Layout.Column = [1 2];
-
-            % Create filesFrequencyGrid
-            app.filesFrequencyGrid = uigridlayout(app.filesFrequencyPanel);
-            app.filesFrequencyGrid.ColumnWidth = {110, '1x'};
-            app.filesFrequencyGrid.RowHeight = {22, 22};
-            app.filesFrequencyGrid.RowSpacing = 5;
-            app.filesFrequencyGrid.BackgroundColor = [1 1 1];
-
-            % Create filesFrequencyEndLabel
-            app.filesFrequencyEndLabel = uilabel(app.filesFrequencyGrid);
-            app.filesFrequencyEndLabel.FontSize = 11;
-            app.filesFrequencyEndLabel.Layout.Row = 2;
-            app.filesFrequencyEndLabel.Layout.Column = 1;
-            app.filesFrequencyEndLabel.Text = 'Fim';
-
-            % Create filesFrequencyStartEditField
-            app.filesFrequencyStartEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
-            app.filesFrequencyStartEditField.AllowEmpty = 'on';
-            app.filesFrequencyStartEditField.FontSize = 10.5;
-            app.filesFrequencyStartEditField.Layout.Row = 1;
-            app.filesFrequencyStartEditField.Layout.Column = 2;
-            app.filesFrequencyStartEditField.Value = [];
-
-            % Create filesFrequencyEndEditField
-            app.filesFrequencyEndEditField = uieditfield(app.filesFrequencyGrid, 'numeric');
-            app.filesFrequencyEndEditField.AllowEmpty = 'on';
-            app.filesFrequencyEndEditField.FontSize = 10.5;
-            app.filesFrequencyEndEditField.Layout.Row = 2;
-            app.filesFrequencyEndEditField.Layout.Column = 2;
-            app.filesFrequencyEndEditField.Value = [];
-
-            % Create filesFrequencyStartLabel
-            app.filesFrequencyStartLabel = uilabel(app.filesFrequencyGrid);
-            app.filesFrequencyStartLabel.FontSize = 11;
-            app.filesFrequencyStartLabel.Layout.Row = 1;
-            app.filesFrequencyStartLabel.Layout.Column = 1;
-            app.filesFrequencyStartLabel.Text = 'Início';
-
             % Create filesSensorLocationLabel
             app.filesSensorLocationLabel = uipanel(app.FilesMainGrid);
             app.filesSensorLocationLabel.BackgroundColor = [1 1 1];
             app.filesSensorLocationLabel.Layout.Row = 5;
-            app.filesSensorLocationLabel.Layout.Column = [1 2];
+            app.filesSensorLocationLabel.Layout.Column = [1 3];
             app.filesSensorLocationLabel.FontSize = 11;
 
             % Create filesSensorLocationGrid
@@ -3464,23 +3717,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesSensorLabel.Layout.Column = 1;
             app.filesSensorLabel.Text = 'Sensor';
 
-            % Create filesLocationLabel
-            app.filesLocationLabel = uilabel(app.filesSensorLocationGrid);
-            app.filesLocationLabel.FontSize = 11;
-            app.filesLocationLabel.Layout.Row = 2;
-            app.filesLocationLabel.Layout.Column = 1;
-            app.filesLocationLabel.Text = 'Localidade';
-
-            % Create filesLocationDropDown
-            app.filesLocationDropDown = uidropdown(app.filesSensorLocationGrid);
-            app.filesLocationDropDown.Items = {'Todas as localidades'};
-            app.filesLocationDropDown.ValueChangedFcn = createCallbackFcn(app, @onLocationChanged, true);
-            app.filesLocationDropDown.FontSize = 10.5;
-            app.filesLocationDropDown.BackgroundColor = [1 1 1];
-            app.filesLocationDropDown.Layout.Row = 2;
-            app.filesLocationDropDown.Layout.Column = 2;
-            app.filesLocationDropDown.Value = 'Todas as localidades';
-
             % Create filesStationDropDown
             app.filesStationDropDown = uidropdown(app.filesSensorLocationGrid);
             app.filesStationDropDown.Items = {''};
@@ -3496,36 +3732,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesStationLabel = uilabel(app.FilesMainGrid);
             app.filesStationLabel.FontSize = 10;
             app.filesStationLabel.Layout.Row = 4;
-            app.filesStationLabel.Layout.Column = [1 2];
+            app.filesStationLabel.Layout.Column = [1 3];
             app.filesStationLabel.Text = 'ESTAÇÃO';
-
-            % Create GridLayout2
-            app.GridLayout2 = uigridlayout(app.FilesMainGrid);
-            app.GridLayout2.RowHeight = {'1x'};
-            app.GridLayout2.RowSpacing = 0;
-            app.GridLayout2.Padding = [0 0 0 0];
-            app.GridLayout2.Layout.Row = 10;
-            app.GridLayout2.Layout.Column = 2;
-            app.GridLayout2.BackgroundColor = [1 1 1];
-
-            % Create filesSearchButton
-            app.filesSearchButton = uibutton(app.GridLayout2, 'push');
-            app.filesSearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
-            app.filesSearchButton.FontSize = 11;
-            app.filesSearchButton.Layout.Row = 1;
-            app.filesSearchButton.Layout.Column = 1;
-            app.filesSearchButton.Text = 'Pesquisar';
-
-            % Create filesCleanButton
-            app.filesCleanButton = uibutton(app.GridLayout2, 'push');
-            app.filesCleanButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
-            app.filesCleanButton.FontSize = 11;
-            app.filesCleanButton.Layout.Row = 1;
-            app.filesCleanButton.Layout.Column = 2;
-            app.filesCleanButton.Text = 'Limpar';
 
             % Create referenceRX_Icon_3
             app.referenceRX_Icon_3 = uiimage(app.FilesMainGrid);
+            app.referenceRX_Icon_3.ScaleMethod = 'none';
             app.referenceRX_Icon_3.Layout.Row = 1;
             app.referenceRX_Icon_3.Layout.Column = 1;
             app.referenceRX_Icon_3.ImageSource = 'addFiles_32.png';
@@ -3535,9 +3747,31 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.referenceRX_Label_3.FontSize = 11;
             app.referenceRX_Label_3.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.referenceRX_Label_3.Layout.Row = 1;
-            app.referenceRX_Label_3.Layout.Column = 2;
+            app.referenceRX_Label_3.Layout.Column = [2 3];
             app.referenceRX_Label_3.Interpreter = 'html';
             app.referenceRX_Label_3.Text = {'<b>Pesquisa de Arquivos</b>'; '<font style="font-size: 9px; color: gray;">(Dentro do repoSFI)</font>'};
+
+            % Create filesSearchButton
+            app.filesSearchButton = uibutton(app.FilesMainGrid, 'push');
+            app.filesSearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
+            app.filesSearchButton.Icon = 'icon_search.svg';
+            app.filesSearchButton.IconAlignment = 'top';
+            app.filesSearchButton.VerticalAlignment = 'bottom';
+            app.filesSearchButton.FontSize = 11;
+            app.filesSearchButton.Layout.Row = 9;
+            app.filesSearchButton.Layout.Column = 1;
+            app.filesSearchButton.Text = 'Buscar';
+
+            % Create filesCleanButton
+            app.filesCleanButton = uibutton(app.FilesMainGrid, 'push');
+            app.filesCleanButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
+            app.filesCleanButton.Icon = 'icon_clean.svg';
+            app.filesCleanButton.IconAlignment = 'top';
+            app.filesCleanButton.VerticalAlignment = 'bottom';
+            app.filesCleanButton.FontSize = 11;
+            app.filesCleanButton.Layout.Row = 9;
+            app.filesCleanButton.Layout.Column = 2;
+            app.filesCleanButton.Text = 'Limpar';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);

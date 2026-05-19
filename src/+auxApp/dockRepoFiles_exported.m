@@ -9,10 +9,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         DetailUITable               matlab.ui.control.Table
         DetailSummaryLabel          matlab.ui.control.Label
         SelectedRowsLabel           matlab.ui.control.Label
-        Image                       matlab.ui.control.Image
+        Download                    matlab.ui.control.Image
         LabelTotalPaginas           matlab.ui.control.Label
         Panel                       matlab.ui.container.Panel
         GridLayout2                 matlab.ui.container.GridLayout
+        DropDownEstado              matlab.ui.control.DropDown
+        EstadoLabel                 matlab.ui.control.Label
         DetailButton                matlab.ui.control.Button
         LimparButton                matlab.ui.control.Button
         BuscarButton                matlab.ui.control.Button
@@ -59,6 +61,34 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         selectedRowData = table()
         selectedDetailRow = NaN
         expandedFileId = NaN
+        localityRows = table()
+    end
+
+    methods (Access = public)
+
+        %-----------------------------------------------------------------%
+        function ipcSecondaryMatlabCallsHandler(app, callingApp, varargin)
+            % Recebe chamadas IPC de outros aplicativos (ex.: winRepoSFI).
+            try
+                switch class(callingApp)
+                    case {'auxApp.winRepoSFI', 'winRepoSFI_exported'}
+                        if isempty(varargin)
+                            return
+                        end
+                        operationType = varargin{1};
+                        switch operationType
+                            case 'onRepoSFIFilterChanged'
+                                syncFiltersFromRepoSFI(app, varargin{2})
+                            otherwise
+                                % Operações desconhecidas do winRepoSFI são ignoradas.
+                        end
+                    otherwise
+                        % Chamadores desconhecidos são ignorados silenciosamente.
+                end
+            catch
+            end
+        end
+
     end
 
     
@@ -88,8 +118,17 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             % Recarrega as opções dependentes do banco e tenta restaurar a
             % localidade vinda do contexto original do dock.
+            populateStateOptions(app)
+
+            % Aplica o estado vindo do contexto antes de carregar equipamentos,
+            % para que loadEquipmentOptions já receba o filtro de UF correto.
+            contextState = strtrim(char(string(getContextValue(app, 'stateCode'))));
+            if ~isempty(contextState) && any(strcmp(app.DropDownEstado.ItemsData, contextState))
+                app.DropDownEstado.Value = contextState;
+            end
+
             loadEquipmentOptions(app)
-            updateLocalityOptions(app, getContextValue(app, 'siteId'))
+            updateLocalityOptions(app, getContextValue(app, 'districtId'))
         
             % Fecha a inicialização executando a primeira consulta já no estado
             % coerente entre contexto, filtros visíveis e tabelas.
@@ -106,11 +145,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             % Define a estrutura textual da tabela principal no mesmo formato
             % usado por formatFileResults ao montar a saída exibida ao usuário.
-            app.UITable.ColumnName = {'ID Arquivo'; 'Arquivo'; 'Localidades'; 'Qtd. Espectros'; 'Faixa (MHz)'; 'Início'; 'Fim'; 'Caminho'};
+            app.UITable.ColumnName = {'ID Arquivo'; 'Arquivo'; 'Sensor'; 'Localidades'; 'Qtd. Espectros'; 'Faixa (MHz)'; 'Início'; 'Fim'; 'Caminho'};
         
             % Mantém larguras previsíveis para privilegiar leitura de nome,
             % localidade e período sem depender de autoajuste do componente.
-            app.UITable.ColumnWidth = {75, 220, 210, 105, 120, 135, 135, 'auto'};
+            app.UITable.ColumnWidth = {75, 200, 160, 190, 105, 120, 135, 135, 'auto'};
         end
         
         
@@ -162,6 +201,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Carrega a descrição textual associada ao contexto já em formato
             % escalar limpo, para alinhar a UI ao contrato esperado pela busca.
             app.EditFieldPlanoDescricao.Value = char(displayText(app, getContextValue(app, 'description'), ""));
+
+            % Aplica o estado (UF) vindo do contexto de abertura ao DropDownEstado,
+            % quando ele existir entre as opções já carregadas.
+            % (populateStateOptions é chamado logo após em updatePanel)
+            app.localityRows = table();
         end
 
         function clearFilters(app)
@@ -199,8 +243,19 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % do banco e tenta restaurar o equipamento vindo no contexto de abertura,
             % para que a consulta inicial já reflita o recorte esperado pelo chamador.
         
-            % Consulta a lista base de equipamentos usada pelo filtro principal.
-            rows = app.dbHandler.getSpectrumEquipments();
+            % Constrói filtros de estado e localidade ativos para restringir o
+            % catálogo de equipamentos ao contexto selecionado na interface.
+            eqFilters = struct();
+            stateCode = getSelectedState(app);
+            if strlength(stateCode) > 0
+                eqFilters.stateCode = char(stateCode);
+            end
+            eqDistrictId = str2double(string(app.DropDownLocalidade.Value));
+            if ~isnan(eqDistrictId)
+                eqFilters.districtId = eqDistrictId;
+            end
+
+            rows = app.dbHandler.getSpectrumEquipments(eqFilters);
         
             % Mantém uma opção neutra no topo para representar ausência de filtro
             % explícito por equipamento na pesquisa de arquivos.
@@ -224,75 +279,198 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEquipamento.Items = items;
             app.DropDownEquipamento.ItemsData = itemsData;
         
-            % Tenta reaplicar o equipamento vindo do contexto original do dock.
-            % Se ele não existir mais no catálogo atual, volta para a opção neutra.
-            contextEquipmentId = formatIdValue(app, getContextValue(app, 'equipmentId'));
-            if ~isempty(contextEquipmentId) && strlength(contextEquipmentId) > 0 && any(strcmp(itemsData, char(contextEquipmentId)))
-                app.DropDownEquipamento.Value = char(contextEquipmentId);
+            % Preserva a seleção atual quando ainda existe na nova lista.
+            % Se não existir, tenta restaurar o equipamento do contexto de abertura.
+            % Só volta para o estado neutro quando nenhuma das duas estiver disponível.
+            currentEquipmentId = char(string(app.DropDownEquipamento.Value));
+            contextEquipmentId = char(formatIdValue(app, getContextValue(app, 'equipmentId')));
+
+            if ~isempty(currentEquipmentId) && any(strcmp(itemsData, currentEquipmentId))
+                app.DropDownEquipamento.Value = currentEquipmentId;
+            elseif ~isempty(contextEquipmentId) && any(strcmp(itemsData, contextEquipmentId))
+                app.DropDownEquipamento.Value = contextEquipmentId;
             else
                 app.DropDownEquipamento.Value = '';
             end
         end
 
 
-        function updateLocalityOptions(app, preferredSiteId)
+        function populateStateOptions(app)
+            % Preenche o DropDownEstado com os estados (UF) disponíveis no repositório.
+            %
+            % Mantém 'Todos os estados' na primeira posição como opção neutra e
+            % tenta restaurar a seleção anterior quando ela ainda existir na lista.
+            prevValue = string(app.DropDownEstado.Value);
+            items     = {'Todos os estados'};
+            itemsData = {''};
+
+            rows = app.dbHandler.getSpectrumStates(struct());
+            if istable(rows) && ~isempty(rows) && ismember('LC_STATE', rows.Properties.VariableNames)
+                for ii = 1:height(rows)
+                    code = strtrim(char(string(rows.LC_STATE(ii))));
+                    if ~isempty(code)
+                        items{end + 1}     = code; %#ok<AGROW>
+                        itemsData{end + 1} = code; %#ok<AGROW>
+                    end
+                end
+            end
+
+            app.DropDownEstado.Items     = items;
+            app.DropDownEstado.ItemsData = itemsData;
+
+            if any(strcmp(itemsData, char(prevValue)))
+                app.DropDownEstado.Value = char(prevValue);
+            else
+                app.DropDownEstado.Value = '';
+            end
+        end
+
+
+        function output = getSelectedState(app)
+            % Retorna o código de estado selecionado, ou "" quando neutro.
+            output = "";
+            val = string(app.DropDownEstado.Value);
+            if ~ismissing(val) && strlength(val) > 0 && val ~= "Todos os estados"
+                output = val;
+            end
+        end
+
+
+        function updateLocalityOptions(app, preferredDistrictId, equipmentIdOverride)
             % Recarrega as localidades disponíveis para o equipamento ativo no dock.
             %
             % Esse helper depende do equipamento selecionado e do snapshot atual dos
             % filtros para reconstruir o dropdown de localidades, tentando ao final
             % reaplicar uma localidade preferencial vinda do contexto ou do chamador.
-        
+            %
+            % equipmentIdOverride — quando fornecido, substitui o equipamento lido
+            % da UI; passe NaN para obter todas as localidades do estado corrente
+            % sem restringir ao equipamento selecionado (caso "Todas as localidades").
+
             % Resolve o equipamento atual no formato numérico esperado pelas
             % consultas ao banco.
-            equipmentId = str2double(string(app.DropDownEquipamento.Value));
+            if nargin >= 3
+                equipmentId = equipmentIdOverride;
+            else
+                equipmentId = str2double(string(app.DropDownEquipamento.Value));
+            end
         
             % A lista sempre começa com uma opção neutra para representar busca
             % sem recorte explícito por localidade.
             items = {'Todas as localidades'};
             itemsData = {''};
         
-            % Só consulta o catálogo de localidades quando houver um equipamento
-            % válido, porque esse filtro depende diretamente dele.
-            if ~isnan(equipmentId)
-                rows = app.dbHandler.getSpectrumLocalities(equipmentId, getCurrentFilters(app));
-        
-                % Converte o retorno do banco em pares Items/ItemsData do dropdown,
-                % preservando separadamente o texto exibido e o siteId usado como valor.
-                if istable(rows) && ~isempty(rows)
-                    for ii = 1:height(rows)
-                        siteId = formatIdValue(app, rows.ID_SITE(ii));
-                        localityLabel = formatLocalityDisplay(app, rows(ii, :));
-        
-                        items{end + 1} = char(localityLabel); %#ok<AGROW>
-                        itemsData{end + 1} = char(siteId); %#ok<AGROW>
-                    end
+            % Constrói filtros de estado e data/freq para a consulta de localidades.
+            app.localityRows = table();
+            locFilters = getCurrentFilters(app);
+            % A consulta de localidades nunca deve ser filtrada pelo próprio
+            % distrito selecionado — isso criaria um filtro circular que colapsaria
+            % a lista ao único item correntemente escolhido.
+            locFilters.districtId = NaN;
+            stateCode = getSelectedState(app);
+            if strlength(stateCode) > 0
+                locFilters.stateCode = char(stateCode);
+            end
+
+            % Sempre consulta o banco: sem filtros ativos retorna todas as
+            % localidades disponíveis, permitindo que o usuário desfaça filtros
+            % sem colapsar a lista para apenas a opção neutra.
+            app.localityRows = app.dbHandler.getSpectrumLocalities(equipmentId, locFilters);
+
+            if istable(app.localityRows) && ~isempty(app.localityRows)
+                for ii = 1:height(app.localityRows)
+                    districtId = formatIdValue(app, app.localityRows.ID_DISTRICT(ii));
+                    localityLabel = formatLocalityDisplay(app, app.localityRows(ii, :));
+
+                    items{end + 1} = char(localityLabel); %#ok<AGROW>
+                    itemsData{end + 1} = char(districtId); %#ok<AGROW>
                 end
             end
-        
-            % Publica no componente o conjunto recém-montado de localidades
-            % compatíveis com o contexto atual da busca.
+
+            % Ordena alfabeticamente mantendo 'Todas as localidades' na 1ª posição.
+            if numel(items) > 1
+                [sortedLabels, sortIdx] = sort(items(2:end));
+                items     = [items(1),     sortedLabels];
+                itemsData = [itemsData(1), itemsData(sortIdx + 1)];
+            end
+
+            % Publica no componente o conjunto recém-montado de localidades.
             app.DropDownLocalidade.Items = items;
             app.DropDownLocalidade.ItemsData = itemsData;
         
             % Normaliza a localidade preferencial para um texto escalar comparável
             % contra os ItemsData publicados no dropdown.
-            preferredSiteId = string(formatIdValue(app, preferredSiteId));
-            preferredSiteId = preferredSiteId(~ismissing(preferredSiteId));
+            preferredDistrictId = string(formatIdValue(app, preferredDistrictId));
+            preferredDistrictId = preferredDistrictId(~ismissing(preferredDistrictId));
         
-            if isempty(preferredSiteId)
-                preferredSiteId = "";
+            if isempty(preferredDistrictId)
+                preferredDistrictId = "";
             else
-                preferredSiteId = preferredSiteId(1);
+                preferredDistrictId = preferredDistrictId(1);
             end
         
             % Se a localidade preferencial ainda existir entre as opções atuais,
             % restaura essa seleção; caso contrário, volta para a opção neutra.
-            if (strlength(preferredSiteId) > 0) && any(strcmp(itemsData, char(preferredSiteId)))
-                app.DropDownLocalidade.Value = char(preferredSiteId);
+            if (strlength(preferredDistrictId) > 0) && any(strcmp(itemsData, char(preferredDistrictId)))
+                app.DropDownLocalidade.Value = char(preferredDistrictId);
             else
                 app.DropDownLocalidade.Value = '';
             end
         end
+
+
+        function updateAvailablePeriod(app)
+            % Atualiza os DatePickers com o período disponível para a combinação
+            % atual de equipamento e localidade selecionados no dock.
+            %
+            % Usa app.localityRows como cache das linhas retornadas pela última
+            % chamada a updateLocalityOptions para não repetir consulta ao banco.
+            app.DatePickerPeriodoInicial.Value = NaT;
+            app.DatePickerPeriodoFinal.Value   = NaT;
+
+            if ~istable(app.localityRows) || isempty(app.localityRows)
+                return
+            end
+
+            rows = app.localityRows;
+            selectedDistrictId = str2double(string(app.DropDownLocalidade.Value));
+
+            % Se uma localidade específica foi selecionada, restringe o cálculo
+            % ao período observado apenas naquele distrito.
+            if ~isnan(selectedDistrictId) && ismember('ID_DISTRICT', rows.Properties.VariableNames)
+                districtValues = str2double(string(rows.ID_DISTRICT));
+                rows = rows(districtValues == selectedDistrictId, :);
+            end
+
+            if isempty(rows)
+                return
+            end
+
+            startDates = NaT(height(rows), 1);
+            endDates   = NaT(height(rows), 1);
+
+            if ismember('DATE_START', rows.Properties.VariableNames)
+                for ii = 1:height(rows)
+                    startDates(ii) = rawToDatetime(app, rows.DATE_START(ii));
+                end
+            end
+            if ismember('DATE_END', rows.Properties.VariableNames)
+                for ii = 1:height(rows)
+                    endDates(ii) = rawToDatetime(app, rows.DATE_END(ii));
+                end
+            end
+
+            validStart = startDates(~isnat(startDates));
+            validEnd   = endDates(~isnat(endDates));
+
+            if ~isempty(validStart)
+                app.DatePickerPeriodoInicial.Value = min(validStart);
+            end
+            if ~isempty(validEnd)
+                app.DatePickerPeriodoFinal.Value = max(validEnd);
+            end
+        end
+
 
         %-----------------------------------------------------------------%
         % Execução da pesquisa em banco
@@ -311,9 +489,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Congela o estado atual da interface no contrato consumido pelo DBHandler.
             filters = getCurrentFilters(app);
         
-            % Sem equipamento válido não existe recorte mínimo para a consulta.
-            % Nesse caso, o dock volta explicitamente para o estado vazio padrão.
-            if isnan(filters.equipmentId)
+            % Exige ao menos um dos três recortes principais (equipamento, localidade
+            % ou estado) para evitar carregar o repositório inteiro sem contexto.
+            hasMinFilter = ~isnan(filters.equipmentId) || ...
+                           ~isnan(filters.districtId)  || ...
+                           strlength(strtrim(filters.stateCode)) > 0;
+            if ~hasMinFilter
                 app.UITable.Data = emptyResultTable(app);
                 app.UITable.UserData = table();
                 app.totalResults = 0;
@@ -370,11 +551,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % preservando o contrato esperado pelas consultas do repositório.
             filters = struct( ...
                 'equipmentId', str2double(string(app.DropDownEquipamento.Value)), ...
-                'siteId', str2double(string(app.DropDownLocalidade.Value)), ...
-                'startDate', app.DatePickerPeriodoInicial.Value, ...
-                'endDate', app.DatePickerPeriodoFinal.Value, ...
-                'freqStart', app.EditFieldFrequenciaInicial.Value, ...
-                'freqEnd', app.EditFieldFrequenciaFinal.Value, ...
+                'districtId',  str2double(string(app.DropDownLocalidade.Value)), ...
+                'stateCode',   char(getSelectedState(app)), ...
+                'startDate',   app.DatePickerPeriodoInicial.Value, ...
+                'endDate',     app.DatePickerPeriodoFinal.Value, ...
+                'freqStart',   app.EditFieldFrequenciaInicial.Value, ...
+                'freqEnd',     app.EditFieldFrequenciaFinal.Value, ...
                 'description', strtrim(string(app.EditFieldPlanoDescricao.Value)) ...
                 );
         
@@ -425,6 +607,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             nRows = height(rawRows);
             id = strings(nRows, 1);
             fileName = strings(nRows, 1);
+            equipment = strings(nRows, 1);
             localities = strings(nRows, 1);
             spectrumCount = strings(nRows, 1);
             band = strings(nRows, 1);
@@ -437,6 +620,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             for ii = 1:nRows
                 id(ii) = formatIdValue(app, rawRows.ID_FILE(ii));
                 fileName(ii) = buildRepositoryFileName(app, rawRows(ii, :));
+                equipment(ii) = displayText(app, rawRows.EQUIPMENT_LABELS(ii), '-');
                 localities(ii) = displayText(app, rawRows.LOCALITY_LABELS(ii), '-');
                 spectrumCount(ii) = formatIdValue(app, rawRows.NU_SPECTRA(ii));
                 band(ii) = formatFrequencyRange(app, rawRows.NU_FREQ_START(ii), rawRows.NU_FREQ_END(ii));
@@ -447,8 +631,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             % Empacota as colunas já tratadas no contrato final consumido pela
             % UITable e alinhado à configuração feita em configureTable.
-            output = table(id, fileName, localities, spectrumCount, band, startAt, endAt, pathValue, ...
-                'VariableNames', {'IDArquivo', 'Arquivo', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
+            output = table(id, fileName, equipment, localities, spectrumCount, band, startAt, endAt, pathValue, ...
+                'VariableNames', {'IDArquivo', 'Arquivo', 'Sensor', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
         
@@ -462,8 +646,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Materializa uma tabela sem linhas, mas com o mesmo layout esperado
             % por configureTable e formatFileResults na grade principal.
             output = table(strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
-                'VariableNames', {'IDArquivo', 'Arquivo', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
+                strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), strings(0, 1), ...
+                'VariableNames', {'IDArquivo', 'Arquivo', 'Sensor', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
         
@@ -1086,11 +1270,147 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
 
         
-        function deleteProgressDialog(dlg)
+        function deleteProgressDialog(~, dlg)
             if ~isempty(dlg) && isvalid(dlg)
                 delete(dlg)
             end
         end
+
+        function output = buildRepositoryFilePath(app, row)
+            % Monta o caminho completo do arquivo no repositório a partir da pasta e do nome.
+            %
+            % Esse helper é usado no fluxo de download e visualização para compor o
+            % srcPath que alimenta copyfile, combinando o prefixo fixo do servidor
+            % com o diretório relativo armazenado no banco e o nome do arquivo.
+
+            % Extrai a subpasta relativa registrada no banco antes de tentar
+            % compor o caminho completo no servidor de repositório.
+            folder = char(displayText(app, row.NA_PATH, ''));
+
+            % Sem um caminho de pasta válido não é possível localizar o arquivo no
+            % sistema de arquivos, então devolve vazio como sinal de metadado ausente.
+            if isempty(folder)
+                output = '';
+                return
+            end
+
+            % O RF.Fusion armazena o caminho com o prefixo do ponto de montagem
+            % do container Linux (/mnt/reposfi). Esse segmento deve ser removido
+            % antes de compor o caminho UNC real no servidor de repositório.
+            folder = regexprep(folder, '^[/\\]mnt[/\\]reposfi', '', 'ignorecase');
+
+            % Com a pasta disponível, monta o caminho completo combinando o prefixo
+            % fixo do servidor com a subpasta e o nome de arquivo normalizado.
+            fileName = buildRepositoryFileName(app, row);
+            output = fullfile(class.Constants.repoSFIRoot, folder, char(fileName));
+        end
+
+        function notifyCallingAppFiltersChanged(app)
+            % Propaga os filtros atuais do dock para o callingApp (winRepoSFI).
+            %
+            % Chamado pelos callbacks de mudança de filtro para manter os seletores
+            % do winRepoSFI sincronizados com o estado corrente do dock, sem
+            % precisar roteamento pelo mainApp.
+            if isempty(app.callingApp) || ~isvalid(app.callingApp)
+                return
+            end
+            if ~ismethod(app.callingApp, 'ipcSecondaryMatlabCallsHandler')
+                return
+            end
+
+            stateCode = char(getSelectedState(app));
+
+            filters = struct( ...
+                'stateCode',   stateCode, ...
+                'equipmentId', str2double(string(app.DropDownEquipamento.Value)), ...
+                'districtId',  str2double(string(app.DropDownLocalidade.Value)), ...
+                'startDate',   app.DatePickerPeriodoInicial.Value, ...
+                'endDate',     app.DatePickerPeriodoFinal.Value ...
+            );
+
+            try
+                app.callingApp.ipcSecondaryMatlabCallsHandler(app, 'onDockFilterChanged', filters);
+            catch
+            end
+        end
+
+        function syncFiltersFromRepoSFI(app, filters)
+            % Sincroniza os seletores do dock com os valores vindos do winRepoSFI.
+            %
+            % Análogo a syncFiltersFromDock no winRepoSFI: atualiza os controles
+            % programaticamente (sem disparar callbacks) para refletir os filtros
+            % do mapa quando o usuário interage pelo painel do winRepoSFI.
+            stateChanged = false;
+
+            % Estado (UF) ------------------------------------------------
+            if isfield(filters, 'stateCode')
+                newState     = char(filters.stateCode);
+                currentState = char(string(app.DropDownEstado.Value));
+                if ~strcmp(currentState, newState)
+                    if isempty(newState) || any(strcmp(app.DropDownEstado.ItemsData, newState))
+                        app.DropDownEstado.Value = newState;
+                        stateChanged = true;
+                    end
+                end
+            end
+
+            % Quando o estado mudou, recarrega a lista de equipamentos para
+            % que ItemsData fique coerente com a nova UF antes de restaurar
+            % a seleção vinda do winRepoSFI.
+            if stateChanged
+                loadEquipmentOptions(app)
+            end
+
+            % Equipamento / sensor ---------------------------------------
+            if isfield(filters, 'equipmentId')
+                if isnan(filters.equipmentId)
+                    if any(strcmp(app.DropDownEquipamento.ItemsData, ''))
+                        app.DropDownEquipamento.Value = '';
+                    end
+                else
+                    equipId = char(formatIdValue(app, filters.equipmentId));
+                    if any(strcmp(app.DropDownEquipamento.ItemsData, equipId))
+                        app.DropDownEquipamento.Value = equipId;
+                    end
+                end
+            end
+
+            % Localidade / Distrito --------------------------------------
+            preferredDistrictId = [];
+            if isfield(filters, 'districtId') && ~isnan(filters.districtId)
+                preferredDistrictId = filters.districtId;
+            end
+
+            if stateChanged
+                updateLocalityOptions(app, preferredDistrictId)
+            else
+                if isfield(filters, 'districtId')
+                    if isnan(filters.districtId)
+                        if any(strcmp(app.DropDownLocalidade.ItemsData, ''))
+                            app.DropDownLocalidade.Value = '';
+                        end
+                    else
+                        distId = char(formatIdValue(app, filters.districtId));
+                        if any(strcmp(app.DropDownLocalidade.ItemsData, distId))
+                            app.DropDownLocalidade.Value = distId;
+                        end
+                    end
+                end
+            end
+
+            % Datas — definidas após updateLocalityOptions para não serem
+            % sobrescritas por updateAvailablePeriod interno.
+            if isfield(filters, 'startDate') && isdatetime(filters.startDate) && ~isnat(filters.startDate)
+                app.DatePickerPeriodoInicial.Value = filters.startDate;
+            end
+            if isfield(filters, 'endDate') && isdatetime(filters.endDate) && ~isnat(filters.endDate)
+                app.DatePickerPeriodoFinal.Value = filters.endDate;
+            end
+
+            % Limpa os resultados anteriores para refletir os novos filtros.
+            restoreSearchPageState(app)
+        end
+
 
     end
 
@@ -1107,7 +1427,13 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 
                 % Recupera elementos do winRepoSFI
                 app.inputArgs = inputArgs;
+                app.mainApp     = mainApp;
                 updatePanel(app)
+
+                % Notifica o callingApp (winRepoSFI) com os filtros iniciais do dock.
+                % Além de sincronizar o mapa, isso registra app.repoFilesDock no
+                % winRepoSFI, estabelecendo o vínculo bidirecional desde a abertura.
+                notifyCallingAppFiltersChanged(app)
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -1124,15 +1450,19 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         % Value changed function: DropDownEquipamento
         function onEquipmentChanged(app, event)
-            updateLocalityOptions(app, [])
+            % Tenta preservar o distrito atualmente selecionado: a localidade
+            % pode continuar válida para o novo sensor. updateLocalityOptions
+            % descartará silenciosamente se ela não fizer parte da nova lista.
+            currentDistrict = app.DropDownLocalidade.Value;
+            updateLocalityOptions(app, currentDistrict)
             restoreSearchPageState(app);
-
+            notifyCallingAppFiltersChanged(app)
         end
 
         % Button pushed function: BuscarButton
         function onSearchClick(app, event)
             d = ui.Dialog(app.UIFigure, 'progressdlg', 'Consultando arquivos do repositório...');
-            cleanupProgressDlg = onCleanup(@() deleteProgressDialog(d));
+            cleanupProgressDlg = onCleanup(@() deleteProgressDialog(app, d));
             cleanupButtons = onCleanup(@() setSearchBusyState(app, false));
         
             setSearchBusyState(app, true)
@@ -1145,14 +1475,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         % Button pushed function: LimparButton
         function onCleanClick(app, event)
             clearFilters(app)
+            app.DropDownEstado.Value = '';
+            populateStateOptions(app)
             loadEquipmentOptions(app)
             app.DropDownEquipamento.Value = '';
             updateLocalityOptions(app, [])
             restoreSearchPageState(app)
         end
 
-        % Image clicked function: Image
-        function ImageClicked(app, event)
+        % Image clicked function: Download
+        function DownloadClicked(app, event)
             
             selectedFileRows = app.selectedRowData;
             selectedCount = height(selectedFileRows);
@@ -1161,15 +1493,98 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 ui.Dialog(app.UIFigure, 'warning', 'Selecione ao menos um arquivo para continuar.');
                 return
             end
-            
-            % o QUE VOCÊ QUER FAZER?
+
             questionMsg = sprintf('O que você quer fazer com os %d arquivo(s) selecionado(s)?', selectedCount);
             userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Download', 'Visualizar', 'Cancelar'}, 1, 3);
             if userSelection == "Cancelar"
                 return
             end
 
-            %userSelection;
+            if userSelection == "Download"
+                destFolder = app.mainApp.General.fileFolder.userPath;
+
+                d = ui.Dialog(app.UIFigure, 'progressdlg', sprintf('Copiando %d arquivo(s) para:\n%s', selectedCount, destFolder));
+                cleanupProgressDlg = onCleanup(@() deleteProgressDialog(app, d));
+
+                successCount = 0;
+                errorList    = {};
+
+                for ii = 1:selectedCount
+                    fileRow  = selectedFileRows(ii, :);
+                    srcPath  = buildRepositoryFilePath(app, fileRow);
+                    fileName = buildRepositoryFileName(app, fileRow);
+
+                    if isempty(srcPath)
+                        errorList{end+1} = sprintf('Arquivo %d: metadados de caminho ausentes no banco de dados.', ii);
+                        continue
+                    end
+
+                    destPath = fullfile(destFolder, char(fileName));
+                    [status, msg] = copyfile(char(srcPath), destPath);
+
+                    if status
+                        successCount = successCount + 1;
+                    else
+                        errorList{end+1} = sprintf('%s: %s', fileName, msg);
+                    end
+                end
+
+                deleteProgressDialog(app, d)
+
+                if isempty(errorList)
+                    ui.Dialog(app.UIFigure, 'success', sprintf('%d arquivo(s) copiado(s) com sucesso para:\n%s', successCount, destFolder));
+                elseif successCount > 0
+                    ui.Dialog(app.UIFigure, 'warning', sprintf('%d de %d arquivo(s) copiado(s). Erros:\n%s', successCount, selectedCount, strjoin(errorList, newline)));
+                else
+                    ui.Dialog(app.UIFigure, 'error', sprintf('Nenhum arquivo copiado. Erros:\n%s', strjoin(errorList, newline)));
+                end
+
+            else  % "Visualizar"
+                tempFolder = app.mainApp.General.fileFolder.tempPath;
+
+                d = ui.Dialog(app.UIFigure, 'progressdlg', sprintf('Preparando %d arquivo(s) para visualização...', selectedCount));
+                cleanupProgressDlg = onCleanup(@() deleteProgressDialog(app, d));
+
+                copiedPaths = {};
+                errorList   = {};
+
+                for ii = 1:selectedCount
+                    fileRow  = selectedFileRows(ii, :);
+                    srcPath  = buildRepositoryFilePath(app, fileRow);
+                    fileName = buildRepositoryFileName(app, fileRow);
+
+                    if isempty(srcPath)
+                        errorList{end+1} = sprintf('Arquivo %d: metadados de caminho ausentes no banco de dados.', ii);
+                        continue
+                    end
+
+                    destPath = fullfile(tempFolder, char(fileName));
+                    [status, msg] = copyfile(char(srcPath), destPath);
+
+                    if status
+                        copiedPaths{end+1} = destPath;
+                    else
+                        errorList{end+1} = sprintf('%s: %s', fileName, msg);
+                    end
+                end
+
+                deleteProgressDialog(app, d)
+
+                if ~isempty(errorList)
+                    ui.Dialog(app.UIFigure, 'warning', sprintf('Alguns arquivos não puderam ser preparados:\n%s', strjoin(errorList, newline)));
+                end
+
+                if ~isempty(copiedPaths)
+                    mainApp  = app.mainApp;
+                    isDocked = app.isDocked;
+                    closeFcn(app)
+                    drawnow
+                    if ~isDocked
+                        mainApp.ipcMainMatlabCallsHandler(app, 'closeFcn', 'REPOSFI')
+                    end
+                    mainApp.ipcMainMatlabCallsHandler(app, 'onImportFilesFromPaths', copiedPaths)
+                end
+            end
 
         end
 
@@ -1197,6 +1612,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             app.selectedRows = rowIndices;
             app.selectedRowData = selectedFileRows;
+
+            if numel(app.selectedRows) == 1 && strcmp(app.DetailPanel.Visible, 'on')
+                toggleSelectedFileDetail(app)
+            end
+
             if numel(app.selectedRows) ~= 1 && strcmp(app.DetailPanel.Visible, 'on')
                 app.expandedFileId = NaN;
                 app.DetailUITable.Data = emptyDetailResultTable(app);
@@ -1214,9 +1634,43 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
 
         % Value changed function: DatePickerPeriodoFinal, 
-        % ...and 5 other components
+        % ...and 4 other components
         function onSearchFilterChanged(app, event)
             resetDetailState(app, false);
+            if ismember(event.Source, [app.DatePickerPeriodoInicial, app.DatePickerPeriodoFinal])
+                notifyCallingAppFiltersChanged(app)
+            end
+            
+        end
+
+        % Value changed function: DropDownEstado
+        function onStateChanged(app, event)
+           % Estado mudou: recarrega equipamentos e localidades restritos à UF.
+            loadEquipmentOptions(app)
+            updateLocalityOptions(app, [])
+            updateAvailablePeriod(app)
+            restoreSearchPageState(app)
+            notifyCallingAppFiltersChanged(app)
+            
+        end
+
+        % Value changed function: DropDownLocalidade
+        function onLocalityChanged(app, event)
+           % Localidade mudou: recarrega equipamentos que visitaram este site
+            % e atualiza o período disponível para a seleção atual.
+            loadEquipmentOptions(app)
+
+            if isnan(str2double(string(app.DropDownLocalidade.Value)))
+                % "Todas as localidades" selecionado: recarrega todas as localidades
+                % disponíveis para o estado corrente, sem restringir ao equipamento.
+                updateLocalityOptions(app, [], NaN)
+            else
+                updateLocalityOptions(app, app.DropDownLocalidade.Value)
+            end
+
+            updateAvailablePeriod(app)
+            restoreSearchPageState(app)
+            notifyCallingAppFiltersChanged(app)
             
         end
     end
@@ -1307,7 +1761,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelEquipamento.VerticalAlignment = 'bottom';
             app.LabelEquipamento.FontSize = 11;
             app.LabelEquipamento.Layout.Row = 1;
-            app.LabelEquipamento.Layout.Column = 1;
+            app.LabelEquipamento.Layout.Column = [3 6];
             app.LabelEquipamento.Text = 'Sensor:';
 
             % Create DropDownEquipamento
@@ -1317,7 +1771,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEquipamento.FontSize = 11;
             app.DropDownEquipamento.BackgroundColor = [1 1 1];
             app.DropDownEquipamento.Layout.Row = 2;
-            app.DropDownEquipamento.Layout.Column = [1 2];
+            app.DropDownEquipamento.Layout.Column = [3 6];
             app.DropDownEquipamento.Value = {};
 
             % Create LabelLocalidade
@@ -1325,17 +1779,17 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelLocalidade.VerticalAlignment = 'bottom';
             app.LabelLocalidade.FontSize = 11;
             app.LabelLocalidade.Layout.Row = 1;
-            app.LabelLocalidade.Layout.Column = [3 5];
-            app.LabelLocalidade.Text = 'Localidade:';
+            app.LabelLocalidade.Layout.Column = 2;
+            app.LabelLocalidade.Text = 'Distrito';
 
             % Create DropDownLocalidade
             app.DropDownLocalidade = uidropdown(app.GridLayout2);
             app.DropDownLocalidade.Items = {};
-            app.DropDownLocalidade.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.DropDownLocalidade.ValueChangedFcn = createCallbackFcn(app, @onLocalityChanged, true);
             app.DropDownLocalidade.FontSize = 11;
             app.DropDownLocalidade.BackgroundColor = [1 1 1];
             app.DropDownLocalidade.Layout.Row = 2;
-            app.DropDownLocalidade.Layout.Column = [3 6];
+            app.DropDownLocalidade.Layout.Column = 2;
             app.DropDownLocalidade.Value = {};
 
             % Create LabelPeriodoFinal
@@ -1437,6 +1891,23 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DetailButton.Layout.Column = 6;
             app.DetailButton.Text = 'Detalhe';
 
+            % Create EstadoLabel
+            app.EstadoLabel = uilabel(app.GridLayout2);
+            app.EstadoLabel.FontSize = 11;
+            app.EstadoLabel.Layout.Row = 1;
+            app.EstadoLabel.Layout.Column = 1;
+            app.EstadoLabel.Text = 'Estado';
+
+            % Create DropDownEstado
+            app.DropDownEstado = uidropdown(app.GridLayout2);
+            app.DropDownEstado.Items = {};
+            app.DropDownEstado.ValueChangedFcn = createCallbackFcn(app, @onStateChanged, true);
+            app.DropDownEstado.FontSize = 11;
+            app.DropDownEstado.BackgroundColor = [1 1 1];
+            app.DropDownEstado.Layout.Row = 2;
+            app.DropDownEstado.Layout.Column = 1;
+            app.DropDownEstado.Value = {};
+
             % Create LabelTotalPaginas
             app.LabelTotalPaginas = uilabel(app.GridLayout);
             app.LabelTotalPaginas.HorizontalAlignment = 'right';
@@ -1444,13 +1915,13 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelTotalPaginas.Layout.Column = [3 6];
             app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
 
-            % Create Image
-            app.Image = uiimage(app.GridLayout);
-            app.Image.ScaleMethod = 'none';
-            app.Image.ImageClickedFcn = createCallbackFcn(app, @ImageClicked, true);
-            app.Image.Layout.Row = 5;
-            app.Image.Layout.Column = 1;
-            app.Image.ImageSource = 'Import_16.png';
+            % Create Download
+            app.Download = uiimage(app.GridLayout);
+            app.Download.ScaleMethod = 'none';
+            app.Download.ImageClickedFcn = createCallbackFcn(app, @DownloadClicked, true);
+            app.Download.Layout.Row = 5;
+            app.Download.Layout.Column = 1;
+            app.Download.ImageSource = 'Import_16.png';
 
             % Create SelectedRowsLabel
             app.SelectedRowsLabel = uilabel(app.GridLayout);
