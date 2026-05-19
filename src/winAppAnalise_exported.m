@@ -314,7 +314,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         notifySecondaryApps(app, eventName)
 
                                     case 'onFlowUnlockRequested'
+                                        requestVisibilityChange(callingApp.progressDialog, 'visible', 'locked')
+
+                                        flowIdx = varargin{1};
+                                        update(app.specData(flowIdx), 'IsUserModified', 'Unlock', app.metaData)
                                         refreshProjectFiles(app, [], 'onFlowUnlockRequested')
+
+                                        requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -401,6 +407,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
 
                                     case {'onFilterByLevelRequested', 'onFilterByTimeRequested'}
+                                        requestVisibilityChange(callingApp.progressDialog, 'visible', 'locked')
+
                                         flowIdx = varargin{1};
                                         filterSpecification = varargin{2};
                                         matchMask = varargin{3};
@@ -408,6 +416,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                         app.specData(flowIdx) = applyFilter(app.specData(flowIdx), filterSpecification, matchMask, maskMode);
                                         notifySecondaryApps(app, eventName, {'SIGNALANALYSIS'})
+
+                                        requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')
+
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
 
                                     case 'onReportFlowListChanged'
                                         notifySecondaryApps(app, eventName)

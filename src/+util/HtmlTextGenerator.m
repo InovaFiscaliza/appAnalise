@@ -244,12 +244,17 @@ classdef (Abstract) HtmlTextGenerator
             end
 
             % FONTE DA INFORMAÇÃO (links edição)
-            sourceLinks = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onFilterRequested', generalSettings, 'link', 'filter.svg');
+            infoSourceFilterIcon = 'filter.svg';
+            if ~isempty(specData.UserData) && ~isempty(specData.UserData.LOG)
+                infoSourceFilterIcon = 'filter-filled.svg';
+            end
+            
+            infoSourceLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onFilterRequested', generalSettings, 'link', infoSourceFilterIcon, 16, 16);
             if specData.IsUserModified
-                sourceLinks = [ ...
-                    sourceLinks ...
+                infoSourceLink = [ ...
+                    infoSourceLink ...
                     '&emsp;' ...
-                    ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onFlowUnlockRequested', '<font style="font-size: 19px; color: black; transform: translateY(-2px);">&#x1F513;&#xFE0E;</font>') ...
+                    ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onFlowUnlockRequested', '<font style="font-size: 17px; color: black; transform: translateY(-2px);">&#x1F513;&#xFE0E;</font>') ...
                 ];
             end
 
@@ -259,7 +264,7 @@ classdef (Abstract) HtmlTextGenerator
                     'NumFiles', height(specData.RelatedFiles), ...
                     'NumSweeps', sum(specData.RelatedFiles.NumSweeps) ...
                 ), ...
-                sourceLinks ...
+                infoSourceLink ...
             );
 
             for ii = 1:height(specData.RelatedFiles)
@@ -277,14 +282,11 @@ classdef (Abstract) HtmlTextGenerator
             end
 
             % LOG
-            try
-                if ~isempty(specData.UserData.LOG)
-                    displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry( ...
-                        'LOG', ...
-                        textFormatGUI.cellstr2Bullets(specData.UserData.LOG) ...
-                    );
-                end
-            catch
+            if ~isempty(specData.UserData) && ~isempty(specData.UserData.LOG)
+                displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry( ...
+                    'LOG', ...
+                    textFormatGUI.cellstr2Bullets(specData.UserData.LOG) ...
+                );
             end
 
             htmlIntro = [ ...
@@ -541,7 +543,7 @@ classdef (Abstract) HtmlTextGenerator
                         displayEntry = struct('group', 'CANAL', 'value', channelInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onChannelEditRequested', generalSettings));
                         displayEntry(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onClassificationEditRequested', generalSettings));
                         displayEntry(3) = struct('group', 'MEDIDAS', 'value', measuresInfo,   'link', [ ...
-                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsExportRequested', generalSettings, 'link', 'Export_16.png') ...
+                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsExportRequested', generalSettings, 'link', 'Export_16.png', 16, 16) ...
                             '&emsp;', ...
                             util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsDetailsRequested', generalSettings, 'question', 'info.svg') ...
                         ]);
@@ -833,13 +835,15 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlLink = createEditHTMLLink(appHandleNameInBase, eventName, generalSettings, linkType, imgFileName)
+        function htmlLink = createEditHTMLLink(appHandleNameInBase, eventName, generalSettings, linkType, imgFileName, imgWidth, imgHeight)
             arguments
                 appHandleNameInBase 
                 eventName 
                 generalSettings 
                 linkType {mustBeMember(linkType, {'link', 'question', 'edit'})} = 'edit'
                 imgFileName = 'Edit_32.png'
+                imgWidth = 18 % pixels
+                imgHeight = 18% pixels
             end
 
             htmlLink = '';
@@ -847,7 +851,7 @@ classdef (Abstract) HtmlTextGenerator
             try
                 if ~isempty(appHandleNameInBase)
                     if ~isempty(generalSettings) && ~isempty(generalSettings.AppVersion.application.resourceStaticURL)
-                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, imgFileName, generalSettings);
+                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, imgFileName, imgWidth, imgHeight, generalSettings);
                     else
                         htmlLink = ui.TextView.createHTMLLink(linkType, appHandleNameInBase, eventName);
                     end

@@ -556,7 +556,36 @@ classdef SpecData < model.SpecDataBase
                             obj.IsUserModified = true;
 
                         case 'Unlock'
+                            % É preciso reconstruir "RelatedFiles" pois se
+                            % trata de tabela editada, quando da filtragem.
+
+                            metaData = varargin{1};
+
                             obj.IsUserModified = false;
+                            obj.Data = [];
+                            obj.RelatedFiles(:, :) = [];
+                            
+                            for ii = 1:numel(obj.InputFiles)
+                                fileName = obj.InputFiles(ii).File;
+                                [~, fileNameIdx] = ismember(fileName, {metaData.File});
+
+                                if fileNameIdx
+                                    flowIdx = obj.InputFiles(ii).Indexes(2);
+
+                                    if isvalid(metaData(fileNameIdx).Data(flowIdx))
+                                        obj.RelatedFiles = [obj.RelatedFiles; metaData(fileNameIdx).Data(flowIdx).RelatedFiles];
+                                    end
+                                end
+                            end
+
+                            % Elimina lançamentos dos tipos "FilterByTime",
+                            % "FilterByLevel" e "Merge".
+                            for ii = numel(obj.UserData.LOG):-1:1
+                                logDetails = jsondecode(obj.UserData.LOG{ii});
+                                if ismember(logDetails.Action, {'FilterByTime', 'FilterByLevel', 'Merge'})
+                                    obj.UserData.LOG(ii) = [];
+                                end
+                            end
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
