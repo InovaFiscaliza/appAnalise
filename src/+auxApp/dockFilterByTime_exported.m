@@ -295,6 +295,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
             app.TitleIcon.ScaleMethod = 'none';
             app.TitleIcon.Layout.Row = 1;
             app.TitleIcon.Layout.Column = 1;
+            app.TitleIcon.VerticalAlignment = 'top';
             app.TitleIcon.ImageSource = 'calendar.svg';
 
             % Create Title

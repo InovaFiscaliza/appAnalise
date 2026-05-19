@@ -231,7 +231,8 @@ classdef dockFilterByLevel_exported < matlab.apps.AppBase
             app.TitleIcon.ScaleMethod = 'none';
             app.TitleIcon.Layout.Row = 1;
             app.TitleIcon.Layout.Column = 1;
-            app.TitleIcon.ImageSource = 'Filter_18.png';
+            app.TitleIcon.VerticalAlignment = 'top';
+            app.TitleIcon.ImageSource = 'symbol-numeric.svg';
 
             % Create Title
             app.Title = uilabel(app.GridLayout);

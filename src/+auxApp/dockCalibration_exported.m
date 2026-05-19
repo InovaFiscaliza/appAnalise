@@ -2,22 +2,17 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure           matlab.ui.Figure
-        GridLayout         matlab.ui.container.GridLayout
-        btnOK              matlab.ui.control.Button
-        btnRefresh         matlab.ui.control.Image
-        kFactorPanel       matlab.ui.container.Panel
-        kFactorGrid        matlab.ui.container.GridLayout
-        kFactorTree        matlab.ui.container.Tree
-        kFactorAdd         matlab.ui.control.Image
-        kFactor            matlab.ui.control.DropDown
-        kFactorBand        matlab.ui.control.Label
-        kFactorLabel       matlab.ui.control.Label
-        unitRaw            matlab.ui.control.EditField
-        unitRawLabel       matlab.ui.control.Label
-        kFactorPanelLabel  matlab.ui.control.Label
-        ContextMenu        matlab.ui.container.ContextMenu
-        ContextMenu_del    matlab.ui.container.Menu
+        UIFigure               matlab.ui.Figure
+        GridLayout             matlab.ui.container.GridLayout
+        OkButton               matlab.ui.control.Button
+        CalibrationPanel       matlab.ui.container.Panel
+        CalibrationGrid        matlab.ui.container.GridLayout
+        CurveNames             matlab.ui.control.DropDown
+        CurveNamesLabel        matlab.ui.control.Label
+        InitialLevelUnit       matlab.ui.control.EditField
+        InitialLevelUnitLabel  matlab.ui.control.Label
+        Title                  matlab.ui.control.Label
+        TitleIcon              matlab.ui.control.Image
     end
 
     
@@ -40,74 +35,45 @@ classdef dockCalibration_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         inputArgs
-        referenceData
+        refCalibrationData
     end
 
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initialValues(app, idxThread)
+        function initializeAppProperties(app, context, flowIdx)
+            % inputArgs
+            app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
+
+            % refCalibrationData
             [projectFolder, ...
              programDataFolder] = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
+
             try
-                kFactorTable = jsondecode(fileread(fullfile(programDataFolder, 'Calibration.json')));
+                refCalibrationFileContent = jsondecode(fileread(fullfile(programDataFolder, 'Calibration.json')));
             catch
-                kFactorTable = jsondecode(fileread(fullfile(projectFolder,     'Calibration.json')));
+                refCalibrationFileContent = jsondecode(fileread(fullfile(projectFolder,     'Calibration.json')));
             end
 
-            app.referenceData = struct('idxThread',    idxThread,                                        ...
-                                       'Calibration',  app.specData(idxThread).UserData.measCalibration, ...
-                                       'kFactorTable', kFactorTable);
-            app.kFactor.Items = [{''}; {app.referenceData.kFactorTable.Name}'];
-
-            Layout(app)            
+            app.refCalibrationData = refCalibrationFileContent;
         end
 
         %-----------------------------------------------------------------%
-        function editionFlag = checkEdition(app)
-            idxThread = app.referenceData.idxThread;
-            if ~isequal(app.referenceData.Calibration, app.specData(idxThread).UserData.measCalibration)
-                editionFlag = true;
+        function updatePanel(app)
+            flowIdx = app.inputArgs.flowIdx;
+            specData = aoo.mainApp.specData(flowIdx);
+
+            if isempty(specData.UserData.CalibrationCurve)
+                app.InitialLevelUnit.Value = specData.MetaData.LevelUnit;
             else
-                editionFlag = false;
+                app.InitialLevelUnit.Value = specData.UserData.CalibrationCurve.PreviousLevelUnit{1};
             end
+
+            app.CurveNames.Items = [{''}; {app.refCalibrationData.Name}'];
         end
 
         %-----------------------------------------------------------------%
-        function Layout(app)
-            if ~isempty(app.kFactorTree.Children)
-                delete(app.kFactorTree.Children)
-                removeStyle(app.kFactorTree)
-            end
-
-            idxThread   = app.referenceData.idxThread;
-            Calibration = app.specData(idxThread).UserData.measCalibration;
-
-            if ~isempty(Calibration)
-                app.unitRaw.Value = Calibration.oldUnitLevel{1};
-
-                for ii = 1:height(Calibration)
-                    uitreenode(app.kFactorTree, 'Text',        sprintf('#%d: %s<br><font style="padding-left: 18px; color: gray; font-size: 10px;">%s → %s</font>', ii, Calibration.Name{ii}, Calibration.oldUnitLevel{ii}, Calibration.newUnitLevel{ii}), ...
-                                                'NodeData',    ii,                                                                                                                                                                          ...
-                                                'ContextMenu', app.ContextMenu);
-                end
-
-                addStyle(app.kFactorTree, uistyle('Interpreter', 'html'), "tree", "")
-
-            else
-                app.unitRaw.Value = app.specData(idxThread).MetaData.LevelUnit;
-            end
-            app.kFactorAdd.Enable = 1;
-
-            if ~isempty(app.kFactorTree.Children)
-                app.btnRefresh.Enable = 1;
-            else
-                app.btnRefresh.Enable = 0;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function msgError = Correction(app, operationType, idxThread, idxCalibration, kFactorName)
+        function msgError = applyCalibration(app, operationType, idxThread, idxCalibration, kFactorName)
             msgError = '';
 
             try
@@ -116,6 +82,11 @@ classdef dockCalibration_exported < matlab.apps.AppBase
                 msgError = ME.message;
                 ui.Dialog(app.UIFigure, 'warning', ME.message);
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function calibrationCurve = computeCalibrationCurve(refCalibrationData, freqStart, freqStop, dataPoints, levelUnit)
+
         end
     end
     
@@ -128,9 +99,8 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-
-                app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
-                % initialValues(app)
+                initializeAppProperties(app, context, flowIdx)
+                updatePanel(app)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -145,65 +115,63 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function: ContextMenu_del, btnRefresh, kFactorAdd
-        function FieldValueChanged(app, event)
+        % Button pushed function: OkButton
+        function onOkButtonClicked(app, event)
+        
+            % DADOS DA CALIBRAÇÃO A SER APLICADA
+            selectedCurveName = app.CurveNames.Value;
+            [~, selectedCurveNameIdx] = ismember(selectedCurveName, {app.refCalibrationData.Name});
+
+            if ~selectedCurveNameIdx
+                return
+            end
+
+            calibrationData = app.refCalibrationData(selectedCurveNameIdx);
+
+            % DADOS DO FLUXO ESPECTRAL SOB ANÁLISE
+            flowIdx = app.inputArgs.flowIdx;
+            specData = aoo.mainApp.specData(flowIdx);
+
+            freqStart = specData.MetaData.FreqStart / 1e+6;
+            freqStop = specData.MetaData.FreqStop  / 1e+6;
+            dataPoints = specData.MetaData.DataPoints;
+
+            try
+                % VALIDAÇÃO
+                if contains(specData.UserData.CalibrationCurve.Name, calibrationData.Name)
+                    error('Curva de correção já incluída!')
             
-            focus(app.jsBackDoor)
-
-            idxThread = app.referenceData.idxThread;
-
-            switch event.Source
-                case app.kFactorAdd
-                    idxCalibration = [];
-                    kFactorName    = app.kFactor.Value;
-                    operationType  = 'Add';
-
-                otherwise
-                    switch event.Source
-                        case app.ContextMenu_del
-                            idxCalibration = app.kFactorTree.SelectedNodes.NodeData;
-                            
-                        case app.btnRefresh
-                            idxCalibration = 1:height(app.specData(idxThread).UserData.measCalibration);
+                elseif strcmp(calibrationData.Type, 'Antenna k-Factor')
+                    if any(contains(specData.UserData.CalibrationCurve.Type, 'Antenna k-Factor'))
+                        error([ ...
+                            'Já incluída uma curva de correção do tipo "Antenna k-Factor", ' ...
+                            'a qual deve ser previamente excluída antes da inclusão de uma nova.' ...
+                        ])
+            
+                    elseif ~ismember(specData.MetaData.LevelUnit, {'dBm', 'dBµV'})
+                        error([ ...
+                            'Para inclusão de uma curva de correção do tipo "Antenna k-Factor", ' ...
+                            'a unidade de medida da faixa monitorada precisa ser "dBm" ou "dBµV".' ...
+                        ])
                     end
-
-                    kFactorName   = app.specData(idxThread).UserData.measCalibration.Name(idxCalibration);
-                    operationType = 'Remove';
-            end
-
-            msgError = Correction(app, operationType, idxThread, idxCalibration, kFactorName);
-            if isempty(msgError)
-                Layout(app)
-                callingMainApp(app, true, true)
-            end
-
-            if checkEdition(app)
-                app.btnOK.Enable = 1;
-            else
-                app.btnOK.Enable = 0;
-            end
+                end
             
-        end
+                if ~((calibrationData.xData(1) <= freqStart) && (calibrationData.xData(end) >= freqStop))
+                    error('A curva de correção não engloba a faixa monitorada.')
+                end
 
-        % Button pushed function: btnOK
-        function ButtonPushed(app, event)
-            
-            callingMainApp(app, false, false)
-            closeFcn(app)
+                 update(specData, 'UserData:CalibrationCurve', calibrationData)
+
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
 
         end
 
-        % Value changed function: kFactor
-        function kFactorValueChanged(app, event)
+        % Value changed function: CurveNames
+        function CurveNamesValueChanged(app, event)
             
-            kFactorTable = app.referenceData.kFactorTable;
-            idxTable = find(strcmp({kFactorTable.Name}, app.kFactor.Value), 1);
-
-            if ~isempty(idxTable)
-                app.kFactorBand.Text = sprintf('%.3f - %.3f MHz', kFactorTable(idxTable).xData(1), kFactorTable(idxTable).xData(end));
-            else
-                app.kFactorBand.Text = '';
-            end
+            app.OkButton.Enable = ~isempty(app.CurveNames.Value);
 
         end
     end
@@ -221,7 +189,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 480 360];
+                app.UIFigure.Position = [100 100 452 170];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -244,124 +212,87 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {16, 324, 90};
-            app.GridLayout.RowHeight = {22, 266, 22};
+            app.GridLayout.ColumnWidth = {18, 274, 110};
+            app.GridLayout.RowHeight = {17, 5, 74, 10, 24};
             app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create kFactorPanelLabel
-            app.kFactorPanelLabel = uilabel(app.GridLayout);
-            app.kFactorPanelLabel.VerticalAlignment = 'bottom';
-            app.kFactorPanelLabel.FontSize = 10;
-            app.kFactorPanelLabel.Layout.Row = 1;
-            app.kFactorPanelLabel.Layout.Column = [1 2];
-            app.kFactorPanelLabel.Text = 'CALIBRAÇÃO';
+            % Create TitleIcon
+            app.TitleIcon = uiimage(app.GridLayout);
+            app.TitleIcon.ScaleMethod = 'none';
+            app.TitleIcon.Layout.Row = 1;
+            app.TitleIcon.Layout.Column = 1;
+            app.TitleIcon.ImageSource = 'symbol-operator.svg';
 
-            % Create kFactorPanel
-            app.kFactorPanel = uipanel(app.GridLayout);
-            app.kFactorPanel.AutoResizeChildren = 'off';
-            app.kFactorPanel.Layout.Row = 2;
-            app.kFactorPanel.Layout.Column = [1 3];
+            % Create Title
+            app.Title = uilabel(app.GridLayout);
+            app.Title.FontSize = 10;
+            app.Title.Layout.Row = 1;
+            app.Title.Layout.Column = 2;
+            app.Title.Text = 'CURVA DE CORREÇÃO';
 
-            % Create kFactorGrid
-            app.kFactorGrid = uigridlayout(app.kFactorPanel);
-            app.kFactorGrid.ColumnWidth = {110, '1x', 18};
-            app.kFactorGrid.RowHeight = {26, 22, 18, '1x'};
-            app.kFactorGrid.RowSpacing = 5;
-            app.kFactorGrid.Padding = [10 10 10 5];
-            app.kFactorGrid.BackgroundColor = [1 1 1];
+            % Create CalibrationPanel
+            app.CalibrationPanel = uipanel(app.GridLayout);
+            app.CalibrationPanel.AutoResizeChildren = 'off';
+            app.CalibrationPanel.Layout.Row = 3;
+            app.CalibrationPanel.Layout.Column = [1 3];
 
-            % Create unitRawLabel
-            app.unitRawLabel = uilabel(app.kFactorGrid);
-            app.unitRawLabel.VerticalAlignment = 'bottom';
-            app.unitRawLabel.WordWrap = 'on';
-            app.unitRawLabel.FontSize = 11;
-            app.unitRawLabel.Layout.Row = 1;
-            app.unitRawLabel.Layout.Column = 1;
-            app.unitRawLabel.Interpreter = 'html';
-            app.unitRawLabel.Text = {'Unidade original:'; '<p style="line-height:10px; font-size:9px; color:gray;">(coleta)</p>'};
+            % Create CalibrationGrid
+            app.CalibrationGrid = uigridlayout(app.CalibrationPanel);
+            app.CalibrationGrid.ColumnWidth = {110, 270};
+            app.CalibrationGrid.RowHeight = {28, 22};
+            app.CalibrationGrid.RowSpacing = 5;
+            app.CalibrationGrid.Padding = [10 10 10 5];
+            app.CalibrationGrid.BackgroundColor = [1 1 1];
 
-            % Create unitRaw
-            app.unitRaw = uieditfield(app.kFactorGrid, 'text');
-            app.unitRaw.Editable = 'off';
-            app.unitRaw.FontSize = 11;
-            app.unitRaw.Layout.Row = 2;
-            app.unitRaw.Layout.Column = 1;
+            % Create InitialLevelUnitLabel
+            app.InitialLevelUnitLabel = uilabel(app.CalibrationGrid);
+            app.InitialLevelUnitLabel.VerticalAlignment = 'bottom';
+            app.InitialLevelUnitLabel.WordWrap = 'on';
+            app.InitialLevelUnitLabel.FontSize = 11;
+            app.InitialLevelUnitLabel.Layout.Row = 1;
+            app.InitialLevelUnitLabel.Layout.Column = 1;
+            app.InitialLevelUnitLabel.Interpreter = 'html';
+            app.InitialLevelUnitLabel.Text = {'Unidade original:'; '<p style="line-height:10px; font-size:9px; color:gray;">(coleta)</p>'};
 
-            % Create kFactorLabel
-            app.kFactorLabel = uilabel(app.kFactorGrid);
-            app.kFactorLabel.VerticalAlignment = 'bottom';
-            app.kFactorLabel.FontSize = 11;
-            app.kFactorLabel.Layout.Row = 1;
-            app.kFactorLabel.Layout.Column = [2 3];
-            app.kFactorLabel.Interpreter = 'html';
-            app.kFactorLabel.Text = {'Curva de correção:'; '<p style="line-height:10px; font-size:9px; color:gray;">(calibração, fator-k)</p>'};
+            % Create InitialLevelUnit
+            app.InitialLevelUnit = uieditfield(app.CalibrationGrid, 'text');
+            app.InitialLevelUnit.Editable = 'off';
+            app.InitialLevelUnit.FontSize = 11;
+            app.InitialLevelUnit.Layout.Row = 2;
+            app.InitialLevelUnit.Layout.Column = 1;
 
-            % Create kFactorBand
-            app.kFactorBand = uilabel(app.kFactorGrid);
-            app.kFactorBand.HorizontalAlignment = 'right';
-            app.kFactorBand.VerticalAlignment = 'bottom';
-            app.kFactorBand.FontSize = 11;
-            app.kFactorBand.Layout.Row = 1;
-            app.kFactorBand.Layout.Column = [2 3];
-            app.kFactorBand.Text = '';
+            % Create CurveNamesLabel
+            app.CurveNamesLabel = uilabel(app.CalibrationGrid);
+            app.CurveNamesLabel.VerticalAlignment = 'bottom';
+            app.CurveNamesLabel.FontSize = 11;
+            app.CurveNamesLabel.Layout.Row = 1;
+            app.CurveNamesLabel.Layout.Column = 2;
+            app.CurveNamesLabel.Interpreter = 'html';
+            app.CurveNamesLabel.Text = {'Curva de correção:'; '<p style="line-height:10px; font-size:9px; color:gray;">(calibração, fator-k)</p>'};
 
-            % Create kFactor
-            app.kFactor = uidropdown(app.kFactorGrid);
-            app.kFactor.Items = {'', 'CRFS Low Band (10 MHz - 1.2 GHz)', 'CRFS High Band (750 MHz - 6 GHz)', 'Rohde & Schwarz ADDx07 (Argus)', 'Rohde & Schwarz ADD107 (20 MHz - 1.3 GHz)', 'Rohde & Schwarz ADD207 (690 MHz - 6 GHz)'};
-            app.kFactor.ValueChangedFcn = createCallbackFcn(app, @kFactorValueChanged, true);
-            app.kFactor.FontSize = 11;
-            app.kFactor.BackgroundColor = [1 1 1];
-            app.kFactor.Layout.Row = 2;
-            app.kFactor.Layout.Column = [2 3];
-            app.kFactor.Value = '';
+            % Create CurveNames
+            app.CurveNames = uidropdown(app.CalibrationGrid);
+            app.CurveNames.Items = {'', 'CRFS Low Band (10 MHz - 1.2 GHz)', 'CRFS High Band (750 MHz - 6 GHz)', 'Rohde & Schwarz ADDx07 (Argus)', 'Rohde & Schwarz ADD107 (20 MHz - 1.3 GHz)', 'Rohde & Schwarz ADD207 (690 MHz - 6 GHz)'};
+            app.CurveNames.ValueChangedFcn = createCallbackFcn(app, @CurveNamesValueChanged, true);
+            app.CurveNames.FontSize = 11;
+            app.CurveNames.BackgroundColor = [1 1 1];
+            app.CurveNames.Layout.Row = 2;
+            app.CurveNames.Layout.Column = 2;
+            app.CurveNames.Value = '';
 
-            % Create kFactorAdd
-            app.kFactorAdd = uiimage(app.kFactorGrid);
-            app.kFactorAdd.ScaleMethod = 'none';
-            app.kFactorAdd.ImageClickedFcn = createCallbackFcn(app, @FieldValueChanged, true);
-            app.kFactorAdd.Layout.Row = 3;
-            app.kFactorAdd.Layout.Column = 3;
-            app.kFactorAdd.HorizontalAlignment = 'right';
-            app.kFactorAdd.VerticalAlignment = 'bottom';
-            app.kFactorAdd.ImageSource = 'Add_16.png';
-
-            % Create kFactorTree
-            app.kFactorTree = uitree(app.kFactorGrid);
-            app.kFactorTree.FontSize = 10.5;
-            app.kFactorTree.Layout.Row = 4;
-            app.kFactorTree.Layout.Column = [1 3];
-
-            % Create btnRefresh
-            app.btnRefresh = uiimage(app.GridLayout);
-            app.btnRefresh.ScaleMethod = 'none';
-            app.btnRefresh.ImageClickedFcn = createCallbackFcn(app, @FieldValueChanged, true);
-            app.btnRefresh.Tooltip = {'Retorna às configurações iniciais'};
-            app.btnRefresh.Layout.Row = 3;
-            app.btnRefresh.Layout.Column = 1;
-            app.btnRefresh.ImageSource = 'Refresh_18.png';
-
-            % Create btnOK
-            app.btnOK = uibutton(app.GridLayout, 'push');
-            app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
-            app.btnOK.Tag = 'OK';
-            app.btnOK.IconAlignment = 'right';
-            app.btnOK.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.btnOK.Enable = 'off';
-            app.btnOK.Layout.Row = 3;
-            app.btnOK.Layout.Column = 3;
-            app.btnOK.Text = 'OK';
-
-            % Create ContextMenu
-            app.ContextMenu = uicontextmenu(app.UIFigure);
-            app.ContextMenu.Tag = 'auxApp.dockAddKFactor';
-
-            % Create ContextMenu_del
-            app.ContextMenu_del = uimenu(app.ContextMenu);
-            app.ContextMenu_del.MenuSelectedFcn = createCallbackFcn(app, @FieldValueChanged, true);
-            app.ContextMenu_del.Text = 'Excluir';
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onOkButtonClicked, true);
+            app.OkButton.Tag = 'OK';
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.BackgroundColor = [0.9608 0.9608 0.9608];
+            app.OkButton.Enable = 'off';
+            app.OkButton.Layout.Row = 5;
+            app.OkButton.Layout.Column = 3;
+            app.OkButton.Text = 'Aplicar curva';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

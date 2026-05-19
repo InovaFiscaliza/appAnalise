@@ -455,6 +455,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onDriveTestPointsAdded'
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
+                                    case 'onImportFilesFromPaths'
+                                        filePaths = varargin{1};
+                                        navigateToTab(app, app.Tab1Button)
+                                        importFilesFromPaths(app, filePaths)
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -496,7 +501,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Classification', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -517,22 +522,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     'VariableTypes', {'string', 'double', 'double', 'logical'}, ...
                     'VariableNames', {'AuxAppName', 'Width', 'Height', 'IsFluid'} ...
                 );
-                popupSpecifications( 1, :) = {"Calibration",     480, 360, false}; % Não iniciada revisão
+                popupSpecifications( 1, :) = {"Calibration",     452, 170, false};
                 popupSpecifications( 2, :) = {"Channels",        412, 516, false}; % Em andamento
-                popupSpecifications( 3, :) = {"Classification",  534, 248, false}; % Não iniciada revisão
-                popupSpecifications( 4, :) = {"Detection",       412, 484, false}; % Em andamento
-                popupSpecifications( 5, :) = {"DetectionLimits", 292, 360, false}; % Em andamento
-                popupSpecifications( 6, :) = {"DriveTestFilter", 412, 338, false};
-                popupSpecifications( 7, :) = {"DriveTestPoints", 412, 408, false};
-                popupSpecifications( 8, :) = {"EmissionChannel", 412, 138, false};
-                popupSpecifications( 9, :) = {"ExternalFiles",   880, 480, false}; % Não iniciada revisão
-                popupSpecifications(10, :) = {"FilterByLevel",   550, 308, false}; % Em andamento
-                popupSpecifications(11, :) = {"FilterByTime",    452, 208, false};
-                popupSpecifications(12, :) = {"FlowMerge",       880, 480, true};
-                popupSpecifications(13, :) = {"Location",        412, 190, false};                
-                popupSpecifications(14, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
-                popupSpecifications(15, :) = {"ReportLib",       784, 594, false};
-                popupSpecifications(16, :) = {"RepoFiles",       940, 580, true};  % Em andamento (Augusto)
+                popupSpecifications( 3, :) = {"Detection",       412, 484, false}; % Em andamento
+                popupSpecifications( 4, :) = {"DetectionLimits", 292, 360, false}; % Em andamento
+                popupSpecifications( 5, :) = {"DriveTestFilter", 412, 338, false};
+                popupSpecifications( 6, :) = {"DriveTestPoints", 412, 408, false};
+                popupSpecifications( 7, :) = {"EmissionChannel", 412, 138, false};
+                popupSpecifications( 8, :) = {"ExternalFiles",   880, 480, false}; % Não iniciada revisão
+                popupSpecifications( 9, :) = {"FilterByLevel",   550, 308, false};
+                popupSpecifications(10, :) = {"FilterByTime",    452, 208, false};
+                popupSpecifications(11, :) = {"FlowMerge",       880, 480, true};
+                popupSpecifications(12, :) = {"Location",        412, 190, false};                
+                popupSpecifications(13, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
+                popupSpecifications(14, :) = {"ReportLib",       784, 594, false};
+                popupSpecifications(15, :) = {"RepoFiles",       940, 580, true};  % Em andamento (Augusto)
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -923,6 +927,63 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 ui.TextView.update(app.FileMetadata, '');
                 app.FileFilterValueList.Items = {};
                 app.FileFilterValueText.Value = '';           
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function importFilesFromPaths(app, filePaths)
+            % Importa uma lista de arquivos já conhecidos (sem diálogo de seleção).
+            % Equivale ao fluxo de onFilteTreeAddRequested, mas partindo de caminhos
+            % completos já resolvidos pelo chamador (ex.: dockRepoFiles após cópia).
+            hasReadNewFiles = false;
+            repeatedFiles   = {};
+            errorMessage    = {};
+
+            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s).', 'Cancelable', 'on');
+
+            for ii = 1:numel(filePaths)
+                if d.CancelRequested
+                    break
+                end
+
+                fileFullPath = filePaths{ii};
+                [~, fn, ext] = fileparts(fileFullPath);
+
+                d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', [fn ext], ii, numel(filePaths));
+                if any(strcmpi(fileFullPath, {app.metaData.File}))
+                    repeatedFiles{end+1} = [fn ext]; %#ok<AGROW>
+                    continue
+                end
+
+                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General);
+
+                if isempty(msg)
+                    hasReadNewFiles = true;
+                else
+                    errorMessage{end+1} = msg; %#ok<AGROW>
+                end
+            end
+
+            delete(d)
+
+            if hasReadNewFiles
+                previousSelectionIdxs = app.FileTree.UserData.previousSelection;
+                dRefresh = ui.Dialog(app.UIFigure, 'progressdlg', 'Atualizando a lista de arquivos do projeto...');
+                refreshProjectFiles(app, previousSelectionIdxs, 'onFileListAdded')
+                delete(dRefresh)
+            end
+
+            dialogBoxMessage = {};
+            if ~isempty(repeatedFiles)
+                dialogBoxMessage{end+1} = sprintf('Os arquivo(s) indicado(s) a seguir já tinham sido lidos.\n%s', strjoin(repeatedFiles, newline));
+            end
+
+            if ~isempty(errorMessage)
+                dialogBoxMessage{end+1} = sprintf('Evidenciado erro na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', strjoin(errorMessage, newline));
+            end
+            
+            if ~isempty(dialogBoxMessage)
+                ui.Dialog(app.UIFigure, 'warning', strjoin(dialogBoxMessage, newline));
             end
         end
 

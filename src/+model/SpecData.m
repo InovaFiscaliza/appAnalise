@@ -512,12 +512,13 @@ classdef SpecData < model.SpecDataBase
                                                                'IsUserModified', ...
                                                                'UserData:AntennaHeight', ...
                                                                'UserData:BandLimits', ...
+                                                               'UserData:CalibrationCurve', ...
                                                                'UserData:Channel', ...
-                                                               'UserData:PlotDisplayConfig', ...
                                                                'UserData:Emissions', ...
-                                                               'UserData:ReportInclude', ...
+                                                               'UserData:PlotDisplayConfig', ...
                                                                'UserData:OccupancyFields', ...
                                                                'UserData:ReportFields', ...
+                                                               'UserData:ReportInclude', ...
                                                                'UserData:OccupancyFields+ReportFields'})}
                 updateType
             end
@@ -591,6 +592,7 @@ classdef SpecData < model.SpecDataBase
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
+
                 case 'UserData:AntennaHeight' % Origem: auxApp.dockLocation
                     switch updateType
                         case 'InitialValue'
@@ -634,6 +636,46 @@ classdef SpecData < model.SpecDataBase
                     end
 
                     hasEmissionsInSearchBand(obj)
+
+                case 'UserData:CalibrationCurve'
+                    switch updateType
+                        case 'Add'
+                            calibrationData = varargin{1};
+
+                            switch calibrationData.Type
+                                case 'Antenna k-Factor'  
+                                    previousLevelUnit = obj.MetaData.LevelUnit;
+                                    currentLevelUnit = 'dBµV/m';
+                        
+                                otherwise % 'Calibration'
+                                    if isempty(obj.UserData.CalibrationCurve)
+                                        previousLevelUnit = obj.MetaData.LevelUnit;
+                                    else
+                                        previousLevelUnit = obj.UserData.CalibrationCurve.PreviousLevelUnit{1};
+                                    end
+                                    currentLevelUnit = previousLevelUnit;
+                            end
+
+                            % calibrationCurve
+                            freqStart  = obj.MetaData.FreqStart;
+                            freqStop   = obj.MetaData.FreqStop;
+                            dataPoints = obj.MetaData.DataPoints;
+
+                            calibrationCurve = interp1(calibrationData.xData, calibrationData.yData, linspace(freqStart, freqStop, dataPoints)', 'linear');                            
+                            if strcmp(calibrationData.Type, 'Antenna k-Factor') && strcmp(previousLevelUnit, 'dBm')
+                                calibrationCurve = calibrationCurve + 107;
+                            end
+
+                            obj.Data{2} = obj.Data{2} + calibrationCurve;
+                            obj.Data{3} = obj.Data{3} + calibrationCurve;
+                            obj.MetaData.LevelUnit = currentLevelUnit;
+                        
+                            obj.UserData.CalibrationCurve(end+1, :) = {calibrationData.Name, calibrationData.Type, previousLevelUnit, currentLevelUnit};
+                            obj.UserData.CalibrationCurve = sortrows(obj.UserData.CalibrationCurve, 'Type', 'descend');
+
+                        otherwise
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
+                    end
 
                 case 'UserData:Channel'
                     checkIfScalar(obj)
@@ -925,17 +967,13 @@ classdef SpecData < model.SpecDataBase
                             end
 
                         case 'ReportOCC:Edit'
-                            if numel(obj) > 1
-                                error('Unexpected non scalar object')
-                            end
+                            checkIfScalar(obj)
 
                             occCache = varargin{1};
                             obj.UserData.ReportAlgorithms.Occupancy = occCache;
 
                         case 'ReportDetection:ManualMode:Edit'
-                            if numel(obj) > 1
-                                error('Unexpected non scalar object')
-                            end
+                            checkIfScalar(obj)
 
                             obj.UserData.ReportAlgorithms.Detection.ManualMode = varargin{1};
 
