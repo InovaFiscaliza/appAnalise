@@ -29,6 +29,8 @@ classdef DBHandler
             'database', 'RFFUSION_SUMMARY', ...
             'Port', 9081 ...
             )
+
+        CONNECTION_TIMEOUT_SECONDS = 25
     end
 
     properties (Access = public)
@@ -39,6 +41,16 @@ classdef DBHandler
 
     methods
         function obj = DBHandler()
+
+            % Testa a conectividade TCP antes de abrir as conexoes MySQL.
+            % Todas as bases usam o mesmo host/porta, basta um unico teste.
+            try
+                t = tcpclient(obj.DB_CFG_RFDATA.host, obj.DB_CFG_RFDATA.port, ...
+                    'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
+                delete(t);
+            catch
+                error('Timeout de Conexão com Banco de Dados');
+            end
 
             % Cria as conexoes com os bancos de dados do RF.Fusion
             try
