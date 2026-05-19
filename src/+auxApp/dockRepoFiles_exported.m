@@ -71,21 +71,23 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Recebe chamadas IPC de outros aplicativos (ex.: winRepoSFI).
             try
                 switch class(callingApp)
-                    case {'auxApp.winRepoSFI', 'winRepoSFI_exported'}
-                        if isempty(varargin)
-                            return
-                        end
+                    case {'winAppAnalise', 'winAppAnalise_exported'}
                         operationType = varargin{1};
+
                         switch operationType
                             case 'onRepoSFIFilterChanged'
                                 syncFiltersFromRepoSFI(app, varargin{2})
+
                             otherwise
-                                % Operações desconhecidas do winRepoSFI são ignoradas.
+                                error('auxApp:dockRepoFiles:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
+
                     otherwise
-                        % Chamadores desconhecidos são ignorados silenciosamente.
+                        error('auxApp:dockRepoFiles:UnexpectedCaller', 'Unexpected caller "%s"', class(callingApp))
                 end
-            catch
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
 
@@ -1085,12 +1087,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % precise manipular diretamente altura de grid, visibilidade e botão.
             if shouldShow
                 % Reserva espaço para a área inferior e publica o painel como visível.
-                app.GridLayout.RowHeight = {17, 148, '0.8x', '1x', 22};
+               % app.GridLayout.RowHeight = {17, 148, '0.8x', '1x', 22};
                 app.DetailPanel.Visible = 'on';
             else
                 % Remove a altura útil da linha de detalhe para recolher o painel
                 % sem deixar espaço morto no layout principal.
-                app.GridLayout.RowHeight = {17, 148, '1x', 0, 22};
+                %app.GridLayout.RowHeight = {17, 148, '1x', 0, 22};
                 app.DetailPanel.Visible = 'off';
             end
         
@@ -1311,12 +1313,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Chamado pelos callbacks de mudança de filtro para manter os seletores
             % do winRepoSFI sincronizados com o estado corrente do dock, sem
             % precisar roteamento pelo mainApp.
-            if isempty(app.callingApp) || ~isvalid(app.callingApp)
-                return
-            end
-            if ~ismethod(app.callingApp, 'ipcSecondaryMatlabCallsHandler')
-                return
-            end
 
             stateCode = char(getSelectedState(app));
 
@@ -1328,10 +1324,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 'endDate',     app.DatePickerPeriodoFinal.Value ...
             );
 
-            try
-                app.callingApp.ipcSecondaryMatlabCallsHandler(app, 'onDockFilterChanged', filters);
-            catch
-            end
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onRepoSFIFilterChanged', filters)
         end
 
         function syncFiltersFromRepoSFI(app, filters)
@@ -1575,14 +1568,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 end
 
                 if ~isempty(copiedPaths)
-                    mainApp  = app.mainApp;
-                    isDocked = app.isDocked;
-                    closeFcn(app)
-                    drawnow
-                    if ~isDocked
-                        mainApp.ipcMainMatlabCallsHandler(app, 'closeFcn', 'REPOSFI')
-                    end
-                    mainApp.ipcMainMatlabCallsHandler(app, 'onImportFilesFromPaths', copiedPaths)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onImportFilesFromPaths', copiedPaths)
                 end
             end
 
@@ -1712,7 +1698,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
             app.GridLayout.ColumnWidth = {18, '1x', '1x', 18, 18, 90};
-            app.GridLayout.RowHeight = {17, 148, '1x', 22, 22};
+            app.GridLayout.RowHeight = {17, 148, '1x', 0, 22};
             app.GridLayout.ColumnSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
@@ -1931,6 +1917,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create DetailPanel
             app.DetailPanel = uipanel(app.GridLayout);
+            app.DetailPanel.AutoResizeChildren = 'off';
             app.DetailPanel.Visible = 'off';
             app.DetailPanel.Layout.Row = 4;
             app.DetailPanel.Layout.Column = [1 6];

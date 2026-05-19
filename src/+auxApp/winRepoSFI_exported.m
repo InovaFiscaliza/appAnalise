@@ -83,7 +83,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         dbHandler
         filesLocalityRows = table()
-        repoFilesDock = []
     end
 
 
@@ -95,25 +94,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                     case 'renderer'
                         appEngine.activate(app, app.Role)
 
-                    case 'repoSFI.openDock'
-                        payload = event.HTMLEventData;
-
-                        siteId = str2double(string(payload.siteId));
-                        equipmentId = str2double(string(payload.equipmentId));
-                        hostId = str2double(string(payload.hostId));
-
-                        closePopup(app);
-                        openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
-
-                    case 'repoSFI.mapBackgroundClick'
-                        closePopup(app);
-
-                    case 'repoSFI.closePopup'
-                        closePopup(app);
-
-
                     otherwise
-                        error('auxApp:winRFDataHub:UnexpectedEvent', 'Unexpected event "%s"', event.HTMLEventName)
+                        ipcMainJSEventsHandler(app.mainApp, event)
                 end
 
             catch ME
@@ -132,20 +114,24 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                             case 'onRepoSFIUpdate'
                                 closeFcn(app)
 
-                            otherwise
-                                error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
-                        end
-
-                    case {'auxApp.dockRepoFiles', 'dockRepoFiles_exported'}
-                        operationType = varargin{1};
-                        app.repoFilesDock = callingApp;
-
-                        switch operationType
-                            case 'onDockFilterChanged'
+                            case 'onRepoSFIFilterChanged'
                                 syncFiltersFromDock(app, varargin{2})
 
+                            case 'onOpenDockModuleFromPopup'
+                                payload = varargin{2};
+        
+                                siteId = str2double(string(payload.siteId));
+                                equipmentId = str2double(string(payload.equipmentId));
+                                hostId = str2double(string(payload.hostId));
+        
+                                closePopup(app);
+                                openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
+
+                            case 'onClosePopupRequest'
+                                closePopup(app)
+
                             otherwise
-                                % Operações desconhecidas do dock são ignoradas silenciosamente.
+                                error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
                         end
 
                     otherwise
@@ -3178,13 +3164,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Chamado pelos callbacks de mudança de filtro para manter os seletores
             % do dock sincronizados com o estado corrente do mapa. Análogo ao
             % sentido inverso já implementado em notifyCallingAppFiltersChanged.
-            if isempty(app.repoFilesDock) || ~isvalid(app.repoFilesDock)
-                return
-            end
-            if ~ismethod(app.repoFilesDock, 'ipcSecondaryMatlabCallsHandler')
-                return
-            end
-
             stateVal = char(app.filesStateDropDown.Value);
             if strcmp(stateVal, 'Todos os estados')
                 stateVal = '';
@@ -3198,10 +3177,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 'endDate',     app.filesEndDatePicker.Value ...
             );
 
-            try
-                app.repoFilesDock.ipcSecondaryMatlabCallsHandler(app, 'onRepoSFIFilterChanged', filters);
-            catch
-            end
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onRepoSFIFilterChanged', filters);
         end
 
     end
@@ -3215,6 +3191,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app, mainApp)
+            
             try
                 appEngine.boot(app, app.Role, mainApp)
             catch ME
@@ -3227,6 +3204,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         function closeFcn(app, event)
             
             releaseDbHandler(app)
+            
             ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', app.Context)
             delete(app)
 

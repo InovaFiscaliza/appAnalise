@@ -199,15 +199,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         onContextMenuDeleteOptionClicked(app, struct('ContextObjectTag', 'fileFilterTreeContext'))
                     
                     % Eventos do popup no winRepoSFI
-                    case {'repoSFI.openDock', 'repoSFI.mapBackgroundClick', 'repoSFI.closePopup'}
-                        hAuxApp = getAppHandle(app.tabGroupController, 'REPOSFI');
+                    case 'repoSFI.openDock'
+                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', 'onOpenDockModuleFromPopup', event.HTMLEventData)
 
-                        if isempty(hAuxApp) || ~isvalid(hAuxApp)
-                            error('UnexpectedEvent')
-                        end
-
-                        ipcSecondaryJSEventsHandler(hAuxApp, event)
-
+                    case {'repoSFI.mapBackgroundClick', 'repoSFI.closePopup'}
+                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', 'onClosePopupRequest')
 
                     % % auxApp.winPlayback
                     % case 'auxApp.winPlayback.ChannelTree'
@@ -379,7 +375,20 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % auxApp.winRepoSFI (REPOSFI)
-                            % ...
+                            case {'auxApp.winRepoSFI', 'auxApp.winRepoSFI_exported'}
+                                switch eventName
+                                    case 'onRepoSFIFilterChanged'
+                                        if ~isempty(app.popupCurrentApp) && isvalid(app.popupCurrentApp)
+                                            popupCurrentAppClass = class(app.popupCurrentApp);
+
+                                            if ismember(popupCurrentAppClass, {'auxApp.dockRepoFiles', 'auxApp.dockRepoFiles_exported'})
+                                                ipcSecondaryMatlabCallsHandler(app.popupCurrentApp, app, eventName, varargin{:})
+                                            end
+                                        end
+
+                                    otherwise
+                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
+                                end
 
                             % DOCKS:OTHERS
                             case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ?
@@ -455,7 +464,16 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onDriveTestPointsAdded'
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
+                                    case 'onRepoSFIFilterChanged'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', eventName, varargin{:})
+
                                     case 'onImportFilesFromPaths'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
                                         filePaths = varargin{1};
                                         navigateToTab(app, app.Tab1Button)
                                         importFilesFromPaths(app, filePaths)
@@ -513,8 +531,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             inputArguments = [{app, callingApp, context}, varargin];
 
             if app.General.operationMode.Debug
-                currentApp = eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName));
-                currentApp.isDocked = false;
+                app.popupCurrentApp = eval(sprintf('auxApp.dock%s(inputArguments{:})', auxAppName));
+                app.popupCurrentApp.isDocked = false;
 
             else
                 popupSpecifications = table( ...
@@ -536,7 +554,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications(12, :) = {"Location",        412, 190, false};                
                 popupSpecifications(13, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
                 popupSpecifications(14, :) = {"ReportLib",       784, 594, false};
-                popupSpecifications(15, :) = {"RepoFiles",       940, 580, true};  % Em andamento (Augusto)
+                popupSpecifications(15, :) = {"RepoFiles",       940, 580, true};
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -553,7 +571,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 });
 
                 if isFluid
-                    sizing = struct('type', 'fluid', 'width', 90, 'height', 90);
+                    sizing = struct('type', 'fluid', 'width', 80, 'height', 80);
                 else
                     sizing = struct('type', 'fixed', 'width', screenWidth, 'height', screenHeight+31);
                 end
