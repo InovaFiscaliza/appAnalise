@@ -78,6 +78,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         channelObj
         elevationObj = RF.Elevation
         kmlObj
+        dbHandlerObj
 
         rfDataHub
         rfDataHubLOG
@@ -270,13 +271,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         sendEventToHTMLSource(app.jsBackDoor, 'customForm', struct('UUID', 'openDevTools', 'Fields', dialogBox))
 
                                     case 'onSimulationMode'
-                                        if app.General.operationMode.Simulation
-                                            onFilteTreeAddRequested(app)
-        
-                                            % Muda programaticamente o modo p/ ARQUIVOS.
-                                            set(app.Tab1Button, 'Enable', 1, 'Value', 1)                    
-                                            onTabNavigatorButtonPushed(app, struct('Source', app.Tab1Button, 'PreviousValue', false))
-                                        end
+                                        navigateToTab(app, app.Tab1Button)
+                                        onFilteTreeAddRequested(app, struct('EventName', eventName))
 
                                     case 'onYAxesScaleChange'
                                         if ~isempty(app.UIAxes2) && isvalid(app.UIAxes2)
@@ -335,9 +331,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onClassificationEditRequested'
                                         if ~app.Tab4Button.Value
                                             isAppOpen = ~isempty(getAppHandle(app.tabGroupController, 'SIGNALANALYSIS'));
-
-                                            app.Tab4Button.Value = true;
-                                            onTabNavigatorButtonPushed(app, struct('Source', app.Tab4Button, 'PreviousValue', false))
+                                            navigateToTab(app, app.Tab4Button)
                                             
                                             if ~isAppOpen
                                                 pause(1)
@@ -474,9 +468,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                             delete(callingApp)
                                         end
 
-                                        filePaths = varargin{1};
                                         navigateToTab(app, app.Tab1Button)
-                                        importFilesFromPaths(app, filePaths)
+                                        onFilteTreeAddRequested(app, struct('EventName', 'onImportFilesFromPaths', 'FilePaths', varargin{1}))
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -554,7 +547,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications(12, :) = {"Location",        412, 190, false};                
                 popupSpecifications(13, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
                 popupSpecifications(14, :) = {"ReportLib",       784, 594, false};
-                popupSpecifications(15, :) = {"RepoFiles",       940, 580, true};
+                popupSpecifications(15, :) = {"RepoFiles",      1244, 660, false}; % Em andamento
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -571,7 +564,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 });
 
                 if isFluid
-                    sizing = struct('type', 'fluid', 'width', 80, 'height', 80);
+                    sizing = struct('type', 'fluid', 'width', 90, 'height', 80);
                 else
                     sizing = struct('type', 'fixed', 'width', screenWidth, 'height', screenHeight+31);
                 end
@@ -949,63 +942,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function importFilesFromPaths(app, filePaths)
-            % Importa uma lista de arquivos já conhecidos (sem diálogo de seleção).
-            % Equivale ao fluxo de onFilteTreeAddRequested, mas partindo de caminhos
-            % completos já resolvidos pelo chamador (ex.: dockRepoFiles após cópia).
-            hasReadNewFiles = false;
-            repeatedFiles   = {};
-            errorMessage    = {};
-
-            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s).', 'Cancelable', 'on');
-
-            for ii = 1:numel(filePaths)
-                if d.CancelRequested
-                    break
-                end
-
-                fileFullPath = filePaths{ii};
-                [~, fn, ext] = fileparts(fileFullPath);
-
-                d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', [fn ext], ii, numel(filePaths));
-                if any(strcmpi(fileFullPath, {app.metaData.File}))
-                    repeatedFiles{end+1} = [fn ext]; %#ok<AGROW>
-                    continue
-                end
-
-                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General);
-
-                if isempty(msg)
-                    hasReadNewFiles = true;
-                else
-                    errorMessage{end+1} = msg; %#ok<AGROW>
-                end
-            end
-
-            delete(d)
-
-            if hasReadNewFiles
-                previousSelectionIdxs = app.FileTree.UserData.previousSelection;
-                dRefresh = ui.Dialog(app.UIFigure, 'progressdlg', 'Atualizando a lista de arquivos do projeto...');
-                refreshProjectFiles(app, previousSelectionIdxs, 'onFileListAdded')
-                delete(dRefresh)
-            end
-
-            dialogBoxMessage = {};
-            if ~isempty(repeatedFiles)
-                dialogBoxMessage{end+1} = sprintf('Os arquivo(s) indicado(s) a seguir já tinham sido lidos.\n%s', strjoin(repeatedFiles, newline));
-            end
-
-            if ~isempty(errorMessage)
-                dialogBoxMessage{end+1} = sprintf('Evidenciado erro na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', strjoin(errorMessage, newline));
-            end
-            
-            if ~isempty(dialogBoxMessage)
-                ui.Dialog(app.UIFigure, 'warning', strjoin(dialogBoxMessage, newline));
-            end
-        end
-
-        %-----------------------------------------------------------------%
         function updateFileFilterTree(app)
             if ~app.FileFilterTree.UserData.render
                 return
@@ -1376,6 +1312,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 end
             end
 
+            if ~isempty(app.dbHandlerObj)
+                delete(app.dbHandlerObj)
+            end
+
             % Aspectos gerais (comum em todos os apps):
             appEngine.beforeDeleteApp(app.progressDialog, app.General_I.fileFolder.tempPath, app.tabGroupController, app.executionMode)
             delete(app)
@@ -1506,33 +1446,44 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             hasReadNewFiles = false;
 
-            if app.General.operationMode.Simulation
-                app.General.operationMode.Simulation = false;
-                
-                [projectFolder, cacheFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
-                simulationFolders = {cacheFolder, projectFolder};
-
-                for ii = 1:numel(simulationFolders)
-                    filePath = fullfile(simulationFolders{ii}, 'Simulation');
-                    fileList = dir(filePath);
-                    
-                    fileName = {fileList.name};
-                    fileName = fileName(endsWith(lower(fileName), '.mat'));
-
-                    if ~isempty(fileName)
-                        break
+            switch event.EventName
+                case 'onSimulationMode'
+                    [projectFolder, cacheFolder] = appEngine.util.Path(class.Constants.appName, app.rootFolder);
+                    simulationFolders = {cacheFolder, projectFolder};
+    
+                    for ii = 1:numel(simulationFolders)
+                        filePath = fullfile(simulationFolders{ii}, 'Simulation');
+                        fileList = dir(filePath);
+                        
+                        fileName = {fileList.name};
+                        fileName = fileName(endsWith(lower(fileName), '.mat'));
+    
+                        if ~isempty(fileName)
+                            break
+                        end
                     end
-                end
-            else
-                [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
 
-                if isempty(fileName)
-                    return
-                elseif ~iscell(fileName)
-                    fileName = {fileName};
-                end
+                case 'onImportFilesFromPaths'
+                    fileFullPaths = event.FilePaths;
 
-                updateLastVisitedFolder(app, filePath)
+                    if ~iscellstr(fileFullPaths)
+                        fileFullPaths = cellstr(fileFullPaths);
+                    end
+
+                    [filePath, fileName, fileExt] = fileparts(fileFullPaths);
+                    filePath = filePath{1};
+                    fileName = strcat(fileName, fileExt);
+
+                case 'ImageClicked'
+                    [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
+    
+                    if isempty(fileName)
+                        return
+                    elseif ~iscell(fileName)
+                        fileName = {fileName};
+                    end
+    
+                    updateLastVisitedFolder(app, filePath)
             end
 
             d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).', 'Cancelable', 'on');

@@ -376,7 +376,6 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
             end
 
-            app.mainApp.General.operationMode.Simulation = true;
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onSimulationMode')
             
         end

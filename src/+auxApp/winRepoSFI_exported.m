@@ -7,48 +7,40 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         DockModule                matlab.ui.container.GridLayout
         dockModule_Close          matlab.ui.control.Image
         dockModule_Undock         matlab.ui.control.Image
-        SubTabGroup               matlab.ui.container.Panel
-        FilesMainGrid             matlab.ui.container.GridLayout
-        filesCleanButton          matlab.ui.control.Button
-        filesSearchButton         matlab.ui.control.Button
-        referenceRX_Label_3       matlab.ui.control.Label
-        referenceRX_Icon_3        matlab.ui.control.Image
-        filesStationLabel         matlab.ui.control.Label
-        filesSensorLocationLabel  matlab.ui.container.Panel
-        filesSensorLocationGrid   matlab.ui.container.GridLayout
-        filesStationDropDown      matlab.ui.control.DropDown
-        filesSensorLabel          matlab.ui.control.Label
-        filesPeriodPanel          matlab.ui.container.Panel
-        filesPeriodGrid           matlab.ui.container.GridLayout
-        filesEndDatePicker        matlab.ui.control.DatePicker
-        filesStartDatePicker      matlab.ui.control.DatePicker
-        filesEndDateLabel         matlab.ui.control.Label
-        filesStartDateLabel       matlab.ui.control.Label
-        filesLocationSelectLabel  matlab.ui.control.Label
-        filesStationFilterPanel   matlab.ui.container.Panel
-        filesStationsGrid         matlab.ui.container.GridLayout
-        filesLocationDropDown     matlab.ui.control.DropDown
-        filesLocationLabel        matlab.ui.control.Label
-        filesLocalityDropDown     matlab.ui.control.DropDown
-        filesStatusDropDown       matlab.ui.control.DropDown
-        filesStateDropDown        matlab.ui.control.DropDown
-        filesLocalityLabel        matlab.ui.control.Label
-        filesStatusLabel          matlab.ui.control.Label
-        filesStateLabel           matlab.ui.control.Label
-        filesPeriodLabel          matlab.ui.control.Label
-        Document                  matlab.ui.container.GridLayout
-        popupHTML                 matlab.ui.control.Label
         AxesToolbar               matlab.ui.container.GridLayout
-        configMapStyleDropDown    matlab.ui.control.DropDown
+        axesTool_Basemap          matlab.ui.control.DropDown
         axesTool_RestoreView      matlab.ui.control.Image
         axesTool_RegionZoom       matlab.ui.control.Image
-        plotPanel                 matlab.ui.container.Panel
+        AxesPopup                 matlab.ui.control.Label
+        AxesContainer             matlab.ui.container.Panel
+        LeftPanel                 matlab.ui.container.Panel
+        LeftPanelGrid             matlab.ui.container.GridLayout
+        Label                     matlab.ui.control.Label
+        Image                     matlab.ui.control.Image
+        ReceiverPanel             matlab.ui.container.Panel
+        ReceiverGrid              matlab.ui.container.GridLayout
+        ReceiverPosition          matlab.ui.control.DropDown
+        ReceiverPositionLabel     matlab.ui.control.Label
+        ReceiverStatus            matlab.ui.control.DropDown
+        ReceiverStatusLabel       matlab.ui.control.Label
+        Receiver                  matlab.ui.control.DropDown
+        ReceiverLabel             matlab.ui.control.Label
+        EndDatePicker             matlab.ui.control.DatePicker
+        EndDateLabel              matlab.ui.control.Label
+        StartDate                 matlab.ui.control.DatePicker
+        StartDateLabel            matlab.ui.control.Label
+        Location                  matlab.ui.control.DropDown
+        LocationLabel             matlab.ui.control.Label
+        State                     matlab.ui.control.DropDown
+        StateLabel                matlab.ui.control.Label
+        ModuleIntro               matlab.ui.control.Label
+        ModuleIcon                matlab.ui.control.Image
         Toolbar                   matlab.ui.container.GridLayout
-        filesCountLabel           matlab.ui.control.Label
-        tool_PanelVisibility      matlab.ui.control.Image
-        ContextMenu               matlab.ui.container.ContextMenu
-        contextmenu_del           matlab.ui.container.Menu
-        contextmenu_delAll        matlab.ui.container.Menu
+        tool_FileCount            matlab.ui.control.Label
+        tool_RefreshFilterValues  matlab.ui.control.Image
+        tool_OpenPopupApp         matlab.ui.control.Image
+        tool_Separator            matlab.ui.control.Image
+        tool_LayoutLeft           matlab.ui.control.Image
     end
 
 
@@ -56,6 +48,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         Role = 'secondaryApp'
         Context = 'REPOSFI'
+        AppHandleNameInBase
     end
 
 
@@ -68,21 +61,18 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         progressDialog
         popupContainer
 
-        repoSFI
-        filteredRepoSFI = struct('points', struct([]), 'site_details', struct([]))
+        SubTabGroup = struct('Children', -1, 'UserData', [])
+
         UIAxes
-        restoreView = struct( ...
-            'ID', {}, ...
-            'xLim', {}, ...
-            'yLim', {}, ...
-            'cLim', {} ...
-            )
-
-        % Contexto do último clique no mapa (usado para abrir dock com filtro)
-        currentSiteContext
-
-        dbHandler
+        defaultValues
+        
+        dbHandlerObj
+        repoSFI % dbHandlerObj.CacheData
+        
+        filteredRepoSFI = struct('points', struct([]), 'siteDetails', struct([]))        
         filesLocalityRows = table()
+        currentSiteContext
+        popupReferenceData
     end
 
 
@@ -93,6 +83,10 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 switch event.HTMLEventName
                     case 'renderer'
                         appEngine.activate(app, app.Role)
+
+                    case 'onFileSearchRequested'
+                        idxs = jsondecode(event.HTMLEventData);
+                        selectedStationDetails = app.AxesPopup.UserData.siteDetails(idxs(1)).point.stations(idxs(2))
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -124,11 +118,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                                 equipmentId = str2double(string(payload.equipmentId));
                                 hostId = str2double(string(payload.hostId));
         
-                                closePopup(app);
+                                hidePointPopup(app);
                                 openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
 
                             case 'onClosePopupRequest'
-                                closePopup(app)
+                                hidePointPopup(app)
 
                             otherwise
                                 error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
@@ -156,473 +150,132 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             appName = class(app);
             elToModify = {
                 app.AxesToolbar;
-                app.tool_PanelVisibility;
+                app.tool_LayoutLeft;
+                app.tool_OpenPopupApp;
+                app.tool_RefreshFilterValues;
                 app.dockModule_Undock;
                 app.dockModule_Close;
-                app.popupHTML
-                };
+                app.AxesPopup
+            };
             ui.CustomizationBase.getElementsDataTag(elToModify);
 
             try
-                ui.TextView.startup(app.jsBackDoor, app.popupHTML, appName, struct('class', {{'textview--borderless', 'textview--wordbreak', 'textview--no-scroll'}}));
-            catch ME
-                disp(ME.identifier);
-            end
-            try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                     struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                    struct('appName', appName, 'dataTag', app.tool_PanelVisibility.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel')), ... 
-                    struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,          'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                    struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,           'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                    struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'style', struct('pointerEvents', 'none')), ...
+                    struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'selector', '.mwAlignmentNode', 'style', struct('height', '100%')), ...
+                    struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel')), ... 
+                    struct('appName', appName, 'dataTag', app.tool_OpenPopupApp.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Apresenta lista de arquivos')), ... 
+                    struct('appName', appName, 'dataTag', app.tool_RefreshFilterValues.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Volta às configuraçoes inicias de filtragem')), ... 
+                    struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                    struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                     });
             catch
             end
+
+            try
+                ui.TextView.startup(app.jsBackDoor, app.AxesPopup, appName, struct('class', {{'textview--borderless', 'textview--wordbreak', 'textview--no-scroll'}}));
+            catch ME
+                disp(ME.identifier);
+            end
+
+            app.AxesPopup.UserData.siteDetails = [];
         end
 
-        %-----------------------------------------------------------------%
-        % Funções obrigatórias pro funcionamento do app Secundário
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
-            initializeRepoSFI(app)
+            warningMsg = '';
+            if isempty(app.mainApp.dbHandlerObj) || ~isvalid(app.mainApp.dbHandlerObj) || ~app.mainApp.dbHandlerObj.Status
+                [app.mainApp.dbHandlerObj, warningMsg] = util.DBHandler(app.mainApp.General);
+            end
+
+            if ~isempty(warningMsg)
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+            end
+
+            app.dbHandlerObj = app.mainApp.dbHandlerObj;
+            app.repoSFI = app.dbHandlerObj.CacheData;
+
+            cacheUpdatedAt = strsplit(app.dbHandlerObj.CacheUpdatedAt, ' ');
+            app.Label.Text = sprintf('%s às %s', cacheUpdatedAt{2}, cacheUpdatedAt{1});
+
+            app.defaultValues = getFilterCurrentSpecification(app);
         end
 
-        
+        %-----------------------------------------------------------------%
         function initializeUIComponents(app)
             if ~strcmp(app.mainApp.executionMode, 'webApp')
                 app.dockModule_Undock.Enable = 1;
             end
 
-            % Incializa geoaxes - mapa grafico
-            startup_AxesCreation(app)
+            defaultBasemap = app.mainApp.General.plot.geographicAxes.Basemap;
+            if ismember(defaultBasemap, app.axesTool_Basemap.Items)
+                app.axesTool_Basemap.Value = defaultBasemap;
+            end
+
+            initializeAxes(app)
+            app.State.Items = [{''}, unique([app.repoSFI.points.state_code])];
         end
 
-        
+        %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            populateStationFilters(app)
             initializeFilesSearchPanel(app)
             refreshFilteredMap(app)
-            applyMapViewport(app, struct(), "fit")
         end
     end
 
 
-
     methods (Access = private)
         %-----------------------------------------------------------------%
-        % Funções de Inicialização
-        %-----------------------------------------------------------------%
-        function initializeRepoSFI(app)
-            % Inicializa o dataset principal do RepoSFI a partir do banco resumo.
-            %
-            % A função garante que o handler de acesso a dados esteja disponível,
-            % consulta o payload consolidado do mapa e armazena o resultado em
-            % app.repoSFI no contrato esperado pela interface.
-            %
-            % Quando a consulta não devolve a estrutura esperada, a função aplica um
-            % fallback seguro com coleções vazias para evitar que etapas posteriores
-            % do fluxo precisem tratar ausência de campos.
-        
-            % Garante a existência do handler compartilhado antes de qualquer leitura
-            % do banco de dados.
-            if isempty(app.dbHandler)
-                app.dbHandler = util.DBHandler();
-            end
-        
-            % Lê o dataset consolidado usado pela interface do RepoSFI.
-            data = app.dbHandler.getMapDataSet();
-        
-            % Só aceita o resultado se ele respeitar o contrato mínimo esperado pelo
-            % restante da aplicação.
-            if isstruct(data) && isfield(data, 'points')
-                app.repoSFI = data;
-            else
-                % Mantém a estrutura base mesmo em falha ou retorno incompleto, para
-                % preservar a estabilidade dos fluxos que consomem app.repoSFI.
-                app.repoSFI = struct('points', struct([]), 'site_details', struct([]));
-            end
-        end
+        function initializeAxes(app)
+            hParent = tiledlayout(app.AxesContainer, 1, 1, "Padding", "none", "TileSpacing", "none", "Position", [0, 0, 1, 1]);
 
-       
-        function populateStationFilters(app)
-            % Preenche o filtro de estados com base nos pontos carregados no RepoSFI.
+            app.UIAxes = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.axesTool_Basemap.Value, ...
+                                                                    'Color', [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
+                                                                    'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
         
-            % Sem o dropdown de destino ou sem os dados base do RepoSFI não existe
-            % contexto suficiente para montar a lista de estados.
-            if isempty(app.filesStateDropDown) || isempty(app.repoSFI)
-                return
-            end
-        
-            % Extrai os códigos de estado disponíveis e remove duplicidades antes de
-            % atualizar a lista exibida ao usuário.
-            points = app.repoSFI.points;
-            states = [points.state_code];
-            statesUnique = unique(states);
-        
-            % Mantém uma opção neutra no topo para permitir consulta sem filtro.
-            app.filesStateDropDown.Items = [{'Todos os estados'}, statesUnique];
-        end
-
-        %-----------------------------------------------------------------%
-        % Funções de manipulação do mapa
-        %-----------------------------------------------------------------%
-        function startup_AxesCreation(app)
-            % Recria o geoaxes no painel e reinstala as interações padrão.
-        
-            % Sem um painel válido não há onde reconstruir o eixo geográfico.
-            if isempty(app.plotPanel) || ~isvalid(app.plotPanel)
-                return
-            end
-        
-            % Limpa qualquer eixo anterior antes de recriar a área de plotagem.
-            delete(app.plotPanel.Children)
-            app.plotPanel.Visible = 'on';
-        
-            hParent = tiledlayout(app.plotPanel, 1, 1, "Padding", "none", "TileSpacing", "none");
-        
-            % Usa o estilo selecionado na aba de configuração quando disponível.
-            initialBasemap = 'streets-light';
-            if ~isempty(app.configMapStyleDropDown) && isvalid(app.configMapStyleDropDown)
-                initialBasemap = char(string(app.configMapStyleDropDown.Value));
-            end
-        
-            % Cria o geoaxes já com o estilo inicial e com os metadados visuais
-            % esperados pelas rotinas de plotagem.
-            app.UIAxes = plot.axes.Creation(hParent, 'Geographic', {'Basemap', initialBasemap, ...
-                'Color', [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
-                'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
-        
-            % Oculta elementos cartográficos auxiliares para priorizar a leitura dos
-            % dados plotados.
             set(app.UIAxes.LatitudeAxis,  'TickLabels', {}, 'Color', 'none')
             set(app.UIAxes.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
+            
             geolimits(app.UIAxes, 'auto')
             plot.axes.Colormap(app.UIAxes, 'turbo')
+
+            if ismember(app.axesTool_Basemap.Value, {'darkwater', 'none'})
+                app.UIAxes.Grid = 'on';
+            end
         
-            % Reinstala as interações padrão após recriar o eixo.
-            plot.axes.Interactivity.DefaultCreation(app.UIAxes, ...
-                [zoomInteraction, panInteraction])
+            plot.axes.Interactivity.DefaultCreation(app.UIAxes, [zoomInteraction, panInteraction, dataTipInteraction])
         end
 
-        
-        function applySelectedMapStyle(app)
-            % Aplica ao geoaxes o estilo de mapa atualmente selecionado na aba
-            % de configuração.
-            %
-            % A função tenta primeiro o caminho preferencial via geobasemap e,
-            % se isso falhar, usa a propriedade Basemap como fallback.
-
-            % Sem um eixo geográfico válido não há onde aplicar o estilo.
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
-            % Lê o identificador textual do estilo selecionado pelo usuário.
-            mapStyle = app.configMapStyleDropDown.Value;
-
-            try
-                % Caminho preferencial para atualização do basemap.
-                geobasemap(app.UIAxes, mapStyle)
-            catch
-                try
-                    % Fallback para cenários em que a função geobasemap não esteja
-                    % disponível ou não aceite o contexto atual do eixo.
-                    app.UIAxes.Basemap = mapStyle;
-                catch ME
-                    % Se ambas as estratégias falharem, informa o usuário sem
-                    % interromper o restante do fluxo da interface.
-                    ui.Dialog(app.UIFigure, 'warning', ...
-                        sprintf('Não foi possível aplicar o estilo de mapa "%s".\n%s', ...
-                        mapStyle, ME.message));
-                end
-            end
+        %-----------------------------------------------------------------%
+        function spec = getFilterCurrentSpecification(app)
+            spec = struct( ...
+                'state', app.State.Value, ...
+                'location', app.Location.Value, ...
+                'periodBegin', app.StartDate.Value, ...
+                'periodEnd', app.EndDatePicker.Value, ...
+                'receiver', app.Receiver.Value, ...
+                'receiverStatus', app.ReceiverStatus.Value, ...
+                'receiverPosition', app.ReceiverPosition.Value ...
+            );
         end
 
-        function restoreMapInteractions(app)
-            % Reinstala as interações padrão que o geoaxes perde após cla().
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
+        %-------------------------------------------------------------%
+        function refreshFilteredMap(app)
+            set(findobj(app.UIAxes.Children, 'Tag', 'receiverStation'), 'ButtonDownFcn', [])
+            plot.axes.Interactivity.DefaultCreation(app.UIAxes, matlab.graphics.interaction.interface.BaseInteraction.empty)
 
-            plot.axes.Interactivity.DefaultCreation(app.UIAxes, ...
-                [zoomInteraction, panInteraction])
-        end
-
-
-        function refreshFilteredMap(app, viewportMode)
-            % Recalcula o recorte ativo e aciona um novo ciclo completo de mapa.
-
-            % Esse helper é a ponte usada pelos callbacks dos filtros da aba
-            % Arquivos para manter sincronizados o dataset filtrado em memória e
-            % a visualização do geoaxes após cada mudança de estado.
-            if nargin < 2
-                % Na maior parte dos filtros o comportamento padrão preserva a
-                % viewport quando isso ainda fizer sentido para a leitura atual.
-                viewportMode = "preserve_if_all_states";
-            end
-
-            % Primeiro atualiza a fonte de verdade consumida pelo mapa; em
-            % seguida, replota usando a estratégia de viewport pedida.
             updateFilteredRepoSFI(app)
-            plot_Stations(app, viewportMode)
+            plot_Stations(app)
+            drawnow
+
+            set(findobj(app.UIAxes.Children, 'Tag', 'receiverStation'), 'ButtonDownFcn', @app.onPlottedSiteClick)
+            plot.axes.Interactivity.DefaultCreation(app.UIAxes, [zoomInteraction, panInteraction, dataTipInteraction])
         end
 
-
-        function viewportMode = normalizeViewportMode(~, viewportMode)
-            % Normaliza o modo de atualização da viewport do mapa.
-            % Fica estranho dar um zoom quando trocamos apenas o "Apenas
-            % Online" ou "Apenas histórico" esta função evita zooms curtos
-            if nargin < 2 || isempty(viewportMode)
-                viewportMode = "preserve_if_all_states";
-                return
-            end
-
-            viewportMode = string(viewportMode);
-        end
-
-
-        function output = selectedStateFilter(app)
-            % Retorna o estado atualmente selecionado no filtro do mapa.
-        
-            % Usa a opção neutra como fallback quando o dropdown ainda não estiver
-            % disponível ou não for mais válido.
-            output = "Todos os estados";
-        
-            if isempty(app.filesStateDropDown) || ~isvalid(app.filesStateDropDown)
-                return
-            end
-        
-            % Normaliza a saída para string para simplificar as comparações nas
-            % rotinas de filtragem e viewport.
-            output = string(app.filesStateDropDown.Value);
-        end
-
-        
-        function limits = getCurrentMapLimits(app)
-            % Captura a viewport atual do mapa para uso no fluxo de replotagem.
-            %
-            % Esses limites são lidos antes de `cla(app.UIAxes)` em `plot_Stations`
-            % e depois podem ser reaplicados por `applyMapViewport`, quando fizer
-            % sentido preservar o enquadramento atual.
-            limits = struct('latitude', [], 'longitude', []);
-        
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-        
-            % Lê os limites atuais do geoaxes no formato esperado pelas rotinas de
-            % preservação de viewport.
-            latitudeLimits = double(app.UIAxes.LatitudeLimits);
-            longitudeLimits = double(app.UIAxes.LongitudeLimits);
-        
-            % Só mantém a captura quando o par de limites puder ser reaplicado com
-            % segurança no próximo ciclo de plot.
-            candidateLimits = struct('latitude', latitudeLimits, 'longitude', longitudeLimits);
-            if hasValidMapLimits(app, candidateLimits)
-                limits = candidateLimits;
-            end
-        end
-
-
-        function output = hasValidMapLimits(~, limits)
-            % Valida se uma estrutura de limites pode voltar ao fluxo de viewport.
-            %
-            % Essa checagem protege os dois pontos que reaplicam ou preservam
-            % enquadramento no mapa: a captura feita por getCurrentMapLimits e a
-            % decisão tomada depois em applyMapViewport/shouldPreserveMapViewport.
-
-            % O contrato esperado é o mesmo usado no restante do fluxo:
-            % vetores latitude/longitude com dois extremos finitos e span positivo.
-            output = isstruct(limits) && isfield(limits, 'latitude') && isfield(limits, 'longitude') && ...
-                numel(limits.latitude) == 2 && numel(limits.longitude) == 2 && ...
-                all(isfinite(limits.latitude)) && all(isfinite(limits.longitude)) && ...
-                diff(limits.latitude) > 0 && diff(limits.longitude) > 0;
-        end
-
-
-        function applyMapViewport(app, previousLimits, viewportMode)
-            % Aplica a regra final de enquadramento após a replotagem do mapa.
-            %
-            % Depois que plot_Stations limpa o eixo com cla(app.UIAxes) e redesenha
-            % os pontos filtrados, esta função decide se a viewport anterior deve
-            % ser restaurada ou se o mapa precisa ser reenquadrado com base no
-            % dataset atual.
-
-            % Normaliza o modo recebido e extrai os pontos já filtrados que
-            % servirão de base para a decisão de preservação ou novo ajuste.
-            viewportMode = normalizeViewportMode(app, viewportMode);
-            points = struct([]);
-
-            if isstruct(app.filteredRepoSFI) && isfield(app.filteredRepoSFI, 'points')
-                points = app.filteredRepoSFI.points;
-            end
-
-            % Se o contexto atual ainda comporta a viewport anterior, reaplica os
-            % limites capturados antes do cla; caso contrário, recalcula o ajuste.
-            if shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
-                geolimits(app.UIAxes, previousLimits.latitude, previousLimits.longitude)
-            else
-                fitMapToPoints(app, points)
-            end
-        end
-
-        
-        function output = shouldPreserveMapViewport(app, previousLimits, points, viewportMode)
-            % Decide se ainda faz sentido manter a viewport capturada antes do replot.
-            %
-            % Essa função é chamada por applyMapViewport depois que plot_Stations
-            % limpa e redesenha o mapa. A ideia aqui é preservar o enquadramento
-            % anterior só quando isso evita microajustes visuais sem esconder por
-            % completo o conteúdo filtrado atual.
-
-            output = false;
-
-            % Se os limites vindos de getCurrentMapLimits já não formam uma
-            % viewport reaplicável, o fluxo cai direto no reenquadramento.
-            if ~hasValidMapLimits(app, previousLimits)
-                return
-            end
-
-            switch normalizeViewportMode(app, viewportMode)
-                case "preserve"
-                    % Modo explícito de preservação: reaplica sempre os limites
-                    % anteriores, desde que eles já tenham passado na validação.
-                    output = true;
-
-                case "preserve_if_all_states"
-                    % Quando há filtro de UF ativo, a troca de contexto costuma
-                    % exigir novo enquadramento; por isso esse modo só preserva a
-                    % viewport na visão agregada de todos os estados.
-                    if selectedStateFilter(app) ~= "Todos os estados"
-                        return
-                    end
-
-                    % Sem pontos visíveis após o filtro, manter a viewport anterior
-                    % evita um auto-fit sem referência útil.
-                    if isempty(points)
-                        output = true;
-                        return
-                    end
-
-                    % Preserva apenas se ao menos parte do dataset filtrado ainda
-                    % permanecer dentro da janela anterior; caso contrário, o novo
-                    % recorte precisa recentralizar o mapa.
-                    lat = double([points.latitude]);
-                    lon = double([points.longitude]);
-                    isInside = lat >= previousLimits.latitude(1) & lat <= previousLimits.latitude(2) & ...
-                        lon >= previousLimits.longitude(1) & lon <= previousLimits.longitude(2);
-                    output = any(isInside);
-            end
-        end
-
-        
-        function fitMapToPoints(app, points)
-            % Recalcula a viewport do mapa a partir dos pontos atualmente filtrados.
-            %
-            % Esta é a rota usada por applyMapViewport quando a viewport anterior
-            % não deve ser preservada. Em vez de depender do auto-fit do geoaxes,
-            % a função monta manualmente um enquadramento mais estável para o fluxo
-            % de replotagem de plot_Stations.
-
-            % Tem um ajuste empirico aqui pois o geolimit com parametro
-            % "auto" esticava muito a tela quando as estações estavam longe
-            % ao ponto de ficar desconfortável a visualização
-
-            % Sem um geoaxes válido não existe destino para aplicar os novos limites.
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
-            % Sem pontos válidos, o melhor fallback é devolver o controle ao ajuste
-            % automático nativo do mapa.
-            if isempty(points)
-                geolimits(app.UIAxes, 'auto')
-                return
-            end
-
-            % Extrai e saneia as coordenadas que realmente podem participar do
-            % cálculo do enquadramento.
-            lat = double([points.latitude]);
-            lon = double([points.longitude]);
-            validIdx = isfinite(lat) & isfinite(lon);
-            lat = lat(validIdx);
-            lon = lon(validIdx);
-
-            % Se depois da limpeza não sobrou nenhuma coordenada útil, cai no
-            % mesmo fallback automático.
-            if isempty(lat) || isempty(lon)
-                geolimits(app.UIAxes, 'auto')
-                return
-            end
-
-            % Parte do retângulo mínimo que contém o conjunto filtrado.
-            minLat = min(lat);
-            maxLat = max(lat);
-            minLon = min(lon);
-            maxLon = max(lon);
-            centerLat = (minLat + maxLat) / 2;
-            centerLon = (minLon + maxLon) / 2;
-
-            % Garante spans mínimos e corrige longitude pela latitude central
-            % para reduzir distorções horizontais do mapa.
-            latSpan = max(maxLat - minLat, 0.30);
-            cosScale = max(cosd(centerLat), 0.25);
-            lonSpan = max(maxLon - minLon, 0.30 / cosScale);
-
-            % Ajusta a janela ao aspect ratio útil do painel, para evitar um fit
-            % apertado demais num eixo mais largo ou mais alto.
-            targetAspect = 1.6;
-            if ~isempty(app.plotPanel) && isvalid(app.plotPanel)
-                panelPosition = getpixelposition(app.plotPanel, true);
-                if numel(panelPosition) >= 4 && panelPosition(4) > 0
-                    targetAspect = max(1.0, panelPosition(3) / panelPosition(4));
-                end
-            end
-
-            normalizedLonSpan = lonSpan * cosScale;
-            currentAspect = normalizedLonSpan / max(latSpan, eps);
-
-            if currentAspect > targetAspect
-                latSpan = normalizedLonSpan / targetAspect;
-            else
-                normalizedLonSpan = latSpan * targetAspect;
-                lonSpan = normalizedLonSpan / cosScale;
-            end
-
-            % Aplica um padding fixo para que o replot não deixe os pontos colados
-            % nas bordas após mudanças pequenas de filtro.
-            latSpan = max(latSpan * 1.18, 0.45);
-            lonSpan = max(lonSpan * 1.18, 0.45 / cosScale);
-
-            latitudeLimits = centerLat + 0.5 * [-latSpan, latSpan];
-            longitudeLimits = centerLon + 0.5 * [-lonSpan, lonSpan];
-
-            % Limita os extremos ao intervalo aceito pelo geoaxes.
-            latitudeLimits = max(min(latitudeLimits, 89.5), -89.5);
-            longitudeLimits = max(min(longitudeLimits, 180), -180);
-
-            % Se o cálculo degenerar mesmo após os ajustes, evita reaplicar uma
-            % janela inválida e delega o enquadramento ao modo automático.
-            if diff(latitudeLimits) <= 0 || diff(longitudeLimits) <= 0
-                geolimits(app.UIAxes, 'auto')
-                return
-            end
-
-            geolimits(app.UIAxes, latitudeLimits, longitudeLimits)
-        end
-
-        
+        %-----------------------------------------------------------------%
         function clearPopupSelectionHighlight(app)
             % Limpa o highlight visual deixado pela seleção atual do popup.
-
-            % Esse helper é usado sempre que o fluxo precisa descartar a
-            % seleção destacada no mapa, como antes de redesenhar o geoaxes em
-            % plot_Stations ou ao fechar explicitamente o popup.
-
-            % Sem um geoaxes válido não existe estado gráfico a limpar.
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
             % Garante um contrato estável para o UserData do eixo, evitando
             % remover campos e reduzindo dependência de verificações ad hoc.
             axesState = getPopupHighlightState(app);
@@ -642,28 +295,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.UIAxes.UserData = axesState;
         end
 
-        
-        function updatePopupSelectionHighlight(app, popupSites)
-            % Atualiza o destaque visual no mapa para refletir os sites exibidos
-            % no popup naquele instante.
-            %
-            % A função remove qualquer highlight anterior e desenha uma nova camada
-            % de marcadores sobre as localidades presentes em popupSites,
-            % preservando a cor base de cada ponto no mapa.
-
-            % Verifica existencia do geoAxes
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
-            % Remove qualquer highlight anterior antes de desenhar o novo.
+        %-----------------------------------------------------------------%
+        function updatePopupSelectionHighlight(app, siteDetails)
             clearPopupSelectionHighlight(app);
 
-            % Normaliza o estado persistido do geoaxes para receber os novos
-            % handles e os IDs destacados.
             axesState = getPopupHighlightState(app);
 
-            points = [popupSites.point];
+            points = [siteDetails.point];
             lat = double([points.latitude]);
             lon = double([points.longitude]);
             if isempty(lat) || isempty(lon)
@@ -684,7 +322,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Persiste os handles e os IDs destacados no estado do eixo sem
             % alterar a estrutura base de UserData.
             axesState.popupHighlightHandle = highlightHandle;
-            axesState.popupHighlightSiteIds = [popupSites.siteId];
+            axesState.popupHighlightSiteIds = [siteDetails.siteId];
             app.UIAxes.UserData = axesState;
 
             function plotHighlightGroup(idx, markerColor, isHistorical)
@@ -695,71 +333,45 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 latGroup = lat(idx);
                 lonGroup = lon(idx);
 
-                highlightHandle(end+1) = geoscatter(app.UIAxes, latGroup, lonGroup, ...
-                    165, markerColor, 'filled', ...
-                    'Marker', 'o', ...
-                    'MarkerEdgeColor', [0, 0, 0], ...
-                    'LineWidth', 1.4, ...
-                    'PickableParts', 'none', ...
-                    'HitTest', 'off'); %#ok<AGROW>
-
-                if isHistorical
-                    highlightHandle(end+1) = geoscatter(app.UIAxes, latGroup, lonGroup, ...
-                        18, overlayColor, ...
-                        'Marker', '.', ...
-                        'LineWidth', 0.8, ...
-                        'PickableParts', 'none', ...
-                        'HitTest', 'off'); %#ok<AGROW>
-                end
+                highlightHandle(end+1) = geoscatter(app.UIAxes, latGroup, lonGroup, 165, markerColor, 'filled', 'Marker', 'o', 'MarkerEdgeColor', [0, 0, 0], 'LineWidth', 2, 'PickableParts', 'none', 'Tag', 'selectedReceiverStation');
             end
         end
 
-        
-        function plot_Stations(app, viewportMode)
-            % Replota o mapa com base no dataset filtrado já preparado.
-            %
-            % Responsabilidades principais:
-            % - limpar o eixo geográfico antes de um novo desenho
-            % - atualizar a contagem de localidades visíveis
-            % - plotar cada grupo de marcadores com sua cor/estilo
-            % - reinstalar as interações padrão do mapa
-
-            if nargin < 2
-                viewportMode = "preserve_if_all_states";
-            end
-
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
-            previousLimits = getCurrentMapLimits(app);
-
+        %-----------------------------------------------------------------%
+        function plot_Stations(app)
             % Limpa completamente o eixo para evitar sobreposição entre plots
             % antigos e o novo estado filtrado.
+            set(findobj(app.UIAxes.Children, 'Tag', 'receiverStation'), 'ButtonDownFcn', [])
             cla(app.UIAxes);
-            app.popupHTML.Visible = "off";
+            app.AxesPopup.Visible = "off";
             clearPopupSelectionHighlight(app)
 
             filteredData = app.filteredRepoSFI;
-            if ~isstruct(filteredData) || ~isfield(filteredData, 'points') || ~isfield(filteredData, 'site_details')
+            if ~isstruct(filteredData) || ~isfield(filteredData, 'points') || ~isfield(filteredData, 'siteDetails')
+                app.tool_FileCount.Text = '';
                 return
             end
 
             % Atualiza a indicação textual de quantas localidades permanecem visíveis.
-            if ~isempty(app.filesCountLabel)
-                app.filesCountLabel.Text = sprintf('%d localidade(s) visíveis', numel(filteredData.points));
+            numPoints = numel(filteredData.points);
+            switch numPoints
+                case 0
+                    numPointsLabel = '';
+                case 1
+                    numPointsLabel = 'Uma única localidade visível';
+                otherwise
+                    numPointsLabel = sprintf('%d localidades visíveis', numPoints);
             end
+            app.tool_FileCount.Text = numPointsLabel;
 
             % Se nenhum ponto sobreviveu ao filtro, não há mais nada para desenhar.
             if isempty(filteredData.points)
-                restoreMapInteractions(app)
-                applyMapViewport(app, previousLimits, viewportMode)
                 return
             end
 
-            lat = [filteredData.points.latitude].';
-            lon = [filteredData.points.longitude].';
-            markerStates = string({filteredData.points.marker_state}).';
+            lat = [filteredData.points.latitude];
+            lon = [filteredData.points.longitude];
+            markerStates = string({filteredData.points.marker_state});
 
             colorOnlineCurrent  = [79, 127, 103] / 255;
             colorOnlinePrevious = [167, 190, 171] / 255;
@@ -773,73 +385,42 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % A ordem de plot é importante:
             % primeiro os históricos, depois os estados correntes e, por fim,
             % os demais marcadores. Isso ajuda a preservar legibilidade visual.
-            plotGroup(markerStates == "offline_previous", colorOfflinePrevious, true, 100);
-            plotGroup(markerStates == "online_previous",  colorOnlinePrevious,  true, 80);
-            plotGroup(markerStates == "offline_current",  colorOfflineCurrent,  false, 100);
-            plotGroup(markerStates == "online_current",   colorOnlineCurrent,   false, 80);
-            plotGroup(markerStates == "no_host",          colorNoHost,          false, 100);
+            plotGroup("offline_previous", colorOfflinePrevious, true,  100);
+            plotGroup("online_previous",  colorOnlinePrevious,  true,   80);
+            plotGroup("offline_current",  colorOfflineCurrent,  false, 100);
+            plotGroup("online_current",   colorOnlineCurrent,   false,  80);
+            plotGroup("no_host",          colorNoHost,          false, 100);
+            geolimits(app.UIAxes, 'auto')
 
-
-            restoreMapInteractions(app)
-            applyMapViewport(app, previousLimits, viewportMode)
-
-            function plotGroup(idx, color, isHistorical, markerSize)
-                % Plota um subconjunto homogêneo de marcadores com o mesmo estilo.
-                %
-                % idx:
-                %   máscara lógica dos pontos pertencentes ao grupo atual
-                % color:
-                %   cor principal do marcador
-                % isHistorical:
-                %   indica se o grupo representa localização histórica
-                % markerSize:
-                %   tamanho base do marcador no mapa
-
-                % Se o grupo estiver vazio, não há nada a desenhar.
-                if ~any(idx)
+            function plotGroup(tag, color, isHistorical, markerSize)
+                maskMatch = markerStates == tag;
+                if ~any(maskMatch)
                     return
                 end
 
-                idxList = find(idx);
+                latGroup = lat(maskMatch);
+                lngGroup = lon(maskMatch);
+                
+                siteIdGroup = double([filteredData.points(maskMatch).site_id]);
 
-                latGroup = lat(idxList);
-                lonGroup = lon(idxList);
-                siteIdGroup = double([filteredData.points(idxList).site_id]);
+                h = geoscatter(app.UIAxes, latGroup, lngGroup, markerSize, color, 'filled', 'Marker', 'o', 'MarkerEdgeColor', [1 1 1], 'LineWidth', 1, 'Tag', 'receiverStation');
+                h.UserData = struct('site_ids', siteIdGroup, 'latitudes', latGroup, 'longitudes', lngGroup);
 
-                % Desenha o grupo principal de marcadores.
-                % Esses marcadores continuam interativos para clique e abertura
-                % de popup.
-                h = geoscatter(app.UIAxes, latGroup, lonGroup, ...
-                    markerSize, color, 'filled', ...
-                    'Marker', 'o', ...
-                    'MarkerEdgeColor', [1 1 1], ...
-                    'LineWidth', 1.0, ...
-                    'PickableParts', 'all', ...
-                    'HitTest', 'on', ...
-                    'ButtonDownFcn', @(src, event) onPlottedSiteClick(app, src, event));
+                try
+                    datatipSource = struct2table(rmfield(filteredData.points(maskMatch), setdiff(fieldnames(filteredData.points), {'site_label', 'county_name', 'state_code'})));
+                    plot.datatip.Template(h, 'Coordinates+Location', datatipSource)
+                catch
+                    plot.datatip.Template(h, 'Coordinates')
+                end
 
-                % Armazena no handle os dados necessários para resolver depois
-                % qual localidade foi clicada.
-                h.UserData = struct( ...
-                    'site_ids', siteIdGroup, ...
-                    'latitudes', latGroup, ...
-                    'longitudes', lonGroup ...
-                    );
 
-                % Marcadores históricos recebem uma sobreposição adicional discreta
-                % para diferenciá-los visualmente dos pontos correntes.
                 if isHistorical
-                    geoscatter(app.UIAxes, latGroup, lonGroup, ...
-                        14, overlayColor, ...
-                        'Marker', '.', ...
-                        'LineWidth', 0.8, ...
-                        'HitTest', 'off', ...
-                        'PickableParts', 'none');
+                    geoscatter(app.UIAxes, latGroup, lngGroup, 14, overlayColor, 'Marker', '.', 'LineWidth', 0.8, 'PickableParts', 'none');
                 end
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = getPopupHighlightState(app)
             % Normaliza o estado de highlight persistido no UserData do geoaxes.
             %
@@ -848,11 +429,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % precise lidar com ausência dos campos de highlight.
 
             output = struct();
-
-            % Sem um geoaxes válido não existe estado gráfico persistente a ler.
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
 
             % Reaproveita o UserData atual do eixo quando ele já estiver no formato
             % de struct esperado pelas rotinas de highlight.
@@ -873,16 +449,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
 
         function onPlottedSiteClick(app, src, event)
-            % Resolve qual localidade foi clicada no mapa e abre o popup
-            % correspondente à seleção resultante.
-            %
-            % O clique pode representar:
-            % - um único site
-            % - vários sites agregados no mesmo objeto gráfico
-            %
-            % Nesse segundo caso, a função tenta identificar o site mais próximo
-            % da coordenada real do clique.
-
             siteId = [];
 
             % Os dados necessários para resolver o clique ficam anexados ao
@@ -932,7 +498,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             siteId = selectionInfo.siteId;
 
             % Exibe o popup correspondente à seleção resolvida.
-            showSitePopup(app, filteredMapData, selectionInfo);
+            showPointPopup(app, filteredMapData, selectionInfo);
 
             % Persiste o contexto do último clique para fluxos posteriores, como
             % abertura sob demanda do dock de arquivos.
@@ -1086,373 +652,72 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        % Funções de manipulação do Popup
+        % POPUP
         %-----------------------------------------------------------------%
-        function closePopup(app)
-            % Limpa o HTML e oculta o popup sem preservar estado visual.
-            ui.TextView.setLabelInnerHTMLBypassingText(app.jsBackDoor, app.popupHTML, '');
-            app.popupHTML.Visible = "off";
+        function hidePointPopup(app)
+            set(app.AxesPopup, 'Visible', 'off', 'Text', '')
+            app.AxesPopup.UserData.siteDetails = [];
+
             app.currentSiteContext = [];
             clearPopupSelectionHighlight(app);
         end
 
-        function showSitePopup(app, mapDataSet, selectionInfo)
-            % Resolve os sites realmente exibíveis, atualiza o destaque no mapa,
-            % calcula a geometria do popup e injeta o HTML final.
-            %
-            % Fluxo:
-            % 1. valida o dataset recebido
-            % 2. materializa apenas os sites válidos para exibição
-            % 3. atualiza o highlight da seleção no mapa
-            % 4. calcula métricas e posição do popup
-            % 5. renderiza o HTML e conecta os botões do conteúdo
-
-            % Sem a estrutura mínima esperada não há como montar o popup.
-            if ~isstruct(mapDataSet) || ~isfield(mapDataSet, 'points') || ~isfield(mapDataSet, 'site_details')
-                closePopup(app)
-                return
-            end
-
-            % Converte a seleção recebida em uma coleção consistente de sites
-            % válidos, já contendo point e detail para renderização.
-            popupSites = collectPopupSites(app, mapDataSet, selectionInfo.siteIds);
-            if isempty(popupSites)
-                closePopup(app)
-                return
-            end
-
-            % Cria highlight no mapa dos pontos que foram transportados pro
-            % popup
-            updatePopupSelectionHighlight(app, popupSites);
-
-            % Usa o conteúdo resolvido para dimensionar e posicionar o popup.
-            popupMetrics = getPopupMetrics(app, popupSites);
-            popupHeight = updatePopupGeometry(app, popupMetrics);
-
-            % Gera o HTML definitivo já adaptado à altura calculada.
-            htmlContent = buildPopupHTML(app, popupSites, popupHeight);
-
-            % Inicializa JS customizations na primeira vez se necessário
-            % if isempty(app.popupHTML.UserData) || ~isfield(app.popupHTML.UserData, 'id')
-            %     applyJSCustomizations(app);
-            % end
-
-            % Exibe o popup e injeta o conteúdo HTML no componente visual.
-            app.popupHTML.Visible = "on";
-            ui.TextView.setLabelInnerHTMLBypassingText(app.jsBackDoor, app.popupHTML, htmlContent);
-
-            % Registra o botão de abertura do dock no bridge HTML -> MATLAB.
-            sendEventToHTMLSource(app.jsBackDoor, 'bindTextViewButtons', ...
-                struct('dataTag', app.popupHTML.UserData.id,...
-                'selector', 'button.repo-sfi-open-dock',...
-                'htmlEventName', 'repoSFI.openDock'));
-
-            % Registra o botão de fechamento do popup no bridge HTML -> MATLAB.
-            sendEventToHTMLSource(app.jsBackDoor, 'bindTextViewButtons',...
-                struct('dataTag', app.popupHTML.UserData.id,...
-                'selector', 'button.repo-sfi-close-popup',...
-                'htmlEventName', 'repoSFI.closePopup'));
-        end
-
-
         %-----------------------------------------------------------------%
-        % Funções de Geometria do Popup
-        %-----------------------------------------------------------------%
-        function popupMetrics = getPopupMetrics(app, popupSites)
-            % Calcula as métricas usadas para dimensionar o popup.
-            %
-            % A função estima:
-            % - largura do popup
-            % - quantidade total de estações
-            % - quantidade de estações visíveis sem scroll
-            % - altura total do conteúdo
-            % - altura visível inicial do conteúdo
-            %
-            % A entrada popupSites já deve conter apenas os sites válidos para
-            % exibição no popup.
-
-            % Inicialização da estrutura de tamanho do popup
-            popupMetrics = struct( ...
-                'popupWidth', 280, ...
-                'totalStations', 0, ...
-                'visibleStations', 0, ...
-                'visibleSites', 0, ...
-                'totalContentHeight', 0, ...
-                'visibleContentHeight', 0 ...
-                );
-
-            % Estado mínimo usado quando não há sites para renderizar.
-            % Isso evita popup com altura zerada e mantém um fallback consistente.
-            if isempty(popupSites)
-                popupMetrics.visibleStations = 1;
-                popupMetrics.visibleSites = 1;
-                popupMetrics.totalContentHeight = 120;
-                popupMetrics.visibleContentHeight = 120;
+        function showPointPopup(app, mapDataSet, selectionInfo)
+            if ~isstruct(mapDataSet) || ~isfield(mapDataSet, 'points') || ~isfield(mapDataSet, 'siteDetails')
+                hidePointPopup(app)
                 return
             end
 
-            % O popup exibe, sem scroll, no máximo três estações.
-            % Se houver mais do que isso, a altura visível é limitada e o restante
-            % do conteúdo fica acessível por rolagem vertical.
-            visibleStationLimit = 3;
-            accumulatedVisibleStations = 0;
-            totalRenderedSites = 0;
-
-            for ii = 1:numel(popupSites)
-                popupSite = popupSites(ii);
-                stationCount = numel(popupSite.detail.stations);
-
-                % Sites sem estações associadas não contribuem para o popup.
-                if stationCount == 0
-                    continue
-                end
-
-                totalRenderedSites = totalRenderedSites + 1;
-
-                % Soma a altura do cabeçalho do site ao conteúdo total.
-                siteHeaderHeight = estimatePopupSiteHeight(app, popupSite.point, popupMetrics.popupWidth);
-                popupMetrics.totalContentHeight = popupMetrics.totalContentHeight + siteHeaderHeight;
-                popupMetrics.totalStations = popupMetrics.totalStations + stationCount;
-
-                % A partir do segundo site há um separador visual entre blocos.
-                if totalRenderedSites > 1
-                    popupMetrics.totalContentHeight = popupMetrics.totalContentHeight + 1;
-                end
-
-                % Enquanto ainda houver espaço dentro do limite visível de estações,
-                % o cabeçalho deste site também compõe a altura visível inicial.
-                if accumulatedVisibleStations < visibleStationLimit
-                    popupMetrics.visibleSites = popupMetrics.visibleSites + 1;
-                    popupMetrics.visibleContentHeight = popupMetrics.visibleContentHeight + siteHeaderHeight;
-
-                    % Também considera o separador visual entre sites visíveis.
-                    if popupMetrics.visibleSites > 1
-                        popupMetrics.visibleContentHeight = popupMetrics.visibleContentHeight + 1;
-                    end
-                end
-
-                for kk = 1:stationCount
-                    % Soma a altura de cada estação ao conteúdo total do popup.
-                    stationHeight = estimatePopupStationHeight(app, popupSite.detail.stations(kk), popupMetrics.popupWidth);
-                    popupMetrics.totalContentHeight = popupMetrics.totalContentHeight + stationHeight;
-
-                    % Apenas as três primeiras estações contribuem para a área
-                    % visível inicial do popup.
-                    if accumulatedVisibleStations < visibleStationLimit
-                        popupMetrics.visibleStations = popupMetrics.visibleStations + 1;
-                        popupMetrics.visibleContentHeight = popupMetrics.visibleContentHeight + stationHeight;
-                        accumulatedVisibleStations = accumulatedVisibleStations + 1;
-                    end
-                end
-            end
-
-            % Garante valores mínimos para evitar métricas vazias ou muito pequenas,
-            % o que poderia quebrar o cálculo final da geometria do popup
-            popupMetrics.visibleStations = max(1, popupMetrics.visibleStations);
-            popupMetrics.visibleSites = max(1, popupMetrics.visibleSites);
-            popupMetrics.totalContentHeight = max(120, popupMetrics.totalContentHeight);
-            popupMetrics.visibleContentHeight = max(120, popupMetrics.visibleContentHeight);
-        end
-
-        
-        function popupHeight = updatePopupGeometry(app, popupMetrics)
-            % Calcula a altura final do popup e posiciona o componente dentro da área útil.
-            %
-            % A função usa as métricas já estimadas do conteúdo para:
-            % - definir a altura visível inicial do popup
-            % - limitar o tamanho ao espaço disponível no painel
-            % - posicionar o popup no canto superior direito útil do mapa
-
-            % Sem painel ou figura válidos não há como posicionar o popup.
-            if isempty(app.plotPanel) || ~isvalid(app.plotPanel) || isempty(app.UIFigure)
-                popupHeight = 0;
+            siteDetails = collectPopupSites(app, mapDataSet, selectionInfo.siteIds);
+            if isempty(siteDetails)
+                hidePointPopup(app)
                 return
             end
 
-            % Dimensões da figura principal, usadas para impedir que o popup
-            % ultrapasse os limites visuais da janela.
-            figurePosition = app.UIFigure.Position;
-            figureWidth = figurePosition(3);
-            figureHeight = figurePosition(4);
+            updatePopupSelectionHighlight(app, siteDetails);
 
-            % Dimensões absolutas do painel do mapa, que servem como referência
-            % para o cálculo da largura, altura e posição do popup.
-            panelPosition = getpixelposition(app.plotPanel, true);
-            panelWidth = panelPosition(3);
-            panelHeight = panelPosition(4);
-            panelAbsoluteX = panelPosition(1);
-            panelAbsoluteY = panelPosition(2);
-
-            % Usa a largura já calculada nas métricas; se estiver inválida,
-            % recompõe a largura a partir da regra padrão do painel.
-            popupWidth = popupMetrics.popupWidth;
-            if isempty(popupWidth) || ~isfinite(popupWidth)
-                popupWidth = getPopupWidth(app);
+            % Verifica se o handle para o app continua ativo no workspace
+            % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
+            % capturados corretamente.
+            appHandleNameInBase = app.AppHandleNameInBase;
+            if isempty(appHandleNameInBase) || ~evalin('base', sprintf('exist("%s", "var") && isa(%s, "%s") && isvalid(%s)', appHandleNameInBase, appHandleNameInBase, class(app), appHandleNameInBase))
+                app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
             end
 
-            % O cabeçalho e a moldura têm altura fixa.
-            headerHeight = 54;
-            frameHeight = 4;
+            [~, siteDetailsSortedIdxs] = sort(arrayfun(@(x) x.point.site_label, siteDetails));
+            siteDetails = siteDetails(siteDetailsSortedIdxs);
 
-            % Se o total de estações couber no popup, usa toda a altura do conteúdo.
-            % Caso contrário, usa apenas a altura visível inicial e deixa o restante
-            % para rolagem vertical.
-            if popupMetrics.totalStations <= 3
-                contentHeight = popupMetrics.totalContentHeight;
+            if isequal(siteDetails, app.AxesPopup.UserData.siteDetails)
+                app.AxesPopup.Visible = 'on';
             else
-                contentHeight = popupMetrics.visibleContentHeight;
+                htmlContent = util.HtmlTextGenerator.receiverStationDetails(siteDetails, app.AppHandleNameInBase, app.mainApp.General);
+                set(app.AxesPopup, 'Visible', 'on', 'Text', htmlContent)
+                app.AxesPopup.UserData.siteDetails = siteDetails;
+                deleteUnrelatedDataTips(app, siteDetails)
             end
-
-            % Altura desejada com base no conteúdo medido.
-            preferredHeight = headerHeight + frameHeight + contentHeight;
-
-            % Impõe limites mínimos e máximos para evitar popup pequeno demais
-            % ou grande demais para o painel disponível.
-            minHeight = headerHeight + frameHeight + 120;
-            maxHeight = max(minHeight, min(panelHeight - 16, 640));
-            popupHeight = max(minHeight, min(preferredHeight, maxHeight));
-
-            % Posiciona o popup no canto superior direito útil do painel, com margem.
-            left = max(12, panelAbsoluteX + panelWidth - popupWidth - 16);
-            bottom = max(12, panelAbsoluteY + panelHeight - popupHeight - 16);
-
-            % Garante que o popup não ultrapasse os limites da figura principal.
-            left = min(left, figureWidth - popupWidth - 5);
-            bottom = min(bottom, figureHeight - popupHeight - 5);
-
-            % Aplica a geometria calculada ao componente visual.
-            %app.popupHTML.Position = [left, bottom, popupWidth, popupHeight];
         end
 
-        
-        function contentHeight = estimatePopupSiteHeight(app, point, popupWidth)
-            % Estima a altura do cabeçalho de uma localidade no popup.
-            %
-            % O cálculo considera:
-            % - o nome do site
-            % - a linha de metadados do site
-            % - os espaçamentos verticais usados no HTML renderizado
+        %-----------------------------------------------------------------%
+        function deleteUnrelatedDataTips(app, siteDetails)
+            datatipsHandles = findobj(app.UIAxes.Children, 'Type', 'datatip');
+            datatipsHandles(~isvalid(datatipsHandles)) = [];
 
-            % Reaproveita a mesma composição de metadados usada na renderização
-            % para manter coerência entre o HTML final e a estimativa de altura.
-            metaParts = buildPopupSiteMetaParts(app, point, true);
-
-            % Estima quantas linhas o título e os metadados ocuparão dentro da
-            % largura útil disponível no cabeçalho.
-            titleLines = estimateWrappedLineCount(app, point.site_label, popupWidth - 40, 12, true);
-            metaLines = estimateWrappedLineCount(app, strjoin(metaParts, "   "), popupWidth - 34, 10, false);
-
-            % Soma alturas de texto e espaçamentos verticais conforme o layout HTML.
-            contentHeight = 12 + titleLines * 16 + 2 + metaLines * 12 + 10;
-        end
-
-        
-        function contentHeight = estimatePopupStationHeight(app, station, popupWidth)
-            % Estima a altura do bloco de uma estação dentro do popup.
-            %
-            % O cálculo considera:
-            % - nome da estação
-            % - status
-            % - indicação de posição atual ou histórica
-            % - linha de última observação, quando existir
-            % - botão "Abrir arquivos"
-
-            % Resolve os textos dinâmicos que aparecem no bloco da estação.
-            [statusText, ~] = stationStatus(app, station);
-            locationText = "Posicao atual";
-            if ~station.is_current_location
-                locationText = "Posicao historica";
-            end
-
-            % A largura útil do texto é menor que a largura total do popup por
-            % causa das margens e recuos do layout HTML.
-            textWidth = popupWidth - 52;
-
-            % Estima o número de linhas de cada trecho textual principal.
-            nameLines = estimateWrappedLineCount(app, chooseName(app, station), textWidth, 12, true);
-            statusLines = estimateWrappedLineCount(app, statusText, textWidth, 11, true);
-            locationLines = estimateWrappedLineCount(app, locationText, textWidth, 11, false);
-
-            % A linha de "última visão" só entra quando houver esse dado.
-            lastSeenHeight = 0;
-            if ~isempty(station.last_seen_at)
-                lastSeenText = "Ultima visao: " + string(station.last_seen_at);
-                lastSeenLines = estimateWrappedLineCount(app, lastSeenText, textWidth, 9, false);
-                lastSeenHeight = 4 + lastSeenLines * 11;
-            end
-
-            % O botão tem altura fixa no layout.
-            buttonHeight = 39;
-
-            % Soma texto, espaçamentos e botão para estimar a altura total do bloco.
-            contentHeight = 10 + nameLines * 16 + 3 + statusLines * 14 + 3 + locationLines * 15 + lastSeenHeight + 8 + buttonHeight;
-        end
-
-        
-        function lineCount = estimateWrappedLineCount(~, rawText, availableWidth, fontSize, isBold)
-            % Estima quantas linhas um texto ocupará dentro de uma largura limitada.
-            %
-            % Esta função não mede texto real no navegador; ela usa uma aproximação
-            % baseada em:
-            % - largura disponível
-            % - tamanho da fonte
-            % - fator de peso visual para texto normal ou negrito
-            %
-            % O objetivo é apenas dimensionar o popup de forma consistente.
-
-            % Normaliza a entrada para um texto escalar limpo.
-            textValue = strip(string(rawText));
-            if isempty(textValue) || all(ismissing(textValue)) || strlength(textValue(1)) == 0
-                lineCount = 0;
+            if isempty(datatipsHandles)
                 return
             end
 
-            % Assume uma largura média por caractere.
-            % Texto em negrito tende a ocupar mais espaço horizontal.
-            widthFactor = 0.56;
-            if isBold
-                widthFactor = 0.61;
-            end
-
-            % Converte a largura útil em uma capacidade aproximada de caracteres
-            % por linha, respeitando um limite mínimo para evitar distorções.
-            avgCharWidth = max(5, fontSize * widthFactor);
-            maxCharsPerLine = max(10, floor(max(availableWidth, 80) / avgCharWidth));
-
-            % Divide o texto em parágrafos para tratar quebras explícitas de linha.
-            paragraphs = splitlines(textValue(1));
-            lineCount = 0;
-
-            for ii = 1:numel(paragraphs)
-                % Remove espaços duplicados e trata cada parágrafo de forma isolada.
-                paragraph = regexprep(char(strtrim(paragraphs(ii))), '\s+', ' ');
-                if isempty(paragraph)
-                    lineCount = lineCount + 1;
-                    continue
+            selectedLocations = cellstr(arrayfun(@(x) x.point.site_label, siteDetails));
+            datatipsLocations = arrayfun(@(x) x.Content{1}, datatipsHandles, 'UniformOutput', false);
+            
+            for ii = numel(datatipsLocations):-1:1
+                if ~contains(datatipsLocations{ii}, selectedLocations)
+                    delete(datatipsHandles(ii))
                 end
-
-                % Aproxima o número de linhas pela razão entre comprimento do texto
-                % e a capacidade estimada de caracteres por linha.
-                normalizedLength = strlength(string(paragraph));
-                lineCount = lineCount + max(1, ceil(double(normalizedLength) / maxCharsPerLine));
             end
         end
 
-
         %-----------------------------------------------------------------%
-        % Funções de Conteúdo do Popup
-        %-----------------------------------------------------------------%
-        function output = popupSummaryText(~, siteCount, totalStations)
-            % Forma string com resumo das estações associadas a uma
-            % determinada localização selecionada
-            if siteCount == 1
-                output = sprintf('%d estacao(oes) vinculada(s) a esta localidade', totalStations);
-            else
-                output = sprintf('%d localidade(s) e %d estacao(oes) nesta area', siteCount, totalStations);
-            end
-        end
-
-        
         function popupSites = collectPopupSites(~, mapDataSet, siteIds)
             % Materializa os sites válidos que serão usados pelo pipeline do popup.
             %
@@ -1480,7 +745,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
                 % Localiza o ponto do mapa e o detalhe correspondente ao mesmo site.
                 pointIdx = find([mapDataSet.points.site_id] == siteId, 1);
-                detailIdx = find([mapDataSet.site_details.site_id] == siteId, 1);
+                detailIdx = find([mapDataSet.siteDetails.site_id] == siteId, 1);
 
                 % O popup só trabalha com sites completos; se faltar qualquer uma
                 % das partes, esse site é ignorado.
@@ -1493,242 +758,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 popupSites(end + 1) = struct( ...
                     'siteId', siteId, ...
                     'point', mapDataSet.points(pointIdx), ...
-                    'detail', mapDataSet.site_details(detailIdx) ...
+                    'detail', mapDataSet.siteDetails(detailIdx) ...
                     ); %#ok<AGROW>
             end
         end
 
         
-        function output = buildPopupSiteMetaParts(app, point, includeSiteId)
-            % Monta a lista de fragmentos textuais que compõem os metadados do site.
-            %
-            % Esses fragmentos são reutilizados em mais de um ponto do pipeline:
-            % - no HTML do popup
-            % - no cálculo da altura estimada do cabeçalho do site
-            %
-            % Exemplos de partes geradas:
-            % - ID do site
-            % - município/UF
-            % - altitude
-
-            % Normaliza os campos textuais usados na composição.
-            countyName = normalizeTextFromValue(app, point.county_name);
-            stateCode = normalizeTextFromValue(app, point.state_code);
-
-            % A saída é uma lista de strings que depois será unida por separadores.
-            output = strings(0, 1);
-
-            % Inclui o identificador do site quando solicitado pelo chamador.
-            if includeSiteId
-                output(end + 1, 1) = "ID " + string(point.site_id);
-            end
-
-            % Município e UF só entram quando ambos estiverem disponíveis.
-            if strlength(countyName) > 0 && strlength(stateCode) > 0
-                output(end + 1, 1) = esc(app, countyName + "/" + stateCode);
-            end
-
-            % Altitude é opcional e só aparece quando existir no ponto.
-            if ~isempty(point.altitude)
-                output(end + 1, 1) = string(point.altitude) + " m";
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        % Funções de Montagem HTML do Popup
-        %-----------------------------------------------------------------%
-        function html = buildPopupHTML(app, popupSites, popupHeight)
-            % Monta o HTML completo do popup a partir dos sites já resolvidos.
-            % A função:
-            % 1. renderiza cada bloco de site
-            % 2. calcula o resumo do cabeçalho
-            % 3. monta a estrutura final com cabeçalho fixo e corpo rolável
-
-            % Quantifica os sites e o total de estações para compor o resumo.
-            siteCount = numel(popupSites);
-            totalStations = sum(arrayfun(@(popupSite)numel(popupSite.detail.stations), popupSites));
-
-            % Cada site vira uma seção HTML independente dentro do corpo do popup.
-            siteSections = strings(siteCount, 1);
-
-            for ii = 1:siteCount
-                siteSections(ii) = renderPopupSiteHTML(app, popupSites(ii), ii > 1);
-            end
-
-            % O cabeçalho tem altura fixa; o restante da área vira corpo rolável.
-            headerHeight = 54;
-            bodyHeight = max(56, popupHeight - headerHeight - 4);
-
-            % Espaço entre o botão de undock e o popup
-            popupTopInset = 25;
-
-            % Gera o texto-resumo do cabeçalho conforme a quantidade de sites
-            % e estações presentes na seleção atual.
-            summaryText = popupSummaryText(app, siteCount, totalStations);
-
-            % Monta o cabeçalho fixo com título, resumo e botão de fechar.
-            headerHTML = sprintf([ ...
-                '<section style="font-family: Helvetica, Arial, sans-serif; color: #202020; background-color: #f2f2f2; padding: 10px 12px 8px 12px; line-height: 1.35; border-bottom: 1px solid #d9d9d9; height: %dpx; box-sizing: border-box; position: relative;">' ...
-                '<p style="margin: 0 28px 2px 0;"><strong style="font-size: 13px; color: #202020;">Estações selecionadas</strong></p>' ...
-                '<p style="margin: 0 28px 0 0; color: #707070; font-size: 10px;">%s</p>' ...
-                '<button type="button" class="repo-sfi-close-popup" style="position: absolute; top: 8px; right: 8px; width: 22px; height: 22px; background-color: #fafafa; border: 1px solid #d0d0d0; border-radius: 11px; color: #787878; font-size: 14px; font-weight: bold; cursor: pointer; line-height: 18px; text-align: center; padding: 0;">×</button>' ...
-                '</section>'], headerHeight, summaryText);
-
-            % Empacota cabeçalho e conteúdo em um contêiner único, com altura
-            % total já calculada e rolagem vertical apenas no corpo do popup.
-            html = sprintf([ ...
-                '<div style="padding: %dpx 0 0 0; box-sizing: border-box;">' ...
-                '<section style="background-color: #ffffff; border: 1px solid #d8d8d8; border-radius: 4px; overflow: hidden; height: %dpx; box-sizing: border-box;">' ...
-                '%s' ...
-                '<section style="height: %dpx; overflow-y: auto; overflow-x: hidden; padding: 0; box-sizing: border-box;">' ...
-                '<div style="padding: 0 0 2px 0;">%s</div>' ...
-                '</section>' ...
-                '</section>' ...
-                '</div>'], ...
-                popupTopInset, ...
-                popupHeight, ...
-                headerHTML, ...
-                bodyHeight, ...
-                char(strjoin(siteSections, '')));
-        end
-
-        
-        function html = renderPopupSiteHTML(app, popupSite, addTopBorder)
-            % Renderiza o bloco HTML de uma localidade dentro do popup.
-            %
-            % Cada bloco de site contém:
-            % - cabeçalho com nome e metadados da localidade
-            % - lista de estações associadas àquele site
-            % - separador visual opcional entre sites consecutivos
-
-            % Monta os metadados textuais do site, como município/UF e altitude.
-            metaParts = buildPopupSiteMetaParts(app, popupSite.point, false);
-
-            % Cada estação do site é renderizada como uma subseção independente.
-            stationSections = strings(numel(popupSite.detail.stations), 1);
-            for kk = 1:numel(popupSite.detail.stations)
-                stationSections(kk) = renderPopupStationHTML(app, popupSite.siteId, popupSite.detail.stations(kk));
-            end
-
-            % O separador superior só é aplicado a partir do segundo site,
-            % melhorando a leitura visual entre blocos consecutivos.
-            sectionBorder = '';
-            if addTopBorder
-                sectionBorder = 'border-top: 1px solid #e5e5e5;';
-            end
-
-            % Monta a seção completa do site, combinando cabeçalho, metadados
-            % e todas as estações associadas.
-            html = sprintf([ ...
-                '<section style="%s padding: 12px 12px 12px 12px; background-color: #ffffff;">' ...
-                '<p style="margin: 0 0 2px 0;">' ...
-                '<strong style="font-size: 12px; color: #202020;">%s</strong>' ...
-                '</p>' ...
-                '<p style="margin: 0; color: #707070; font-size: 10px;">ID %d   %s</p>' ...
-                '%s' ...
-                '</section>'], ...
-                sectionBorder, ...
-                char(esc(app, popupSite.point.site_label)), ...
-                popupSite.siteId, ...
-                char(strjoin(metaParts, ' • ')), ...
-                char(strjoin(stationSections, '')) ...
-                );
-        end
-
-        
-        function html = renderPopupStationHTML(app, siteId, station)
-            % Renderiza o bloco HTML de uma estação dentro de um site do popup.
-            %
-            % A saída inclui:
-            % - nome exibido da estação
-            % - status visual
-            % - indicação de posição atual ou histórica
-            % - data da última observação, quando existir
-            % - botão para abrir os arquivos no dock
-
-            % Resolve o nome exibido e a aparência do status da estação.
-            stationName = char(esc(app, chooseName(app, station)));
-            [statusText, statusColor] = stationStatus(app, station);
-
-            % Identifica se a posição exibida é atual ou histórica.
-            locationText = 'Posicao atual';
-            if ~station.is_current_location
-                locationText = 'Posicao historica';
-            end
-
-            % Exibe a última observação apenas quando essa informação existir.
-            lastSeenHTML = '';
-            if ~isempty(station.last_seen_at)
-                lastSeenHTML = sprintf( ...
-                    '<br><font size="1" color="#707070">Ultima visao: %s</font>', ...
-                    char(esc(app, string(station.last_seen_at))));
-            end
-
-            % O botão carrega no HTML os identificadores usados pelo bridge
-            % para abrir o dock de arquivos contextualizado para esta estação.
-            buttonHTML = sprintf([ ...
-                '<p style="margin: 8px 0 0 0; text-align: right;">' ...
-                '<button type="button" class="repo-sfi-open-dock" ' ...
-                'data-site-id="%d" data-equipment-id="%d" data-host-id="%d" ' ...
-                'style="background-color: #f6f6f6; color: #303030; border: 1px solid #d1d1d1; border-radius: 3px; padding: 6px 12px; font-family: Helvetica, Arial, sans-serif; font-size: 11px; font-weight: bold; cursor: pointer; min-height: 31px;">' ...
-                'Abrir arquivos' ...
-                '</button>' ...
-                '</p>'], ...
-                siteId, popupNumericValue(app, station.equipment_id), popupNumericValue(app, station.host_id));
-
-            % Estrutura final da estação dentro do popup.
-            html = sprintf([ ...
-                '<section style="margin: 0; padding: 10px 0 0 0; background-color: transparent; font-family: Helvetica, Arial, sans-serif;">' ...
-                '<p style="margin: 0 0 2px 0; border-left: 3px solid %s; padding-left: 8px; line-height: 1.25;">' ...
-                '<strong style="color: #202020;">%s</strong>' ...
-                '</p>' ...
-                '<p style="margin: 0 0 3px 0; padding-left: 11px; line-height: 1.2;">' ...
-                '<font color="%s" size="2"><strong>%s</strong></font>' ...
-                '</p>' ...
-                '<p style="margin: 0; padding-left: 11px; line-height: 1.25;">' ...
-                '<font size="2" color="#606060">%s</font>%s' ...
-                '</p>' ...
-                '%s' ...
-                '</section>'], ...
-                statusColor, stationName, statusColor, statusText, locationText, lastSeenHTML, buttonHTML);
-        end
-        
-        %-----------------------------------------------------------------%
-        % Popup helpers
-        %-----------------------------------------------------------------%
-        function value = popupNumericValue(~, rawValue)
-            % Normaliza identificadores numéricos opcionais para o HTML do popup.
-
-            % Esse helper atende principalmente renderPopupStationHTML, onde os
-            % data-attributes do botão precisam receber sempre um valor escalar,
-            % mesmo quando equipment_id ou host_id vierem vazios do backend.
-            if isempty(rawValue)
-                value = -1;
-                return
-            end
-
-            % Alguns campos chegam encapsulados em célula; aqui a função reduz o
-            % valor para a primeira carga útil antes da conversão final.
-            if iscell(rawValue)
-                rawValue = rawValue{1};
-            end
-
-            % Mantém -1 como sentinela quando o campo continuar vazio após o
-            % desempacotamento, evitando atributos HTML vazios ou inválidos.
-            if isempty(rawValue)
-                value = -1;
-                return
-            end
-
-            % A saída final é sempre numérica para ser embutida diretamente no
-            % markup gerado pelo popup.
-            value = double(rawValue);
-        end
-
-        
         function name = chooseName(app, st)
             % Resolve o nome exibido da estação nos blocos e métricas do popup.
-
             % A mesma regra é reutilizada em renderPopupStationHTML,
             % estimatePopupStationHeight e buildPointFromDetail para manter o
             % texto visível consistente em todo o fluxo.
@@ -1748,69 +785,23 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 % dois campos de nome.
                 name = "Estacao";
             end
-        end
-
-        
-        function [txt, color] = stationStatus(app, st)
-            % Traduz o estado interno da estação para rótulo e cor do popup.
-
-            % Esse mapeamento alimenta diretamente renderPopupStationHTML e
-            % estimatePopupStationHeight, então texto e cor precisam seguir a
-            % mesma convenção usada no restante do fluxo visual.
-            switch string(st.map_state)
-                case "online_current"
-                    txt = "Online";
-                    color = "#4f7f67";
-                case "online_previous"
-                    txt = "Online historico";
-                    color = "#4f7f67";
-                case "offline_current"
-                    txt = "Offline";
-                    color = "#b88352";
-                case "offline_previous"
-                    txt = "Offline historico";
-                    color = "#b88352";
-                otherwise
-                    % Estados sem host conhecido ou fora do mapeamento caem neste
-                    % tratamento neutro para não quebrar a renderização.
-                    txt = "Sem host";
-                    color = "#7b8aa0";
-            end
-        end
-
-        function out = esc(app, value)
-            % Escapa o subconjunto mínimo de caracteres sensíveis no HTML do popup.
-
-            % Esse helper é chamado durante a montagem textual do popup para
-            % impedir que nomes, municípios e demais campos livres quebrem o
-            % markup final injetado em popupHTML.
-            out = string(value);
-            out = replace(out, "&", "&amp;");
-            out = replace(out, "<", "&lt;");
-            out = replace(out, ">", "&gt;");
-        end
-
-        
+        end        
 
         %-----------------------------------------------------------------%
         % Tab de Pesquisa de Arquivos
         %-----------------------------------------------------------------%
         function initializeFilesSearchPanel(app)
-                % Reinicializa a aba Arquivos antes de recarregar estação e localidade.
-                %
-                % Essa preparação roda no layout inicial e também nos fluxos de reset,
-                % para que loadFilesStationOptions e updateFilesLocationOptions partam
-                % sempre de um estado transitório limpo e previsível.
-
-            if isempty(app.dbHandler)
-                app.dbHandler = util.DBHandler();
-            end
+            % Reinicializa a aba Arquivos antes de recarregar estação e localidade.
+            %
+            % Essa preparação roda no layout inicial e também nos fluxos de reset,
+            % para que loadFilesStationOptions e updateFilesLocationOptions partam
+            % sempre de um estado transitório limpo e previsível.
 
             % Limpa o cache de localidades e zera os filtros que dependem da
             % seleção corrente antes de reconstruir as opções da interface.
             app.filesLocalityRows        = table();
-            app.filesStartDatePicker.Value = NaT;
-            app.filesEndDatePicker.Value   = NaT;
+            app.StartDate.Value = NaT;
+            app.EndDatePicker.Value   = NaT;
             %app.filesDescriptionEditField.Value    = '';
 
             % Recarrega primeiro as estações e, em seguida, as localidades
@@ -1830,16 +821,17 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Constrói filtros a partir das seleções ativas de estado e localidade
             % para restringir os equipamentos ao contexto atual do painel.
             eqFilters = struct();
-            stateCode = selectedStateFilter(app);
-            if stateCode ~= "Todos os estados"
-                eqFilters.stateCode = char(stateCode);
+
+            if ~isempty(app.State.Value)
+                eqFilters.stateCode = app.State.Value;
             end
-            eqDistrictId = str2double(string(app.filesLocationDropDown.Value));
+
+            eqDistrictId = str2double(string(app.Location.Value));
             if ~isnan(eqDistrictId)
                 eqFilters.districtId = eqDistrictId;
             end
 
-            rows = app.dbHandler.getSpectrumEquipments(eqFilters);
+            rows = app.dbHandlerObj.getSpectrumEquipments(eqFilters);
 
             % Mantém uma opção neutra no topo para representar ausência de
             % seleção explícita no dropdown.
@@ -1848,7 +840,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Guarda o valor atual para tentar restaurá-lo depois da reconstrução
             % da lista.
-            selectedValue = string(app.filesStationDropDown.Value);
+            selectedValue = string(app.Receiver.Value);
 
             if istable(rows) && ~isempty(rows)
                 for ii = 1:height(rows)
@@ -1862,15 +854,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
 
                 % Publica a nova lista no dropdown já com Items e ItemsData em sincronia.
-            app.filesStationDropDown.Items     = items;
-            app.filesStationDropDown.ItemsData = itemsData;
+            app.Receiver.Items     = items;
+            app.Receiver.ItemsData = itemsData;
 
                 % Se a seleção anterior ainda existir, restaura; caso contrário,
                 % volta para o estado neutro da busca.
             if any(strcmp(itemsData, char(selectedValue)))
-                app.filesStationDropDown.Value = char(selectedValue);
+                app.Receiver.Value = char(selectedValue);
             else
-                app.filesStationDropDown.Value = '';
+                app.Receiver.Value = '';
             end
         end
 
@@ -1887,7 +879,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % - atualiza a janela de período disponível
 
             % O dropdown sempre começa com a opção de abrangência total.
-            equipmentId = str2double(string(app.filesStationDropDown.Value));
+            equipmentId = str2double(string(app.Receiver.Value));
             items = {'Todas as localidades'};
             itemsData = {''};
 
@@ -1897,15 +889,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Constrói filtros a partir das seleções ativas de estado e equipamento.
             locFilters = struct();
-            locStateCode = selectedStateFilter(app);
-            if locStateCode ~= "Todos os estados"
-                locFilters.stateCode = char(locStateCode);
+            
+            if ~isempty(app.State.Value)
+                locFilters.stateCode = app.State.Value;
             end
 
             % Sempre consulta o banco: sem filtros ativos retorna todas as
             % localidades disponíveis, permitindo que o usuário desfaça filtros
             % sem colapsar a lista para apenas a opção neutra.
-            app.filesLocalityRows = app.dbHandler.getSpectrumLocalities(equipmentId, locFilters);
+            app.filesLocalityRows = app.dbHandlerObj.getSpectrumLocalities(equipmentId, locFilters);
 
             % Converte as linhas retornadas em Items/ItemsData do dropdown.
             if istable(app.filesLocalityRows) && ~isempty(app.filesLocalityRows)
@@ -1925,16 +917,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 items    = [items(1),     sortedLabels];
                 itemsData = [itemsData(1), itemsData(sortIdx + 1)];
             end
-            app.filesLocationDropDown.Items = items;
-            app.filesLocationDropDown.ItemsData = itemsData;
+            app.Location.Items = items;
+            app.Location.ItemsData = itemsData;
 
             % Tenta selecionar a localidade preferencial, quando ela ainda existir
             % na lista recém-carregada; caso contrário, volta para a opção geral.
             preferredDistrictId = formatNumericId(app, preferredDistrictId);
             if strlength(preferredDistrictId) > 0 && any(strcmp(itemsData, char(preferredDistrictId)))
-                app.filesLocationDropDown.Value = char(preferredDistrictId);
+                app.Location.Value = char(preferredDistrictId);
             else
-                app.filesLocationDropDown.Value = '';
+                app.Location.Value = '';
             end
 
             % A mudança de localidades altera também a janela temporal disponível.
@@ -1950,15 +942,15 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % app.filesLocalityRows e extrai dele a menor e a maior data válidas.
 
             % Reinicia os date pickers antes de recalcular os limites.
-            app.filesStartDatePicker.Value = NaT;
-            app.filesEndDatePicker.Value = NaT;
+            app.StartDate.Value = NaT;
+            app.EndDatePicker.Value = NaT;
 
             % Sem linhas disponíveis não há período a inferir.
             if ~istable(app.filesLocalityRows) || isempty(app.filesLocalityRows)
                 return
             end
 
-            selectedDistrictId = str2double(string(app.filesLocationDropDown.Value));
+            selectedDistrictId = str2double(string(app.Location.Value));
             rows = app.filesLocalityRows;
 
             % Se uma localidade específica foi escolhida, restringe o cálculo do
@@ -1974,52 +966,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Só publica valores válidos nos componentes.
             if ~isnat(startDate)
-                app.filesStartDatePicker.Value = startDate;
+                app.StartDate.Value = startDate;
             end
 
             if ~isnat(endDate)
-                app.filesEndDatePicker.Value = endDate;
+                app.EndDatePicker.Value = endDate;
             end
         end
 
         
         %-----------------------------------------------------------------%
-        % Manipulação do DockRepoFiles
-        %-----------------------------------------------------------------%
-        function dockContext = buildFilesDockContext(app)
-            % Builds the context payload passed to the files dock on open.
-            %
-            % Reads current search controls and normalizes invalid or negative
-            % frequency values to NaN (meaning "no filter"). The dock always
-            % runs a spectrum-aware query returning one row per repository file;
-            % there is no longer a mode switch in this payload.
-
-            freqStart   = NaN;
-            freqEnd     = NaN;
-            description = '';
-
-            [startDate, endDate] = getNormalizedFilterDateRange(app);
-
-            % Passa o estado (UF) selecionado para que o dock possa pesquisar
-            % por estado mesmo quando nenhum equipamento estiver escolhido.
-            stateCodeCtx = char(selectedStateFilter(app));
-            if strcmp(stateCodeCtx, 'Todos os estados')
-                stateCodeCtx = '';
-            end
-
-            dockContext = struct( ...
-                'equipmentId', str2double(string(app.filesStationDropDown.Value)), ...
-                'districtId',  str2double(string(app.filesLocationDropDown.Value)), ...
-                'stateCode',   stateCodeCtx, ...
-                'hostId',      [], ...                'startDate',   startDate, ...
-                'endDate',     endDate, ...
-                'freqStart',   freqStart, ...
-                'freqEnd',     freqEnd, ...
-                'description', description ...
-                );
-        end
-
-        
         function openRepoFilesDock(app, dockContext)
             % Encaminha a abertura do dock de arquivos no padrão do appAnalise.
 
@@ -2032,6 +988,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             ipcMainMatlabOpenPopupApp(app.mainApp, app, 'RepoFiles', app.Context, dockContext)
         end
 
+        %------------------------------------------------------------------%
         function openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
             % Abre o dock de arquivos usando os identificadores da estacao clicada.
             %
@@ -2075,8 +1032,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Também atualiza o contador textual para manter a interface coerente
             % com o recorte recém-calculado, mesmo antes do replot terminar.
-            if ~isempty(app.filesCountLabel)
-                app.filesCountLabel.Text = sprintf('%d localidade(s) visíveis', numel(app.filteredRepoSFI.points));
+            if ~isempty(app.tool_FileCount)
+                app.tool_FileCount.Text = sprintf('%d localidade(s) visíveis', numel(app.filteredRepoSFI.points));
             end
         end
 
@@ -2089,16 +1046,10 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Começa com a estrutura vazia padrão para garantir um contrato
             % estável mesmo quando o dataset base ainda não estiver disponível.
-            filteredData = struct('points', struct([]), 'site_details', struct([]));
-
-            % Sem o payload principal do RepoSFI não existe base para qualquer
-            % filtragem, então o fallback vazio é mantido.
-            if isempty(app.repoSFI) || ~isstruct(app.repoSFI) || ~isfield(app.repoSFI, 'points') || ~isfield(app.repoSFI, 'site_details')
-                return
-            end
+            filteredData = struct('points', struct([]), 'siteDetails', struct([]));
 
             basePoints = app.repoSFI.points;
-            baseSiteDetails = app.repoSFI.site_details;
+            baseSiteDetails = app.repoSFI.siteDetails;
 
             % Se não houver pontos carregados, também não há recorte a compor.
             if isempty(basePoints)
@@ -2111,36 +1062,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             filteredSiteDetails = baseSiteDetails([]);
 
             % Inicializa os filtros com os estados neutros da interface.
-            stateFilter    = "Todos os estados";
-            statusFilter   = "Todos";
-            localityFilter = "Todas";
-            equipmentFilter = NaN;
-
-            % Lê o estado atual dos controles quando eles já estiverem disponíveis.
-            if ~isempty(app.filesStateDropDown)
-                stateFilter = string(app.filesStateDropDown.Value);
-            end
-
-            if ~isempty(app.filesStatusDropDown)
-                statusFilter = string(app.filesStatusDropDown.Value);
-            end
-
-            if ~isempty(app.filesLocalityDropDown)
-                localityFilter = string(app.filesLocalityDropDown.Value);
-            end
-
-            % When the user selects an equipment in the files search panel, the map
-            % acts as a locator: only sites linked to that equipment remain visible.
-            if ~isempty(app.filesStationDropDown)
-                equipmentFilter = str2double(string(app.filesStationDropDown.Value));
-            end
-
-            % Distrito selecionado: quando preenchido, restringe o mapa apenas
-            % aos sites cujo district_id bata com o valor escolhido.
-            districtFilter = NaN;
-            if ~isempty(app.filesLocationDropDown)
-                districtFilter = str2double(string(app.filesLocationDropDown.Value));
-            end
+            stateCode = app.State.Value;
+            statusFilter   = app.ReceiverStatus.Value;
+            localityFilter = app.ReceiverPosition.Value;
+            equipmentFilter = str2double(string(app.Receiver.Value));
+            districtFilter = str2double(string(app.Location.Value));
 
             [startDt, endDate] = getNormalizedFilterDateRange(app);
             if isnat(endDate)
@@ -2183,9 +1109,9 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 filteredPoint = buildPointFromDetail(app, basePoint, filteredDetail);
 
                 % O filtro por UF atua no nível do ponto agregado já reconstruído.
-                if stateFilter ~= "Todos os estados"
+                if ~isempty(stateCode)
                     pointStateCode = normalizeTextFromValue(app, filteredPoint.state_code);
-                    if strlength(pointStateCode) == 0 || pointStateCode ~= stateFilter
+                    if strlength(pointStateCode) == 0 || ~strcmp(pointStateCode, stateCode)
                         continue
                     end
                 end
@@ -2215,7 +1141,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Publica as coleções resultantes no formato esperado pelo restante do fluxo.
             filteredData.points = filteredPoints;
-            filteredData.site_details = filteredSiteDetails;
+            filteredData.siteDetails = filteredSiteDetails;
         end
 
         
@@ -2227,8 +1153,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Esse helper é usado por getAppliedFilter e pelos callbacks de data
             % para manter um contrato consistente entre os date pickers e as
             % rotinas que avaliam vigência das estações.
-            startDate = normalizeToDatetime(app, app.filesStartDatePicker.Value);
-            endDate = normalizeToDatetime(app, app.filesEndDatePicker.Value);
+            startDate = normalizeToDatetime(app, app.StartDate.Value);
+            endDate = normalizeToDatetime(app, app.EndDatePicker.Value);
 
             % Se qualquer uma das pontas estiver ausente, preserva o retorno como
             % NaT para indicar filtro temporal parcial ou inexistente.
@@ -2244,7 +1170,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % deixar a interface em um estado inconsistente.
             if startDate > endDate
                 endDate = startDate;
-                app.filesEndDatePicker.Value = endDate;
+                app.EndDatePicker.Value = endDate;
             end
         end
 
@@ -2881,20 +1807,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
         end
 
-        function releaseDbHandler(app)
-            % Fecha as conexoes abertas pelo DBHandler antes de destruir o dock.
-            if isempty(app.dbHandler)
-                return
-            end
-
-            try
-                app.dbHandler = app.dbHandler.closeConnections();
-            catch
-            end
-
-            app.dbHandler = [];
-        end
-
+        %-----------------------------------------------------------------%
         function refreshDependentDropdowns(app)
             % Reconstrói filesStationDropDown, filesLocationDropDown e período a
             % partir dos dados do mapa em memória (app.repoSFI), aplicando os
@@ -2906,8 +1819,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % cascata sem nova consulta ao banco de dados.
 
             % Guarda seleções anteriores para tentar restaurá-las após o rebuild.
-            prevEquipId = string(app.filesStationDropDown.Value);
-            prevSiteId  = string(app.filesLocationDropDown.Value);
+            prevEquipId = string(app.Receiver.Value);
+            prevSiteId  = string(app.Location.Value);
 
             equipItems = {'Selecione uma estação/equipamento'};
             equipData  = {''};
@@ -2921,21 +1834,19 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                       isfield(app.repoSFI, 'points') && ~isempty(app.repoSFI.points);
 
             if hasData
-                stateFilter    = selectedStateFilter(app);
-                statusFilter   = string(app.filesStatusDropDown.Value);
-                localityFilter = string(app.filesLocalityDropDown.Value);
+                stateCode = app.State.Value;
+                statusFilter   = string(app.ReceiverStatus.Value);
+                localityFilter = string(app.ReceiverPosition.Value);
 
                 basePoints      = app.repoSFI.points;
-                baseSiteDetails = app.repoSFI.site_details;
+                baseSiteDetails = app.repoSFI.siteDetails;
 
                 for ii = 1:numel(basePoints)
                     point = basePoints(ii);
 
                     % Filtro de estado: descarta pontos fora da UF selecionada.
-                    if stateFilter ~= "Todos os estados"
-                        if normalizeTextFromValue(app, point.state_code) ~= stateFilter
-                            continue
-                        end
+                    if ~isempty(stateCode) && ~strcmp(normalizeTextFromValue(app, point.state_code), stateCode)
+                        continue
                     end
 
                     % Busca o detalhe do site pelo alinhamento posicional ou por ID.
@@ -3011,21 +1922,21 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
 
             % Publica os equipamentos, restaurando a seleção anterior quando válida.
-            app.filesStationDropDown.Items     = equipItems;
-            app.filesStationDropDown.ItemsData = equipData;
+            app.Receiver.Items     = equipItems;
+            app.Receiver.ItemsData = equipData;
             if any(strcmp(equipData, char(prevEquipId)))
-                app.filesStationDropDown.Value = char(prevEquipId);
+                app.Receiver.Value = char(prevEquipId);
             else
-                app.filesStationDropDown.Value = '';
+                app.Receiver.Value = '';
             end
 
             % Publica as localidades, restaurando a seleção anterior quando válida.
-            app.filesLocationDropDown.Items     = siteItems;
-            app.filesLocationDropDown.ItemsData = siteData;
+            app.Location.Items     = siteItems;
+            app.Location.ItemsData = siteData;
             if strlength(prevSiteId) > 0 && any(strcmp(siteData, char(prevSiteId)))
-                app.filesLocationDropDown.Value = char(prevSiteId);
+                app.Location.Value = char(prevSiteId);
             else
-                app.filesLocationDropDown.Value = '';
+                app.Location.Value = '';
             end
 
             % Limpa o cache de localidades do BD para evitar inconsistências
@@ -3033,12 +1944,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.filesLocalityRows = table();
 
             % Atualiza o período a partir das datas coletadas das estações filtradas.
-            app.filesStartDatePicker.Value = NaT;
-            app.filesEndDatePicker.Value   = NaT;
+            app.StartDate.Value = NaT;
+            app.EndDatePicker.Value   = NaT;
             validDates = allDates(~isnat(allDates));
             if ~isempty(validDates)
-                app.filesStartDatePicker.Value = min(validDates);
-                app.filesEndDatePicker.Value   = max(validDates);
+                app.StartDate.Value = min(validDates);
+                app.EndDatePicker.Value   = max(validDates);
             end
     end
 
@@ -3080,16 +1991,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Estado (UF) ------------------------------------------------
             if isfield(filters, 'stateCode')
-                stateVal   = char(filters.stateCode);
-                targetState = stateVal;
-                if isempty(stateVal)
-                    targetState = 'Todos os estados';
-                end
-                if ~strcmp(char(string(app.filesStateDropDown.Value)), targetState)
-                    if isempty(stateVal) || any(strcmp(app.filesStateDropDown.Items, stateVal))
-                        app.filesStateDropDown.Value = targetState;
-                        stateChanged = true;
-                    end
+                targetState = char(filters.stateCode);
+
+                if ismember(targetState, app.State.Items) && ~strcmp(app.State.Value, targetState)
+                    app.State.Value = targetState;
+                    stateChanged = true;
                 end
             end
 
@@ -3103,13 +2009,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Equipamento / estação --------------------------------------
             if isfield(filters, 'equipmentId')
                 if isnan(filters.equipmentId)
-                    if any(strcmp(app.filesStationDropDown.ItemsData, ''))
-                        app.filesStationDropDown.Value = '';
+                    if any(strcmp(app.Receiver.ItemsData, ''))
+                        app.Receiver.Value = '';
                     end
                 else
                     equipId = char(string(round(filters.equipmentId)));
-                    if any(strcmp(app.filesStationDropDown.ItemsData, equipId))
-                        app.filesStationDropDown.Value = equipId;
+                    if any(strcmp(app.Receiver.ItemsData, equipId))
+                        app.Receiver.Value = equipId;
                     end
                 end
             end
@@ -3130,13 +2036,13 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             else
                 if isfield(filters, 'districtId')
                     if isnan(filters.districtId)
-                        if any(strcmp(app.filesLocationDropDown.ItemsData, ''))
-                            app.filesLocationDropDown.Value = '';
+                        if any(strcmp(app.Location.ItemsData, ''))
+                            app.Location.Value = '';
                         end
                     else
                         distId = char(string(round(filters.districtId)));
-                        if any(strcmp(app.filesLocationDropDown.ItemsData, distId))
-                            app.filesLocationDropDown.Value = distId;
+                        if any(strcmp(app.Location.ItemsData, distId))
+                            app.Location.Value = distId;
                         end
                     end
                 end
@@ -3146,44 +2052,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Definidas após updateFilesLocationOptions para sobrescrever
             % qualquer reset de período feito por updateFilesAvailablePeriod.
             if isfield(filters, 'startDate') && isdatetime(filters.startDate) && ~isnat(filters.startDate)
-                app.filesStartDatePicker.Value = filters.startDate;
+                app.StartDate.Value = filters.startDate;
             end
             if isfield(filters, 'endDate') && isdatetime(filters.endDate) && ~isnat(filters.endDate)
-                app.filesEndDatePicker.Value = filters.endDate;
+                app.EndDatePicker.Value = filters.endDate;
             end
 
             % Atualiza o mapa com os filtros recém-sincronizados.
-            refreshFilteredMap(app, "preserve_if_all_states")
-        
-    
+            refreshFilteredMap(app)
     end
-
-    function notifyDockFiltersChanged(app)
-            % Propaga os filtros atuais do winRepoSFI para o dockRepoFiles aberto.
-            %
-            % Chamado pelos callbacks de mudança de filtro para manter os seletores
-            % do dock sincronizados com o estado corrente do mapa. Análogo ao
-            % sentido inverso já implementado em notifyCallingAppFiltersChanged.
-            stateVal = char(app.filesStateDropDown.Value);
-            if strcmp(stateVal, 'Todos os estados')
-                stateVal = '';
-            end
-
-            filters = struct( ...
-                'stateCode',   stateVal, ...
-                'equipmentId', str2double(string(app.filesStationDropDown.Value)), ...
-                'districtId',  str2double(string(app.filesLocationDropDown.Value)), ...
-                'startDate',   app.filesStartDatePicker.Value, ...
-                'endDate',     app.filesEndDatePicker.Value ...
-            );
-
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onRepoSFIFilterChanged', filters);
-        end
-
-    end
-
-    
-    
+end
 
 
     % Callbacks that handle component events
@@ -3202,8 +2080,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         % Close request function: UIFigure
         function closeFcn(app, event)
-            
-            releaseDbHandler(app)
             
             ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', app.Context)
             delete(app)
@@ -3234,152 +2110,118 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_PanelVisibility
-        function Toolbar_InteractionImageClicked(app, event)
-
-            switch event.Source
-                case app.tool_PanelVisibility
-                    if app.SubTabGroup.Visible
-                        app.tool_PanelVisibility.ImageSource = 'layout-sidebar-left-off.svg';
-                        app.SubTabGroup.Visible = 0;
-                        app.Document.Layout.Column = [2 5];
-                    else
-                        app.tool_PanelVisibility.ImageSource = 'layout-sidebar-left.svg';
-                        app.SubTabGroup.Visible = 1;
-                        app.Document.Layout.Column = [4 5];
-                    end
-            end
-
-        end
-
-        % Menu selected function: contextmenu_del, contextmenu_delAll
-        function filter_delFilter(app, event)
-
-            if isempty(app.FilterRules)
-                return
-            end
-
-            switch event.Source
-                case app.contextmenu_del
-                    if isempty(app.filter_Tree.SelectedNodes)
-                        return
-                    end
-                    idx1 = app.filter_Tree.SelectedNodes.NodeData;
-
-                    % Identifica se algum dos fluxos selecionado é um nó de
-                    % filtros, inserindo na lista os seus filhos.
-                    idx1 = [idx1, find(ismember(app.FilterRules.RelatedID, idx1))'];
-
-                case app.contextmenu_delAll
-                    idx1 = 1:height(app.FilterRules);
-            end
-
-            if ~isempty(idx1)
-                removeFilterRule(app, idx1);
-            end
-
-        end
-
-        % Value changed function: filesLocalityDropDown, 
-        % ...and 2 other components
-        function onStationFilterChanged(app, event)
-
-             viewportMode = "preserve_if_all_states";
-
-            if isequal(event.Source, app.filesStateDropDown)
-                % Estado mudou: usa consulta ao BD para listas precisas de espectro.
-                viewportMode = "fit";
-                loadFilesStationOptions(app)
-                updateFilesLocationOptions(app, NaN)
-                notifyDockFiltersChanged(app)
-            else
-                % Status ou tipo de localidade mudou: filtra em memória pois essas
-                % propriedades (map_state, is_current_location) não estão no BD.
-                refreshDependentDropdowns(app)
-            end
-
-            refreshFilteredMap(app, viewportMode)
-
-        end
-
         % Image clicked function: axesTool_RegionZoom, axesTool_RestoreView
         function onAxesToolbarZoomControlButtonClicked(app, event)
-            if isempty(app.UIAxes) || ~isvalid(app.UIAxes)
-                return
-            end
-
+            
             switch event.Source
                 case app.axesTool_RestoreView
-                    applyMapViewport(app, struct(), "fit")
+                    geolimits(app.UIAxes, 'auto')
 
                 case app.axesTool_RegionZoom
-                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes, app.axesTool_RegionZoom)
+                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes, app.axesTool_RegionZoom, findobj(app.UIAxes.Children, 'Tag', 'receiverStation'))
+
+                case app.axesTool_Basemap
+                    app.UIAxes.Basemap = event.Value;
+
+                    switch event.Value
+                        case {'darkwater', 'none'}
+                            app.UIAxes.Grid = 'on';
+                        otherwise
+                            app.UIAxes.Grid = 'off';
+                    end
             end
-        end
-
-        % Button pushed function: filesSearchButton
-        function onSearchClick(app, event)
-            openRepoFilesDock(app, buildFilesDockContext(app));
-        end
-
-        % Value changed function: filesStationDropDown
-        function onStationChanged(app, event)
-             % Tenta preservar a localidade atualmente selecionada: ela pode
-            % continuar válida para a nova estação. updateFilesLocationOptions
-            % descartará silenciosamente se não fizer parte da nova lista.
-            currentDistrict = app.filesLocationDropDown.Value;
-            updateFilesLocationOptions(app, currentDistrict)
-
-            % O mapa também usa filesStationDropDown como filtro, então a troca
-            % do equipamento precisa refletir imediatamente nos pontos visíveis.
-            refreshFilteredMap(app, "fit");
-            notifyDockFiltersChanged(app)
-
 
         end
 
-        % Value changed function: configMapStyleDropDown
-        function onMapStyleChanged(app, event)
-            applySelectedMapStyle(app);
-
-        end
-
-        % Value changed function: filesLocationDropDown
-        function onLocationChanged(app, event)
-           % Localidade mudou: recarrega estações que passaram por esse local.
-            loadFilesStationOptions(app)
-            updateFilesAvailablePeriod(app);
-            refreshFilteredMap(app, "preserve_if_all_states");
-            notifyDockFiltersChanged(app)
-        end
-
-        % Value changed function: filesEndDatePicker, filesStartDatePicker
-        function onDateChanged(app, event)
-           % Reaplica o filtro após consolidar um intervalo temporal válido.
-            getNormalizedFilterDateRange(app);
-            refreshFilteredMap(app, "preserve_if_all_states")
-            notifyDockFiltersChanged(app)
+        % Image clicked function: tool_LayoutLeft, tool_OpenPopupApp, 
+        % ...and 1 other component
+        function onToolbarButtonClicked(app, event)
             
+            switch event.Source
+                case app.tool_LayoutLeft
+                    if app.LeftPanel.Visible
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
+                        app.LeftPanel.Visible = 'off';
+                        app.GridLayout.ColumnWidth(2:3) = {0, 0};
+                    else
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
+                        app.LeftPanel.Visible = 'on';
+                        app.GridLayout.ColumnWidth(2:3) = {232, 10};
+                    end
+
+                case app.tool_OpenPopupApp
+                    [startDate, endDate] = getNormalizedFilterDateRange(app);        
+                    dockContext = struct( ...
+                        'equipmentId', str2double(string(app.Receiver.Value)), ...
+                        'districtId',  str2double(string(app.Location.Value)), ...
+                        'stateCode',   app.State.Value, ...
+                        'hostId',      [], ...                
+                        'startDate',   startDate, ...
+                        'endDate',     endDate, ...
+                        'freqStart',   NaN, ...
+                        'freqEnd',     NaN, ...
+                        'description', '' ...
+                    );
+
+                    openRepoFilesDock(app, dockContext);
+
+                case app.tool_RefreshFilterValues
+                    % Restaura os filtros da aba Arquivos ao estado inicial da tela.
+                    app.State.Value = '';
+                    app.ReceiverStatus.Value = 'Todos';
+                    app.ReceiverPosition.Value = 'Todas';
+        
+                    %app.filesDescriptionEditField.Value = '';
+                    app.StartDate.Value = NaT;
+                    app.EndDatePicker.Value = NaT;
+        
+                    loadFilesStationOptions(app)
+                    app.Receiver.Value = '';
+                    updateFilesLocationOptions(app, NaN)
+        
+                    hidePointPopup(app)
+                    refreshFilteredMap(app)
+            end
+
         end
 
-        % Button pushed function: filesCleanButton
-        function onCleanClick(app, event)
-             % Restaura os filtros da aba Arquivos ao estado inicial da tela.
-            app.filesStateDropDown.Value = 'Todos os estados';
-            app.filesStatusDropDown.Value = 'Todos';
-            app.filesLocalityDropDown.Value = 'Todas';
+        % Value changed function: axesTool_Basemap
+        function onMapStyleChanged(app, event)
+            
 
-            %app.filesDescriptionEditField.Value = '';
-            app.filesStartDatePicker.Value = NaT;
-            app.filesEndDatePicker.Value = NaT;
 
-            loadFilesStationOptions(app)
-            app.filesStationDropDown.Value = '';
-            updateFilesLocationOptions(app, NaN)
+        end
 
-            closePopup(app)
-            refreshFilteredMap(app, "fit")
-            notifyDockFiltersChanged(app)
+        % Value changed function: EndDatePicker, Location, Receiver, 
+        % ...and 4 other components
+        function onFilterValueChanged(app, event)
+            
+            switch event.Source
+                case {app.State, app.ReceiverStatus, app.ReceiverPosition}
+                    if isequal(event.Source, app.State)
+                        loadFilesStationOptions(app)
+                        updateFilesLocationOptions(app, NaN)
+                    else
+                        refreshDependentDropdowns(app)
+                    end
+
+                case app.Location
+                    loadFilesStationOptions(app)
+                    updateFilesAvailablePeriod(app);
+
+                case {app.StartDate, app.EndDatePicker}
+                    getNormalizedFilterDateRange(app);
+
+                case app.Receiver
+                    currentDistrict = app.Location.Value;
+                    updateFilesLocationOptions(app, currentDistrict)
+            end
+
+            refreshFilteredMap(app)
+
+            hasValidFilter = ~isequal(app.defaultValues, getFilterCurrentSpecification(app));
+            set([app.tool_OpenPopupApp, app.tool_RefreshFilterValues], 'Enable', hasValidFilter)            
+            
         end
     end
 
@@ -3419,7 +2261,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {10, 320, 10, '1x', 48, 8, 2};
+            app.GridLayout.ColumnWidth = {10, 232, 10, 5, 190, '1x', 200, 48, 8, 2};
             app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
@@ -3428,60 +2270,274 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 5, 22, '1x', 18};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, '1x', 320};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
             app.Toolbar.Padding = [10 5 10 5];
             app.Toolbar.Layout.Row = 6;
-            app.Toolbar.Layout.Column = [1 7];
+            app.Toolbar.Layout.Column = [1 10];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
-            % Create tool_PanelVisibility
-            app.tool_PanelVisibility = uiimage(app.Toolbar);
-            app.tool_PanelVisibility.ScaleMethod = 'none';
-            app.tool_PanelVisibility.ImageClickedFcn = createCallbackFcn(app, @Toolbar_InteractionImageClicked, true);
-            app.tool_PanelVisibility.Layout.Row = [1 3];
-            app.tool_PanelVisibility.Layout.Column = 1;
-            app.tool_PanelVisibility.ImageSource = 'layout-sidebar-left.svg';
+            % Create tool_LayoutLeft
+            app.tool_LayoutLeft = uiimage(app.Toolbar);
+            app.tool_LayoutLeft.ScaleMethod = 'none';
+            app.tool_LayoutLeft.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.tool_LayoutLeft.Layout.Row = [1 3];
+            app.tool_LayoutLeft.Layout.Column = 1;
+            app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
 
-            % Create filesCountLabel
-            app.filesCountLabel = uilabel(app.Toolbar);
-            app.filesCountLabel.HorizontalAlignment = 'right';
-            app.filesCountLabel.FontSize = 11;
-            app.filesCountLabel.Layout.Row = [1 3];
-            app.filesCountLabel.Layout.Column = [7 8];
-            app.filesCountLabel.Text = '0 localidade(s) visíveis';
+            % Create tool_Separator
+            app.tool_Separator = uiimage(app.Toolbar);
+            app.tool_Separator.ScaleMethod = 'none';
+            app.tool_Separator.Enable = 'off';
+            app.tool_Separator.Layout.Row = [1 3];
+            app.tool_Separator.Layout.Column = 2;
+            app.tool_Separator.VerticalAlignment = 'bottom';
+            app.tool_Separator.ImageSource = 'LineV.svg';
 
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 50, 100, '1x', 280};
-            app.Document.RowHeight = {24, '1x'};
-            app.Document.ColumnSpacing = 0;
-            app.Document.RowSpacing = 0;
-            app.Document.Padding = [0 0 0 0];
-            app.Document.Layout.Row = [3 4];
-            app.Document.Layout.Column = [4 5];
-            app.Document.BackgroundColor = [1 1 1];
+            % Create tool_OpenPopupApp
+            app.tool_OpenPopupApp = uiimage(app.Toolbar);
+            app.tool_OpenPopupApp.ScaleMethod = 'none';
+            app.tool_OpenPopupApp.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.tool_OpenPopupApp.Enable = 'off';
+            app.tool_OpenPopupApp.Layout.Row = [1 3];
+            app.tool_OpenPopupApp.Layout.Column = 3;
+            app.tool_OpenPopupApp.ImageSource = 'search-sparkle.svg';
 
-            % Create plotPanel
-            app.plotPanel = uipanel(app.Document);
-            app.plotPanel.AutoResizeChildren = 'off';
-            app.plotPanel.ForegroundColor = [1 1 1];
-            app.plotPanel.BorderType = 'none';
-            app.plotPanel.BackgroundColor = [1 1 1];
-            app.plotPanel.Layout.Row = [1 2];
-            app.plotPanel.Layout.Column = [1 5];
-            app.plotPanel.FontSize = 11;
+            % Create tool_RefreshFilterValues
+            app.tool_RefreshFilterValues = uiimage(app.Toolbar);
+            app.tool_RefreshFilterValues.ScaleMethod = 'none';
+            app.tool_RefreshFilterValues.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.tool_RefreshFilterValues.Enable = 'off';
+            app.tool_RefreshFilterValues.Layout.Row = [1 3];
+            app.tool_RefreshFilterValues.Layout.Column = 4;
+            app.tool_RefreshFilterValues.ImageSource = 'Refresh_18.png';
+
+            % Create tool_FileCount
+            app.tool_FileCount = uilabel(app.Toolbar);
+            app.tool_FileCount.HorizontalAlignment = 'right';
+            app.tool_FileCount.FontSize = 11;
+            app.tool_FileCount.Layout.Row = [1 3];
+            app.tool_FileCount.Layout.Column = 6;
+            app.tool_FileCount.Text = '';
+
+            % Create LeftPanel
+            app.LeftPanel = uipanel(app.GridLayout);
+            app.LeftPanel.AutoResizeChildren = 'off';
+            app.LeftPanel.Layout.Row = [3 4];
+            app.LeftPanel.Layout.Column = 2;
+
+            % Create LeftPanelGrid
+            app.LeftPanelGrid = uigridlayout(app.LeftPanel);
+            app.LeftPanelGrid.ColumnWidth = {22, 5, 73, 10, 100};
+            app.LeftPanelGrid.RowHeight = {92, 17, 22, 22, 22, 22, 22, 22, 22, 69, '1x', 17};
+            app.LeftPanelGrid.ColumnSpacing = 0;
+            app.LeftPanelGrid.RowSpacing = 5;
+            app.LeftPanelGrid.BackgroundColor = [1 1 1];
+
+            % Create ModuleIcon
+            app.ModuleIcon = uiimage(app.LeftPanelGrid);
+            app.ModuleIcon.Layout.Row = 1;
+            app.ModuleIcon.Layout.Column = 1;
+            app.ModuleIcon.VerticalAlignment = 'top';
+            app.ModuleIcon.ImageSource = 'library-24px.svg';
+
+            % Create ModuleIntro
+            app.ModuleIntro = uilabel(app.LeftPanelGrid);
+            app.ModuleIntro.VerticalAlignment = 'top';
+            app.ModuleIntro.WordWrap = 'on';
+            app.ModuleIntro.FontSize = 11;
+            app.ModuleIntro.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.ModuleIntro.Layout.Row = 1;
+            app.ModuleIntro.Layout.Column = [3 5];
+            app.ModuleIntro.Interpreter = 'html';
+            app.ModuleIntro.Text = {'<b>REPOSFI</b>'; '<p style="padding: 2px; text-align: justify; font-size: 10px; color: gray; line-height: 13px">Centraliza a coleta, organiza e disponibiliza dados de monitoramento de espectro, integrando arquivos de estações remotas, fluxos de espectro e artefatos analíticos.</p>'};
+
+            % Create StateLabel
+            app.StateLabel = uilabel(app.LeftPanelGrid);
+            app.StateLabel.VerticalAlignment = 'bottom';
+            app.StateLabel.FontSize = 11;
+            app.StateLabel.Layout.Row = 2;
+            app.StateLabel.Layout.Column = [1 3];
+            app.StateLabel.Text = 'UF:';
+
+            % Create State
+            app.State = uidropdown(app.LeftPanelGrid);
+            app.State.Items = {};
+            app.State.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.State.FontSize = 11;
+            app.State.BackgroundColor = [1 1 1];
+            app.State.Layout.Row = 3;
+            app.State.Layout.Column = [1 3];
+            app.State.Value = {};
+
+            % Create LocationLabel
+            app.LocationLabel = uilabel(app.LeftPanelGrid);
+            app.LocationLabel.VerticalAlignment = 'bottom';
+            app.LocationLabel.FontSize = 11;
+            app.LocationLabel.Layout.Row = 4;
+            app.LocationLabel.Layout.Column = [1 5];
+            app.LocationLabel.Text = 'Localidade:';
+
+            % Create Location
+            app.Location = uidropdown(app.LeftPanelGrid);
+            app.Location.Items = {'Todas as localidades'};
+            app.Location.Editable = 'on';
+            app.Location.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.Location.FontSize = 11;
+            app.Location.BackgroundColor = [1 1 1];
+            app.Location.Layout.Row = 5;
+            app.Location.Layout.Column = [1 5];
+            app.Location.Value = 'Todas as localidades';
+
+            % Create StartDateLabel
+            app.StartDateLabel = uilabel(app.LeftPanelGrid);
+            app.StartDateLabel.VerticalAlignment = 'bottom';
+            app.StartDateLabel.FontSize = 11;
+            app.StartDateLabel.Layout.Row = 6;
+            app.StartDateLabel.Layout.Column = [1 5];
+            app.StartDateLabel.Text = 'Período inicial:';
+
+            % Create StartDate
+            app.StartDate = uidatepicker(app.LeftPanelGrid);
+            app.StartDate.DisplayFormat = 'dd/MM/yyyy';
+            app.StartDate.Editable = 'off';
+            app.StartDate.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.StartDate.FontSize = 11;
+            app.StartDate.Layout.Row = 7;
+            app.StartDate.Layout.Column = [1 3];
+
+            % Create EndDateLabel
+            app.EndDateLabel = uilabel(app.LeftPanelGrid);
+            app.EndDateLabel.VerticalAlignment = 'bottom';
+            app.EndDateLabel.FontSize = 11;
+            app.EndDateLabel.Layout.Row = 6;
+            app.EndDateLabel.Layout.Column = 5;
+            app.EndDateLabel.Text = 'Período final:';
+
+            % Create EndDatePicker
+            app.EndDatePicker = uidatepicker(app.LeftPanelGrid);
+            app.EndDatePicker.DisplayFormat = 'dd/MM/yyyy';
+            app.EndDatePicker.Editable = 'off';
+            app.EndDatePicker.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.EndDatePicker.FontSize = 11;
+            app.EndDatePicker.Layout.Row = 7;
+            app.EndDatePicker.Layout.Column = 5;
+
+            % Create ReceiverLabel
+            app.ReceiverLabel = uilabel(app.LeftPanelGrid);
+            app.ReceiverLabel.VerticalAlignment = 'bottom';
+            app.ReceiverLabel.FontSize = 11;
+            app.ReceiverLabel.Layout.Row = 8;
+            app.ReceiverLabel.Layout.Column = [1 3];
+            app.ReceiverLabel.Text = 'Sensor';
+
+            % Create Receiver
+            app.Receiver = uidropdown(app.LeftPanelGrid);
+            app.Receiver.Items = {''};
+            app.Receiver.Editable = 'on';
+            app.Receiver.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.Receiver.FontSize = 11;
+            app.Receiver.BackgroundColor = [1 1 1];
+            app.Receiver.Layout.Row = 9;
+            app.Receiver.Layout.Column = [1 5];
+            app.Receiver.Value = '';
+
+            % Create ReceiverPanel
+            app.ReceiverPanel = uipanel(app.LeftPanelGrid);
+            app.ReceiverPanel.Layout.Row = 10;
+            app.ReceiverPanel.Layout.Column = [1 5];
+
+            % Create ReceiverGrid
+            app.ReceiverGrid = uigridlayout(app.ReceiverPanel);
+            app.ReceiverGrid.RowHeight = {17, 22};
+            app.ReceiverGrid.RowSpacing = 5;
+            app.ReceiverGrid.BackgroundColor = [1 1 1];
+
+            % Create ReceiverStatusLabel
+            app.ReceiverStatusLabel = uilabel(app.ReceiverGrid);
+            app.ReceiverStatusLabel.VerticalAlignment = 'bottom';
+            app.ReceiverStatusLabel.FontSize = 11;
+            app.ReceiverStatusLabel.Layout.Row = 1;
+            app.ReceiverStatusLabel.Layout.Column = 1;
+            app.ReceiverStatusLabel.Text = 'Status:';
+
+            % Create ReceiverStatus
+            app.ReceiverStatus = uidropdown(app.ReceiverGrid);
+            app.ReceiverStatus.Items = {'Todos', 'Apenas online', 'Apenas offline'};
+            app.ReceiverStatus.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.ReceiverStatus.FontSize = 11;
+            app.ReceiverStatus.BackgroundColor = [1 1 1];
+            app.ReceiverStatus.Layout.Row = 2;
+            app.ReceiverStatus.Layout.Column = 1;
+            app.ReceiverStatus.Value = 'Todos';
+
+            % Create ReceiverPositionLabel
+            app.ReceiverPositionLabel = uilabel(app.ReceiverGrid);
+            app.ReceiverPositionLabel.VerticalAlignment = 'bottom';
+            app.ReceiverPositionLabel.FontSize = 11;
+            app.ReceiverPositionLabel.Layout.Row = 1;
+            app.ReceiverPositionLabel.Layout.Column = 2;
+            app.ReceiverPositionLabel.Text = 'Registro posição:';
+
+            % Create ReceiverPosition
+            app.ReceiverPosition = uidropdown(app.ReceiverGrid);
+            app.ReceiverPosition.Items = {'Todas', 'Apenas atuais', 'Apenas históricas'};
+            app.ReceiverPosition.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
+            app.ReceiverPosition.FontSize = 11;
+            app.ReceiverPosition.BackgroundColor = [1 1 1];
+            app.ReceiverPosition.Layout.Row = 2;
+            app.ReceiverPosition.Layout.Column = 2;
+            app.ReceiverPosition.Value = 'Todas';
+
+            % Create Image
+            app.Image = uiimage(app.LeftPanelGrid);
+            app.Image.ScaleMethod = 'none';
+            app.Image.Enable = 'off';
+            app.Image.Layout.Row = 12;
+            app.Image.Layout.Column = 1;
+            app.Image.VerticalAlignment = 'top';
+            app.Image.ImageSource = 'calendar.svg';
+
+            % Create Label
+            app.Label = uilabel(app.LeftPanelGrid);
+            app.Label.FontSize = 11;
+            app.Label.FontColor = [0.502 0.502 0.502];
+            app.Label.Layout.Row = 12;
+            app.Label.Layout.Column = [3 5];
+            app.Label.Text = '';
+
+            % Create AxesContainer
+            app.AxesContainer = uipanel(app.GridLayout);
+            app.AxesContainer.AutoResizeChildren = 'off';
+            app.AxesContainer.ForegroundColor = [1 1 1];
+            app.AxesContainer.BorderType = 'none';
+            app.AxesContainer.BackgroundColor = [0 0 0];
+            app.AxesContainer.Layout.Row = [3 4];
+            app.AxesContainer.Layout.Column = [4 8];
+            app.AxesContainer.FontSize = 11;
+
+            % Create AxesPopup
+            app.AxesPopup = uilabel(app.GridLayout);
+            app.AxesPopup.VerticalAlignment = 'top';
+            app.AxesPopup.WordWrap = 'on';
+            app.AxesPopup.FontSize = 11;
+            app.AxesPopup.Visible = 'off';
+            app.AxesPopup.Layout.Row = [3 4];
+            app.AxesPopup.Layout.Column = [7 8];
+            app.AxesPopup.Interpreter = 'html';
+            app.AxesPopup.Text = '';
 
             % Create AxesToolbar
-            app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {22, 22, '1x'};
+            app.AxesToolbar = uigridlayout(app.GridLayout);
+            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, 110, 10};
             app.AxesToolbar.RowHeight = {22};
             app.AxesToolbar.ColumnSpacing = 0;
-            app.AxesToolbar.Padding = [2 2 2 0];
-            app.AxesToolbar.Layout.Row = 1;
-            app.AxesToolbar.Layout.Column = [2 3];
+            app.AxesToolbar.RowSpacing = 0;
+            app.AxesToolbar.Padding = [0 2 0 1];
+            app.AxesToolbar.Layout.Row = 3;
+            app.AxesToolbar.Layout.Column = 5;
             app.AxesToolbar.BackgroundColor = [1 1 1];
 
             % Create axesTool_RegionZoom
@@ -3489,7 +2545,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.axesTool_RegionZoom.ScaleMethod = 'none';
             app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarZoomControlButtonClicked, true);
             app.axesTool_RegionZoom.Layout.Row = 1;
-            app.axesTool_RegionZoom.Layout.Column = 2;
+            app.axesTool_RegionZoom.Layout.Column = 3;
             app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
             % Create axesTool_RestoreView
@@ -3497,259 +2553,18 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.axesTool_RestoreView.ScaleMethod = 'none';
             app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarZoomControlButtonClicked, true);
             app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 1;
+            app.axesTool_RestoreView.Layout.Column = 2;
             app.axesTool_RestoreView.ImageSource = 'Home_18.png';
 
-            % Create configMapStyleDropDown
-            app.configMapStyleDropDown = uidropdown(app.AxesToolbar);
-            app.configMapStyleDropDown.Items = {'streets-light', 'streets-dark', 'streets', 'satellite', 'topographic', 'landcover', 'colorterrain', 'grayterrain', 'bluegreen', 'grayland', 'darkwater', 'none'};
-            app.configMapStyleDropDown.ValueChangedFcn = createCallbackFcn(app, @onMapStyleChanged, true);
-            app.configMapStyleDropDown.FontSize = 11;
-            app.configMapStyleDropDown.BackgroundColor = [1 1 1];
-            app.configMapStyleDropDown.Layout.Row = 1;
-            app.configMapStyleDropDown.Layout.Column = 3;
-            app.configMapStyleDropDown.Value = 'streets-light';
-
-            % Create popupHTML
-            app.popupHTML = uilabel(app.Document);
-            app.popupHTML.VerticalAlignment = 'top';
-            app.popupHTML.WordWrap = 'on';
-            app.popupHTML.FontSize = 11;
-            app.popupHTML.Visible = 'off';
-            app.popupHTML.Layout.Row = [1 2];
-            app.popupHTML.Layout.Column = 5;
-            app.popupHTML.Interpreter = 'html';
-            app.popupHTML.Text = '';
-
-            % Create SubTabGroup
-            app.SubTabGroup = uipanel(app.GridLayout);
-            app.SubTabGroup.AutoResizeChildren = 'off';
-            app.SubTabGroup.Layout.Row = [3 4];
-            app.SubTabGroup.Layout.Column = 2;
-
-            % Create FilesMainGrid
-            app.FilesMainGrid = uigridlayout(app.SubTabGroup);
-            app.FilesMainGrid.ColumnWidth = {49, 49, '1x'};
-            app.FilesMainGrid.RowHeight = {48, 22, 125, 22, 35, 22, 71, 6, 49};
-            app.FilesMainGrid.RowSpacing = 5;
-            app.FilesMainGrid.BackgroundColor = [1 1 1];
-
-            % Create filesPeriodLabel
-            app.filesPeriodLabel = uilabel(app.FilesMainGrid);
-            app.filesPeriodLabel.FontSize = 10;
-            app.filesPeriodLabel.Layout.Row = 6;
-            app.filesPeriodLabel.Layout.Column = [1 3];
-            app.filesPeriodLabel.Text = 'PERÍODO ';
-
-            % Create filesStationFilterPanel
-            app.filesStationFilterPanel = uipanel(app.FilesMainGrid);
-            app.filesStationFilterPanel.BackgroundColor = [1 1 1];
-            app.filesStationFilterPanel.Layout.Row = 3;
-            app.filesStationFilterPanel.Layout.Column = [1 3];
-            app.filesStationFilterPanel.FontSize = 11;
-
-            % Create filesStationsGrid
-            app.filesStationsGrid = uigridlayout(app.filesStationFilterPanel);
-            app.filesStationsGrid.ColumnWidth = {110, '1x'};
-            app.filesStationsGrid.RowHeight = {22, 22, 22, 22};
-            app.filesStationsGrid.RowSpacing = 5;
-            app.filesStationsGrid.BackgroundColor = [1 1 1];
-
-            % Create filesStateLabel
-            app.filesStateLabel = uilabel(app.filesStationsGrid);
-            app.filesStateLabel.FontSize = 11;
-            app.filesStateLabel.Layout.Row = 1;
-            app.filesStateLabel.Layout.Column = 1;
-            app.filesStateLabel.Text = 'Estado';
-
-            % Create filesStatusLabel
-            app.filesStatusLabel = uilabel(app.filesStationsGrid);
-            app.filesStatusLabel.FontSize = 11;
-            app.filesStatusLabel.Layout.Row = 3;
-            app.filesStatusLabel.Layout.Column = 1;
-            app.filesStatusLabel.Text = 'Status';
-
-            % Create filesLocalityLabel
-            app.filesLocalityLabel = uilabel(app.filesStationsGrid);
-            app.filesLocalityLabel.FontSize = 11;
-            app.filesLocalityLabel.Layout.Row = 4;
-            app.filesLocalityLabel.Layout.Column = 1;
-            app.filesLocalityLabel.Text = 'Registro de Posição';
-
-            % Create filesStateDropDown
-            app.filesStateDropDown = uidropdown(app.filesStationsGrid);
-            app.filesStateDropDown.Items = {'Todos os estados'};
-            app.filesStateDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationFilterChanged, true);
-            app.filesStateDropDown.FontSize = 10.5;
-            app.filesStateDropDown.BackgroundColor = [1 1 1];
-            app.filesStateDropDown.Layout.Row = 1;
-            app.filesStateDropDown.Layout.Column = 2;
-            app.filesStateDropDown.Value = 'Todos os estados';
-
-            % Create filesStatusDropDown
-            app.filesStatusDropDown = uidropdown(app.filesStationsGrid);
-            app.filesStatusDropDown.Items = {'Todos', 'Apenas online', 'Apenas offline'};
-            app.filesStatusDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationFilterChanged, true);
-            app.filesStatusDropDown.FontSize = 10.5;
-            app.filesStatusDropDown.BackgroundColor = [1 1 1];
-            app.filesStatusDropDown.Layout.Row = 3;
-            app.filesStatusDropDown.Layout.Column = 2;
-            app.filesStatusDropDown.Value = 'Todos';
-
-            % Create filesLocalityDropDown
-            app.filesLocalityDropDown = uidropdown(app.filesStationsGrid);
-            app.filesLocalityDropDown.Items = {'Todas', 'Apenas atuais', 'Apenas históricas'};
-            app.filesLocalityDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationFilterChanged, true);
-            app.filesLocalityDropDown.FontSize = 10.5;
-            app.filesLocalityDropDown.BackgroundColor = [1 1 1];
-            app.filesLocalityDropDown.Layout.Row = 4;
-            app.filesLocalityDropDown.Layout.Column = 2;
-            app.filesLocalityDropDown.Value = 'Todas';
-
-            % Create filesLocationLabel
-            app.filesLocationLabel = uilabel(app.filesStationsGrid);
-            app.filesLocationLabel.FontSize = 11;
-            app.filesLocationLabel.Layout.Row = 2;
-            app.filesLocationLabel.Layout.Column = 1;
-            app.filesLocationLabel.Text = 'Distrito';
-
-            % Create filesLocationDropDown
-            app.filesLocationDropDown = uidropdown(app.filesStationsGrid);
-            app.filesLocationDropDown.Items = {'Todas as localidades'};
-            app.filesLocationDropDown.ValueChangedFcn = createCallbackFcn(app, @onLocationChanged, true);
-            app.filesLocationDropDown.FontSize = 10.5;
-            app.filesLocationDropDown.BackgroundColor = [1 1 1];
-            app.filesLocationDropDown.Layout.Row = 2;
-            app.filesLocationDropDown.Layout.Column = 2;
-            app.filesLocationDropDown.Value = 'Todas as localidades';
-
-            % Create filesLocationSelectLabel
-            app.filesLocationSelectLabel = uilabel(app.FilesMainGrid);
-            app.filesLocationSelectLabel.FontSize = 10;
-            app.filesLocationSelectLabel.Layout.Row = 2;
-            app.filesLocationSelectLabel.Layout.Column = [1 3];
-            app.filesLocationSelectLabel.Text = 'LOCALIDADE/HISTÓRICO';
-
-            % Create filesPeriodPanel
-            app.filesPeriodPanel = uipanel(app.FilesMainGrid);
-            app.filesPeriodPanel.BackgroundColor = [1 1 1];
-            app.filesPeriodPanel.Layout.Row = 7;
-            app.filesPeriodPanel.Layout.Column = [1 3];
-
-            % Create filesPeriodGrid
-            app.filesPeriodGrid = uigridlayout(app.filesPeriodPanel);
-            app.filesPeriodGrid.ColumnWidth = {110, '1x'};
-            app.filesPeriodGrid.RowHeight = {22, 22};
-            app.filesPeriodGrid.RowSpacing = 5;
-            app.filesPeriodGrid.BackgroundColor = [1 1 1];
-
-            % Create filesStartDateLabel
-            app.filesStartDateLabel = uilabel(app.filesPeriodGrid);
-            app.filesStartDateLabel.FontSize = 11;
-            app.filesStartDateLabel.Layout.Row = 1;
-            app.filesStartDateLabel.Layout.Column = 1;
-            app.filesStartDateLabel.Text = 'Início';
-
-            % Create filesEndDateLabel
-            app.filesEndDateLabel = uilabel(app.filesPeriodGrid);
-            app.filesEndDateLabel.FontSize = 11;
-            app.filesEndDateLabel.Layout.Row = 2;
-            app.filesEndDateLabel.Layout.Column = 1;
-            app.filesEndDateLabel.Text = 'Fim';
-
-            % Create filesStartDatePicker
-            app.filesStartDatePicker = uidatepicker(app.filesPeriodGrid);
-            app.filesStartDatePicker.ValueChangedFcn = createCallbackFcn(app, @onDateChanged, true);
-            app.filesStartDatePicker.FontSize = 10.5;
-            app.filesStartDatePicker.Placeholder = 'dd-MMM-uuuu';
-            app.filesStartDatePicker.Layout.Row = 1;
-            app.filesStartDatePicker.Layout.Column = 2;
-
-            % Create filesEndDatePicker
-            app.filesEndDatePicker = uidatepicker(app.filesPeriodGrid);
-            app.filesEndDatePicker.ValueChangedFcn = createCallbackFcn(app, @onDateChanged, true);
-            app.filesEndDatePicker.FontSize = 10.5;
-            app.filesEndDatePicker.Placeholder = 'dd-MMM-uuuu';
-            app.filesEndDatePicker.Layout.Row = 2;
-            app.filesEndDatePicker.Layout.Column = 2;
-
-            % Create filesSensorLocationLabel
-            app.filesSensorLocationLabel = uipanel(app.FilesMainGrid);
-            app.filesSensorLocationLabel.BackgroundColor = [1 1 1];
-            app.filesSensorLocationLabel.Layout.Row = 5;
-            app.filesSensorLocationLabel.Layout.Column = [1 3];
-            app.filesSensorLocationLabel.FontSize = 11;
-
-            % Create filesSensorLocationGrid
-            app.filesSensorLocationGrid = uigridlayout(app.filesSensorLocationLabel);
-            app.filesSensorLocationGrid.ColumnWidth = {110, '1x'};
-            app.filesSensorLocationGrid.RowHeight = {22, 22};
-            app.filesSensorLocationGrid.RowSpacing = 5;
-            app.filesSensorLocationGrid.Padding = [10 10 10 5];
-            app.filesSensorLocationGrid.BackgroundColor = [1 1 1];
-
-            % Create filesSensorLabel
-            app.filesSensorLabel = uilabel(app.filesSensorLocationGrid);
-            app.filesSensorLabel.FontSize = 11;
-            app.filesSensorLabel.Layout.Row = 1;
-            app.filesSensorLabel.Layout.Column = 1;
-            app.filesSensorLabel.Text = 'Sensor';
-
-            % Create filesStationDropDown
-            app.filesStationDropDown = uidropdown(app.filesSensorLocationGrid);
-            app.filesStationDropDown.Items = {''};
-            app.filesStationDropDown.Editable = 'on';
-            app.filesStationDropDown.ValueChangedFcn = createCallbackFcn(app, @onStationChanged, true);
-            app.filesStationDropDown.FontSize = 10.5;
-            app.filesStationDropDown.BackgroundColor = [1 1 1];
-            app.filesStationDropDown.Layout.Row = 1;
-            app.filesStationDropDown.Layout.Column = 2;
-            app.filesStationDropDown.Value = '';
-
-            % Create filesStationLabel
-            app.filesStationLabel = uilabel(app.FilesMainGrid);
-            app.filesStationLabel.FontSize = 10;
-            app.filesStationLabel.Layout.Row = 4;
-            app.filesStationLabel.Layout.Column = [1 3];
-            app.filesStationLabel.Text = 'ESTAÇÃO';
-
-            % Create referenceRX_Icon_3
-            app.referenceRX_Icon_3 = uiimage(app.FilesMainGrid);
-            app.referenceRX_Icon_3.ScaleMethod = 'none';
-            app.referenceRX_Icon_3.Layout.Row = 1;
-            app.referenceRX_Icon_3.Layout.Column = 1;
-            app.referenceRX_Icon_3.ImageSource = 'addFiles_32.png';
-
-            % Create referenceRX_Label_3
-            app.referenceRX_Label_3 = uilabel(app.FilesMainGrid);
-            app.referenceRX_Label_3.FontSize = 11;
-            app.referenceRX_Label_3.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.referenceRX_Label_3.Layout.Row = 1;
-            app.referenceRX_Label_3.Layout.Column = [2 3];
-            app.referenceRX_Label_3.Interpreter = 'html';
-            app.referenceRX_Label_3.Text = {'<b>Pesquisa de Arquivos</b>'; '<font style="font-size: 9px; color: gray;">(Dentro do repoSFI)</font>'};
-
-            % Create filesSearchButton
-            app.filesSearchButton = uibutton(app.FilesMainGrid, 'push');
-            app.filesSearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
-            app.filesSearchButton.Icon = 'icon_search.svg';
-            app.filesSearchButton.IconAlignment = 'top';
-            app.filesSearchButton.VerticalAlignment = 'bottom';
-            app.filesSearchButton.FontSize = 11;
-            app.filesSearchButton.Layout.Row = 9;
-            app.filesSearchButton.Layout.Column = 1;
-            app.filesSearchButton.Text = 'Buscar';
-
-            % Create filesCleanButton
-            app.filesCleanButton = uibutton(app.FilesMainGrid, 'push');
-            app.filesCleanButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
-            app.filesCleanButton.Icon = 'icon_clean.svg';
-            app.filesCleanButton.IconAlignment = 'top';
-            app.filesCleanButton.VerticalAlignment = 'bottom';
-            app.filesCleanButton.FontSize = 11;
-            app.filesCleanButton.Layout.Row = 9;
-            app.filesCleanButton.Layout.Column = 2;
-            app.filesCleanButton.Text = 'Limpar';
+            % Create axesTool_Basemap
+            app.axesTool_Basemap = uidropdown(app.AxesToolbar);
+            app.axesTool_Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
+            app.axesTool_Basemap.ValueChangedFcn = createCallbackFcn(app, @onMapStyleChanged, true);
+            app.axesTool_Basemap.FontSize = 11;
+            app.axesTool_Basemap.BackgroundColor = [1 1 1];
+            app.axesTool_Basemap.Layout.Row = 1;
+            app.axesTool_Basemap.Layout.Column = 5;
+            app.axesTool_Basemap.Value = 'satellite';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
@@ -3758,7 +2573,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.DockModule.Padding = [5 2 5 2];
             app.DockModule.Visible = 'off';
             app.DockModule.Layout.Row = [2 3];
-            app.DockModule.Layout.Column = [5 6];
+            app.DockModule.Layout.Column = [8 9];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Undock
@@ -3777,22 +2592,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             app.dockModule_Close.Layout.Row = 1;
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
-
-            % Create ContextMenu
-            app.ContextMenu = uicontextmenu(app.UIFigure);
-            app.ContextMenu.Tag = 'auxApp.winRepoSFI';
-
-            % Create contextmenu_del
-            app.contextmenu_del = uimenu(app.ContextMenu);
-            app.contextmenu_del.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.contextmenu_del.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_del.Text = '❌ Excluir';
-
-            % Create contextmenu_delAll
-            app.contextmenu_delAll = uimenu(app.ContextMenu);
-            app.contextmenu_delAll.MenuSelectedFcn = createCallbackFcn(app, @filter_delFilter, true);
-            app.contextmenu_delAll.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_delAll.Text = '⛔ Excluir todos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

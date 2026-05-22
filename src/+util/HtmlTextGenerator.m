@@ -12,7 +12,8 @@ classdef (Abstract) HtmlTextGenerator
     %   ├── getStationInfo                ⇐ auxApp.winRFDataHub
     %   ├── issueDetails                  ⇐ winAppAnalise | auxApp.dockReportLib
     %   ├── entityDetails                 ⇐ auxApp.dockReportLib
-    %   └── createTag                     ⇐ auxApp.dockReportLib | auxApp.dockFlowMerge
+    %   ├── createTag                     ⇐ auxApp.dockReportLib | auxApp.dockFlowMerge
+    %   └── receiverStationDetails        ⇐ auxApp.winRepoSFI
 
     % PRIVATE
     %   ├── makeDisplayEntry
@@ -232,7 +233,7 @@ classdef (Abstract) HtmlTextGenerator
             displayEntry(2) = util.HtmlTextGenerator.makeDisplayEntry( ...
                 'LOCAL DA MONITORAÇÃO', ...
                 gpsSummaryToGui, ...
-                util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onLocationEditRequested', generalSettings) ...
+                util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onLocationEditRequested') ...
             );
 
             % HASH
@@ -249,12 +250,12 @@ classdef (Abstract) HtmlTextGenerator
                 infoSourceFilterIcon = 'filter-filled.svg';
             end
             
-            infoSourceLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onFilterRequested', generalSettings, 'link', infoSourceFilterIcon, 16, 16);
+            infoSourceLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onFilterRequested', '', 'link', infoSourceFilterIcon, 16, 16);
             if specData.IsUserModified
                 infoSourceLink = [ ...
                     infoSourceLink ...
                     '&emsp;' ...
-                    ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onFlowUnlockRequested', '<font style="font-size: 17px; color: black; transform: translateY(-2px);">&#x1F513;&#xFE0E;</font>') ...
+                    ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onFlowUnlockRequested', '', '<font style="font-size: 17px; color: black; transform: translateY(-2px);">&#x1F513;&#xFE0E;</font>') ...
                 ];
             end
 
@@ -540,14 +541,14 @@ classdef (Abstract) HtmlTextGenerator
                         end
         
                         % TEXTO FORMATADO
-                        displayEntry = struct('group', 'CANAL', 'value', channelInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onChannelEditRequested', generalSettings));
-                        displayEntry(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onClassificationEditRequested', generalSettings));
+                        displayEntry = struct('group', 'CANAL', 'value', channelInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onChannelEditRequested'));
+                        displayEntry(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onClassificationEditRequested'));
                         displayEntry(3) = struct('group', 'MEDIDAS', 'value', measuresInfo,   'link', [ ...
-                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsExportRequested', generalSettings, 'link', 'Export_16.png', 16, 16) ...
+                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onMeasurementsExportRequested', '', 'link', 'Export_16.png', 16, 16) ...
                             '&emsp;', ...
-                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, 'onMeasurementsDetailsRequested', generalSettings, 'question', 'info.svg') ...
+                            util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onMeasurementsDetailsRequested', '', 'question', 'info.svg') ...
                         ]);
-                        displayEntry(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', reportIncludeIcon));
+                        displayEntry(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', '', reportIncludeIcon));
 
                     else
                         displayEntry = util.HtmlTextGenerator.makeDisplayEntry('INFO', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');
@@ -792,6 +793,134 @@ classdef (Abstract) HtmlTextGenerator
                     tag = sprintf('%.3f MHz ⌂ %.1f kHz', frequencyMHz, bandWidthkHz);
             end
         end
+
+        %-----------------------------------------------------------------%
+        function htmlContent = receiverStationDetails(pointDetails, appHandleNameInBase, generalSettings)
+            summaryCount = getSummary(pointDetails);            
+
+            htmlContent = sprintf([ ...
+                '<section style="padding: 10px 10px 10px 0px; border-radius: 5px; overflow-y: hidden; height: 100%%; max-height: calc(100%% - 20px); word-break: break-all; border-top: 1px solid #e5e5e5; pointer-events: auto;">' ...
+                    '<section style="font-size: 11px; background-color: rgb(240, 240, 240); padding: 8px 12px 8px 12px; line-height: 1.35; border-bottom: 1px solid #d9d9d9; border-top-left-radius: 10px; pointer-events: auto;">' ...
+                        '<p><b>%s</b></p>' ...
+                        '<p style="color: #707070;">%s</p>' ...
+                    '</section>' ...
+                    '<section id="test" style="height: calc(100%% - 48px); overflow-y: auto;">' ...
+                        '%s' ... % Seção dos sites
+                    '</section>' ...
+                '</section>' ...
+            ], summaryCount.Points, summaryCount.Stations, getPoints(pointDetails, appHandleNameInBase, generalSettings));
+
+            function summaryCount = getSummary(pointDetails)
+                pointCount = numel(pointDetails);            
+                stationCount = sum(arrayfun(@(x) numel(x.detail.stations), pointDetails));
+
+                summaryCount = struct( ...
+                    'Points', sprintf('%d LOCALIDADES', pointCount), ...
+                    'Stations', sprintf('%d ESTAÇÕES', stationCount) ...
+                );
+
+                if pointCount == 1
+                    summaryCount.Points = '1 LOCALIDADE';
+                end
+
+                if stationCount == 1
+                    summaryCount.Stations = '1 ESTAÇÃO';
+                end
+            end
+
+            function locations = getPoints(pointDetails, appHandleNameInBase, generalSettings)
+                locations = {};
+
+                for pointIdx = 1:numel(pointDetails)
+                    point = pointDetails(pointIdx).point;
+        
+                    locations{end+1} = sprintf([ ...
+                        '<section style="padding: 10px; background-color: rgb(255, 255, 255,0.95);">' ...
+                            '<p style="font-size: 12px; color: #202020;">&#x1F4CD; <b>%s</b></p>' ...
+                            '<p style="padding-left: 20px; color: #707070; font-size: 10px;">%s/%s</p>' ...
+                        '%s' ...
+                        '</section>' ...
+                    ], point.site_label, point.county_name, point.state_code, getStations(point.stations, appHandleNameInBase, generalSettings, pointIdx));
+                end
+
+                locations = strjoin(locations, '');
+            end
+
+            function stations = getStations(stationDetails, appHandleNameInBase, generalSettings, pointIdx)
+                stations = {};
+
+                for stationIdx = 1:numel(stationDetails)
+                    station = stationDetails(stationIdx);
+
+                    [statusText, statusColor] = getStatusLayout(station.map_state);
+        
+                    positionStatus = 'Posição atual';
+                    if ~station.is_current_location
+                        positionStatus = 'Posição histórica';
+                    end
+        
+                    sawAt = '';
+                    if isfield(station, 'last_seen_at')
+                        sawAt = sprintf(' • Vista em %s', station.last_seen_at);
+                    end
+
+                    searchLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onFileSearchRequested', jsonencode([pointIdx, stationIdx]), 'link', 'search-sparkle.svg', 16, 16);
+
+                    stations{end+1} = sprintf([ ...
+                        '<section style="margin: 10px 0 0 0px; padding: 5px 0 5px 11px; background-color: transparent;">' ...
+                            '<table style="width: 100%%; border-left: 3px solid red;">' ...
+                                '<tr>' ...
+                                    '<td style="width: 3px; background: %s;"></td>' ...
+                                    '<td style="padding-left: 5px;">' ...
+                                        '<p>' ...
+                                            '<font style="font-size: 12px; color: #202020;"><b>%s</b></font><br>' ...
+                                            '<font style="font-size: 10px; color: %s;"><b>%s</b></font><br>' ...
+                                            '<font style="font-size: 10px; color: #606060;">%s%s</font>' ...
+                                        '</p>' ...
+                                    '</td>' ...
+                                    '<td style="width: 18px; pointer-events: auto;"><br>%s</td>' ...
+                                '</tr>' ...
+                            '</table>' ...
+                        '</section>' ...
+                    ], statusColor, resolveStationName(station.host_name, station.equipment_name), statusColor, statusText, positionStatus, sawAt, searchLink);
+                end
+
+                stations = strjoin(stations, '');
+            end
+
+            function stationName = resolveStationName(hostName, equipamentName)
+                hostName = char(hostName);
+                equipamentName = char(equipamentName);
+
+                if ~isempty(hostName)
+                    stationName = hostName;
+                elseif ~isempty(equipamentName)
+                    stationName = equipamentName;
+                else
+                    stationName = '(ESTAÇÃO DESCONHECIDA)';
+                end
+            end
+
+            function [label, color] = getStatusLayout(stationStatus)
+                switch stationStatus
+                    case 'online_current'
+                        label = 'Online';
+                        color = '#4f7f67';
+                    case 'online_previous'
+                        label = 'Online histórico';
+                        color = '#4f7f67';
+                    case 'offline_current'
+                        label = 'Offline';
+                        color = '#b88352';
+                    case 'offline_previous'
+                        label = 'Offline histórico';
+                        color = '#b88352';
+                    otherwise
+                        label = 'Sem host';
+                        color = '#7b8aa0';
+                end
+            end
+        end
     end
 
 
@@ -835,11 +964,12 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlLink = createEditHTMLLink(appHandleNameInBase, eventName, generalSettings, linkType, imgFileName, imgWidth, imgHeight)
+        function htmlLink = createEditHTMLLink(appHandleNameInBase, generalSettings, eventName, eventData, linkType, imgFileName, imgWidth, imgHeight)
             arguments
                 appHandleNameInBase 
-                eventName 
-                generalSettings 
+                generalSettings
+                eventName
+                eventData = ''                
                 linkType {mustBeMember(linkType, {'link', 'question', 'edit'})} = 'edit'
                 imgFileName = 'Edit_32.png'
                 imgWidth = 18 % pixels
@@ -851,9 +981,9 @@ classdef (Abstract) HtmlTextGenerator
             try
                 if ~isempty(appHandleNameInBase)
                     if ~isempty(generalSettings) && ~isempty(generalSettings.AppVersion.application.resourceStaticURL)
-                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, imgFileName, imgWidth, imgHeight, generalSettings);
+                        htmlLink = ui.TextView.createHTMLLink('customImage', appHandleNameInBase, eventName, eventData, imgFileName, imgWidth, imgHeight, generalSettings);
                     else
-                        htmlLink = ui.TextView.createHTMLLink(linkType, appHandleNameInBase, eventName);
+                        htmlLink = ui.TextView.createHTMLLink(linkType, appHandleNameInBase, eventName, eventData);
                     end
                 end
             catch

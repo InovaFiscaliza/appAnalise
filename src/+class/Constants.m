@@ -22,9 +22,6 @@ classdef (Abstract) Constants
         nMaxWaterFallPoints   = 1474560
         nMaxPersistancePoints = 51200512 % nMaxPointsFSW * nMaxPersistanceOption (GUI) = 100001 * 512
         ElevationTolerance    = .85
-
-        repoSFIRoot = '\\reposfi\sfi$\sensores' 
-        repoSFIContainerPrefix = '/mnt/reposfi'
     end
 
     

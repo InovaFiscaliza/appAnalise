@@ -1,91 +1,133 @@
-classdef DBHandler
-    %DBHANDLER Summary of this class goes here
-    %   Detailed explanation goes here
+classdef DBHandler < handle
+    properties (Access = public)
+        %-----------------------------------------------------------------%
+        Status = false
+
+        CacheFolder = struct('points', [], 'siteDetails', []);
+        CacheData
+        CacheUpdatedAt
+
+        ConnRFData % Conexão com banco RFDATA
+        ConnBPData % Conexão com banco BPDATA
+        ConnSMData % Conexão com banco RFFUSION_SUMMARY
+    end
+
 
     properties (Constant)
-        DB_CFG_RFDATA = struct( ...
-            'host', '172.16.18.11', ...
-            'port', 9081, ...
-            'user', 'root', ...
-            'password', 'changeme', ...
-            'database', 'RFDATA', ...
-            'Port', 9081 ...
-            )
-
-        DB_CFG_BPDATA = struct( ...
-            'host', '172.16.18.11', ...
-            'port', 9081, ...
-            'user', 'root', ...
-            'password', 'changeme', ...
-            'database', 'BPDATA', ...
-            'Port', 9081 ...
-            )
-       
-        DB_CFG_SMDATA = struct( ...
-            'host', '172.16.18.11', ...
-            'port', 9081, ...
-            'user', 'root', ...
-            'password', 'changeme', ...
-            'database', 'RFFUSION_SUMMARY', ...
-            'Port', 9081 ...
-            )
-
+        %-----------------------------------------------------------------%
+        CACHE_FILE_NAME = 'RepoSFI.mat'
+        CACHE_TTL_HOURS = 12
         CONNECTION_TIMEOUT_SECONDS = 25
     end
 
-    properties (Access = public)
-        ConnRFData              % Conexão com banco RFDATA
-        ConnBPData              % Conexão com banco BPDATA
-        ConnSMData              % Conexão com banco RFFUSION_SUMMARY
-    end
 
     methods
-        function obj = DBHandler()
+        %-----------------------------------------------------------------%
+        function [obj, warningMsg] = DBHandler(generalSettings)
+            % Tentativa de conexão à BASE DE DADOS, criando um objeto mysql
+            % para cada um dos bancos.
+            dbHost   = generalSettings.context.REPOSFI.host;
+            dbPort   = generalSettings.context.REPOSFI.dbPort;
+            dbUser   = generalSettings.context.REPOSFI.dbUser;
+            dbPass   = generalSettings.context.REPOSFI.dbPassword;
+            dbRFName = generalSettings.context.REPOSFI.dbSchemas.rfData;
+            dbBPName = generalSettings.context.REPOSFI.dbSchemas.bpData;
+            dbSMName = generalSettings.context.REPOSFI.dbSchemas.smData;
 
-            % Testa a conectividade TCP antes de abrir as conexoes MySQL.
-            % Todas as bases usam o mesmo host/porta, basta um unico teste.
             try
-                t = tcpclient(obj.DB_CFG_RFDATA.host, obj.DB_CFG_RFDATA.port, ...
-                    'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
-                delete(t);
-            catch
-                error('Timeout de Conexão com Banco de Dados');
+                t = tcpclient(dbHost, dbPort, 'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
+                delete(t)
+
+                obj.ConnRFData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbRFName);
+                obj.ConnBPData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbBPName);
+                obj.ConnSMData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbSMName);
+                obj.Status = true;
+
+                warningMsg = '';
+            
+            catch ME
+                warningMsg = ME.message;
             end
 
-            % Cria as conexoes com os bancos de dados do RF.Fusion
+            % Tentativa de obter TABELA DE SENSORES, que suporta a visualização 
+            % principal em mapa do módulo em auxApp.winRepoSFI e o seu popup. 
+            % As outras tabelas serão requeridas diretamente da BASE DE DADOS, 
+            % filtradas com valores inseridos na GUI.
+            obj.CacheFolder = fullfile(appEngine.util.OperationSystem('programData'), 'ANATEL', class.Constants.appName, 'DataBase');
+
             try
-                obj.ConnRFData = mysql(...
-                    obj.DB_CFG_RFDATA.user, ...
-                    obj.DB_CFG_RFDATA.password, ...
-                    'Server', obj.DB_CFG_RFDATA.host, ...
-                    "DatabaseName", obj.DB_CFG_RFDATA.database, ...
-                    'PortNumber', obj.DB_CFG_RFDATA.Port);
+                if isCacheValid(obj)
+                    error('util:DBHandler:CacheBypassQuery', 'Cache is valid. Bypassing database query.')
+                end
 
-                obj.ConnBPData = mysql(...
-                    obj.DB_CFG_BPDATA.user, ...
-                    obj.DB_CFG_BPDATA.password, ...
-                    'Server', obj.DB_CFG_BPDATA.host, ...
-                    "DatabaseName", obj.DB_CFG_BPDATA.database, ...
-                    'PortNumber', obj.DB_CFG_BPDATA.Port);
+                [points, siteDetails] = getMapDataSet(obj);
+                if isempty(points) || isempty(siteDetails)
+                    error('util:DBHandler:UnexpectedEmptyData', 'Unexpected empty data')
+                end
 
-                obj.ConnSMData = mysql(...
-                    obj.DB_CFG_SMDATA.user, ...
-                    obj.DB_CFG_SMDATA.password, ...
-                    'Server', obj.DB_CFG_SMDATA.host, ...
-                    "DatabaseName", obj.DB_CFG_SMDATA.database, ...
-                    'PortNumber', obj.DB_CFG_SMDATA.Port);
+                obj.CacheData.points = points;
+                obj.CacheData.siteDetails = siteDetails;
+                obj.CacheUpdatedAt = datestr(now, 'HH:MM:SS dd/mm/yyyy');
+                saveCache(obj)
+            
             catch
+                getCache(obj)
             end
-
         end
 
-        function obj = closeConnections(obj)
-            % Encerra explicitamente todas as conexoes abertas pelo handler.
+        %-----------------------------------------------------------------%
+        function isValid = isCacheValid(obj)
+            isValid = false;
+            cacheFile = fullfile(obj.CacheFolder, obj.CACHE_FILE_NAME);
+
+            if isfile(cacheFile)
+                try
+                    load(cacheFile, 'cacheUpdatedAt')
+                    cacheUpdatedAt = datetime(cacheUpdatedAt, 'InputFormat', 'HH:mm:ss dd/MM/yyyy');
+
+                    if hours(datetime('now') - cacheUpdatedAt) < obj.CACHE_TTL_HOURS
+                        isValid = true;
+                    end
+                catch
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function saveCache(obj)
+            cacheFile = fullfile(obj.CacheFolder, obj.CACHE_FILE_NAME);
+
+            points = obj.CacheData.points;
+            siteDetails = obj.CacheData.siteDetails;
+            cacheUpdatedAt = obj.CacheUpdatedAt;
+
+            save(cacheFile, 'points', 'siteDetails', 'cacheUpdatedAt', '-mat', '-v7')
+        end
+
+        %-----------------------------------------------------------------%
+        function getCache(obj)
+            cacheFile = fullfile(obj.CacheFolder, obj.CACHE_FILE_NAME);
+    
+            if isfile(cacheFile)
+                try
+                    load(cacheFile, 'points', 'siteDetails', 'cacheUpdatedAt')
+
+                    obj.CacheData.points = points;
+                    obj.CacheData.siteDetails = siteDetails;
+                    obj.CacheUpdatedAt = cacheUpdatedAt;
+                catch
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function delete(obj)
             obj.ConnRFData = closeSingleConnection(obj, obj.ConnRFData);
             obj.ConnBPData = closeSingleConnection(obj, obj.ConnBPData);
             obj.ConnSMData = closeSingleConnection(obj, obj.ConnSMData);
         end
 
+        %-----------------------------------------------------------------%
         function output = getStationSummary(obj)
             % Essa função usa a conexão com o banco de dados criada
             % Retorna um array com informação de posição das estações
@@ -111,6 +153,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSummarySiteRows(obj)
             % Retorna uma linha consolidada por site mapeado
             % a partir da tabela MAP_SITE_SUMMARY.
@@ -145,6 +188,7 @@ classdef DBHandler
             output = fetch(obj.ConnSMData, sqlQuery);
         end
 
+        %-----------------------------------------------------------------%
         function output = getSummaryStationRows(obj)
             % Retorna as linhas por estação/equipamento usadas
             % para enriquecer cada site do mapa.
@@ -174,31 +218,14 @@ classdef DBHandler
             output = fetch(obj.ConnSMData, sqlQuery);
         end
 
-        function output = getSummarySiteStations(obj)
-            % Atalho para quem precisa apenas dos pontos plotados no mapa.
-            % Equivale ao payload principal retornado por /api/map/stations.
+        %-----------------------------------------------------------------%
+        function [points, siteDetails] = getMapDataSet(obj)
+            % As saídas contém a estrutura mínima de dados para replicar
+            % a aplicação web do RF.Fusion, quais sejam: "points" para 
+            % mapa e "siteDetails" para popup.
 
-            mapDataSet = obj.getMapDataSet();
-            output = mapDataSet.points;
-        end
-
-        function output = getMapDataSet(obj)
-            % Retorna o dataset completo do mapa do WebFusion.
-            %
-            % output.points:
-            %   lista de pontos plotados no mapa, no formato de
-            %   /api/map/stations
-            %
-            % output.site_details:
-            %   detalhes por site usados para popup, no formato de
-            %   /api/map/stations/<site_id>
-            %
-            % A ordem de output.site_details acompanha output.points.
-
-            output = struct( ...
-                'points', obj.emptyPointArray(), ...
-                'site_details', obj.emptySiteDetailArray() ...
-                );
+            points = createDataBaseModel(obj, 'point');
+            siteDetails = createDataBaseModel(obj, 'siteDetail');
 
             siteRows = obj.getSummarySiteRows();
             stationRows = obj.getSummaryStationRows();
@@ -210,9 +237,6 @@ classdef DBHandler
             if ~istable(stationRows)
                 stationRows = table();
             end
-
-            points = obj.emptyPointArray();
-            siteDetails = obj.emptySiteDetailArray();
 
             for ii = 1:height(siteRows)
                 siteId = obj.toDouble(siteRows.ID_SITE(ii));
@@ -227,7 +251,7 @@ classdef DBHandler
                 hasOnlineStation = obj.toLogical(siteRows.HAS_ONLINE_STATION(ii));
                 hasOnlineHost = obj.toLogical(siteRows.HAS_ONLINE_HOST(ii));
                 hasKnownHost = obj.toLogical(siteRows.HAS_KNOWN_HOST(ii));
-                detailStations = obj.emptyDetailStationArray();
+                detailStations = createDataBaseModel(obj, 'detailStation');
 
                 if ~isempty(stationRows)
                     % Comeca com o estado consolidado vindo de MAP_SITE_SUMMARY,
@@ -276,9 +300,9 @@ classdef DBHandler
                     'has_online_station', hasOnlineStation, ...
                     'has_online_host', hasOnlineHost, ...
                     'has_known_host', hasKnownHost ...
-                    );
+                );
 
-                pointStations = obj.emptyPublicStationArray();
+                pointStations = createDataBaseModel(obj, 'publicStation');
                 stationNames = strings(0, 1);
 
                 for kk = 1:numel(detailStations)
@@ -317,18 +341,14 @@ classdef DBHandler
                     'has_online_station', hasOnlineStation, ...
                     'has_online_host', hasOnlineHost, ...
                     'has_known_host', hasKnownHost ...
-                    );
+                );
 
-                points(end + 1, 1) = point; %#ok<AGROW>
-                siteDetails(end + 1, 1) = detail; %#ok<AGROW>
+                points(end+1, 1) = point;
+                siteDetails(end+1, 1) = detail;
             end
-
-            % Os dois blocos descrevem o mesmo snapshot do mapa:
-            % points para plotagem e site_details para popup.
-            output.points = points;
-            output.site_details = siteDetails;
         end
 
+        %-----------------------------------------------------------------%
         function output = getHostStats(obj, hostId)
             % Retorna estatísticas de um host específico do BPDATA.
             % Equivale à função get_host_statistics() do webfusion.
@@ -366,6 +386,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectrumEquipments(obj, filters)
             % Retorna o catálogo de equipamentos com dados observados.
             %
@@ -455,6 +476,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectrumStates(obj, filters)
             % Retorna os códigos de estado (UF) com dados de espectro no repositório.
             %
@@ -527,6 +549,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectrumLocalities(obj, equipmentId, filters)
             % Retorna as localidades disponíveis, com ou sem equipamento selecionado.
             %
@@ -645,6 +668,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectrumFileData(obj, filters)
             % Retorna uma linha por arquivo do repositório.
 
@@ -693,6 +717,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectraByFileId(obj, fileId, filters)
             % Retorna os espectros vinculados a um arquivo específico do repositório.
 
@@ -747,6 +772,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = getSpectrumFileDataCount(obj, filters)
             % Retorna a quantidade total de linhas da consulta por arquivo.
 
@@ -787,13 +813,12 @@ classdef DBHandler
                 output = 0;
             end
         end
-
     end
 
+
     methods (Access = private)
+        %-----------------------------------------------------------------%
         function connectionObj = closeSingleConnection(~, connectionObj)
-            % Fecha uma conexao individual com fallback seguro para APIs
-            % diferentes do objeto retornado por mysql().
             if isempty(connectionObj)
                 return;
             end
@@ -802,95 +827,80 @@ classdef DBHandler
                 close(connectionObj);
             catch
                 try
-                    connectionObj.close();
+                    delete(connectionObj);
                 catch
-                    try
-                        delete(connectionObj);
-                    catch
-                    end
                 end
             end
 
             connectionObj = [];
         end
+        
+        %---------------------------------------------------------------%
+        function model = createDataBaseModel(~, dataType)
+            switch dataType        
+                case "point"
+                    model = struct( ...
+                        'site_id', {}, ... NaN
+                        'site_label', {}, ... ""
+                        'county_name', {}, ... []
+                        'district_id', {}, ... []
+                        'district_name', {}, ... []
+                        'state_id', {}, ... []
+                        'state_name', {}, ... []
+                        'state_code', {}, ... []
+                        'latitude', {}, ... NaN
+                        'longitude', {}, ... NaN
+                        'altitude', {}, ... []
+                        'gnss_measurements', {}, ... []
+                        'stations', {}, ... createDataBaseModel(obj, 'publicStation')
+                        'station_names', {}, ... strings(0, 1)
+                        'marker_state', {}, ... "no_host"
+                        'has_online_station', {}, ... false
+                        'has_online_host', {}, ... false
+                        'has_known_host', {} ... false
+                    );
 
-        function output = emptyPointArray(obj)
-            output = repmat(obj.newPointStruct(), 0, 1);
+                case "siteDetail"
+                    model = struct( ...
+                        'site_id', {}, ...NaN
+                        'stations', {}, ... createDataBaseModel(obj, 'detailStation')
+                        'marker_state', {}, ... "no_host"
+                        'has_online_station', {}, ... false
+                        'has_online_host', {}, ... false
+                        'has_known_host', {} ... false
+                    );
+        
+                case "detailStation"
+                    model = struct( ...
+                        'equipment_id', {}, ... []
+                        'equipment_name', {}, ... []
+                        'host_id', {}, ... []
+                        'host_name', {}, ... []
+                        'is_offline', {}, ... []
+                        'is_current_location', {}, ... false
+                        'map_state', {}, ... "no_host"
+                        'first_seen_at', {}, ... []
+                        'last_seen_at', {}, ... []
+                        'spectrum_count', {} ... NaN
+                    );
+        
+                case "publicStation"
+                    model = struct( ...
+                        'equipment_id', {}, ... []
+                        'equipment_name', {}, ... []
+                        'host_id', {}, ... []
+                        'host_name', {}, ... []
+                        'is_offline', {}, ... []
+                        'is_current_location', {}, ... false
+                        'map_state', {} ... "no_host"
+                    );
+
+                otherwise
+                    error('util:DBHandler:InvalidType', 'Invalid type "%s"', dataType);
+            end
         end
 
-        function output = emptySiteDetailArray(obj)
-            output = repmat(obj.newSiteDetailStruct(), 0, 1);
-        end
-
-        function output = emptyDetailStationArray(obj)
-            output = repmat(obj.newDetailStationStruct(), 0, 1);
-        end
-
-        function output = emptyPublicStationArray(obj)
-            output = repmat(obj.newPublicStationStruct(), 0, 1);
-        end
-
-        function output = newPointStruct(obj)
-            output = struct( ...
-                'site_id', NaN, ...
-                'site_label', "", ...
-                'county_name', [], ...
-                'district_id', [], ...
-                'district_name', [], ...
-                'state_id', [], ...
-                'state_name', [], ...
-                'state_code', [], ...
-                'latitude', NaN, ...
-                'longitude', NaN, ...
-                'altitude', [], ...
-                'gnss_measurements', [], ...
-                'stations', obj.emptyPublicStationArray(), ...
-                'station_names', strings(0, 1), ...
-                'marker_state', "no_host", ...
-                'has_online_station', false, ...
-                'has_online_host', false, ...
-                'has_known_host', false ...
-                );
-        end
-
-        function output = newSiteDetailStruct(obj)
-            output = struct( ...
-                'site_id', NaN, ...
-                'stations', obj.emptyDetailStationArray(), ...
-                'marker_state', "no_host", ...
-                'has_online_station', false, ...
-                'has_online_host', false, ...
-                'has_known_host', false ...
-                );
-        end
-
-        function output = newDetailStationStruct(~)
-            output = struct( ...
-                'equipment_id', [], ...
-                'equipment_name', [], ...
-                'host_id', [], ...
-                'host_name', [], ...
-                'is_offline', [], ...
-                'is_current_location', false, ...
-                'map_state', "no_host", ...
-                'first_seen_at', [], ...
-                'last_seen_at', [], ...
-                'spectrum_count', NaN ...
-                );
-        end
-
-        function output = newPublicStationStruct(~)
-            output = struct( ...
-                'equipment_id', [], ...
-                'equipment_name', [], ...
-                'host_id', [], ...
-                'host_name', [], ...
-                'is_offline', [], ...
-                'is_current_location', false, ...
-                'map_state', "no_host" ...
-                );
-        end
-
+        %-----------------------------------------------------------------%
         function output = buildDetailStation(obj, rows, rowIndex)
             % Payload completo da estacao para uso em popup e filtros por data.
             output = struct( ...
@@ -907,6 +917,7 @@ classdef DBHandler
                 );
         end
 
+        %-----------------------------------------------------------------%
         function output = buildPublicStation(~, station)
             % Versao enxuta da estacao anexada ao ponto do mapa.
             output = struct( ...
@@ -920,11 +931,13 @@ classdef DBHandler
                 );
         end
 
+        %-----------------------------------------------------------------%
         function output = isOnlineState(~, stateKey)
             normalizedState = string(stateKey);
             output = any(normalizedState == ["online_current", "online_previous"]);
         end
 
+        %-----------------------------------------------------------------%
         function output = mapStatePriority(~, stateKey)
             normalizedState = string(stateKey);
 
@@ -943,6 +956,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = normalizeMapState(obj, rawValue)
             % Mantem um fallback explicito para estados vazios/nulos.
             output = obj.toText(rawValue, "no_host");
@@ -952,6 +966,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toDouble(~, rawValue)
             % O fetch do MATLAB pode devolver scalars, strings ou celulas;
             % este helper centraliza a normalizacao numerica.
@@ -999,6 +1014,7 @@ classdef DBHandler
             output = NaN;
         end
 
+        %-----------------------------------------------------------------%
         function output = toLogical(obj, rawValue)
             % Campos nulos no banco viram false no contrato publico.
             numericValue = obj.toDouble(rawValue);
@@ -1010,6 +1026,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toNullableLogical(obj, rawValue)
             % Diferente de toLogical, preserva nulos como [].
             numericValue = obj.toDouble(rawValue);
@@ -1021,6 +1038,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toNullableDouble(obj, rawValue)
             % Campos numericos opcionais do payload usam [] quando ausentes.
             numericValue = obj.toDouble(rawValue);
@@ -1032,6 +1050,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toText(~, rawValue, defaultValue)
             % Normaliza texto para string scalar e aplica fallback padrao.
             if nargin < 3
@@ -1072,6 +1091,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toNullableText(obj, rawValue)
             % Campos textuais opcionais do payload usam [] quando vazios.
             value = obj.toText(rawValue, "");
@@ -1083,6 +1103,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toNullableValue(~, rawValue)
             % Preserva o valor original quando existir e usa [] para ausentes.
             value = rawValue;
@@ -1109,6 +1130,7 @@ classdef DBHandler
             output = value;
         end
 
+        %-----------------------------------------------------------------%
         function output = chooseStationName(obj, hostName, equipmentName)
             % O mapa prefere host_name; se nao existir, cai para equipment_name.
             output = obj.toText(hostName, "");
@@ -1118,6 +1140,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = buildSpectrumWhereConditions(obj, filters, includeSpectrumOnlyFilters)
             output = "";
 
@@ -1190,6 +1213,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = buildSpectrumLocalitySql(~)
             output = ...
                 "COALESCE(" + ...
@@ -1200,6 +1224,7 @@ classdef DBHandler
                 ")";
         end
 
+        %-----------------------------------------------------------------%
         function output = buildSQLLikePattern(~, rawValue)
             value = rawValue;
 
@@ -1231,6 +1256,7 @@ classdef DBHandler
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = toSQLDate(~, rawValue, boundary)
             output = "";
 
@@ -1271,6 +1297,7 @@ classdef DBHandler
             output = string(value, 'yyyy-MM-dd HH:mm:ss');
         end
 
+        %-----------------------------------------------------------------%
         function output = getStructField(~, inputStruct, fieldName)
             output = [];
 
@@ -1281,6 +1308,7 @@ classdef DBHandler
             output = inputStruct.(fieldName);
         end
 
+        %-----------------------------------------------------------------%
         function [pageSize, offset] = getPaginationInfo(obj, filters)
             page = obj.toDouble(obj.getStructField(filters, 'page'));
             pageSize = obj.toDouble(obj.getStructField(filters, 'pageSize'));
@@ -1298,6 +1326,7 @@ classdef DBHandler
             offset = (page - 1) * pageSize;
         end
 
+        %-----------------------------------------------------------------%
         function output = readCountValue(obj, rows)
             output = 0;
 

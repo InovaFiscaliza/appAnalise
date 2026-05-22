@@ -3,19 +3,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         UIFigure                    matlab.ui.Figure
-        GridLayout                  matlab.ui.container.GridLayout
-        DetailPanel                 matlab.ui.container.Panel
-        DetailGridLayout            matlab.ui.container.GridLayout
-        DetailUITable               matlab.ui.control.Table
-        DetailSummaryLabel          matlab.ui.control.Label
-        SelectedRowsLabel           matlab.ui.control.Label
-        Download                    matlab.ui.control.Image
-        LabelTotalPaginas           matlab.ui.control.Label
         Panel                       matlab.ui.container.Panel
-        GridLayout2                 matlab.ui.container.GridLayout
-        DropDownEstado              matlab.ui.control.DropDown
-        EstadoLabel                 matlab.ui.control.Label
-        DetailButton                matlab.ui.control.Button
+        LeftPanelGrid               matlab.ui.container.GridLayout
         LimparButton                matlab.ui.control.Button
         BuscarButton                matlab.ui.control.Button
         EditFieldPlanoDescricao     matlab.ui.control.EditField
@@ -24,15 +13,24 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         LabelFrequenciaFinal        matlab.ui.control.Label
         EditFieldFrequenciaInicial  matlab.ui.control.NumericEditField
         LabelFrequenciaInicial      matlab.ui.control.Label
-        DatePickerPeriodoFinal      matlab.ui.control.DatePicker
-        LabelPeriodoFinal           matlab.ui.control.Label
-        DropDownLocalidade          matlab.ui.control.DropDown
-        LabelLocalidade             matlab.ui.control.Label
         DropDownEquipamento         matlab.ui.control.DropDown
         LabelEquipamento            matlab.ui.control.Label
+        DatePickerPeriodoFinal      matlab.ui.control.DatePicker
+        LabelPeriodoFinal           matlab.ui.control.Label
         DatePickerPeriodoInicial    matlab.ui.control.DatePicker
         LabelPeriodoInicial         matlab.ui.control.Label
-        UITable                     matlab.ui.control.Table
+        DropDownLocalidade          matlab.ui.control.DropDown
+        LabelLocalidade             matlab.ui.control.Label
+        DropDownEstado              matlab.ui.control.DropDown
+        UFLabel                     matlab.ui.control.Label
+        GridLayout                  matlab.ui.container.GridLayout
+        tool_FileDownload           matlab.ui.control.Image
+        UITable1                    matlab.ui.control.Table
+        UITable2Icon                matlab.ui.control.Image
+        UITable2Label               matlab.ui.control.Label
+        UITable2                    matlab.ui.control.Table
+        SelectedRowsLabel           matlab.ui.control.Label
+        LabelTotalPaginas           matlab.ui.control.Label
     end
 
 
@@ -54,21 +52,20 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         inputArgs
-        dbHandler
+        dbHandlerObj
         totalResults = 0
 
-        selectedRows = zeros(1, 0)
+        selectedRows
         selectedRowData = table()
         selectedDetailRow = NaN
         expandedFileId = NaN
         localityRows = table()
     end
 
-    methods (Access = public)
 
+    methods (Access = public)
         %-----------------------------------------------------------------%
         function ipcSecondaryMatlabCallsHandler(app, callingApp, varargin)
-            % Recebe chamadas IPC de outros aplicativos (ex.: winRepoSFI).
             try
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
@@ -90,32 +87,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
-
     end
 
     
     methods (Access = private)
         %-----------------------------------------------------------------%
-        % Funções de incialização e configurações iniciais do layout da
-        % pagina
-        %-----------------------------------------------------------------%
         function updatePanel(app)
-            % Inicializa o dock a partir do contexto recebido na abertura.
-            %
-            % Esse helper concentra a sequência base de startup do módulo:
-            % prepara as duas tabelas, aplica os filtros vindos do chamador,
-            % carrega os dropdowns dependentes e dispara a primeira busca.
-        
-            % Garante a existência do handler de banco antes de qualquer etapa
-            % que dependa de leitura contextual ou consulta ao repositório.
-            if isempty(app.dbHandler)
-                app.dbHandler = util.DBHandler();
-            end
-        
             % Primeiro configura a estrutura visual fixa da tabela principal e
             % da área de detalhe, para depois preencher filtros e resultados.
-            configureTable(app)
-            configureDetailTable(app)
+            app.UITable2.Data = emptyDetailResultTable(app);
             initializeFilters(app)
         
             % Recarrega as opções dependentes do banco e tenta restaurar a
@@ -125,7 +105,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Aplica o estado vindo do contexto antes de carregar equipamentos,
             % para que loadEquipmentOptions já receba o filtro de UF correto.
             contextState = strtrim(char(string(getContextValue(app, 'stateCode'))));
-            if ~isempty(contextState) && any(strcmp(app.DropDownEstado.ItemsData, contextState))
+            if ~isempty(contextState) && ismember(contextState, app.DropDownEstado.Items)
                 app.DropDownEstado.Value = contextState;
             end
 
@@ -136,48 +116,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % coerente entre contexto, filtros visíveis e tabelas.
             refreshSearchResults(app)
         end
-        
-        
-        function configureTable(app)
-            % Configura a grade principal que exibe os arquivos encontrados no dock.
-            %
-            % Essa função fixa o contrato visual da busca orientada a arquivo:
-            % nomes das colunas, ordem dos campos e larguras base esperadas
-            % pelas rotinas que formatam e publicam os resultados na UITable.
-        
-            % Define a estrutura textual da tabela principal no mesmo formato
-            % usado por formatFileResults ao montar a saída exibida ao usuário.
-            app.UITable.ColumnName = {'ID Arquivo'; 'Arquivo'; 'Sensor'; 'Localidades'; 'Qtd. Espectros'; 'Faixa (MHz)'; 'Início'; 'Fim'; 'Caminho'};
-        
-            % Mantém larguras previsíveis para privilegiar leitura de nome,
-            % localidade e período sem depender de autoajuste do componente.
-            app.UITable.ColumnWidth = {75, 200, 160, 190, 105, 120, 135, 135, 'auto'};
-        end
-        
-        
-        function configureDetailTable(app)
-            % Configura a tabela inferior usada para detalhar o arquivo em foco.
-            %
-            % Esse helper prepara o painel de detalhe no estado neutro esperado
-            % pelo restante do fluxo: colunas fixas, tabela vazia, cabeçalho
-            % padrão e painel inicialmente recolhido até haver seleção válida.
-        
-            % Define a estrutura da grade de detalhe no formato consumido por
-            % formatSpectrumDetailResults quando um arquivo for expandido.
-            app.DetailUITable.ColumnName = {'ID Espectro'; 'Descrição'; 'Localidade'; 'Faixa (MHz)'; 'Início'; 'Fim'};
-            %app.DetailUITable.ColumnWidth = {90, 240, 210, 120, 140, 140};
-        
-            % Publica o estado vazio inicial para evitar resíduos visuais de uma
-            % consulta anterior e manter o resumo coerente com o painel fechado.
-            app.DetailUITable.Data = emptyDetailResultTable(app);
-            app.DetailSummaryLabel.Text = 'Detalhes do arquivo';
-        
-            % O dock sempre inicia com o detalhe recolhido; ele só é aberto depois
-            % que a seleção da tabela principal resolve um arquivo elegível.
-            setDetailPanelVisible(app, false)
-        end
 
-
+        %-----------------------------------------------------------------%
         function initializeFilters(app)
             % Inicializa os filtros visíveis do dock a partir do contexto de abertura.
             %
@@ -210,6 +150,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.localityRows = table();
         end
 
+        %-----------------------------------------------------------------%
         function clearFilters(app)
             % Limpa os filtros visíveis do dock para um estado neutro de busca.
             %
@@ -235,9 +176,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
         
         %-----------------------------------------------------------------%
-        % Popula informações inicias dos filrtos de buscas
-        %-----------------------------------------------------------------%
-
         function loadEquipmentOptions(app)
             % Carrega no filtro o catálogo de equipamentos disponível no repositório.
             %
@@ -248,16 +186,18 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Constrói filtros de estado e localidade ativos para restringir o
             % catálogo de equipamentos ao contexto selecionado na interface.
             eqFilters = struct();
-            stateCode = getSelectedState(app);
-            if strlength(stateCode) > 0
-                eqFilters.stateCode = char(stateCode);
+            
+            stateCode = app.DropDownEstado.Value;
+            if ~isempty(stateCode)
+                eqFilters.stateCode = stateCode;
             end
+            
             eqDistrictId = str2double(string(app.DropDownLocalidade.Value));
             if ~isnan(eqDistrictId)
                 eqFilters.districtId = eqDistrictId;
             end
 
-            rows = app.dbHandler.getSpectrumEquipments(eqFilters);
+            rows = app.dbHandlerObj.getSpectrumEquipments(eqFilters);
         
             % Mantém uma opção neutra no topo para representar ausência de filtro
             % explícito por equipamento na pesquisa de arquivos.
@@ -296,48 +236,33 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-
+        %-----------------------------------------------------------------%
         function populateStateOptions(app)
             % Preenche o DropDownEstado com os estados (UF) disponíveis no repositório.
             %
             % Mantém 'Todos os estados' na primeira posição como opção neutra e
             % tenta restaurar a seleção anterior quando ela ainda existir na lista.
-            prevValue = string(app.DropDownEstado.Value);
-            items     = {'Todos os estados'};
-            itemsData = {''};
+            prevValue = char(app.DropDownEstado.Value);
+            items = {};
 
-            rows = app.dbHandler.getSpectrumStates(struct());
+            rows = app.dbHandlerObj.getSpectrumStates(struct());
             if istable(rows) && ~isempty(rows) && ismember('LC_STATE', rows.Properties.VariableNames)
                 for ii = 1:height(rows)
                     code = strtrim(char(string(rows.LC_STATE(ii))));
                     if ~isempty(code)
-                        items{end + 1}     = code; %#ok<AGROW>
-                        itemsData{end + 1} = code; %#ok<AGROW>
+                        items{end+1} = code;
                     end
                 end
             end
 
-            app.DropDownEstado.Items     = items;
-            app.DropDownEstado.ItemsData = itemsData;
+            app.DropDownEstado.Items = [{''}, items];
 
-            if any(strcmp(itemsData, char(prevValue)))
-                app.DropDownEstado.Value = char(prevValue);
-            else
-                app.DropDownEstado.Value = '';
+            if ismember(prevValue, app.DropDownEstado.Items)
+                app.DropDownEstado.Value = prevValue;
             end
         end
 
-
-        function output = getSelectedState(app)
-            % Retorna o código de estado selecionado, ou "" quando neutro.
-            output = "";
-            val = string(app.DropDownEstado.Value);
-            if ~ismissing(val) && strlength(val) > 0 && val ~= "Todos os estados"
-                output = val;
-            end
-        end
-
-
+        %-----------------------------------------------------------------%
         function updateLocalityOptions(app, preferredDistrictId, equipmentIdOverride)
             % Recarrega as localidades disponíveis para o equipamento ativo no dock.
             %
@@ -369,15 +294,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % distrito selecionado — isso criaria um filtro circular que colapsaria
             % a lista ao único item correntemente escolhido.
             locFilters.districtId = NaN;
-            stateCode = getSelectedState(app);
-            if strlength(stateCode) > 0
-                locFilters.stateCode = char(stateCode);
+
+            stateCode = app.DropDownEstado.Value;
+            if ~isempty(stateCode)
+                locFilters.stateCode = stateCode;
             end
 
             % Sempre consulta o banco: sem filtros ativos retorna todas as
             % localidades disponíveis, permitindo que o usuário desfaça filtros
             % sem colapsar a lista para apenas a opção neutra.
-            app.localityRows = app.dbHandler.getSpectrumLocalities(equipmentId, locFilters);
+            app.localityRows = app.dbHandlerObj.getSpectrumLocalities(equipmentId, locFilters);
 
             if istable(app.localityRows) && ~isempty(app.localityRows)
                 for ii = 1:height(app.localityRows)
@@ -420,7 +346,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-
+        %-----------------------------------------------------------------%
         function updateAvailablePeriod(app)
             % Atualiza os DatePickers com o período disponível para a combinação
             % atual de equipamento e localidade selecionados no dock.
@@ -473,9 +399,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-
-        %-----------------------------------------------------------------%
-        % Execução da pesquisa em banco
         %-----------------------------------------------------------------%
         function refreshSearchResults(app)
             % Executa a busca atual e recompõe a tabela principal do dock.
@@ -497,8 +420,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                            ~isnan(filters.districtId)  || ...
                            strlength(strtrim(filters.stateCode)) > 0;
             if ~hasMinFilter
-                app.UITable.Data = emptyResultTable(app);
-                app.UITable.UserData = table();
+                app.UITable1.Data(:,:) = [];
+                app.UITable1.UserData = table();
                 app.totalResults = 0;
                 updatePaginationState(app)
                 return
@@ -507,7 +430,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             try
                 % Primeiro mede o universo filtrado para ajustar a carga da consulta
                 % principal e manter coerente o resumo textual de resultados.
-                app.totalResults = app.dbHandler.getSpectrumFileDataCount(filters);
+                app.totalResults = app.dbHandlerObj.getSpectrumFileDataCount(filters);
         
                 % O dock carrega tudo de uma vez na visão atual, sem paginação visual,
                 % então a consulta é forçada para uma única página contendo todo o recorte.
@@ -516,14 +439,14 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
                 % A busca interna pode filtrar por espectro, mas a tabela principal do
                 % dock sempre publica uma linha por arquivo do repositório.
-                rawRows = app.dbHandler.getSpectrumFileData(filters);
+                rawRows = app.dbHandlerObj.getSpectrumFileData(filters);
         
                 % Publica na grade a versão formatada e amigável do resultado bruto.
-                app.UITable.Data = formatFileResults(app, rawRows);
+                app.UITable1.Data = formatFileResults(app, rawRows);
         
                 % Mantém o payload original associado à tabela para sustentar fluxos
                 % posteriores, como abertura do detalhe do arquivo selecionado.
-                app.UITable.UserData = rawRows;
+                app.UITable1.UserData = rawRows;
         
                 % Atualiza o rodapé e os demais elementos visuais dependentes da
                 % quantidade total retornada pela consulta.
@@ -531,8 +454,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             catch ME
                 % Em falha de consulta, limpa a tabela e o estado agregado para não
                 % deixar a interface exibindo dados parciais ou inconsistentes.
-                app.UITable.Data = emptyResultTable(app);
-                app.UITable.UserData = table();
+                app.UITable1.Data(:,:) = [];
+                app.UITable1.UserData = table();
                 app.totalResults = 0;
                 updatePaginationState(app)
         
@@ -541,7 +464,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function filters = getCurrentFilters(app)
             % Consolida o estado visível da UI no payload consumido pelo DBHandler.
             %
@@ -554,7 +477,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             filters = struct( ...
                 'equipmentId', str2double(string(app.DropDownEquipamento.Value)), ...
                 'districtId',  str2double(string(app.DropDownLocalidade.Value)), ...
-                'stateCode',   char(getSelectedState(app)), ...
+                'stateCode',   app.DropDownEstado.Value, ...
                 'startDate',   app.DatePickerPeriodoInicial.Value, ...
                 'endDate',     app.DatePickerPeriodoFinal.Value, ...
                 'freqStart',   app.EditFieldFrequenciaInicial.Value, ...
@@ -589,7 +512,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelTotalPaginas.Text = sprintf('%d resultado(s)', app.totalResults);
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = formatFileResults(app, rawRows)
             % Converte a consulta bruta por arquivo no formato exibido pela UITable.
             %
@@ -637,7 +560,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 'VariableNames', {'IDArquivo', 'Arquivo', 'Sensor', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = emptyResultTable(~)
             % Cria a estrutura vazia padrão da tabela principal de resultados.
             %
@@ -652,61 +575,13 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 'VariableNames', {'IDArquivo', 'Arquivo', 'Sensor', 'Localidades', 'QtdEspectros', 'FaixaMHz', 'Inicio', 'Fim', 'Caminho'});
         end
 
-        
-        function output = formatSpectrumDetailResults(app, rawRows)
-            % Converte o detalhe bruto por espectro para a grade inferior do dock.
-            %
-            % Esse helper adapta o retorno de getSpectraByFileId ao contrato visual
-            % da tabela de detalhe, normalizando cada campo antes de publicar o
-            % conteúdo associado ao arquivo atualmente expandido.
-        
-            % Quando não houver detalhe válido, devolve diretamente a estrutura
-            % vazia padrão da área inferior.
-            if ~istable(rawRows) || isempty(rawRows)
-                output = emptyDetailResultTable(app);
-                return
-            end
-        
-            % Pré-aloca as colunas exibidas no painel de detalhe para montar uma
-            % saída estável e independente do formato bruto do banco.
-            nRows = height(rawRows);
-            spectrumId = strings(nRows, 1);
-            description = strings(nRows, 1);
-            locality = strings(nRows, 1);
-            band = strings(nRows, 1);
-            startAt = strings(nRows, 1);
-            endAt = strings(nRows, 1);
-        
-            % Normaliza linha a linha os campos do espectro para a apresentação
-            % final usada na tabela inferior.
-            for ii = 1:nRows
-                spectrumId(ii) = formatIdValue(app, rawRows.ID_SPECTRUM(ii));
-                description(ii) = displayText(app, rawRows.NA_DESCRIPTION(ii), '-');
-                locality(ii) = formatLocalityDisplay(app, rawRows(ii, :));
-                band(ii) = formatFrequencyRange(app, rawRows.NU_FREQ_START(ii), rawRows.NU_FREQ_END(ii));
-                startAt(ii) = formatDateValue(app, rawRows.DT_TIME_START(ii));
-                endAt(ii) = formatDateValue(app, rawRows.DT_TIME_END(ii));
-            end
-        
-            % Empacota o resultado já tratado no layout esperado por
-            % configureDetailTable e DetailUITable.
-            output = table(spectrumId, description, locality, band, startAt, endAt, ...
-                'VariableNames', {'IDEspectro', 'Descricao', 'Localidade', 'FaixaMHz', 'Inicio', 'Fim'});
-        end
-
-        
+        %-----------------------------------------------------------------%
         function output = emptyDetailResultTable(~)
-            % Cria a estrutura vazia padrão da tabela inferior de detalhes.
-            %
-            % Esse helper preserva o contrato fixo do painel de detalhe mesmo quando
-            % nenhum arquivo estiver expandido ou quando a consulta por espectros
-            % não devolver linhas válidas para a área inferior do dock.
-        
-            % Materializa a tabela sem registros, mas com as mesmas colunas
-            % esperadas por configureDetailTable e formatSpectrumDetailResults.
-            output = table(strings(0, 1), strings(0, 1), strings(0, 1), ...
-                strings(0, 1), strings(0, 1), strings(0, 1), ...
-                'VariableNames', {'IDEspectro', 'Descricao', 'Localidade', 'FaixaMHz', 'Inicio', 'Fim'});
+            output = table( ...
+                'Size', [0, 6], ...
+                'VariableTypes', {'string', 'string', 'string', 'string', 'string', 'string'}, ...
+                'VariableNames', {'ID','DESCRIÇÃO','LOCALIDADE','FAIXA (MHz)','INÍCIO','FIM'} ...
+            );
         end
 
         
@@ -727,7 +602,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             output = app.inputArgs.(fieldName);
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = rawToDatetime(~, rawValue)
             % Converte um valor bruto do contexto para datetime.
             % Aceita valores já tipados, strings e células; se a conversão falhar,
@@ -758,7 +633,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = rawToFiniteNumber(~, rawValue, minValue, maxValue)
             % Converte um valor bruto do contexto para número finito escalar.
             % Aceita números, lógicos, textos e células; qualquer entrada inválida
@@ -809,7 +684,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = formatNumericValue(~, rawValue, precision)
             % Converte um valor numérico bruto para texto compacto com precisão controlada.
             %
@@ -874,7 +749,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = formatFrequencyRange(app, startFreq, endFreq)
             % Formata uma faixa de frequência para exibição textual nas tabelas do dock.
             %
@@ -899,7 +774,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-
+        %-----------------------------------------------------------------%
         function output = buildRepositoryFileName(app, row)
             % Monta o nome final do arquivo a partir do nome base e da extensão.
             %
@@ -929,7 +804,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function output = formatDateValue(app, rawValue)
             % Formata valores temporais brutos para a apresentação textual do dock.
             %
@@ -953,7 +828,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             output = string(value(1), 'dd-MMM-yyyy HH:mm:ss');
         end
         
-        
+        %-----------------------------------------------------------------%
         function output = displayText(~, rawValue, defaultValue)
             % Normaliza valores textuais heterogêneos para uma string escalar limpa.
             %
@@ -998,7 +873,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
         
-        
+        %-----------------------------------------------------------------%
         function output = formatIdValue(~, rawValue)
             % Converte identificadores brutos para o formato textual usado na UI.
             %
@@ -1017,7 +892,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 output = string(round(numericValue));
             end
         end
-
         
         %------------------------------------------------------------------
         % Funções de interação com a GUI
@@ -1036,7 +910,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             if clearSelection
                 % Remove a seleção acumulada e invalida a referência da última linha
                 % usada como origem para abrir o detalhe do arquivo.
-                app.selectedRows = zeros(1, 0);
+                app.selectedRows = [];
                 app.selectedRowData = table();
                 app.selectedDetailRow = NaN;
             end
@@ -1044,63 +918,13 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Esquece o arquivo expandido e repõe a grade inferior no layout vazio
             % esperado quando nenhum detalhe estiver aberto.
             app.expandedFileId = NaN;
-            app.DetailUITable.Data = emptyDetailResultTable(app);
-            app.DetailSummaryLabel.Text = 'Detalhes do arquivo';
-        
-            % Recolhe o painel e deixa o botão sincronizado com o novo estado visual.
-            setDetailPanelVisible(app, false)
+            app.UITable2.Data(:, :) = [];
         
             % Atualiza o resumo textual da seleção principal após a limpeza aplicada.
             app.SelectedRowsLabel.Text = sprintf('%d arquivo(s) selecionado(s)', numel(app.selectedRows));
         end
 
-
-        function updateDetailButtonState(app)
-            % Sincroniza o botão de detalhe com o estado atual da seleção e do painel.
-            %
-            % Esse helper mantém o CTA coerente com o fluxo do dock: quando o detalhe
-            % está aberto, o botão vira ação de ocultar; quando está fechado, só pode
-            % ser usado se houver exatamente um arquivo elegível selecionado.
-            if strcmp(app.DetailPanel.Visible, 'on')
-                % Com o painel aberto, o botão passa a representar a ação inversa.
-                app.DetailButton.Text = 'Ocultar';
-                app.DetailButton.Enable = 'on';
-            else
-                % Com o painel fechado, o botão volta ao papel de abrir o detalhe.
-                app.DetailButton.Text = 'Detalhe';
-        
-                % O detalhe só faz sentido quando há uma única linha selecionada.
-                if numel(app.selectedRows) == 1
-                    app.DetailButton.Enable = 'on';
-                else
-                    app.DetailButton.Enable = 'off';
-                end
-            end
-        end
-        
-        
-        function setDetailPanelVisible(app, shouldShow)
-            % Mostra ou recolhe o painel inferior de detalhe ajustando o layout do dock.
-            %
-            % Esse helper centraliza a alteração visual da interface ao expandir ou
-            % esconder os espectros do arquivo selecionado, evitando que cada fluxo
-            % precise manipular diretamente altura de grid, visibilidade e botão.
-            if shouldShow
-                % Reserva espaço para a área inferior e publica o painel como visível.
-               % app.GridLayout.RowHeight = {17, 148, '0.8x', '1x', 22};
-                app.DetailPanel.Visible = 'on';
-            else
-                % Remove a altura útil da linha de detalhe para recolher o painel
-                % sem deixar espaço morto no layout principal.
-                %app.GridLayout.RowHeight = {17, 148, '1x', 0, 22};
-                app.DetailPanel.Visible = 'off';
-            end
-        
-            % Sempre recalcula o estado do botão após qualquer mudança visual.
-            updateDetailButtonState(app)
-        end
-
-
+        %-----------------------------------------------------------------%
         function rowIndex = getSelectedDetailRow(app)
             % Resolve a linha que deve servir de base para abrir o detalhe do arquivo.
             %
@@ -1123,7 +947,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
         end
 
-
+        %-----------------------------------------------------------------%
         function toggleSelectedFileDetail(app)
             % Abre ou recolhe o detalhe do arquivo atualmente apontado pela seleção.
             %
@@ -1131,7 +955,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % resolve o identificador do arquivo e decide entre fechar o painel já
             % aberto ou consultar novamente os espectros do item selecionado.
             rowIndex = getSelectedDetailRow(app);
-            rawRows = app.UITable.UserData;
+            rawRows = app.UITable1.UserData;
         
             % Interrompe o fluxo quando não existir uma linha válida na tabela
             % principal para servir de origem à abertura do detalhe.
@@ -1150,7 +974,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             % Se o painel já estiver mostrando exatamente esse mesmo arquivo, a ação
             % passa a ser de recolhimento para funcionar como toggle visual.
-            if strcmp(app.DetailPanel.Visible, 'on') && (app.expandedFileId == fileId)
+            if app.expandedFileId == fileId
                 resetDetailState(app, false)
                 return
             end
@@ -1159,7 +983,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             openFileDetail(app, rowIndex, fileId)
         end
         
-        
+        %-----------------------------------------------------------------%
         function openFileDetail(app, rowIndex, fileId)
             % Consulta os espectros do arquivo selecionado e publica o detalhe no dock.
             %
@@ -1167,64 +991,46 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % filtros correntes, busca os espectros associados ao arquivo em foco e
             % sincroniza tabela, resumo e estado visual do detalhe aberto.
             filters = getCurrentFilters(app);
-            rawRows = app.UITable.UserData;
+            rawRows = app.UITable1.UserData;
+
+            app.UITable2.Data(:, :) = [];
+            app.expandedFileId = NaN;
         
             try
                 % Executa a consulta detalhada já respeitando o mesmo recorte atual
                 % aplicado à busca principal do dock.
-                detailRows = app.dbHandler.getSpectraByFileId(fileId, filters);
-        
-                % Publica a tabela inferior e o cabeçalho contextual do arquivo
-                % expandido antes de marcar o painel como aberto.
-                app.DetailUITable.Data = formatSpectrumDetailResults(app, detailRows);
-                app.DetailSummaryLabel.Text = buildDetailSummary(app, rawRows(rowIndex, :), detailRows);
+                detailRows = app.dbHandlerObj.getSpectraByFileId(fileId, filters);
+                
+                if ~istable(detailRows) || isempty(detailRows)
+                    error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
+                end
+
+                detailRows = sortrows(detailRows, 'NU_FREQ_START');
+                
+                detailRows.ID_SPECTRUM = string(detailRows.ID_SPECTRUM);
+                detailRows.NA_DESCRIPTION(detailRows.NA_DESCRIPTION == "" | ismissing(detailRows.NA_DESCRIPTION)) = "-";
+                detailRows.LOCALIDADE = detailRows.LOCALITY_LABEL + " (" + detailRows.COUNTY_NAME + "/" + detailRows.STATE_CODE + ")";
+                detailRows.FAIXA = string(detailRows.NU_FREQ_START) + " - " + string(detailRows.NU_FREQ_END);                
+                detailRows.INICIO = string(detailRows.DT_TIME_START);
+                detailRows.INICIO(ismissing(detailRows.INICIO)) = "-";
+                detailRows.FIM = string(detailRows.DT_TIME_END);
+                detailRows.FIM(ismissing(detailRows.FIM)) = "-";
+
+                app.UITable2.Data(1:height(detailRows), :) = detailRows(:, {'ID_SPECTRUM', 'NA_DESCRIPTION', 'LOCALIDADE', 'FAIXA', 'INICIO', 'FIM'});
                 app.expandedFileId = fileId;
-                setDetailPanelVisible(app, true)
+                
             catch ME
-                % Em falha de consulta, limpa a área inferior para não manter resíduos
-                % de um detalhe anterior e recolhe o painel para estado seguro.
-                app.DetailUITable.Data = emptyDetailResultTable(app);
-                app.expandedFileId = NaN;
-                setDetailPanelVisible(app, false)
-        
-                % Reporta o erro ao usuário preservando o restante da interface ativa.
-                ui.Dialog(app.UIFigure, 'error', sprintf('Erro ao consultar os espectros do arquivo selecionado:\n%s', ME.message));
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
         end
-
-
-        function output = buildDetailSummary(app, fileRow, detailRows)
-            % Monta o título exibido no painel inferior para o arquivo expandido.
-            %
-            % Esse helper resume o contexto do detalhe aberto combinando o nome do
-            % arquivo selecionado com a quantidade de espectros retornada, para que
-            % o cabeçalho da área inferior reflita exatamente o conteúdo publicado.
-            fileName = buildRepositoryFileName(app, fileRow);
-            spectrumCount = 0;
         
-            % Só contabiliza os espectros quando a consulta realmente devolve uma
-            % tabela válida, preservando zero como fallback seguro.
-            if istable(detailRows)
-                spectrumCount = height(detailRows);
-            end
-        
-            % Gera a mensagem final do cabeçalho no mesmo formato usado pelo dock
-            % ao abrir ou atualizar o detalhe do arquivo selecionado.
-            output = sprintf('Detalhes do arquivo %s (%d espectro(s))', char(fileName), spectrumCount);
-        end
-        
+        %-----------------------------------------------------------------%
         function restoreSearchPageState(app)
-            % Restaura o estado visual base do dock após mudanças nos filtros principais.
-            %
             % Esse helper recoloca a interface no ponto neutro entre uma busca e outra:
             % limpa o resultado anterior, zera os acumuladores visuais e recolhe o
             % detalhe para evitar que a UI mantenha seleções ou dados obsoletos.
-            configureTable(app)
-        
-            % Reinstala na grade principal a estrutura vazia esperada quando ainda
-            % não existe um novo resultado válido publicado.
-            app.UITable.Data = emptyResultTable(app);
-            app.UITable.UserData = table();
+            app.UITable1.Data(:,:) = [];
+            app.UITable1.UserData = table();
         
             % Zera o total agregado para manter o rodapé coerente com a ausência
             % momentânea de resultados após a mudança de filtro.
@@ -1235,49 +1041,26 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % resultado anterior, que deixa de ser válido após o recálculo.
             resetDetailState(app)
         end
-        
-        
-        function releaseDbHandler(app)
-            % Fecha com segurança as conexões mantidas pelo DBHandler do dock.
-            %
-            % Esse helper é usado no encerramento da aplicação para liberar recursos
-            % externos antes da destruição da UI, evitando que conexões com o banco
-            % permaneçam abertas depois que o dock for fechado.
-            if isempty(app.dbHandler)
-                return
-            end
-        
-            try
-                % Delega ao próprio handler o fechamento das conexões que ele abriu
-                % ao longo da vida útil do dock.
-                app.dbHandler = app.dbHandler.closeConnections();
-            catch
-            end
-        
-            % Remove a referência local mesmo em caso de falha, para que o ciclo
-            % final do app não continue apontando para um handler inválido.
-            app.dbHandler = [];
-        end
 
+        %-----------------------------------------------------------------%
         function setSearchBusyState(app, isBusy)
             if isBusy
                 app.BuscarButton.Enable = 'off';
                 app.LimparButton.Enable = 'off';
-                app.DetailButton.Enable = 'off';
             else
                 app.BuscarButton.Enable = 'on';
                 app.LimparButton.Enable = 'on';
-                updateDetailButtonState(app)
             end
         end
 
-        
+        %-----------------------------------------------------------------%
         function deleteProgressDialog(~, dlg)
             if ~isempty(dlg) && isvalid(dlg)
                 delete(dlg)
             end
         end
 
+        %-----------------------------------------------------------------%
         function output = buildRepositoryFilePath(app, row)
             % Monta o caminho completo do arquivo no repositório a partir da pasta e do nome.
             %
@@ -1307,6 +1090,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             output = fullfile(class.Constants.repoSFIRoot, folder, char(fileName));
         end
 
+        %-----------------------------------------------------------------%
         function notifyCallingAppFiltersChanged(app)
             % Propaga os filtros atuais do dock para o callingApp (winRepoSFI).
             %
@@ -1314,10 +1098,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % do winRepoSFI sincronizados com o estado corrente do dock, sem
             % precisar roteamento pelo mainApp.
 
-            stateCode = char(getSelectedState(app));
-
             filters = struct( ...
-                'stateCode',   stateCode, ...
+                'stateCode',   app.DropDownEstado.Value, ...
                 'equipmentId', str2double(string(app.DropDownEquipamento.Value)), ...
                 'districtId',  str2double(string(app.DropDownLocalidade.Value)), ...
                 'startDate',   app.DatePickerPeriodoInicial.Value, ...
@@ -1327,6 +1109,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onRepoSFIFilterChanged', filters)
         end
 
+        %-----------------------------------------------------------------%
         function syncFiltersFromRepoSFI(app, filters)
             % Sincroniza os seletores do dock com os valores vindos do winRepoSFI.
             %
@@ -1338,9 +1121,9 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Estado (UF) ------------------------------------------------
             if isfield(filters, 'stateCode')
                 newState     = char(filters.stateCode);
-                currentState = char(string(app.DropDownEstado.Value));
+                currentState = app.DropDownEstado.Value;
                 if ~strcmp(currentState, newState)
-                    if isempty(newState) || any(strcmp(app.DropDownEstado.ItemsData, newState))
+                    if isempty(newState) || ismember(newState, app.DropDownEstado.Items)
                         app.DropDownEstado.Value = newState;
                         stateChanged = true;
                     end
@@ -1403,10 +1186,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Limpa os resultados anteriores para refletir os novos filtros.
             restoreSearchPageState(app)
         end
-
-
     end
-
 
 
     % Callbacks that handle component events
@@ -1417,16 +1197,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-                
-                % Recupera elementos do winRepoSFI
                 app.inputArgs = inputArgs;
-                app.mainApp     = mainApp;
-                updatePanel(app)
 
-                % Notifica o callingApp (winRepoSFI) com os filtros iniciais do dock.
-                % Além de sincronizar o mapa, isso registra app.repoFilesDock no
-                % winRepoSFI, estabelecendo o vínculo bidirecional desde a abertura.
-                notifyCallingAppFiltersChanged(app)
+                app.dbHandlerObj = app.mainApp.dbHandlerObj;
+                app.UITable1.RowName = 'numbered';
+                app.UITable2.RowName = 'numbered';
+                updatePanel(app)
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -1436,13 +1212,14 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         % Close request function: UIFigure
         function closeFcn(app, event)
-            releaseDbHandler(app)
+            
             delete(app)
 
         end
 
         % Value changed function: DropDownEquipamento
         function onEquipmentChanged(app, event)
+            
             % Tenta preservar o distrito atualmente selecionado: a localidade
             % pode continuar válida para o novo sensor. updateLocalityOptions
             % descartará silenciosamente se ela não fizer parte da nova lista.
@@ -1450,10 +1227,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             updateLocalityOptions(app, currentDistrict)
             restoreSearchPageState(app);
             notifyCallingAppFiltersChanged(app)
+
         end
 
         % Button pushed function: BuscarButton
         function onSearchClick(app, event)
+            
             d = ui.Dialog(app.UIFigure, 'progressdlg', 'Consultando arquivos do repositório...');
             cleanupProgressDlg = onCleanup(@() deleteProgressDialog(app, d));
             cleanupButtons = onCleanup(@() setSearchBusyState(app, false));
@@ -1463,10 +1242,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         
             resetDetailState(app, false)
             refreshSearchResults(app)
+
         end
 
         % Button pushed function: LimparButton
         function onCleanClick(app, event)
+            
             clearFilters(app)
             app.DropDownEstado.Value = '';
             populateStateOptions(app)
@@ -1474,10 +1255,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEquipamento.Value = '';
             updateLocalityOptions(app, [])
             restoreSearchPageState(app)
+            
         end
 
-        % Image clicked function: Download
-        function DownloadClicked(app, event)
+        % Image clicked function: tool_FileDownload
+        function tool_FileDownloadClicked(app, event)
             
             selectedFileRows = app.selectedRowData;
             selectedCount = height(selectedFileRows);
@@ -1574,11 +1356,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         end
 
-        % Cell selection callback: UITable
+        % Cell selection callback: UITable1
         function onTableSelection(app, event)
-            rowIndices = zeros(1, 0);
+            
+            rowIndices = [];
             selectedFileRows = table();
-            rawRows = app.UITable.UserData;
+            rawRows = app.UITable1.UserData;
 
             if ~isempty(event.Indices)
                 rowIndices = unique(event.Indices(:, 1), 'stable')';
@@ -1599,29 +1382,27 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.selectedRows = rowIndices;
             app.selectedRowData = selectedFileRows;
 
-            if numel(app.selectedRows) == 1 && strcmp(app.DetailPanel.Visible, 'on')
+            if isscalar(app.selectedRows)
                 toggleSelectedFileDetail(app)
-            end
-
-            if numel(app.selectedRows) ~= 1 && strcmp(app.DetailPanel.Visible, 'on')
+            else
+                app.UITable2.Data(:, :) = [];
                 app.expandedFileId = NaN;
-                app.DetailUITable.Data = emptyDetailResultTable(app);
-                app.DetailSummaryLabel.Text = 'Detalhes do arquivo';
-                setDetailPanelVisible(app, false)
             end
             app.SelectedRowsLabel.Text = sprintf('%d arquivo(s) selecionado(s)', numel(app.selectedRows));
-            updateDetailButtonState(app)
             
         end
 
-        % Button pushed function: DetailButton
+        % Callback function
         function onDetailClick(app, event)
+            
             toggleSelectedFileDetail(app)
+
         end
 
         % Value changed function: DatePickerPeriodoFinal, 
         % ...and 4 other components
         function onSearchFilterChanged(app, event)
+            
             resetDetailState(app, false);
             if ismember(event.Source, [app.DatePickerPeriodoInicial, app.DatePickerPeriodoFinal])
                 notifyCallingAppFiltersChanged(app)
@@ -1631,7 +1412,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         % Value changed function: DropDownEstado
         function onStateChanged(app, event)
-           % Estado mudou: recarrega equipamentos e localidades restritos à UF.
+           
+            % Estado mudou: recarrega equipamentos e localidades restritos à UF.
             loadEquipmentOptions(app)
             updateLocalityOptions(app, [])
             updateAvailablePeriod(app)
@@ -1642,7 +1424,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         % Value changed function: DropDownLocalidade
         function onLocalityChanged(app, event)
-           % Localidade mudou: recarrega equipamentos que visitaram este site
+           
+            % Localidade mudou: recarrega equipamentos que visitaram este site
             % e atualiza o período disponível para a seleção atual.
             loadEquipmentOptions(app)
 
@@ -1659,6 +1442,37 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             notifyCallingAppFiltersChanged(app)
             
         end
+
+        % Callback function: not associated with a component
+        function onToolbarPanelVisibilityChanged(app, event)
+            
+            event.Source.UserData.status = ~event.Source.UserData.status;
+
+            switch event.Source
+                case app.tool_LayoutLeft
+                    if event.Source.UserData.status
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
+                        app.GridLayout.ColumnWidth(1:2) = {320, 10};
+                        app.LeftPanel.Visible = 'on';
+                    else
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
+                        app.GridLayout.ColumnWidth(1:2) = {0, 0};
+                        app.LeftPanel.Visible = 'off';
+                    end
+
+                case app.tool_LayoutBottom
+                    if event.Source.UserData.status
+                        app.tool_LayoutBottom.ImageSource = 'layout-panel.svg';
+                        app.GridLayout.RowHeight(2:5) = {10, 17, 10, '0.75x'};
+                        set([app.UITable2Icon, app.UITable2Label, app.UITable2], 'Visible', 'on')
+                    else
+                        app.tool_LayoutBottom.ImageSource = 'layout-panel-off.svg';
+                        app.GridLayout.RowHeight(2:5) = {0, 0, 0, 0};
+                        set([app.UITable2Icon, app.UITable2Label, app.UITable2], 'Visible', 'off')
+                    end
+            end
+
+        end
     end
 
     % Component initialization
@@ -1674,7 +1488,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 940 580];
+                app.UIFigure.Position = [100 100 1244 660];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -1697,195 +1511,98 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {18, '1x', '1x', 18, 18, 90};
-            app.GridLayout.RowHeight = {17, 148, '1x', 0, 22};
-            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.ColumnWidth = {22, 5, '1x'};
+            app.GridLayout.RowHeight = {66, 10, '1x', 10, 17, 5, '0.5x', 10, 22};
+            app.GridLayout.ColumnSpacing = 0;
+            app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create UITable
-            app.UITable = uitable(app.GridLayout);
-            app.UITable.ColumnName = {'ID'; 'Plano'; 'Equipamento'; 'Localidade'; 'Faixa(MHz)'; 'Início'; 'Fim'; 'Arquivo Oficial'};
-            app.UITable.RowName = {};
-            app.UITable.ColumnSortable = true;
-            app.UITable.SelectionType = 'row';
-            app.UITable.CellSelectionCallback = createCallbackFcn(app, @onTableSelection, true);
-            app.UITable.Layout.Row = 3;
-            app.UITable.Layout.Column = [1 6];
-            app.UITable.FontSize = 11;
+            % Create LabelTotalPaginas
+            app.LabelTotalPaginas = uilabel(app.GridLayout);
+            app.LabelTotalPaginas.HorizontalAlignment = 'right';
+            app.LabelTotalPaginas.VerticalAlignment = 'bottom';
+            app.LabelTotalPaginas.FontSize = 11;
+            app.LabelTotalPaginas.Layout.Row = [8 9];
+            app.LabelTotalPaginas.Layout.Column = 3;
+            app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
+
+            % Create SelectedRowsLabel
+            app.SelectedRowsLabel = uilabel(app.GridLayout);
+            app.SelectedRowsLabel.FontSize = 11;
+            app.SelectedRowsLabel.Layout.Row = 9;
+            app.SelectedRowsLabel.Layout.Column = 3;
+            app.SelectedRowsLabel.Text = '(0) Linhas Selecionadas';
+
+            % Create UITable2
+            app.UITable2 = uitable(app.GridLayout);
+            app.UITable2.ColumnName = {'ID'; 'DESCRIÇÃO'; 'LOCALIDADE'; 'FAIXA (MHz)'; 'INÍCIO'; 'FIM'};
+            app.UITable2.ColumnWidth = {70, 'auto', 'auto', 90, 130, 130};
+            app.UITable2.RowName = {};
+            app.UITable2.SelectionType = 'row';
+            app.UITable2.Multiselect = 'off';
+            app.UITable2.Layout.Row = 7;
+            app.UITable2.Layout.Column = [1 3];
+            app.UITable2.FontSize = 11;
+
+            % Create UITable2Label
+            app.UITable2Label = uilabel(app.GridLayout);
+            app.UITable2Label.VerticalAlignment = 'bottom';
+            app.UITable2Label.FontSize = 11;
+            app.UITable2Label.Layout.Row = 5;
+            app.UITable2Label.Layout.Column = 3;
+            app.UITable2Label.Text = 'INFORMAÇÕES ACERCA DO ARQUIVO SELECIONADO';
+
+            % Create UITable2Icon
+            app.UITable2Icon = uiimage(app.GridLayout);
+            app.UITable2Icon.ScaleMethod = 'none';
+            app.UITable2Icon.Layout.Row = 5;
+            app.UITable2Icon.Layout.Column = 1;
+            app.UITable2Icon.VerticalAlignment = 'bottom';
+            app.UITable2Icon.ImageSource = 'selected-row-16px.png';
+
+            % Create UITable1
+            app.UITable1 = uitable(app.GridLayout);
+            app.UITable1.ColumnName = {'ID'; 'ARQUIVO'; 'SENSOR'; 'LOCALIDADE'; 'QTD. FLUXOS'; 'LIMITES (MHz)'; 'INÍCIO'; 'FIM'; 'CAMINHO'};
+            app.UITable1.ColumnWidth = {70, 'auto', 'auto', 'auto', 70, 90, 130, 130, 'auto'};
+            app.UITable1.RowName = {};
+            app.UITable1.SelectionType = 'row';
+            app.UITable1.CellSelectionCallback = createCallbackFcn(app, @onTableSelection, true);
+            app.UITable1.Layout.Row = 3;
+            app.UITable1.Layout.Column = [1 3];
+            app.UITable1.FontSize = 11;
+
+            % Create tool_FileDownload
+            app.tool_FileDownload = uiimage(app.GridLayout);
+            app.tool_FileDownload.ScaleMethod = 'none';
+            app.tool_FileDownload.ImageClickedFcn = createCallbackFcn(app, @tool_FileDownloadClicked, true);
+            app.tool_FileDownload.Enable = 'off';
+            app.tool_FileDownload.Layout.Row = 9;
+            app.tool_FileDownload.Layout.Column = 1;
+            app.tool_FileDownload.ImageSource = 'Import_16.png';
 
             % Create Panel
             app.Panel = uipanel(app.GridLayout);
-            app.Panel.AutoResizeChildren = 'off';
-            app.Panel.Layout.Row = [1 2];
-            app.Panel.Layout.Column = [1 6];
+            app.Panel.BorderType = 'none';
+            app.Panel.Layout.Row = 1;
+            app.Panel.Layout.Column = [1 3];
 
-            % Create GridLayout2
-            app.GridLayout2 = uigridlayout(app.Panel);
-            app.GridLayout2.ColumnWidth = {150, 150, '1x', 49, 49, 49};
-            app.GridLayout2.RowHeight = {17, 22, 22, 22, 22, 22};
-            app.GridLayout2.RowSpacing = 5;
-            app.GridLayout2.BackgroundColor = [1 1 1];
+            % Create LeftPanelGrid
+            app.LeftPanelGrid = uigridlayout(app.Panel);
+            app.LeftPanelGrid.ColumnWidth = {60, '1x', 110, 110, '1x', 100, 100, '1x', '0.1x', 49, 49};
+            app.LeftPanelGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22, 22, '1x', 49};
+            app.LeftPanelGrid.RowSpacing = 5;
+            app.LeftPanelGrid.BackgroundColor = [0.8588 0.8588 0.8588];
 
-            % Create LabelPeriodoInicial
-            app.LabelPeriodoInicial = uilabel(app.GridLayout2);
-            app.LabelPeriodoInicial.VerticalAlignment = 'bottom';
-            app.LabelPeriodoInicial.FontSize = 11;
-            app.LabelPeriodoInicial.Layout.Row = 3;
-            app.LabelPeriodoInicial.Layout.Column = 1;
-            app.LabelPeriodoInicial.Text = 'Período inicial:';
-
-            % Create DatePickerPeriodoInicial
-            app.DatePickerPeriodoInicial = uidatepicker(app.GridLayout2);
-            app.DatePickerPeriodoInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.DatePickerPeriodoInicial.FontSize = 11;
-            app.DatePickerPeriodoInicial.Layout.Row = 4;
-            app.DatePickerPeriodoInicial.Layout.Column = 1;
-
-            % Create LabelEquipamento
-            app.LabelEquipamento = uilabel(app.GridLayout2);
-            app.LabelEquipamento.VerticalAlignment = 'bottom';
-            app.LabelEquipamento.FontSize = 11;
-            app.LabelEquipamento.Layout.Row = 1;
-            app.LabelEquipamento.Layout.Column = [3 6];
-            app.LabelEquipamento.Text = 'Sensor:';
-
-            % Create DropDownEquipamento
-            app.DropDownEquipamento = uidropdown(app.GridLayout2);
-            app.DropDownEquipamento.Items = {};
-            app.DropDownEquipamento.ValueChangedFcn = createCallbackFcn(app, @onEquipmentChanged, true);
-            app.DropDownEquipamento.FontSize = 11;
-            app.DropDownEquipamento.BackgroundColor = [1 1 1];
-            app.DropDownEquipamento.Layout.Row = 2;
-            app.DropDownEquipamento.Layout.Column = [3 6];
-            app.DropDownEquipamento.Value = {};
-
-            % Create LabelLocalidade
-            app.LabelLocalidade = uilabel(app.GridLayout2);
-            app.LabelLocalidade.VerticalAlignment = 'bottom';
-            app.LabelLocalidade.FontSize = 11;
-            app.LabelLocalidade.Layout.Row = 1;
-            app.LabelLocalidade.Layout.Column = 2;
-            app.LabelLocalidade.Text = 'Distrito';
-
-            % Create DropDownLocalidade
-            app.DropDownLocalidade = uidropdown(app.GridLayout2);
-            app.DropDownLocalidade.Items = {};
-            app.DropDownLocalidade.ValueChangedFcn = createCallbackFcn(app, @onLocalityChanged, true);
-            app.DropDownLocalidade.FontSize = 11;
-            app.DropDownLocalidade.BackgroundColor = [1 1 1];
-            app.DropDownLocalidade.Layout.Row = 2;
-            app.DropDownLocalidade.Layout.Column = 2;
-            app.DropDownLocalidade.Value = {};
-
-            % Create LabelPeriodoFinal
-            app.LabelPeriodoFinal = uilabel(app.GridLayout2);
-            app.LabelPeriodoFinal.VerticalAlignment = 'bottom';
-            app.LabelPeriodoFinal.FontSize = 11;
-            app.LabelPeriodoFinal.Layout.Row = 3;
-            app.LabelPeriodoFinal.Layout.Column = 2;
-            app.LabelPeriodoFinal.Text = 'Período final:';
-
-            % Create DatePickerPeriodoFinal
-            app.DatePickerPeriodoFinal = uidatepicker(app.GridLayout2);
-            app.DatePickerPeriodoFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.DatePickerPeriodoFinal.FontSize = 11;
-            app.DatePickerPeriodoFinal.Layout.Row = 4;
-            app.DatePickerPeriodoFinal.Layout.Column = 2;
-
-            % Create LabelFrequenciaInicial
-            app.LabelFrequenciaInicial = uilabel(app.GridLayout2);
-            app.LabelFrequenciaInicial.VerticalAlignment = 'bottom';
-            app.LabelFrequenciaInicial.FontSize = 11;
-            app.LabelFrequenciaInicial.Layout.Row = 5;
-            app.LabelFrequenciaInicial.Layout.Column = 1;
-            app.LabelFrequenciaInicial.Text = 'Frequência inicial (MHz):';
-
-            % Create EditFieldFrequenciaInicial
-            app.EditFieldFrequenciaInicial = uieditfield(app.GridLayout2, 'numeric');
-            app.EditFieldFrequenciaInicial.Limits = [20 18000];
-            app.EditFieldFrequenciaInicial.ValueDisplayFormat = '%.3f';
-            app.EditFieldFrequenciaInicial.AllowEmpty = 'on';
-            app.EditFieldFrequenciaInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.EditFieldFrequenciaInicial.FontSize = 11;
-            app.EditFieldFrequenciaInicial.Layout.Row = 6;
-            app.EditFieldFrequenciaInicial.Layout.Column = 1;
-            app.EditFieldFrequenciaInicial.Value = [];
-
-            % Create LabelFrequenciaFinal
-            app.LabelFrequenciaFinal = uilabel(app.GridLayout2);
-            app.LabelFrequenciaFinal.VerticalAlignment = 'bottom';
-            app.LabelFrequenciaFinal.FontSize = 11;
-            app.LabelFrequenciaFinal.Layout.Row = 5;
-            app.LabelFrequenciaFinal.Layout.Column = 2;
-            app.LabelFrequenciaFinal.Text = 'Frequência final (MH):';
-
-            % Create EditFieldFrequenciaFinal
-            app.EditFieldFrequenciaFinal = uieditfield(app.GridLayout2, 'numeric');
-            app.EditFieldFrequenciaFinal.Limits = [20 18000];
-            app.EditFieldFrequenciaFinal.ValueDisplayFormat = '%.3f';
-            app.EditFieldFrequenciaFinal.AllowEmpty = 'on';
-            app.EditFieldFrequenciaFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.EditFieldFrequenciaFinal.FontSize = 11;
-            app.EditFieldFrequenciaFinal.Layout.Row = 6;
-            app.EditFieldFrequenciaFinal.Layout.Column = 2;
-            app.EditFieldFrequenciaFinal.Value = [];
-
-            % Create LabelPlanoDescricao
-            app.LabelPlanoDescricao = uilabel(app.GridLayout2);
-            app.LabelPlanoDescricao.VerticalAlignment = 'bottom';
-            app.LabelPlanoDescricao.FontSize = 11;
-            app.LabelPlanoDescricao.Layout.Row = 3;
-            app.LabelPlanoDescricao.Layout.Column = [3 5];
-            app.LabelPlanoDescricao.Text = 'Plano/Descrição';
-
-            % Create EditFieldPlanoDescricao
-            app.EditFieldPlanoDescricao = uieditfield(app.GridLayout2, 'text');
-            app.EditFieldPlanoDescricao.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.EditFieldPlanoDescricao.FontSize = 11;
-            app.EditFieldPlanoDescricao.Placeholder = 'Ex. %PMEC% ou parte do nome';
-            app.EditFieldPlanoDescricao.Layout.Row = 4;
-            app.EditFieldPlanoDescricao.Layout.Column = [3 6];
-
-            % Create BuscarButton
-            app.BuscarButton = uibutton(app.GridLayout2, 'push');
-            app.BuscarButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
-            app.BuscarButton.Icon = 'icon_search.svg';
-            app.BuscarButton.IconAlignment = 'top';
-            app.BuscarButton.FontSize = 11;
-            app.BuscarButton.Layout.Row = [5 6];
-            app.BuscarButton.Layout.Column = 4;
-            app.BuscarButton.Text = 'Buscar';
-
-            % Create LimparButton
-            app.LimparButton = uibutton(app.GridLayout2, 'push');
-            app.LimparButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
-            app.LimparButton.Icon = 'icon_clean.svg';
-            app.LimparButton.IconAlignment = 'top';
-            app.LimparButton.FontSize = 11;
-            app.LimparButton.Layout.Row = [5 6];
-            app.LimparButton.Layout.Column = 5;
-            app.LimparButton.Text = 'Limpar';
-
-            % Create DetailButton
-            app.DetailButton = uibutton(app.GridLayout2, 'push');
-            app.DetailButton.ButtonPushedFcn = createCallbackFcn(app, @onDetailClick, true);
-            app.DetailButton.Icon = 'icon_detail.svg';
-            app.DetailButton.IconAlignment = 'top';
-            app.DetailButton.FontSize = 11;
-            app.DetailButton.Layout.Row = [5 6];
-            app.DetailButton.Layout.Column = 6;
-            app.DetailButton.Text = 'Detalhe';
-
-            % Create EstadoLabel
-            app.EstadoLabel = uilabel(app.GridLayout2);
-            app.EstadoLabel.FontSize = 11;
-            app.EstadoLabel.Layout.Row = 1;
-            app.EstadoLabel.Layout.Column = 1;
-            app.EstadoLabel.Text = 'Estado';
+            % Create UFLabel
+            app.UFLabel = uilabel(app.LeftPanelGrid);
+            app.UFLabel.FontSize = 11;
+            app.UFLabel.Layout.Row = 1;
+            app.UFLabel.Layout.Column = 1;
+            app.UFLabel.Text = 'UF:';
 
             % Create DropDownEstado
-            app.DropDownEstado = uidropdown(app.GridLayout2);
+            app.DropDownEstado = uidropdown(app.LeftPanelGrid);
             app.DropDownEstado.Items = {};
             app.DropDownEstado.ValueChangedFcn = createCallbackFcn(app, @onStateChanged, true);
             app.DropDownEstado.FontSize = 11;
@@ -1894,54 +1611,148 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEstado.Layout.Column = 1;
             app.DropDownEstado.Value = {};
 
-            % Create LabelTotalPaginas
-            app.LabelTotalPaginas = uilabel(app.GridLayout);
-            app.LabelTotalPaginas.HorizontalAlignment = 'right';
-            app.LabelTotalPaginas.Layout.Row = 5;
-            app.LabelTotalPaginas.Layout.Column = [3 6];
-            app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
+            % Create LabelLocalidade
+            app.LabelLocalidade = uilabel(app.LeftPanelGrid);
+            app.LabelLocalidade.VerticalAlignment = 'bottom';
+            app.LabelLocalidade.FontSize = 11;
+            app.LabelLocalidade.Layout.Row = 1;
+            app.LabelLocalidade.Layout.Column = 2;
+            app.LabelLocalidade.Text = 'Localidade:';
 
-            % Create Download
-            app.Download = uiimage(app.GridLayout);
-            app.Download.ScaleMethod = 'none';
-            app.Download.ImageClickedFcn = createCallbackFcn(app, @DownloadClicked, true);
-            app.Download.Layout.Row = 5;
-            app.Download.Layout.Column = 1;
-            app.Download.ImageSource = 'Import_16.png';
+            % Create DropDownLocalidade
+            app.DropDownLocalidade = uidropdown(app.LeftPanelGrid);
+            app.DropDownLocalidade.Items = {};
+            app.DropDownLocalidade.ValueChangedFcn = createCallbackFcn(app, @onLocalityChanged, true);
+            app.DropDownLocalidade.FontSize = 11;
+            app.DropDownLocalidade.BackgroundColor = [1 1 1];
+            app.DropDownLocalidade.Layout.Row = 2;
+            app.DropDownLocalidade.Layout.Column = 2;
+            app.DropDownLocalidade.Value = {};
 
-            % Create SelectedRowsLabel
-            app.SelectedRowsLabel = uilabel(app.GridLayout);
-            app.SelectedRowsLabel.Layout.Row = 5;
-            app.SelectedRowsLabel.Layout.Column = 2;
-            app.SelectedRowsLabel.Text = '(0) Linhas Selecionadas';
+            % Create LabelPeriodoInicial
+            app.LabelPeriodoInicial = uilabel(app.LeftPanelGrid);
+            app.LabelPeriodoInicial.VerticalAlignment = 'bottom';
+            app.LabelPeriodoInicial.FontSize = 11;
+            app.LabelPeriodoInicial.Layout.Row = 1;
+            app.LabelPeriodoInicial.Layout.Column = 3;
+            app.LabelPeriodoInicial.Text = 'Período inicial:';
 
-            % Create DetailPanel
-            app.DetailPanel = uipanel(app.GridLayout);
-            app.DetailPanel.AutoResizeChildren = 'off';
-            app.DetailPanel.Visible = 'off';
-            app.DetailPanel.Layout.Row = 4;
-            app.DetailPanel.Layout.Column = [1 6];
+            % Create DatePickerPeriodoInicial
+            app.DatePickerPeriodoInicial = uidatepicker(app.LeftPanelGrid);
+            app.DatePickerPeriodoInicial.Editable = 'off';
+            app.DatePickerPeriodoInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.DatePickerPeriodoInicial.FontSize = 11;
+            app.DatePickerPeriodoInicial.Layout.Row = 2;
+            app.DatePickerPeriodoInicial.Layout.Column = 3;
 
-            % Create DetailGridLayout
-            app.DetailGridLayout = uigridlayout(app.DetailPanel);
-            app.DetailGridLayout.ColumnWidth = {'1x'};
-            app.DetailGridLayout.RowHeight = {20, '1x'};
-            app.DetailGridLayout.Padding = [5 5 5 5];
+            % Create LabelPeriodoFinal
+            app.LabelPeriodoFinal = uilabel(app.LeftPanelGrid);
+            app.LabelPeriodoFinal.VerticalAlignment = 'bottom';
+            app.LabelPeriodoFinal.FontSize = 11;
+            app.LabelPeriodoFinal.Layout.Row = 1;
+            app.LabelPeriodoFinal.Layout.Column = 4;
+            app.LabelPeriodoFinal.Text = 'Período final:';
 
-            % Create DetailSummaryLabel
-            app.DetailSummaryLabel = uilabel(app.DetailGridLayout);
-            app.DetailSummaryLabel.FontSize = 11;
-            app.DetailSummaryLabel.Layout.Row = 1;
-            app.DetailSummaryLabel.Layout.Column = 1;
-            app.DetailSummaryLabel.Text = 'Detalhes do arquivo';
+            % Create DatePickerPeriodoFinal
+            app.DatePickerPeriodoFinal = uidatepicker(app.LeftPanelGrid);
+            app.DatePickerPeriodoFinal.Editable = 'off';
+            app.DatePickerPeriodoFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.DatePickerPeriodoFinal.FontSize = 11;
+            app.DatePickerPeriodoFinal.Layout.Row = 2;
+            app.DatePickerPeriodoFinal.Layout.Column = 4;
 
-            % Create DetailUITable
-            app.DetailUITable = uitable(app.DetailGridLayout);
-            app.DetailUITable.ColumnName = {'ID Espectro'; 'Descrição'; 'Localidade'; 'Faixa (MHz)'; 'Início'; 'Fim'};
-            app.DetailUITable.RowName = {};
-            app.DetailUITable.Layout.Row = 2;
-            app.DetailUITable.Layout.Column = 1;
-            app.DetailUITable.FontSize = 11;
+            % Create LabelEquipamento
+            app.LabelEquipamento = uilabel(app.LeftPanelGrid);
+            app.LabelEquipamento.VerticalAlignment = 'bottom';
+            app.LabelEquipamento.FontSize = 11;
+            app.LabelEquipamento.Layout.Row = 1;
+            app.LabelEquipamento.Layout.Column = 5;
+            app.LabelEquipamento.Text = 'Sensor:';
+
+            % Create DropDownEquipamento
+            app.DropDownEquipamento = uidropdown(app.LeftPanelGrid);
+            app.DropDownEquipamento.Items = {};
+            app.DropDownEquipamento.ValueChangedFcn = createCallbackFcn(app, @onEquipmentChanged, true);
+            app.DropDownEquipamento.FontSize = 11;
+            app.DropDownEquipamento.BackgroundColor = [1 1 1];
+            app.DropDownEquipamento.Layout.Row = 2;
+            app.DropDownEquipamento.Layout.Column = 5;
+            app.DropDownEquipamento.Value = {};
+
+            % Create LabelFrequenciaInicial
+            app.LabelFrequenciaInicial = uilabel(app.LeftPanelGrid);
+            app.LabelFrequenciaInicial.VerticalAlignment = 'bottom';
+            app.LabelFrequenciaInicial.FontSize = 11;
+            app.LabelFrequenciaInicial.Layout.Row = 1;
+            app.LabelFrequenciaInicial.Layout.Column = 6;
+            app.LabelFrequenciaInicial.Text = 'Freq. inicial (MHz):';
+
+            % Create EditFieldFrequenciaInicial
+            app.EditFieldFrequenciaInicial = uieditfield(app.LeftPanelGrid, 'numeric');
+            app.EditFieldFrequenciaInicial.Limits = [20 18000];
+            app.EditFieldFrequenciaInicial.ValueDisplayFormat = '%.3f';
+            app.EditFieldFrequenciaInicial.AllowEmpty = 'on';
+            app.EditFieldFrequenciaInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.EditFieldFrequenciaInicial.FontSize = 11;
+            app.EditFieldFrequenciaInicial.Layout.Row = 2;
+            app.EditFieldFrequenciaInicial.Layout.Column = 6;
+            app.EditFieldFrequenciaInicial.Value = [];
+
+            % Create LabelFrequenciaFinal
+            app.LabelFrequenciaFinal = uilabel(app.LeftPanelGrid);
+            app.LabelFrequenciaFinal.VerticalAlignment = 'bottom';
+            app.LabelFrequenciaFinal.FontSize = 11;
+            app.LabelFrequenciaFinal.Layout.Row = 1;
+            app.LabelFrequenciaFinal.Layout.Column = 7;
+            app.LabelFrequenciaFinal.Text = 'Freq. final (MHz):';
+
+            % Create EditFieldFrequenciaFinal
+            app.EditFieldFrequenciaFinal = uieditfield(app.LeftPanelGrid, 'numeric');
+            app.EditFieldFrequenciaFinal.Limits = [20 18000];
+            app.EditFieldFrequenciaFinal.ValueDisplayFormat = '%.3f';
+            app.EditFieldFrequenciaFinal.AllowEmpty = 'on';
+            app.EditFieldFrequenciaFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.EditFieldFrequenciaFinal.FontSize = 11;
+            app.EditFieldFrequenciaFinal.Layout.Row = 2;
+            app.EditFieldFrequenciaFinal.Layout.Column = 7;
+            app.EditFieldFrequenciaFinal.Value = [];
+
+            % Create LabelPlanoDescricao
+            app.LabelPlanoDescricao = uilabel(app.LeftPanelGrid);
+            app.LabelPlanoDescricao.VerticalAlignment = 'bottom';
+            app.LabelPlanoDescricao.FontSize = 11;
+            app.LabelPlanoDescricao.Layout.Row = 1;
+            app.LabelPlanoDescricao.Layout.Column = 8;
+            app.LabelPlanoDescricao.Text = 'Descrição:';
+
+            % Create EditFieldPlanoDescricao
+            app.EditFieldPlanoDescricao = uieditfield(app.LeftPanelGrid, 'text');
+            app.EditFieldPlanoDescricao.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.EditFieldPlanoDescricao.FontSize = 11;
+            app.EditFieldPlanoDescricao.Layout.Row = 2;
+            app.EditFieldPlanoDescricao.Layout.Column = 8;
+
+            % Create BuscarButton
+            app.BuscarButton = uibutton(app.LeftPanelGrid, 'push');
+            app.BuscarButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
+            app.BuscarButton.Icon = 'Zoom_36x36.png';
+            app.BuscarButton.IconAlignment = 'top';
+            app.BuscarButton.VerticalAlignment = 'bottom';
+            app.BuscarButton.FontSize = 11;
+            app.BuscarButton.Layout.Row = [1 2];
+            app.BuscarButton.Layout.Column = 10;
+            app.BuscarButton.Text = 'Buscar';
+
+            % Create LimparButton
+            app.LimparButton = uibutton(app.LeftPanelGrid, 'push');
+            app.LimparButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
+            app.LimparButton.Icon = 'icon_clean.svg';
+            app.LimparButton.IconAlignment = 'top';
+            app.LimparButton.VerticalAlignment = 'bottom';
+            app.LimparButton.FontSize = 11;
+            app.LimparButton.Layout.Row = [1 2];
+            app.LimparButton.Layout.Column = 11;
+            app.LimparButton.Text = 'Limpar';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

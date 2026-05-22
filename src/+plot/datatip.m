@@ -54,6 +54,7 @@ classdef (Abstract) datatip
                                                    'Frequency+Timestamp+Level', ...
                                                    'Coordinates', ...
                                                    'Coordinates+Frequency' ...
+                                                   'Coordinates+Location', ...
                                                    'SweepID+ChannelPower+Coordinates' ...
                                                    'SweepID+ChannelPower' ...
                                                    'winRFDataHub.Geographic' ...
@@ -130,8 +131,19 @@ classdef (Abstract) datatip
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = 'Lat:';
                     dtParent.DataTipTemplate.DataTipRows(2).Label  = 'Lon:';
-                    dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', hTable.Frequency, '%.3f MHz');
-                    dtParent.DataTipTemplate.DataTipRows(4)        = dataTipTextRow('',   hTable.Name);
+                    dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', hTable.Frequency);
+
+                    dtParent.DataTipTemplate.DataTipRows           = dtParent.DataTipTemplate.DataTipRows([3:4,1:2]);
+
+                case 'Coordinates+Location'
+                    locations = varargin{1};
+                    locations.site_label = "📍 " + locations.site_label;
+                    locations.Location = locations.county_name + "/" + locations.state_code;
+
+                    dtParent.DataTipTemplate.DataTipRows(1).Label  = 'Lat:';
+                    dtParent.DataTipTemplate.DataTipRows(2).Label  = 'Lon:';
+                    dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', locations.site_label);
+                    dtParent.DataTipTemplate.DataTipRows(4)        = dataTipTextRow('', locations.Location);
 
                     dtParent.DataTipTemplate.DataTipRows           = dtParent.DataTipTemplate.DataTipRows([3:4,1:2]);
 
