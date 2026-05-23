@@ -6,6 +6,7 @@ classdef DBHandler < handle
         CacheFolder = struct('points', [], 'siteDetails', []);
         CacheData
         CacheUpdatedAt
+        CacheSession = struct('hash', {}, 'data', {})
 
         ConnRFData % Conexão com banco RFDATA
         ConnBPData % Conexão com banco BPDATA

@@ -3,10 +3,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     % Properties that correspond to app components
     properties (Access = public)
         UIFigure                    matlab.ui.Figure
+        LabelTotalPaginas           matlab.ui.control.Label
+        SelectedRowsLabel           matlab.ui.control.Label
+        GridLayout                  matlab.ui.container.GridLayout
         Panel                       matlab.ui.container.Panel
         LeftPanelGrid               matlab.ui.container.GridLayout
-        LimparButton                matlab.ui.control.Button
-        BuscarButton                matlab.ui.control.Button
+        Image                       matlab.ui.control.Image
+        DatePickerPeriodoFinal      matlab.ui.control.DatePicker
+        LabelPeriodoFinal           matlab.ui.control.Label
+        DatePickerPeriodoInicial    matlab.ui.control.DatePicker
         EditFieldPlanoDescricao     matlab.ui.control.EditField
         LabelPlanoDescricao         matlab.ui.control.Label
         EditFieldFrequenciaFinal    matlab.ui.control.NumericEditField
@@ -15,22 +20,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         LabelFrequenciaInicial      matlab.ui.control.Label
         DropDownEquipamento         matlab.ui.control.DropDown
         LabelEquipamento            matlab.ui.control.Label
-        DatePickerPeriodoFinal      matlab.ui.control.DatePicker
-        LabelPeriodoFinal           matlab.ui.control.Label
-        DatePickerPeriodoInicial    matlab.ui.control.DatePicker
         LabelPeriodoInicial         matlab.ui.control.Label
         DropDownLocalidade          matlab.ui.control.DropDown
         LabelLocalidade             matlab.ui.control.Label
         DropDownEstado              matlab.ui.control.DropDown
         UFLabel                     matlab.ui.control.Label
-        GridLayout                  matlab.ui.container.GridLayout
         tool_FileDownload           matlab.ui.control.Image
         UITable1                    matlab.ui.control.Table
         UITable2Icon                matlab.ui.control.Image
         UITable2Label               matlab.ui.control.Label
         UITable2                    matlab.ui.control.Table
-        SelectedRowsLabel           matlab.ui.control.Label
-        LabelTotalPaginas           matlab.ui.control.Label
     end
 
 
@@ -1193,11 +1192,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, callingApp, context, inputArgs)
+        function startupFcn(app, mainApp, callingApp, context, filterContext)
 
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-                app.inputArgs = inputArgs;
+                app.inputArgs = struct('context', context, 'filterContext', filterContext);
 
                 app.dbHandlerObj = app.mainApp.dbHandlerObj;
                 app.UITable1.RowName = 'numbered';
@@ -1230,7 +1229,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         end
 
-        % Button pushed function: BuscarButton
+        % Image clicked function: Image
         function onSearchClick(app, event)
             
             d = ui.Dialog(app.UIFigure, 'progressdlg', 'Consultando arquivos do repositório...');
@@ -1243,19 +1242,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             resetDetailState(app, false)
             refreshSearchResults(app)
 
-        end
-
-        % Button pushed function: LimparButton
-        function onCleanClick(app, event)
-            
-            clearFilters(app)
-            app.DropDownEstado.Value = '';
-            populateStateOptions(app)
-            loadEquipmentOptions(app)
-            app.DropDownEquipamento.Value = '';
-            updateLocalityOptions(app, [])
-            restoreSearchPageState(app)
-            
         end
 
         % Image clicked function: tool_FileDownload
@@ -1392,13 +1378,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function
-        function onDetailClick(app, event)
-            
-            toggleSelectedFileDetail(app)
-
-        end
-
         % Value changed function: DatePickerPeriodoFinal, 
         % ...and 4 other components
         function onSearchFilterChanged(app, event)
@@ -1441,37 +1420,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             restoreSearchPageState(app)
             notifyCallingAppFiltersChanged(app)
             
-        end
-
-        % Callback function: not associated with a component
-        function onToolbarPanelVisibilityChanged(app, event)
-            
-            event.Source.UserData.status = ~event.Source.UserData.status;
-
-            switch event.Source
-                case app.tool_LayoutLeft
-                    if event.Source.UserData.status
-                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
-                        app.GridLayout.ColumnWidth(1:2) = {320, 10};
-                        app.LeftPanel.Visible = 'on';
-                    else
-                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
-                        app.GridLayout.ColumnWidth(1:2) = {0, 0};
-                        app.LeftPanel.Visible = 'off';
-                    end
-
-                case app.tool_LayoutBottom
-                    if event.Source.UserData.status
-                        app.tool_LayoutBottom.ImageSource = 'layout-panel.svg';
-                        app.GridLayout.RowHeight(2:5) = {10, 17, 10, '0.75x'};
-                        set([app.UITable2Icon, app.UITable2Label, app.UITable2], 'Visible', 'on')
-                    else
-                        app.tool_LayoutBottom.ImageSource = 'layout-panel-off.svg';
-                        app.GridLayout.RowHeight(2:5) = {0, 0, 0, 0};
-                        set([app.UITable2Icon, app.UITable2Label, app.UITable2], 'Visible', 'off')
-                    end
-            end
-
         end
     end
 
@@ -1518,29 +1466,14 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create LabelTotalPaginas
-            app.LabelTotalPaginas = uilabel(app.GridLayout);
-            app.LabelTotalPaginas.HorizontalAlignment = 'right';
-            app.LabelTotalPaginas.VerticalAlignment = 'bottom';
-            app.LabelTotalPaginas.FontSize = 11;
-            app.LabelTotalPaginas.Layout.Row = [8 9];
-            app.LabelTotalPaginas.Layout.Column = 3;
-            app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
-
-            % Create SelectedRowsLabel
-            app.SelectedRowsLabel = uilabel(app.GridLayout);
-            app.SelectedRowsLabel.FontSize = 11;
-            app.SelectedRowsLabel.Layout.Row = 9;
-            app.SelectedRowsLabel.Layout.Column = 3;
-            app.SelectedRowsLabel.Text = '(0) Linhas Selecionadas';
-
             % Create UITable2
             app.UITable2 = uitable(app.GridLayout);
-            app.UITable2.ColumnName = {'ID'; 'DESCRIÇÃO'; 'LOCALIDADE'; 'FAIXA (MHz)'; 'INÍCIO'; 'FIM'};
-            app.UITable2.ColumnWidth = {70, 'auto', 'auto', 90, 130, 130};
+            app.UITable2.ColumnName = {'LOCALIDADE'; 'FAIXA (MHz)'; 'INÍCIO'; 'FIM'; 'DESCRIÇÃO'};
+            app.UITable2.ColumnWidth = {'auto', 130, 130, 130, 'auto'};
             app.UITable2.RowName = {};
             app.UITable2.SelectionType = 'row';
             app.UITable2.Multiselect = 'off';
+            app.UITable2.Enable = 'off';
             app.UITable2.Layout.Row = 7;
             app.UITable2.Layout.Column = [1 3];
             app.UITable2.FontSize = 11;
@@ -1563,8 +1496,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create UITable1
             app.UITable1 = uitable(app.GridLayout);
-            app.UITable1.ColumnName = {'ID'; 'ARQUIVO'; 'SENSOR'; 'LOCALIDADE'; 'QTD. FLUXOS'; 'LIMITES (MHz)'; 'INÍCIO'; 'FIM'; 'CAMINHO'};
-            app.UITable1.ColumnWidth = {70, 'auto', 'auto', 'auto', 70, 90, 130, 130, 'auto'};
+            app.UITable1.ColumnName = {'ARQUIVO'; 'SENSOR'; 'LOCALIDADE'; 'QTD. FLUXOS'; 'LIMITES (MHz)'; 'INÍCIO'; 'FIM'; 'CAMINHO'};
+            app.UITable1.ColumnWidth = {'auto', 'auto', 'auto', 70, 90, 130, 130, 'auto'};
             app.UITable1.RowName = {};
             app.UITable1.SelectionType = 'row';
             app.UITable1.CellSelectionCallback = createCallbackFcn(app, @onTableSelection, true);
@@ -1583,16 +1516,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create Panel
             app.Panel = uipanel(app.GridLayout);
-            app.Panel.BorderType = 'none';
             app.Panel.Layout.Row = 1;
             app.Panel.Layout.Column = [1 3];
 
             % Create LeftPanelGrid
             app.LeftPanelGrid = uigridlayout(app.Panel);
-            app.LeftPanelGrid.ColumnWidth = {60, '1x', 110, 110, '1x', 100, 100, '1x', '0.1x', 49, 49};
+            app.LeftPanelGrid.ColumnWidth = {70, '1x', '1x', 110, 110, 110, 110, 110, 22};
             app.LeftPanelGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22, 22, '1x', 49};
             app.LeftPanelGrid.RowSpacing = 5;
-            app.LeftPanelGrid.BackgroundColor = [0.8588 0.8588 0.8588];
+            app.LeftPanelGrid.BackgroundColor = [1 1 1];
 
             % Create UFLabel
             app.UFLabel = uilabel(app.LeftPanelGrid);
@@ -1634,39 +1566,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.LabelPeriodoInicial.VerticalAlignment = 'bottom';
             app.LabelPeriodoInicial.FontSize = 11;
             app.LabelPeriodoInicial.Layout.Row = 1;
-            app.LabelPeriodoInicial.Layout.Column = 3;
+            app.LabelPeriodoInicial.Layout.Column = 4;
             app.LabelPeriodoInicial.Text = 'Período inicial:';
-
-            % Create DatePickerPeriodoInicial
-            app.DatePickerPeriodoInicial = uidatepicker(app.LeftPanelGrid);
-            app.DatePickerPeriodoInicial.Editable = 'off';
-            app.DatePickerPeriodoInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.DatePickerPeriodoInicial.FontSize = 11;
-            app.DatePickerPeriodoInicial.Layout.Row = 2;
-            app.DatePickerPeriodoInicial.Layout.Column = 3;
-
-            % Create LabelPeriodoFinal
-            app.LabelPeriodoFinal = uilabel(app.LeftPanelGrid);
-            app.LabelPeriodoFinal.VerticalAlignment = 'bottom';
-            app.LabelPeriodoFinal.FontSize = 11;
-            app.LabelPeriodoFinal.Layout.Row = 1;
-            app.LabelPeriodoFinal.Layout.Column = 4;
-            app.LabelPeriodoFinal.Text = 'Período final:';
-
-            % Create DatePickerPeriodoFinal
-            app.DatePickerPeriodoFinal = uidatepicker(app.LeftPanelGrid);
-            app.DatePickerPeriodoFinal.Editable = 'off';
-            app.DatePickerPeriodoFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
-            app.DatePickerPeriodoFinal.FontSize = 11;
-            app.DatePickerPeriodoFinal.Layout.Row = 2;
-            app.DatePickerPeriodoFinal.Layout.Column = 4;
 
             % Create LabelEquipamento
             app.LabelEquipamento = uilabel(app.LeftPanelGrid);
             app.LabelEquipamento.VerticalAlignment = 'bottom';
             app.LabelEquipamento.FontSize = 11;
             app.LabelEquipamento.Layout.Row = 1;
-            app.LabelEquipamento.Layout.Column = 5;
+            app.LabelEquipamento.Layout.Column = 3;
             app.LabelEquipamento.Text = 'Sensor:';
 
             % Create DropDownEquipamento
@@ -1676,7 +1584,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DropDownEquipamento.FontSize = 11;
             app.DropDownEquipamento.BackgroundColor = [1 1 1];
             app.DropDownEquipamento.Layout.Row = 2;
-            app.DropDownEquipamento.Layout.Column = 5;
+            app.DropDownEquipamento.Layout.Column = 3;
             app.DropDownEquipamento.Value = {};
 
             % Create LabelFrequenciaInicial
@@ -1732,27 +1640,51 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.EditFieldPlanoDescricao.Layout.Row = 2;
             app.EditFieldPlanoDescricao.Layout.Column = 8;
 
-            % Create BuscarButton
-            app.BuscarButton = uibutton(app.LeftPanelGrid, 'push');
-            app.BuscarButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchClick, true);
-            app.BuscarButton.Icon = 'Zoom_36x36.png';
-            app.BuscarButton.IconAlignment = 'top';
-            app.BuscarButton.VerticalAlignment = 'bottom';
-            app.BuscarButton.FontSize = 11;
-            app.BuscarButton.Layout.Row = [1 2];
-            app.BuscarButton.Layout.Column = 10;
-            app.BuscarButton.Text = 'Buscar';
+            % Create DatePickerPeriodoInicial
+            app.DatePickerPeriodoInicial = uidatepicker(app.LeftPanelGrid);
+            app.DatePickerPeriodoInicial.Editable = 'off';
+            app.DatePickerPeriodoInicial.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.DatePickerPeriodoInicial.FontSize = 11;
+            app.DatePickerPeriodoInicial.Layout.Row = 2;
+            app.DatePickerPeriodoInicial.Layout.Column = 4;
 
-            % Create LimparButton
-            app.LimparButton = uibutton(app.LeftPanelGrid, 'push');
-            app.LimparButton.ButtonPushedFcn = createCallbackFcn(app, @onCleanClick, true);
-            app.LimparButton.Icon = 'icon_clean.svg';
-            app.LimparButton.IconAlignment = 'top';
-            app.LimparButton.VerticalAlignment = 'bottom';
-            app.LimparButton.FontSize = 11;
-            app.LimparButton.Layout.Row = [1 2];
-            app.LimparButton.Layout.Column = 11;
-            app.LimparButton.Text = 'Limpar';
+            % Create LabelPeriodoFinal
+            app.LabelPeriodoFinal = uilabel(app.LeftPanelGrid);
+            app.LabelPeriodoFinal.VerticalAlignment = 'bottom';
+            app.LabelPeriodoFinal.FontSize = 11;
+            app.LabelPeriodoFinal.Layout.Row = 1;
+            app.LabelPeriodoFinal.Layout.Column = 5;
+            app.LabelPeriodoFinal.Text = 'Período final:';
+
+            % Create DatePickerPeriodoFinal
+            app.DatePickerPeriodoFinal = uidatepicker(app.LeftPanelGrid);
+            app.DatePickerPeriodoFinal.Editable = 'off';
+            app.DatePickerPeriodoFinal.ValueChangedFcn = createCallbackFcn(app, @onSearchFilterChanged, true);
+            app.DatePickerPeriodoFinal.FontSize = 11;
+            app.DatePickerPeriodoFinal.Layout.Row = 2;
+            app.DatePickerPeriodoFinal.Layout.Column = 5;
+
+            % Create Image
+            app.Image = uiimage(app.LeftPanelGrid);
+            app.Image.ScaleMethod = 'none';
+            app.Image.ImageClickedFcn = createCallbackFcn(app, @onSearchClick, true);
+            app.Image.Layout.Row = 2;
+            app.Image.Layout.Column = 9;
+            app.Image.ImageSource = 'search-sparkle.svg';
+
+            % Create SelectedRowsLabel
+            app.SelectedRowsLabel = uilabel(app.UIFigure);
+            app.SelectedRowsLabel.FontSize = 11;
+            app.SelectedRowsLabel.Position = [21 -46 173 22];
+            app.SelectedRowsLabel.Text = '(0) Linhas Selecionadas';
+
+            % Create LabelTotalPaginas
+            app.LabelTotalPaginas = uilabel(app.UIFigure);
+            app.LabelTotalPaginas.HorizontalAlignment = 'right';
+            app.LabelTotalPaginas.VerticalAlignment = 'bottom';
+            app.LabelTotalPaginas.FontSize = 11;
+            app.LabelTotalPaginas.Position = [66 -85 147 32];
+            app.LabelTotalPaginas.Text = 'Selecionado (0) Elementos';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

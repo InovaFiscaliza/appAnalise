@@ -330,9 +330,23 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % GEOGRAPHICREGIONZOOM
         %-----------------------------------------------------------------%
-        function GeographicRegionZoomInteraction(hAxes, hToolbarButton)
-            disableDefaultInteractivity(hAxes)
+        function GeographicRegionZoomInteraction(hAxes, hToolbarButton, hPlotButtonDown)
+            arguments
+                hAxes
+                hToolbarButton
+                hPlotButtonDown = []
+            end
+
+            % Desativa interações do eixo, incluindo cliques em elementos do
+            % plot, caso aplicável.
             hToolbarButton.ImageSource = 'ZoomRegion_20Filled.png';
+            if ~isempty(hPlotButtonDown)
+                buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, hPlotButtonDown, 'UniformOutput', false);
+                set(hPlotButtonDown, 'ButtonDownFcn', [])
+            end
+            axesInteractions = hAxes.Interactions;
+            hAxes.Interactions = [];
+            disableDefaultInteractivity(hAxes)
 
             r = drawrectangle(hAxes, 'FaceSelectable', 0, 'InteractionsAllowed', 'none', 'LineWidth', 1, 'FaceAlpha', 0, 'Tag', 'RegionZoom');
             if ~isempty(r.Position)                           && ...
@@ -349,7 +363,13 @@ classdef (Abstract) Interactivity
             end
             delete(r)
 
+            % Reativa interações do eixo, incluindo cliques em elementos do
+            % plot, caso aplicável.
             hToolbarButton.ImageSource = 'ZoomRegion_20.png';
+            if ~isempty(hPlotButtonDown)
+                arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), hPlotButtonDown, buttonDownFcn)
+            end
+            hAxes.Interactions = axesInteractions;
             enableDefaultInteractivity(hAxes)
         end
     end

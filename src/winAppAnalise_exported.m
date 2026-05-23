@@ -40,9 +40,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         Tab2_Playback            matlab.ui.container.Tab
         Tab3_DriveTest           matlab.ui.container.Tab
         Tab4_SignalAnalysis      matlab.ui.container.Tab
-        Tab6_RFDataHub           matlab.ui.container.Tab
-        Tab7_RepoSFI             matlab.ui.container.Tab
-        Tab8_Config              matlab.ui.container.Tab
+        Tab5_RFDataHub           matlab.ui.container.Tab
+        Tab6_RepoSFI             matlab.ui.container.Tab
+        Tab7_Config              matlab.ui.container.Tab
         ContextMenu              matlab.ui.container.ContextMenu
         ContextMenuDeleteButton  matlab.ui.container.Menu
     end
@@ -369,20 +369,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % auxApp.winRepoSFI (REPOSFI)
-                            case {'auxApp.winRepoSFI', 'auxApp.winRepoSFI_exported'}
-                                switch eventName
-                                    case 'onRepoSFIFilterChanged'
-                                        if ~isempty(app.popupCurrentApp) && isvalid(app.popupCurrentApp)
-                                            popupCurrentAppClass = class(app.popupCurrentApp);
-
-                                            if ismember(popupCurrentAppClass, {'auxApp.dockRepoFiles', 'auxApp.dockRepoFiles_exported'})
-                                                ipcSecondaryMatlabCallsHandler(app.popupCurrentApp, app, eventName, varargin{:})
-                                            end
-                                        end
-
-                                    otherwise
-                                        error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
-                                end
+                            % ...
 
                             % DOCKS:OTHERS
                             case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ?
@@ -547,7 +534,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications(12, :) = {"Location",        412, 190, false};                
                 popupSpecifications(13, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
                 popupSpecifications(14, :) = {"ReportLib",       784, 594, false};
-                popupSpecifications(15, :) = {"RepoFiles",      1244, 660, false}; % Em andamento
+                popupSpecifications(15, :) = {"RepoFiles",      1244, 660, false};
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -1840,20 +1827,20 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab4_SignalAnalysis.AutoResizeChildren = 'off';
             app.Tab4_SignalAnalysis.Title = 'SIGNALANALYSIS';
 
-            % Create Tab6_RFDataHub
-            app.Tab6_RFDataHub = uitab(app.TabGroup);
-            app.Tab6_RFDataHub.AutoResizeChildren = 'off';
-            app.Tab6_RFDataHub.Title = 'RFDATAHUB';
+            % Create Tab5_RFDataHub
+            app.Tab5_RFDataHub = uitab(app.TabGroup);
+            app.Tab5_RFDataHub.AutoResizeChildren = 'off';
+            app.Tab5_RFDataHub.Title = 'RFDATAHUB';
 
-            % Create Tab7_RepoSFI
-            app.Tab7_RepoSFI = uitab(app.TabGroup);
-            app.Tab7_RepoSFI.AutoResizeChildren = 'off';
-            app.Tab7_RepoSFI.Title = 'REPOSFI';
+            % Create Tab6_RepoSFI
+            app.Tab6_RepoSFI = uitab(app.TabGroup);
+            app.Tab6_RepoSFI.AutoResizeChildren = 'off';
+            app.Tab6_RepoSFI.Title = 'REPOSFI';
 
-            % Create Tab8_Config
-            app.Tab8_Config = uitab(app.TabGroup);
-            app.Tab8_Config.AutoResizeChildren = 'off';
-            app.Tab8_Config.Title = 'CONFIG';
+            % Create Tab7_Config
+            app.Tab7_Config = uitab(app.TabGroup);
+            app.Tab7_Config.AutoResizeChildren = 'off';
+            app.Tab7_Config.Title = 'CONFIG';
 
             % Create NavBar
             app.NavBar = uigridlayout(app.GridLayout);
