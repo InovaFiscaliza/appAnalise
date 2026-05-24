@@ -62,9 +62,9 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     properties (Access = private, Constant)
         %-----------------------------------------------------------------%
         TABLE_RESULTS = table( ...
-            'Size', [0, 7], ...
-            'VariableTypes', {'string', 'string', 'string', 'string', 'string', 'string', 'string'}, ...
-            'VariableNames', {'LOCALIDADE', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'ARQUIVO'} ...
+            'Size', [0, 8], ...
+            'VariableTypes', {'string', 'string', 'string', 'cell', 'datetime', 'datetime', 'double', 'string'}, ...
+            'VariableNames', {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'TAMANHO', 'ARQUIVO'} ...
         )
 
         TABLE_FILE_DETAILS = table( ...
@@ -164,30 +164,69 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function refreshTables(app)
-            % ...
+        function refreshTable(app, type, resultData)
+            arguments
+                app 
+                type {mustBeMember(type, {'files', 'fileDetails'})}
+                resultData 
+            end
+
+            switch type
+                case 'files'
+                    resultData.("LIMITES (MHz)") = arrayfun(@(x, y) sprintf('%.3f – %.3f', x, y), resultData.("NU_FREQ_START"), resultData.("NU_FREQ_END"), 'UniformOutput', false);
+                    resultData.("DT_TIME_START").Format = 'dd/MM/yyyy';
+                    resultData.("DT_TIME_END").Format = 'dd/MM/yyyy';
+                    resultData.("ARQUIVO") = fullfile(extractAfter(resultData.("NA_PATH"), app.mainApp.General.context.REPOSFI.containerPathPrefixToRemove), resultData.("NA_FILE"));
+
+                    resultData = renamevars(resultData(:, {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'LIMITES (MHz)', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'VL_FILE_SIZE_KB', 'ARQUIVO'}), ...
+                        {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'VL_FILE_SIZE_KB'}, ...
+                        {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'INÍCIO', 'FIM', 'TAMANHO'} ...
+                    );
+
+                    app.UITable1.Data = resultData;
+
+                case 'fileDetails'
 
 
 
 
 
-
-
+            end
         end
 
         %-----------------------------------------------------------------%
-        function currentFilter = getCurrentFilter(app)
+        function [currentFilter, warningMsg] = getCurrentFilter(app)
+            currentFilter = [];
+            warningMsg = '';
+            
+            issues = {};
+            if (isnat(app.PeriodBegin.Value)  && ~isnat(app.PeriodEnd.Value)) || ...
+               (~isnat(app.PeriodBegin.Value) &&  isnat(app.PeriodEnd.Value)) || ...
+               (~isnat(app.PeriodBegin.Value) && ~isnat(app.PeriodEnd.Value) && app.PeriodEnd.Value < app.PeriodBegin.Value)
+                issues{end+1} = 'período de observação';
+            end
+
+            if isnan(app.FreqStop.Value - app.FreqStart.Value) || (~isnan(app.FreqStart.Value) && ~isnan(app.FreqStop.Value) && app.FreqStop.Value <= app.FreqStart.Value)
+                issues{end+1} = 'faixa de frequência';
+            end
+
+            if ~isempty(issues)
+                warningMsg = sprintf('Filtragem inválida. Corrija os valores de %s.', textFormatGUI.cellstr2FriendlyListWithQuotes(issues));
+                return
+            end
+
             currentFilter = struct( ...
-                'stateCode',   getParameterId(app, 'state'), ...
-                'locationId',  getParameterId(app, 'location'), ...
+                'stateCode', app.State.Value, ...
+                'districtId', getParameterId(app, 'location'), ...
+                'siteId', NaN, ...
                 'equipmentId', getParameterId(app, 'receiver'), ...
-                'startDate',   app.PeriodBegin.Value, ...
-                'endDate',     app.PeriodEnd.Value, ...
-                'freqStart',   NaN, ...
-                'freqEnd',     NaN, ...
-                'description', string(strtrim(app.Description.Value)) ...
+                'startDate', app.PeriodBegin.Value, ...
+                'endDate', app.PeriodEnd.Value, ...
+                'freqStart', NaN, ...
+                'freqEnd', NaN, ...
+                'description', strtrim(app.Description.Value) ...
                 );
-        
+
             if ~isempty(app.FreqStart.Value)
                 currentFilter.freqStart = round(app.FreqStart.Value, 3);
             end
@@ -204,7 +243,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 name {mustBeMember(name, {'state', 'location', 'receiver'})}
             end
 
-            id = -1;
+            id = NaN;
 
             matchMask = app.dbMatchMask;
             dbFilteredReference = app.dbReference(matchMask, :);
@@ -218,8 +257,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                     end
 
                 case 'location'
-                    % ## ToDo ##
-                    % Migrar de "district_id" para "location_id"...
                     value = string(app.Location.Value);
                     valueIdx = find(dbFilteredReference.Location == value);
                     if ~isempty(valueIdx)
@@ -244,14 +281,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % Formatação da tabela para exibição em tela
         %-----------------------------------------------------------------%
-        function updatePaginationState(app)
-            % Atualiza o resumo textual de resultados. A paginação visual foi
-            % removida, mas o rodapé continua informando a quantidade encontrada.
-            if isempty(app.FilterDescription)
-                return
-            end
-
-            app.FilterDescription.Text = sprintf('%d resultado(s)', app.totalResults);
+        function refreshTableFootnote(app)
+            app.FilterDescription.Text = sprintf('%d resultado(s)', height(app.UITable1.Data));
         end
 
         %-----------------------------------------------------------------%
@@ -297,7 +328,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Esse helper materializa a expansão do painel inferior: reaproveita os
             % filtros correntes, busca os espectros associados ao arquivo em foco e
             % sincroniza tabela, resumo e estado visual do detalhe aberto.
-            filters = getCurrentFilter(app);
+            [currentFilter, warningMsg] = getCurrentFilter(app);
+            if ~isempty(warningMsg)
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                return
+            end
+
             rawRows = app.UITable1.UserData;
 
             app.UITable2.Data(:, :) = [];
@@ -306,7 +342,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             try
                 % Executa a consulta detalhada já respeitando o mesmo recorte atual
                 % aplicado à busca principal do dock.
-                detailRows = app.dbHandlerObj.getSpectraByFileId(fileId, filters);
+                detailRows = app.dbHandlerObj.getSpectraByFileId(fileId, currentFilter);
                 
                 if ~istable(detailRows) || isempty(detailRows)
                     error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
@@ -337,12 +373,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % limpa o resultado anterior, zera os acumuladores visuais e recolhe o
             % detalhe para evitar que a UI mantenha seleções ou dados obsoletos.
             app.UITable1.Data(:,:) = [];
-            app.UITable1.UserData = table();
         
             % Zera o total agregado para manter o rodapé coerente com a ausência
             % momentânea de resultados após a mudança de filtro.
             app.totalResults = 0;
-            updatePaginationState(app)
+            refreshTableFootnote(app)
         
             % Limpa também o estado do painel inferior e a seleção associada ao
             % resultado anterior, que deixa de ser válido após o recálculo.
@@ -462,44 +497,26 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         % Image clicked function: SearchButton
         function onSearchButtonClicked(app, event)
             
-            currentFilter = getCurrentFilter(app);
-        
+            [currentFilter, warningMsg] = getCurrentFilter(app);
+            if ~isempty(warningMsg)
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                return
+            end
+
             try
-                % Primeiro mede o universo filtrado para ajustar a carga da consulta
-                % principal e manter coerente o resumo textual de resultados.
                 pageSizeTotal = getSpectrumFileDataCount(app.dbHandlerObj, currentFilter);
-        
-                % O dock carrega tudo de uma vez na visão atual, sem paginação visual,
-                % então a consulta é forçada para uma única página contendo todo o recorte.
                 currentFilter.page = 1;
                 currentFilter.pageSize = max(pageSizeTotal, 1);
         
-                % A busca interna pode filtrar por espectro, mas a tabela principal do
-                % dock sempre publica uma linha por arquivo do repositório.
-                rawRows = getSpectrumFileData(app.dbHandlerObj, currentFilter);
-        
-                % Publica na grade a versão formatada e amigável do resultado bruto.
-                app.UITable1.Data = rawRows;
-        
-                % Mantém o payload original associado à tabela para sustentar fluxos
-                % posteriores, como abertura do detalhe do arquivo selecionado.
-                app.UITable1.UserData = rawRows;
-        
-                % Atualiza o rodapé e os demais elementos visuais dependentes da
-                % quantidade total retornada pela consulta.
-                updatePaginationState(app)
+                resultData = getSpectrumFileData(app.dbHandlerObj, currentFilter);
+                refreshTable(app, 'files', resultData)
 
             catch ME
-                % Em falha de consulta, limpa a tabela e o estado agregado para não
-                % deixar a interface exibindo dados parciais ou inconsistentes.
                 app.UITable1.Data(:,:) = [];
-                app.UITable1.UserData = table();
-                app.totalResults = 0;
-                updatePaginationState(app)
-        
-                % Informa o erro ao usuário sem interromper o restante do dock.
                 ui.Dialog(app.UIFigure, 'error', sprintf('Erro ao consultar arquivos do repositório:\n%s', ME.message));
             end
+
+            refreshTableFootnote(app)
 
         end
 
@@ -843,9 +860,10 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create UITable1
             app.UITable1 = uitable(app.GridLayout);
-            app.UITable1.ColumnName = {'LOCALIDADE'; 'SENSOR'; 'QTD. FLUXOS'; 'LIMITES (MHz)'; 'INÍCIO'; 'FIM'; 'ARQUIVO'};
-            app.UITable1.ColumnWidth = {200, 200, 90, 130, 130, 130, 'auto'};
+            app.UITable1.ColumnName = {'REGIÃO'; 'SENSOR'; 'LIMITES (MHz)'; 'QTD. FLUXOS'; 'INÍCIO'; 'FIM'; 'TAMANHO'; 'ARQUIVO'};
+            app.UITable1.ColumnWidth = {130, 130, 130, 90, 90, 90, 90, 'auto'};
             app.UITable1.RowName = {};
+            app.UITable1.ColumnSortable = [true true false false true true false false];
             app.UITable1.SelectionType = 'row';
             app.UITable1.CellSelectionCallback = createCallbackFcn(app, @onTableSelectionValueChanged, true);
             app.UITable1.Layout.Row = 3;

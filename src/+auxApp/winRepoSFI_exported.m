@@ -271,7 +271,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             set(app.UIAxes.LatitudeAxis,  'TickLabels', {}, 'Color', 'none')
             set(app.UIAxes.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
             
-            geolimits(app.UIAxes, 'auto')
+            geolimits(app.UIAxes, [-35.3201 7.4463], [-86.0445 -12.6965])
             plot.axes.Colormap(app.UIAxes, 'turbo')
 
             if ismember(app.axesTool_Basemap.Value, {'darkwater', 'none'})
@@ -329,7 +329,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             if ~app.UIAxes.UserData.Render
                 timerObj = timer( ...
                     "ExecutionMode", "singleShot", ...
-                    "StartDelay", 0.500, ...
+                    "StartDelay", 1, ...
                     "TimerFcn", @(src, ~)app.waitForDOMReady(src) ...
                 );
 

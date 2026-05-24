@@ -7,7 +7,7 @@ classdef DBHandler < handle
         CacheFolder = struct('points', [], 'siteDetails', []);
         CacheData
         CacheUpdatedAt
-        CacheSession = struct('hash', {}, 'data', {})
+        CacheSession = struct('requestType', {}, 'filterHash', {}, 'resultData', {}, 'updatedAt', {})
 
         ConnRFData % Conexão com banco RFDATA
         ConnBPData % Conexão com banco BPDATA
@@ -23,35 +23,16 @@ classdef DBHandler < handle
     end
 
 
+    properties (Access = private)
+        HostChecked = false
+    end
+
+
     methods
         %-----------------------------------------------------------------%
         function [obj, warningMsg] = DBHandler(generalSettings)
             obj.Settings = generalSettings.context.REPOSFI;
-
-            % Tentativa de conexão à BASE DE DADOS, criando um objeto mysql
-            % para cada um dos bancos.
-            dbHost   = obj.Settings.host;
-            dbPort   = obj.Settings.dbPort;
-            dbUser   = obj.Settings.dbUser;
-            dbPass   = obj.Settings.dbPassword;
-            dbRFName = obj.Settings.dbSchemas.rfData;
-            dbBPName = obj.Settings.dbSchemas.bpData;
-            dbSMName = obj.Settings.dbSchemas.smData;
-
-            try
-                t = tcpclient(dbHost, dbPort, 'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
-                delete(t)
-
-                obj.ConnRFData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbRFName);
-                obj.ConnBPData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbBPName);
-                obj.ConnSMData = mysql(dbUser, dbPass, 'Server', dbHost, 'PortNumber', dbPort, 'DatabaseName', dbSMName);
-                obj.Status = true;
-
-                warningMsg = '';
-            
-            catch ME
-                warningMsg = ME.message;
-            end
+            warningMsg = '';
 
             % Tentativa de obter TABELA DE SENSORES, que suporta a visualização 
             % principal em mapa do módulo em auxApp.winRepoSFI e o seu popup. 
@@ -59,23 +40,25 @@ classdef DBHandler < handle
             % filtradas com valores inseridos na GUI.
             obj.CacheFolder = fullfile(appEngine.util.OperationSystem('programData'), 'ANATEL', class.Constants.appName, 'DataBase');
 
-            try
-                if isCacheValid(obj)
-                    error('util:DBHandler:CacheBypassQuery', 'Cache is valid. Bypassing database query.')
-                end
-
-                [points, siteDetails] = getMapDataSet(obj);
-                if isempty(points) || isempty(siteDetails)
-                    error('util:DBHandler:UnexpectedEmptyData', 'Unexpected empty data')
-                end
-
-                obj.CacheData.points = points;
-                obj.CacheData.siteDetails = siteDetails;
-                obj.CacheUpdatedAt = datestr(now, 'HH:MM:SS dd/mm/yyyy');
-                saveCache(obj)
-            
-            catch
+            if isCacheValid(obj)
                 getCache(obj)
+
+            else
+                try
+                    [points, siteDetails] = getMapDataSet(obj);
+                    if isempty(points) || isempty(siteDetails)
+                        error('util:DBHandler:UnexpectedEmptyData', 'Unexpected empty data')
+                    end
+    
+                    obj.CacheData.points = points;
+                    obj.CacheData.siteDetails = siteDetails;
+                    obj.CacheUpdatedAt = datestr(now, 'HH:MM:SS dd/mm/yyyy');
+                    saveCache(obj)
+                
+                catch ME
+                    warningMsg = ME.message;
+                    getCache(obj)
+                end
             end
         end
 
@@ -125,6 +108,71 @@ classdef DBHandler < handle
         end
 
         %-----------------------------------------------------------------%
+        function saveSessionCache(obj, requestType, filters, resultData)
+            arguments
+                obj 
+                requestType {mustBeMember(requestType, {'count', 'files', 'fileDetails', 'stationSummary', 'hostStats', 'equipments', 'states', 'localities'})}
+                filters
+                resultData
+            end
+
+            filterHash = computeFilterHash(obj, filters);
+            obj.CacheSession(end+1) = struct( ...
+                'requestType', requestType, ...
+                'filterHash', filterHash, ...
+                'resultData', resultData, ...
+                'updatedAt', datestr(now, 'HH:MM:SS dd/mm/yyyy') ...
+            );
+        end
+
+        %-----------------------------------------------------------------%
+        function filterHashIdx = getSessionCache(obj, requestType, filters)
+            arguments
+                obj 
+                requestType {mustBeMember(requestType, {'count', 'files', 'fileDetails', 'stationSummary', 'hostStats', 'equipments', 'states', 'localities'})}
+                filters
+            end
+
+            if isempty(obj.CacheSession)
+                filterHashIdx = [];
+                return;
+            end
+
+            filterHash = computeFilterHash(obj, filters);
+            hashMatches = strcmp(filterHash, {obj.CacheSession.filterHash});
+            typeMatches = strcmp(requestType, {obj.CacheSession.requestType});
+            filterHashIdx = find(hashMatches & typeMatches, 1);
+
+            if ~isempty(filterHashIdx)
+                cacheEntry = obj.CacheSession(filterHashIdx);
+                cacheUpdatedAt = datetime(cacheEntry.updatedAt, 'InputFormat', 'HH:mm:ss dd/MM/yyyy');
+
+                if hours(datetime('now') - cacheUpdatedAt) > obj.CACHE_TTL_HOURS
+                    filterHashIdx = [];
+                    return;
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function filterHash = computeFilterHash(~, filters)
+            filterFields = fieldnames(filters);
+            
+            for ii = numel(filterFields):-1:1
+                field = filterFields{ii};
+                value = filters.(field);
+                
+                if (isnumeric(value) && isnan(value)) || (isdatetime(value) && isnat(value))
+                    filters = rmfield(filters, field);
+                elseif ischar(value) || isstring(value)
+                    filters.(field) = string(value);
+                end
+            end
+
+            filterHash = Hash.sha1(jsonencode(filters));
+        end
+
+        %-----------------------------------------------------------------%
         function delete(obj)
             obj.ConnRFData = closeSingleConnection(obj, obj.ConnRFData);
             obj.ConnBPData = closeSingleConnection(obj, obj.ConnBPData);
@@ -138,35 +186,34 @@ classdef DBHandler < handle
             % Seus nomes, uuid, data da primeira visão e data da ultima
             % visao
 
-            if ~isempty(obj.ConnSMData)
-                sqlStationQuery = ...
-                    "SELECT * " + ...
-                    "FROM HOST_LOCATION_SUMMARY " + ...
-                    "WHERE VL_LATITUDE IS NOT NULL " + ...
-                    "  AND VL_LONGITUDE IS NOT NULL " + ...
-                    "ORDER BY " + ...
-                    "    IS_CURRENT_LOCATION DESC, " + ...
-                    "    IS_OFFLINE_SNAPSHOT ASC, " + ...
-                    "    DT_LAST_SEEN_AT DESC, " + ...
-                    "    NA_STATE_CODE ASC, " + ...
-                    "    NA_LOCALITY_LABEL ASC, " + ...
-                    "    NA_HOST_NAME ASC;";
-                
-                % Executa a Query
-                output = fetch(obj.ConnSMData, sqlStationQuery);
+            requestType = 'stationSummary';
+            filters = struct();
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
+                return;
             end
+
+            sqlStationQuery = ...
+                "SELECT * " + ...
+                "FROM HOST_LOCATION_SUMMARY " + ...
+                "WHERE VL_LATITUDE IS NOT NULL " + ...
+                "  AND VL_LONGITUDE IS NOT NULL " + ...
+                "ORDER BY " + ...
+                "    IS_CURRENT_LOCATION DESC, " + ...
+                "    IS_OFFLINE_SNAPSHOT ASC, " + ...
+                "    DT_LAST_SEEN_AT DESC, " + ...
+                "    NA_STATE_CODE ASC, " + ...
+                "    NA_LOCALITY_LABEL ASC, " + ...
+                "    NA_HOST_NAME ASC;";
+
+            output = executeFetch(obj, 'smData', sqlStationQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
         function output = getSummarySiteRows(obj)
             % Retorna uma linha consolidada por site mapeado
             % a partir da tabela MAP_SITE_SUMMARY.
-
-            output = table();
-
-            if isempty(obj.ConnSMData)
-                return;
-            end
 
             sqlQuery = ...
                 "SELECT " + ...
@@ -189,19 +236,13 @@ classdef DBHandler < handle
                 "FROM MAP_SITE_SUMMARY " + ...
                 "ORDER BY FK_SITE;";
 
-            output = fetch(obj.ConnSMData, sqlQuery);
+            output = executeFetch(obj, 'smData', sqlQuery);
         end
 
         %-----------------------------------------------------------------%
         function output = getSummaryStationRows(obj)
             % Retorna as linhas por estação/equipamento usadas
             % para enriquecer cada site do mapa.
-
-            output = table();
-
-            if isempty(obj.ConnSMData)
-                return;
-            end
 
             sqlQuery = ...
                 "SELECT " + ...
@@ -219,7 +260,7 @@ classdef DBHandler < handle
                 "FROM MAP_SITE_STATION_SUMMARY " + ...
                 "ORDER BY FK_SITE, NU_STATE_PRIORITY, NA_HOST_NAME, NA_EQUIPMENT;";
 
-            output = fetch(obj.ConnSMData, sqlQuery);
+            output = executeFetch(obj, 'smData', sqlQuery);
         end
 
         %-----------------------------------------------------------------%
@@ -357,9 +398,11 @@ classdef DBHandler < handle
             % Retorna estatísticas de um host específico do BPDATA.
             % Equivale à função get_host_statistics() do webfusion.
             
-            output = table();
-
-            if isempty(obj.ConnBPData)
+            requestType = 'hostStats';
+            filters = struct('hostId', hostId);
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
                 return;
             end
 
@@ -382,12 +425,7 @@ classdef DBHandler < handle
                 "FROM BPDATA.HOST " + ...
                 "WHERE ID_HOST = " + string(hostId);
 
-            try
-                output = fetch(obj.ConnBPData, sqlQuery);
-            catch ME
-                % Se a query falhar, retorna table vazio
-                output = table();
-            end
+            output = executeFetch(obj, 'bpData', sqlQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
@@ -398,10 +436,15 @@ classdef DBHandler < handle
             %   stateCode — restringe aos equipamentos com dados no UF indicado
             %   siteId    — restringe aos equipamentos que visitaram o site indicado
 
-            output = table();
-
             if nargin < 2 || ~isstruct(filters)
                 filters = struct();
+            end
+
+            requestType = 'equipments';
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
+                return;
             end
 
             stateCode  = obj.toText(obj.getStructField(filters, 'stateCode'), '');
@@ -417,15 +460,16 @@ classdef DBHandler < handle
             if strlength(stateCode) > 0
                 stateCondSM = " AND NA_STATE_CODE = '" + stateCode + "'";
             end
+            
             if ~isnan(siteId)
                 siteCondSM = " AND FK_SITE = " + string(round(siteId));
             end
+
             if ~isnan(districtId)
-                districtCondSM = " AND FK_DISTRICT = " + string(round(districtId));
+                districtCondSM = " AND FK_DISTRICT IN (" + strjoin(string(round(districtId)), ', ') + ")";
             end
 
-            if ~isempty(obj.ConnSMData)
-                sqlQuery = ...
+            sqlQuery = ...
                     "SELECT DISTINCT " + ...
                     "    FK_EQUIPMENT AS ID_EQUIPMENT, " + ...
                     "    NA_EQUIPMENT " + ...
@@ -435,19 +479,9 @@ classdef DBHandler < handle
                     stateCondSM + siteCondSM + districtCondSM + " " + ...
                     "ORDER BY NA_EQUIPMENT;";
 
-                try
-                    output = fetch(obj.ConnSMData, sqlQuery);
-                catch ME
-                    output = table();
-                end
-            end
+            output = executeFetch(obj, 'smData', sqlQuery, requestType, filters);
 
             if istable(output) && ~isempty(output)
-                return;
-            end
-
-            if isempty(obj.ConnRFData)
-                output = table();
                 return;
             end
 
@@ -473,11 +507,7 @@ classdef DBHandler < handle
                 "WHERE 1=1" + stateCondRF + siteCondRF + " " + ...
                 "ORDER BY e.NA_EQUIPMENT;";
 
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch ME
-                output = table();
-            end
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
@@ -488,10 +518,15 @@ classdef DBHandler < handle
             %   equipmentId — restringe aos estados onde o equipamento tem dados
             %   siteId      — restringe ao estado do site indicado
 
-            output = table();
-
             if nargin < 2 || ~isstruct(filters)
                 filters = struct();
+            end
+
+            requestType = 'states';
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
+                return;
             end
 
             equipmentId = obj.toDouble(obj.getStructField(filters, 'equipmentId'));
@@ -506,27 +541,16 @@ classdef DBHandler < handle
                 siteCondSM = " AND FK_SITE = " + string(round(siteId));
             end
 
-            if ~isempty(obj.ConnSMData)
-                sqlQuery = ...
+            sqlQuery = ...
                     "SELECT DISTINCT NA_STATE_CODE AS LC_STATE " + ...
                     "FROM SITE_EQUIPMENT_OBS_SUMMARY " + ...
                     "WHERE NA_STATE_CODE IS NOT NULL " + ...
                     "  AND NA_STATE_CODE <> ''" + ...
                     equipCondSM + siteCondSM + " " + ...
                     "ORDER BY NA_STATE_CODE;";
-                try
-                    output = fetch(obj.ConnSMData, sqlQuery);
-                catch ME
-                    output = table();
-                end
-            end
+            output = executeFetch(obj, 'smData', sqlQuery, requestType, filters);
 
             if istable(output) && ~isempty(output)
-                return;
-            end
-
-            if isempty(obj.ConnRFData)
-                output = table();
                 return;
             end
 
@@ -546,11 +570,8 @@ classdef DBHandler < handle
                 "LEFT JOIN RFDATA.DIM_SITE_STATE st ON st.ID_STATE = s.FK_STATE " + ...
                 "WHERE st.LC_STATE IS NOT NULL" + equipCondRF + siteCondRF + " " + ...
                 "ORDER BY st.LC_STATE;";
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch ME
-                output = table();
-            end
+
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
@@ -578,6 +599,18 @@ classdef DBHandler < handle
                 return;
             end
 
+            requestType = 'localities';
+            cacheFilters = filters;
+            if ~isstruct(cacheFilters)
+                cacheFilters = struct();
+            end
+            cacheFilters.equipmentId = equipmentId;
+            cacheIdx = getSessionCache(obj, requestType, cacheFilters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
+                return;
+            end
+
             hasSpectrumFilters = false;
 
             if isstruct(filters)
@@ -591,7 +624,7 @@ classdef DBHandler < handle
 
             % SMData path: mais rápido; usado quando há equipamento ou UF selecionados.
             % Agrega por distrito em vez de site para eliminar entradas duplicadas.
-            if ~hasSpectrumFilters && (~isnan(equipmentId) || strlength(stateCode) > 0) && ~isempty(obj.ConnSMData)
+            if ~hasSpectrumFilters && (~isnan(equipmentId) || strlength(stateCode) > 0)
                 equipCond = "";
                 stateCond = "";
                 if ~isnan(equipmentId)
@@ -615,19 +648,10 @@ classdef DBHandler < handle
                     "GROUP BY sm.FK_DISTRICT, sm.NA_DISTRICT_NAME, sm.NA_COUNTY_NAME, sm.NA_STATE_CODE " + ...
                     "ORDER BY sm.NA_DISTRICT_NAME ASC, sm.NA_COUNTY_NAME ASC, sm.NA_STATE_CODE ASC;";
 
-                try
-                    output = fetch(obj.ConnSMData, sqlQuery);
-                catch ME
-                    output = table();
-                end
+                output = executeFetch(obj, 'smData', sqlQuery, requestType, cacheFilters);
             end
 
             if istable(output) && ~isempty(output)
-                return;
-            end
-
-            if isempty(obj.ConnRFData)
-                output = table();
                 return;
             end
 
@@ -665,20 +689,17 @@ classdef DBHandler < handle
                 "GROUP BY d.ID_DISTRICT, d.NA_DISTRICT, c.NA_COUNTY, st.LC_STATE " + ...
                 "ORDER BY d.NA_DISTRICT ASC, c.NA_COUNTY ASC, st.LC_STATE ASC;";
 
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch ME
-                output = table();
-            end
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, cacheFilters);
         end
 
         %-----------------------------------------------------------------%
         function output = getSpectrumFileData(obj, filters)
             % Retorna uma linha por arquivo do repositório.
 
-            output = table();
-
-            if isempty(obj.ConnRFData)
+            requestType = 'files';
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
                 return;
             end
 
@@ -714,11 +735,7 @@ classdef DBHandler < handle
                 "ORDER BY MIN(f.DT_TIME_START) DESC, repos.ID_FILE DESC " + ...
                 "LIMIT " + string(pageSize + 1) + " OFFSET " + string(offset) + ";";
 
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch ME
-                output = table();
-            end
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
@@ -727,10 +744,6 @@ classdef DBHandler < handle
 
             output = table();
 
-            if isempty(obj.ConnRFData)
-                return;
-            end
-
             fileId = obj.toDouble(fileId);
             if isnan(fileId)
                 return;
@@ -738,6 +751,15 @@ classdef DBHandler < handle
 
             if nargin < 3 || ~isstruct(filters)
                 filters = struct();
+            end
+
+            requestType = 'fileDetails';
+            cacheFilters = filters;
+            cacheFilters.fileId = fileId;
+            cacheIdx = getSessionCache(obj, requestType, cacheFilters);
+            if ~isempty(cacheIdx)
+                output = obj.CacheSession(cacheIdx).resultData;
+                return;
             end
 
             whereConditions = obj.buildSpectrumWhereConditions(filters, true);
@@ -769,11 +791,7 @@ classdef DBHandler < handle
                      whereConditions + " " + ...
                 "ORDER BY f.DT_TIME_START DESC, f.ID_SPECTRUM DESC;";
 
-            try
-                output = fetch(obj.ConnRFData, sqlQuery);
-            catch ME
-                output = table();
-            end
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, cacheFilters);
         end
 
         %-----------------------------------------------------------------%
@@ -782,7 +800,10 @@ classdef DBHandler < handle
 
             output = 0;
 
-            if isempty(obj.ConnRFData)
+            requestType = 'count';
+            cacheIdx = getSessionCache(obj, requestType, filters);
+            if ~isempty(cacheIdx)
+                output = obj.readCountValue(obj.CacheSession(cacheIdx).resultData);
                 return;
             end
 
@@ -790,8 +811,7 @@ classdef DBHandler < handle
 
             % Quando há filtro de estado, adiciona os JOINs necessários para o
             % alias 'st' que buildSpectrumWhereConditions injeta na cláusula WHERE.
-            stateCode = obj.toText(obj.getStructField(filters, 'stateCode'), '');
-            if strlength(stateCode) > 0
+            if ~isempty(filters.stateCode)
                 stateJoin = ...
                     "    JOIN RFDATA.DIM_SPECTRUM_SITE s_cnt ON s_cnt.ID_SITE = f.FK_SITE " + ...
                     "    LEFT JOIN RFDATA.DIM_SITE_STATE st ON st.ID_STATE = s_cnt.FK_STATE ";
@@ -810,17 +830,65 @@ classdef DBHandler < handle
                 "    GROUP BY repos.ID_FILE " + ...
                 ") counted;";
 
-            try
-                rows = fetch(obj.ConnRFData, sqlQuery);
-                output = obj.readCountValue(rows);
-            catch ME
-                output = 0;
-            end
+            rows = executeFetch(obj, 'rfData', sqlQuery, requestType, filters);
+            output = obj.readCountValue(rows);
         end
     end
 
 
     methods (Access = private)
+        %-----------------------------------------------------------------%
+        function conn = getConnection(obj, schemaName)
+            switch schemaName
+                case 'rfData'
+                    if isempty(obj.ConnRFData)
+                        obj.ConnRFData = openConnection(obj, obj.Settings.dbSchemas.rfData);
+                    end
+                    conn = obj.ConnRFData;
+                case 'bpData'
+                    if isempty(obj.ConnBPData)
+                        obj.ConnBPData = openConnection(obj, obj.Settings.dbSchemas.bpData);
+                    end
+                    conn = obj.ConnBPData;
+                case 'smData'
+                    if isempty(obj.ConnSMData)
+                        obj.ConnSMData = openConnection(obj, obj.Settings.dbSchemas.smData);
+                    end
+                    conn = obj.ConnSMData;
+                otherwise
+                    error('util:DBHandler:InvalidSchema', 'Invalid schema: %s', schemaName);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function conn = openConnection(obj, dbName)
+            if ~obj.HostChecked
+                t = tcpclient(obj.Settings.host, obj.Settings.dbPort, 'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
+                delete(t)
+                obj.HostChecked = true;
+            end
+
+            conn = mysql(obj.Settings.dbUser, obj.Settings.dbPassword, ...
+                'Server', obj.Settings.host, ...
+                'PortNumber', obj.Settings.dbPort, ...
+                'DatabaseName', dbName);
+
+            obj.Status = true;
+        end
+
+        %-----------------------------------------------------------------%
+        function output = executeFetch(obj, schemaName, sqlQuery, requestType, filters)
+            conn = getConnection(obj, schemaName);
+            try
+                output = fetch(conn, sqlQuery);
+                if nargin >= 5 && ~isempty(requestType) && ~isempty(output)
+                    saveSessionCache(obj, requestType, filters, output);
+                end
+            catch
+                output = table();
+            end
+        end
+
         %-----------------------------------------------------------------%
         function connectionObj = closeSingleConnection(~, connectionObj)
             if isempty(connectionObj)
@@ -918,7 +986,7 @@ classdef DBHandler < handle
                 'first_seen_at', obj.toNullableValue(rows.FIRST_SEEN_AT(rowIndex)), ...
                 'last_seen_at', obj.toNullableValue(rows.LAST_SEEN_AT(rowIndex)), ...
                 'spectrum_count', obj.toDouble(rows.NU_SPECTRUM_COUNT(rowIndex)) ...
-                );
+            );
         end
 
         %-----------------------------------------------------------------%
@@ -1154,12 +1222,6 @@ classdef DBHandler < handle
             startDate   = obj.getStructField(filters, 'startDate');
             endDate     = obj.getStructField(filters, 'endDate');
             stateCode   = obj.toText(obj.getStructField(filters, 'stateCode'), '');
-            % Escapa aspas simples para evitar injeção SQL.
-            stateCode   = replace(stateCode, "'", "''");
-
-            equipmentId = obj.toDouble(equipmentId);
-            siteId      = obj.toDouble(siteId);
-            districtId  = obj.toDouble(districtId);
 
             if ~isnan(equipmentId)
                 output = output + " AND f.FK_EQUIPMENT = " + string(round(equipmentId));
@@ -1170,7 +1232,7 @@ classdef DBHandler < handle
             end
 
             if ~isnan(districtId)
-                output = output + " AND f.FK_SITE IN (SELECT ID_SITE FROM RFDATA.DIM_SPECTRUM_SITE WHERE FK_DISTRICT = " + string(round(districtId)) + ")";
+                output = output + " AND f.FK_SITE IN (SELECT ID_SITE FROM RFDATA.DIM_SPECTRUM_SITE WHERE FK_DISTRICT IN (" + strjoin(string(round(districtId)), ', ') + ") )";
             end
 
             % O alias 'st' já existe nas queries que chamam este método via JOIN
