@@ -198,13 +198,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                     case 'mainApp.FileFilterTree'
                         onContextMenuDeleteOptionClicked(app, struct('ContextObjectTag', 'fileFilterTreeContext'))
-                    
-                    % Eventos do popup no winRepoSFI
-                    case 'repoSFI.openDock'
-                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', 'onOpenDockModuleFromPopup', event.HTMLEventData)
-
-                    case {'repoSFI.mapBackgroundClick', 'repoSFI.closePopup'}
-                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', 'onClosePopupRequest')
 
                     % % auxApp.winPlayback
                     % case 'auxApp.winPlayback.ChannelTree'

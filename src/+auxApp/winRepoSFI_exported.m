@@ -71,12 +71,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
     properties (Access = private, Constant)
         %-----------------------------------------------------------------%
         SITE_COLOR = struct( ...
-            'CURRENT_ONLINE',   [0.3098 0.4980 0.4039], ...4
-            'CURRENT_OFFLINE',  [0.7216 0.5137 0.3216], ...3
-            'PREVIOUS_ONLINE',  [0.6549 0.7451 0.6706], ...2
-            'PREVIOUS_OFFLINE', [0.8627 0.7647 0.6784], ...1
-            'UNKNOWN_HOST',     [0.4824 0.5412 0.6275], ...5
-            'OVERLAY',          [0.2200 0.2200 0.2200] ...
+            'CURRENT_ONLINE',   [0.3098 0.4980 0.4039], ...
+            'CURRENT_OFFLINE',  [0.7216 0.5137 0.3216], ...
+            'PREVIOUS_ONLINE',  [0.6549 0.7451 0.6706], ...
+            'PREVIOUS_OFFLINE', [0.8627 0.7647 0.6784], ...
+            'UNKNOWN_HOST',     [0.4824 0.5412 0.6275], ...
+            'OVERLAY',          [0.2200 0.2200 0.2200]  ...
         )
     end
 
@@ -114,27 +114,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 switch class(callingApp)
                     case {'winAppAnalise', 'winAppAnalise_exported'}
                         operationType = varargin{1};
-
-                        switch operationType
-                            case 'onRepoSFIFilterChanged'
-                                applyInitialLayout(app)
-
-                            case 'onOpenDockModuleFromPopup'
-                                payload = varargin{2};
-        
-                                siteId = str2double(string(payload.siteId));
-                                equipmentId = str2double(string(payload.equipmentId));
-                                hostId = str2double(string(payload.hostId));
-        
-                                hidePointPopup(app);
-                                openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
-
-                            case 'onClosePopupRequest'
-                                hidePointPopup(app)
-
-                            otherwise
-                                error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
-                        end
+                        error('auxApp:winRFDataHub:UnexpectedCall', 'Unexpected call "%s"', operationType)
 
                     otherwise
                         error('auxApp:winRFDataHub:UnexpectedCaller', 'Unexpected caller "%s"', class(callingApp))
@@ -326,17 +306,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function refreshPlots(app)
-            if ~app.UIAxes.UserData.Render
-                timerObj = timer( ...
-                    "ExecutionMode", "singleShot", ...
-                    "StartDelay", 1, ...
-                    "TimerFcn", @(src, ~)app.waitForDOMReady(src) ...
-                );
-
-                start(timerObj)
-                return
-            end
-
             % MATLAB tem um BUG que impede a interação do mouse com o eixo, 
             % caso habilitado ButtonDownFcn em algum dos seus filhos. O arranjo 
             % abaixo, desativando temporariamente a interação do eixo, resolve.
@@ -364,15 +333,43 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 enableDefaultInteractivity(app.UIAxes)
             end
             set(findStationHandles(app), 'ButtonDownFcn', @app.clickPlotElement)
+
+            if ~app.UIAxes.UserData.Render
+                timerObj = timer( ...
+                    "ExecutionMode", "singleShot", ...
+                    "StartDelay", 1.5, ...
+                    "TimerFcn", @(src, ~)app.waitForDOMReady(src) ...
+                );
+
+                start(timerObj)
+                return
+            end
         end
 
         %-----------------------------------------------------------------%
         function waitForDOMReady(app, timerObj)
             app.UIAxes.UserData.Render = true;
-            refreshPlots(app)
-
             stop(timerObj)
             delete(timerObj)
+
+            % Tentativa de contornar comportamento inesperado da interação
+            % com o plot, na inicialização do módulo.
+            hPlotButtonDown = findStationHandles(app);
+            if ~isempty(hPlotButtonDown)
+                buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, hPlotButtonDown, 'UniformOutput', false);
+                set(hPlotButtonDown, 'ButtonDownFcn', [])
+            end
+            axesInteractions = app.UIAxes.Interactions;
+            app.UIAxes.Interactions = [];
+            disableDefaultInteractivity(app.UIAxes)
+
+            pause(.100)
+
+            if ~isempty(hPlotButtonDown)
+                arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), hPlotButtonDown, buttonDownFcn)
+            end
+            app.UIAxes.Interactions = axesInteractions;
+            enableDefaultInteractivity(app.UIAxes)
         end
 
         %-----------------------------------------------------------------%
@@ -616,10 +613,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             siteGroup.isAmbiguous = siteGroup.nearbyCount > 1 && estimatedZoom >= 1.0;
         end
 
-
         %-----------------------------------------------------------
-        % Helpers de Seleção do Mapa
-        %-----------------------------------------------------------------%
         function selectionRadius = getAdaptiveSelectionRadius(~, zoomSpan)
             % Ajusta o raio de agrupamento conforme a zoom atual do mapa.
             % Em zoom mais aberto, aumenta a tolerância para capturar pontos
@@ -713,35 +707,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                     'detail', dbFilteredSiteDetails(detailIdx) ...
                 );
             end
-        end
-
-        %------------------------------------------------------------------%
-        function openRepoFilesDockForStation(app, siteId, equipmentId, hostId)
-            % Abre o dock de arquivos usando os identificadores da estacao clicada.
-            %
-            % O stateCode é resolvido a partir do dataset filtrado atual para que
-            % o dock inicialize os filtros de equipamento e localidade corretamente.
-
-            stateCode  = '';
-            districtId = NaN;
-            points = app.filteredRepoSFI.points;
-            if ~isempty(points)
-                pointIdx = find([points.site_id] == siteId, 1);
-                if ~isempty(pointIdx)
-                    stateCode  = char(normalizeTextFromValue(app, points(pointIdx).state_code));
-                    districtId = points(pointIdx).district_id;
-                end
-            end
-
-            dockContext = struct( ...
-                'siteId',      siteId, ...
-                'equipmentId', equipmentId, ...
-                'hostId',      hostId, ...
-                'stateCode',   stateCode, ...
-                'districtId',  districtId ...
-                );
-
-            openRepoFilesDock(app, dockContext)
         end
 end
 
