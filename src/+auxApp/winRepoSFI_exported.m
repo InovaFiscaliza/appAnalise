@@ -93,11 +93,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                         idxs = jsondecode(event.HTMLEventData);
                         point = app.AxesPopup.UserData.siteDetails(idxs(1)).point;
                         filterContext = struct( ...
-                            'state',    point.state_code, ...
-                            'location', point.state_name + "/" + point.state_code, ...
-                            'receiver', point.stations(idxs(2)).host_name ...
+                            'state', char(point.state_code), ...
+                            'location', '', ...
+                            'receiver', char(point.stations(idxs(2)).host_name) ...
                         );
-                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'RepoSFI', app.Context, filterContext)
+                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'RepoFiles', app.Context, app.dbCacheData, app.dbReference, filterContext)
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -168,7 +168,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                    struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                    struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
                     struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                     struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'style', struct('pointerEvents', 'none')), ...
                     struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'selector', '.mwAlignmentNode', 'style', struct('height', '100%')), ...
@@ -180,7 +180,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             end
 
             try
-                ui.TextView.startup(app.jsBackDoor, app.AxesPopup, appName, struct('class', {{'textview--borderless', 'textview--wordbreak', 'textview--no-scroll'}}));
+                ui.TextView.startup(app.jsBackDoor, app.AxesPopup, appName, struct('class', {{'textview--borderless', 'textview--no-scroll'}}));
             catch ME
                 disp(ME.identifier);
             end
@@ -205,16 +205,17 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             % Cria tabela de referência, que pode vir a ser entregue diretamente
             % pelo banco, ordenando-a por "Location". Posteriormente, ordena-se
             % o conteúdo dos campos "points" e "siteDetails" de app.dbCacheData.
-            dbFilteredData = app.dbCacheData.points;
+            dbPoints = app.dbCacheData.points;
             app.dbReference = table( ...
-                [dbFilteredData.site_id]', ...
-                [dbFilteredData.district_id]', ...
-                [dbFilteredData.state_code]', ...
-                [dbFilteredData.county_name]' + "/" + [dbFilteredData.state_code]', ...
-                [dbFilteredData.district_name]', ...
-                {dbFilteredData.station_names}', ...
-                {dbFilteredData.stations}', ...
-                'VariableNames', {'SiteId', 'DistrictId', 'StateCode', 'Location', 'District', 'StationNames', 'StationDetails'} ...
+                [dbPoints.state_id]', ...
+                [dbPoints.state_code]', ...
+                [dbPoints.site_id]', ...
+                [dbPoints.county_name]' + "/" + [dbPoints.state_code]', ...
+                [dbPoints.district_id]', ...                
+                [dbPoints.district_name]', ...
+                {dbPoints.station_names}', ...
+                {dbPoints.stations}', ...
+                'VariableNames', {'StateId', 'StateCode', 'SiteId', 'Location', 'DistrictId', 'District', 'StationNames', 'StationDetails'} ...
             );
             [app.dbReference, sortIdxs] = sortrows(app.dbReference, 'Location');
 
@@ -241,7 +242,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             initializeAxes(app)
 
-            app.State.Items = [{''}, unique([app.dbCacheData.points.state_code])];
+            app.State.Items = [{''}, cellstr(unique([app.dbCacheData.points.state_code]))];
             cacheUpdatedAt = strsplit(app.dbHandlerObj.CacheUpdatedAt, ' ');
             app.CacheUpdatedAt.Text = sprintf('%s às %s', cacheUpdatedAt{2}, cacheUpdatedAt{1});
         end
@@ -251,8 +252,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             matchMask = applyFilter(app);
             dbFilteredReference = app.dbReference(matchMask, :);
 
-            refreshLocationDropDown(app, dbFilteredReference)
-            refreshReceiverDropDown(app, dbFilteredReference)
+            refreshLocationDropDown(app, dbFilteredReference, '')
+            refreshReceiverDropDown(app, dbFilteredReference, '')
             refreshPlots(app)
         end
     end
@@ -306,8 +307,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function refreshLocationDropDown(app, dbFilteredReference)
-            previousValue = app.Location.Value;
+        function refreshLocationDropDown(app, dbFilteredReference, previousValue)
             app.Location.Items = [{''}, cellstr(unique(dbFilteredReference.Location))'];
 
             if ~isempty(previousValue) && ismember(previousValue, app.Location.Items) && ~isequal(previousValue, app.Location.Value)
@@ -316,8 +316,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function refreshReceiverDropDown(app, dbFilteredReference)
-            previousValue = app.Receiver.Value;
+        function refreshReceiverDropDown(app, dbFilteredReference, previousValue)
             app.Receiver.Items = [{''}, cellstr(unique(vertcat(dbFilteredReference.StationNames{:})))'];
 
             if ~isempty(previousValue) && ismember(previousValue, app.Receiver.Items) && ~isequal(previousValue, app.Receiver.Value)
@@ -484,11 +483,11 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             siteLatitudes  = arrayfun(@(x) x.point.latitude,     siteGroupDetails);
             siteLongitudes = arrayfun(@(x) x.point.longitude,    siteGroupDetails);
 
-            plotHighlightGroup("offline_previous", 165, app.SITE_COLOR.PREVIOUS_ONLINE);
-            plotHighlightGroup("online_previous",  165, app.SITE_COLOR.PREVIOUS_ONLINE);
-            plotHighlightGroup("offline_current",  165, app.SITE_COLOR.CURRENT_OFFLINE);
-            plotHighlightGroup("online_current",   165, app.SITE_COLOR.CURRENT_ONLINE);
-            plotHighlightGroup("no_host",          165, app.SITE_COLOR.UNKNOWN_HOST);
+            plotHighlightGroup("offline_previous", 360, app.SITE_COLOR.PREVIOUS_ONLINE);
+            plotHighlightGroup("online_previous",  360, app.SITE_COLOR.PREVIOUS_ONLINE);
+            plotHighlightGroup("offline_current",  360, app.SITE_COLOR.CURRENT_OFFLINE);
+            plotHighlightGroup("online_current",   360, app.SITE_COLOR.CURRENT_ONLINE);
+            plotHighlightGroup("no_host",          360, app.SITE_COLOR.UNKNOWN_HOST);
 
             function plotHighlightGroup(tag, markerSize, markerColor)
                 groupMatchMask = siteStates == tag;
@@ -498,7 +497,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
                 groupSiteLat = siteLatitudes(groupMatchMask);
                 groupSiteLng = siteLongitudes(groupMatchMask);
-                geoscatter(app.UIAxes, groupSiteLat, groupSiteLng, markerSize, markerColor, 'filled', 'Marker', 'o', 'MarkerEdgeColor', [0, 0, 0], 'LineWidth', 2, 'PickableParts', 'none', 'Tag', 'siteGroup');
+                geoscatter(app.UIAxes, groupSiteLat, groupSiteLng, markerSize, markerColor, 'filled', 'Marker', 'o', 'MarkerEdgeColor', [1, 1, 1], 'LineWidth', 1, 'PickableParts', 'none', 'Tag', 'siteGroup');
             end
         end
 
@@ -797,21 +796,28 @@ end
         % ...and 2 other components
         function onFilterValueChanged(app, event)
             
-            if isequal(event.Value, event.PreviousValue) || isempty(event.ValueIndex)
+            if isequal(event.Value, event.PreviousValue) || (isprop(event, 'ValueIndex') && isempty(event.ValueIndex))
                 event.Source.Value = event.PreviousValue;
                 return
             end
 
             switch event.Source
                 case app.State
+                    previousLocationValue = app.Location.Value;
+                    previousReceiverValue = app.Receiver.Value;
+                    
                     app.Location.Value = '';
                     app.Receiver.Value = '';
 
                     matchMask = applyFilter(app);
                     dbFilteredReference = app.dbReference(matchMask, :);
 
-                    refreshLocationDropDown(app, dbFilteredReference)
-                    refreshReceiverDropDown(app, dbFilteredReference)
+                    refreshLocationDropDown(app, dbFilteredReference, previousLocationValue)
+                    refreshReceiverDropDown(app, dbFilteredReference, previousReceiverValue)
+
+                    if ~isempty(app.Location.Value) || ~isempty(app.Receiver.Value)
+                        applyFilter(app);
+                    end
 
                 case app.Location
                     app.Receiver.Value = '';

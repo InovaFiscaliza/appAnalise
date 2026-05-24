@@ -2,6 +2,7 @@ classdef DBHandler < handle
     properties (Access = public)
         %-----------------------------------------------------------------%
         Status = false
+        Settings
 
         CacheFolder = struct('points', [], 'siteDetails', []);
         CacheData
@@ -25,15 +26,17 @@ classdef DBHandler < handle
     methods
         %-----------------------------------------------------------------%
         function [obj, warningMsg] = DBHandler(generalSettings)
+            obj.Settings = generalSettings.context.REPOSFI;
+
             % Tentativa de conexão à BASE DE DADOS, criando um objeto mysql
             % para cada um dos bancos.
-            dbHost   = generalSettings.context.REPOSFI.host;
-            dbPort   = generalSettings.context.REPOSFI.dbPort;
-            dbUser   = generalSettings.context.REPOSFI.dbUser;
-            dbPass   = generalSettings.context.REPOSFI.dbPassword;
-            dbRFName = generalSettings.context.REPOSFI.dbSchemas.rfData;
-            dbBPName = generalSettings.context.REPOSFI.dbSchemas.bpData;
-            dbSMName = generalSettings.context.REPOSFI.dbSchemas.smData;
+            dbHost   = obj.Settings.host;
+            dbPort   = obj.Settings.dbPort;
+            dbUser   = obj.Settings.dbUser;
+            dbPass   = obj.Settings.dbPassword;
+            dbRFName = obj.Settings.dbSchemas.rfData;
+            dbBPName = obj.Settings.dbSchemas.bpData;
+            dbSMName = obj.Settings.dbSchemas.smData;
 
             try
                 t = tcpclient(dbHost, dbPort, 'Timeout', obj.CONNECTION_TIMEOUT_SECONDS);
@@ -381,7 +384,7 @@ classdef DBHandler < handle
 
             try
                 output = fetch(obj.ConnBPData, sqlQuery);
-            catch
+            catch ME
                 % Se a query falhar, retorna table vazio
                 output = table();
             end
@@ -434,7 +437,7 @@ classdef DBHandler < handle
 
                 try
                     output = fetch(obj.ConnSMData, sqlQuery);
-                catch
+                catch ME
                     output = table();
                 end
             end
@@ -472,7 +475,7 @@ classdef DBHandler < handle
 
             try
                 output = fetch(obj.ConnRFData, sqlQuery);
-            catch
+            catch ME
                 output = table();
             end
         end
@@ -513,7 +516,7 @@ classdef DBHandler < handle
                     "ORDER BY NA_STATE_CODE;";
                 try
                     output = fetch(obj.ConnSMData, sqlQuery);
-                catch
+                catch ME
                     output = table();
                 end
             end
@@ -545,7 +548,7 @@ classdef DBHandler < handle
                 "ORDER BY st.LC_STATE;";
             try
                 output = fetch(obj.ConnRFData, sqlQuery);
-            catch
+            catch ME
                 output = table();
             end
         end
@@ -614,7 +617,7 @@ classdef DBHandler < handle
 
                 try
                     output = fetch(obj.ConnSMData, sqlQuery);
-                catch
+                catch ME
                     output = table();
                 end
             end
@@ -664,7 +667,7 @@ classdef DBHandler < handle
 
             try
                 output = fetch(obj.ConnRFData, sqlQuery);
-            catch
+            catch ME
                 output = table();
             end
         end
@@ -713,7 +716,7 @@ classdef DBHandler < handle
 
             try
                 output = fetch(obj.ConnRFData, sqlQuery);
-            catch
+            catch ME
                 output = table();
             end
         end
@@ -768,7 +771,7 @@ classdef DBHandler < handle
 
             try
                 output = fetch(obj.ConnRFData, sqlQuery);
-            catch
+            catch ME
                 output = table();
             end
         end
@@ -810,7 +813,7 @@ classdef DBHandler < handle
             try
                 rows = fetch(obj.ConnRFData, sqlQuery);
                 output = obj.readCountValue(rows);
-            catch
+            catch ME
                 output = 0;
             end
         end
