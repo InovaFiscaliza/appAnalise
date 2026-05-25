@@ -438,18 +438,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onDriveTestPointsAdded'
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
-                                    case 'onRepoSFIFilterChanged'
-                                        ipcMainMatlabCallAuxiliarApp(app, 'REPOSFI', 'MATLAB', eventName, varargin{:})
-
                                     case 'onImportFilesFromPaths'
-                                        if callingApp.isDocked
-                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
-                                        else
-                                            delete(callingApp)
-                                        end
+                                        filePaths = varargin{1};
 
                                         navigateToTab(app, app.Tab1Button)
-                                        onFilteTreeAddRequested(app, struct('EventName', 'onImportFilesFromPaths', 'FilePaths', varargin{1}))
+                                        onFilteTreeAddRequested(app, struct('EventName', 'onImportFilesFromPaths', 'FilePaths', {filePaths}))
 
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)

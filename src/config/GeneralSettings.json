@@ -1,5 +1,5 @@
 {
-    "version": 1.40,
+    "version": 1.41,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -134,6 +134,7 @@
             }
         },
         "REPOSFI": {
+            "protocol": "http",
             "host": "172.16.18.11",
             "dbPort": 9081,
             "dbUser": "root",

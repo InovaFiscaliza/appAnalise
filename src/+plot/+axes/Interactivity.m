@@ -131,6 +131,34 @@ classdef (Abstract) Interactivity
         end
 
         %-----------------------------------------------------------------%
+        function varargout = setGeoAxesInteraction(interactionMode, axesHandle, plotHandles, varargin)
+            mustBeMember(interactionMode, {'DisableDefaultInteractivity', 'EnableDefaultInteractivity'})
+
+            switch interactionMode
+                case 'DisableDefaultInteractivity'
+                    buttonDownFcn = {};
+                    if ~isempty(plotHandles)
+                        buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, plotHandles, 'UniformOutput', false);
+                        set(plotHandles, 'ButtonDownFcn', [])
+                    end
+                    varargout{1} = axesHandle.Interactions;
+                    varargout{2} = buttonDownFcn;
+                    axesHandle.Interactions = [];
+                    disableDefaultInteractivity(axesHandle)
+
+                otherwise % 'EnableDefaultInteractivity'
+                    axesInteractions = varargin{1};
+                    buttonDownFcn    = varargin{2};
+
+                    if ~isempty(plotHandles) && ~isempty(buttonDownFcn)
+                        arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), plotHandles, buttonDownFcn)
+                    end
+                    axesHandle.Interactions = axesInteractions;
+                    enableDefaultInteractivity(axesHandle)
+            end
+        end
+
+        %-----------------------------------------------------------------%
         function CustomCallbacks(hAxes, hRelatedAxes, interactionToCustomize, varargin)
             arguments
                 hAxes (1,1) matlab.ui.control.UIAxes
@@ -337,16 +365,8 @@ classdef (Abstract) Interactivity
                 hPlotButtonDown = []
             end
 
-            % Desativa interações do eixo, incluindo cliques em elementos do
-            % plot, caso aplicável.
             hToolbarButton.ImageSource = 'ZoomRegion_20Filled.png';
-            if ~isempty(hPlotButtonDown)
-                buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, hPlotButtonDown, 'UniformOutput', false);
-                set(hPlotButtonDown, 'ButtonDownFcn', [])
-            end
-            axesInteractions = hAxes.Interactions;
-            hAxes.Interactions = [];
-            disableDefaultInteractivity(hAxes)
+            [axesInteractions, buttonDownFcn] = plot.axes.Interactivity.setGeoAxesInteraction('DisableDefaultInteractivity', hAxes, hPlotButtonDown);
 
             r = drawrectangle(hAxes, 'FaceSelectable', 0, 'InteractionsAllowed', 'none', 'LineWidth', 1, 'FaceAlpha', 0, 'Tag', 'RegionZoom');
             if ~isempty(r.Position)                           && ...
@@ -363,14 +383,8 @@ classdef (Abstract) Interactivity
             end
             delete(r)
 
-            % Reativa interações do eixo, incluindo cliques em elementos do
-            % plot, caso aplicável.
             hToolbarButton.ImageSource = 'ZoomRegion_20.png';
-            if ~isempty(hPlotButtonDown)
-                arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), hPlotButtonDown, buttonDownFcn)
-            end
-            hAxes.Interactions = axesInteractions;
-            enableDefaultInteractivity(hAxes)
+            plot.axes.Interactivity.setGeoAxesInteraction('EnableDefaultInteractivity', hAxes, hPlotButtonDown, axesInteractions, buttonDownFcn);
         end
     end
 end

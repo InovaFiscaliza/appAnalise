@@ -1,7 +1,6 @@
 classdef DBHandler < handle
     properties (Access = public)
         %-----------------------------------------------------------------%
-        Status = false
         Settings
 
         CacheFolder = struct('points', [], 'siteDetails', []);
@@ -162,7 +161,7 @@ classdef DBHandler < handle
                 field = filterFields{ii};
                 value = filters.(field);
                 
-                if (isnumeric(value) && isnan(value)) || (isdatetime(value) && isnat(value))
+                if (isnumeric(value) && all(isnan(value))) || (isdatetime(value) && isnat(value))
                     filters = rmfield(filters, field);
                 elseif ischar(value) || isstring(value)
                     filters.(field) = string(value);
@@ -739,30 +738,15 @@ classdef DBHandler < handle
         end
 
         %-----------------------------------------------------------------%
-        function output = getSpectraByFileId(obj, fileId, filters)
-            % Retorna os espectros vinculados a um arquivo específico do repositório.
-
-            output = table();
-
-            fileId = obj.toDouble(fileId);
-            if isnan(fileId)
-                return;
-            end
-
-            if nargin < 3 || ~isstruct(filters)
-                filters = struct();
-            end
-
+        function output = getSpectraByFileId(obj, fileId)
             requestType = 'fileDetails';
-            cacheFilters = filters;
-            cacheFilters.fileId = fileId;
-            cacheIdx = getSessionCache(obj, requestType, cacheFilters);
+            filters = struct('fileId', fileId);
+            cacheIdx = getSessionCache(obj, requestType, filters);
             if ~isempty(cacheIdx)
                 output = obj.CacheSession(cacheIdx).resultData;
                 return;
             end
 
-            whereConditions = obj.buildSpectrumWhereConditions(filters, true);
             localitySql = obj.buildSpectrumLocalitySql();
 
             sqlQuery = ...
@@ -787,11 +771,10 @@ classdef DBHandler < handle
                 "LEFT JOIN RFDATA.DIM_SITE_COUNTY c ON c.ID_COUNTY = s.FK_COUNTY " + ...
                 "LEFT JOIN RFDATA.DIM_SITE_STATE st ON st.ID_STATE = s.FK_STATE " + ...
                 "WHERE repos.NA_VOLUME = 'reposfi' " + ...
-                "  AND repos.ID_FILE = " + string(round(fileId)) + " " + ...
-                     whereConditions + " " + ...
+                "  AND repos.ID_FILE = " + string(fileId) + " " + ...
                 "ORDER BY f.DT_TIME_START DESC, f.ID_SPECTRUM DESC;";
 
-            output = executeFetch(obj, 'rfData', sqlQuery, requestType, cacheFilters);
+            output = executeFetch(obj, 'rfData', sqlQuery, requestType, filters);
         end
 
         %-----------------------------------------------------------------%
@@ -841,17 +824,17 @@ classdef DBHandler < handle
         function conn = getConnection(obj, schemaName)
             switch schemaName
                 case 'rfData'
-                    if isempty(obj.ConnRFData)
+                    if isempty(obj.ConnRFData) || ~isvalid(obj.ConnRFData)
                         obj.ConnRFData = openConnection(obj, obj.Settings.dbSchemas.rfData);
                     end
                     conn = obj.ConnRFData;
                 case 'bpData'
-                    if isempty(obj.ConnBPData)
+                    if isempty(obj.ConnBPData) || ~isvalid(obj.ConnBPData)
                         obj.ConnBPData = openConnection(obj, obj.Settings.dbSchemas.bpData);
                     end
                     conn = obj.ConnBPData;
                 case 'smData'
-                    if isempty(obj.ConnSMData)
+                    if isempty(obj.ConnSMData) || ~isvalid(obj.ConnSMData)
                         obj.ConnSMData = openConnection(obj, obj.Settings.dbSchemas.smData);
                     end
                     conn = obj.ConnSMData;
@@ -872,20 +855,25 @@ classdef DBHandler < handle
                 'Server', obj.Settings.host, ...
                 'PortNumber', obj.Settings.dbPort, ...
                 'DatabaseName', dbName);
-
-            obj.Status = true;
         end
 
         %-----------------------------------------------------------------%
         function output = executeFetch(obj, schemaName, sqlQuery, requestType, filters)
-            conn = getConnection(obj, schemaName);
             try
+                conn = getConnection(obj, schemaName);
                 output = fetch(conn, sqlQuery);
-                if nargin >= 5 && ~isempty(requestType) && ~isempty(output)
+
+                if nargin == 5 && ~isempty(requestType) && ~isempty(output)
                     saveSessionCache(obj, requestType, filters, output);
                 end
-            catch
-                output = table();
+
+            catch ME
+                % Caso ocorra um erro de conexão com o banco, MATLAB retorna
+                % erro com identificador 'database:mysql:connection:DriverError'.
+                % Ao detectar esse erro, o objeto de conexão é deletado para forçar a
+                % reconexão na próxima tentativa.
+                delete(conn);
+                rethrow(ME);
             end
         end
 

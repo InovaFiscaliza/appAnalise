@@ -354,22 +354,12 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
 
             % Tentativa de contornar comportamento inesperado da interação
             % com o plot, na inicialização do módulo.
-            hPlotButtonDown = findStationHandles(app);
-            if ~isempty(hPlotButtonDown)
-                buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, hPlotButtonDown, 'UniformOutput', false);
-                set(hPlotButtonDown, 'ButtonDownFcn', [])
-            end
-            axesInteractions = app.UIAxes.Interactions;
-            app.UIAxes.Interactions = [];
-            disableDefaultInteractivity(app.UIAxes)
+            axesHandle  = app.UIAxes;
+            plotHandles = findStationHandles(app);
 
+            [axesInteractions, buttonDownFcn] = plot.axes.Interactivity.setGeoAxesInteraction('DisableDefaultInteractivity', axesHandle, plotHandles);
             pause(.100)
-
-            if ~isempty(hPlotButtonDown)
-                arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), hPlotButtonDown, buttonDownFcn)
-            end
-            app.UIAxes.Interactions = axesInteractions;
-            enableDefaultInteractivity(app.UIAxes)
+            plot.axes.Interactivity.setGeoAxesInteraction('EnableDefaultInteractivity', axesHandle, plotHandles, axesInteractions, buttonDownFcn);
         end
 
         %-----------------------------------------------------------------%

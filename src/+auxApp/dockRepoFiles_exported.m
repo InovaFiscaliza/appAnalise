@@ -47,6 +47,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         mainApp
         callingApp
         jsBackDoor
+        progressDialog
     end
 
 
@@ -59,20 +60,20 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     end
 
 
-    properties (Access = private, Constant)
-        %-----------------------------------------------------------------%
-        TABLE_RESULTS = table( ...
-            'Size', [0, 8], ...
-            'VariableTypes', {'string', 'string', 'string', 'cell', 'datetime', 'datetime', 'double', 'string'}, ...
-            'VariableNames', {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'TAMANHO', 'ARQUIVO'} ...
-        )
-
-        TABLE_FILE_DETAILS = table( ...
-            'Size', [0, 4], ...
-            'VariableTypes', {'string', 'string', 'string', 'string'}, ...
-            'VariableNames', {'FAIXA (MHz)', 'INÍCIO', 'FIM', 'DESCRIÇÃO'} ...
-        );
-    end
+    % properties (Access = private, Constant)
+    %     %-----------------------------------------------------------------%
+    %     TABLE_RESULTS = table( ...
+    %         'Size', [0, 9], ...
+    %         'VariableTypes', {'string', 'string', 'string', 'cell', 'datetime', 'datetime', 'uint32', 'string', 'cell'}, ...
+    %         'VariableNames', {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'ID', 'ARQUIVO', 'TAMANHO'} ...
+    %     )
+    % 
+    %     TABLE_FILE_DETAILS = table( ...
+    %         'Size', [0, 4], ...
+    %         'VariableTypes', {'cell', 'datetime', 'datetime', 'string'}, ...
+    %         'VariableNames', {'FAIXA (MHz)', 'INÍCIO', 'FIM', 'DESCRIÇÃO'} ...
+    %     );
+    % end
 
     
     methods (Access = private)
@@ -80,13 +81,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         function applyJSCustomization(app)
             appName = class(app);
             elToModify = {
-                app.State
+                app.State;
+                app.DownloadButton
             };
             ui.CustomizationBase.getElementsDataTag(elToModify);
 
             try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                    struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')) ...
+                    struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                    struct('appName', appName, 'dataTag', app.DownloadButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Download arquivos', 'zIndex', 901)) ... 
                 });
             catch
             end
@@ -168,7 +171,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             arguments
                 app 
                 type {mustBeMember(type, {'files', 'fileDetails'})}
-                resultData 
+                resultData
             end
 
             switch type
@@ -176,37 +179,82 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                     resultData.("LIMITES (MHz)") = arrayfun(@(x, y) sprintf('%.3f – %.3f', x, y), resultData.("NU_FREQ_START"), resultData.("NU_FREQ_END"), 'UniformOutput', false);
                     resultData.("DT_TIME_START").Format = 'dd/MM/yyyy';
                     resultData.("DT_TIME_END").Format = 'dd/MM/yyyy';
-                    resultData.("ARQUIVO") = fullfile(extractAfter(resultData.("NA_PATH"), app.mainApp.General.context.REPOSFI.containerPathPrefixToRemove), resultData.("NA_FILE"));
-
-                    resultData = renamevars(resultData(:, {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'LIMITES (MHz)', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'VL_FILE_SIZE_KB', 'ARQUIVO'}), ...
-                        {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'VL_FILE_SIZE_KB'}, ...
-                        {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'INÍCIO', 'FIM', 'TAMANHO'} ...
+                    resultData.("VL_FILE_SIZE_KB") = arrayfun(@(x) textFormatGUI.bytes2human(x), 1024*resultData.("VL_FILE_SIZE_KB"), "UniformOutput", false);
+                    resultData.("ARQUIVO") = extractAfter(resultData.("NA_PATH"), app.mainApp.General.context.REPOSFI.containerPathPrefixToRemove) + "/" + resultData.("NA_FILE");
+                    resultData = convertvars(resultData, 'ID_FILE', 'uint32');
+                    resultData = renamevars(resultData(:, {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'LIMITES (MHz)', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'ID_FILE', 'ARQUIVO', 'VL_FILE_SIZE_KB'}), ...
+                        {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'ID_FILE', 'VL_FILE_SIZE_KB'}, ...
+                        {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'INÍCIO', 'FIM', 'ID', 'TAMANHO'} ...
                     );
 
-                    app.UITable1.Data = resultData;
+                    set(app.UITable1, 'Data', resultData, 'Selection', [])
+                    set(app.UITable2, 'Data', [], 'Enable', 'off')
+                    app.UITable2Warning.Visible = 'on';
 
                 case 'fileDetails'
-
-
-
-
-
+                    resultData = sortrows(resultData, {'NU_FREQ_START', 'NU_FREQ_END'});
+                    resultData.("FAIXA (MHz)") = arrayfun(@(x, y) sprintf('%.3f – %.3f', x, y), resultData.("NU_FREQ_START"), resultData.("NU_FREQ_END"), 'UniformOutput', false);
+                    resultData.("DT_TIME_START").Format = 'dd/MM/yyyy HH:mm:ss';
+                    resultData.("DT_TIME_END").Format = 'dd/MM/yyyy HH:mm:ss';
+                    resultData.("NA_DESCRIPTION")(resultData.("NA_DESCRIPTION") == "" | ismissing(resultData.("NA_DESCRIPTION"))) = "-";
+                    resultData = renamevars(resultData(:, {'FAIXA (MHz)', 'DT_TIME_START', 'DT_TIME_END', 'NA_DESCRIPTION'}), ...
+                        {'DT_TIME_START', 'DT_TIME_END', 'NA_DESCRIPTION'}, ...
+                        {'INÍCIO', 'FIM', 'DESCRIÇÃO'} ...
+                    );
+    
+                    set(app.UITable2, 'Data', resultData, 'Selection', [], 'Enable', 'on')
+                    app.UITable2Warning.Visible = 'off';
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function refreshTableFootnote(app, currentFilter)
+            description = {};
+            if ~isempty(currentFilter.stateCode)
+                description{end+1} = sprintf('UF: <b>%s</b>', currentFilter.stateCode);
+            end
+
+            if ~isempty(currentFilter.location)
+                description{end+1} = sprintf('Localidade: <b>%s</b>', currentFilter.location);
+            end
+
+            if ~isempty(currentFilter.receiver)
+                description{end+1} = sprintf('Sensor:<b>%s</b>', currentFilter.receiver);
+            end
+
+            if ~isnat(currentFilter.startDate) && ~isnat(currentFilter.endDate)
+                description{end+1} = sprintf('Observação: <b>%s a %s</b>', string(currentFilter.startDate), string(currentFilter.endDate));
+            end
+
+            if ~isnan(currentFilter.freqStart) && ~isnan(currentFilter.freqEnd)
+                description{end+1} = sprintf('Faixa: <b>%.3f – %.3f MHz</b>', currentFilter.freqStart, currentFilter.freqEnd);
+            end
+
+            app.FilterDescription.Text = sprintf('%s \n%d arquivos ', strjoin(description, ', '), height(app.UITable1.Data));
+            app.FilterDescriptionIcon.Visible = 'on';
         end
 
         %-----------------------------------------------------------------%
         function [currentFilter, warningMsg] = getCurrentFilter(app)
             currentFilter = [];
             warningMsg = '';
-            
+
+            if isempty(app.State.Value) && isempty(app.Location.Value) && isempty(app.Receiver.Value)
+                warningMsg = 'Selecione ao menos um dos filtros primários (UF, localidade ou sensor).';
+                return
+            end
+
             issues = {};
-            if (isnat(app.PeriodBegin.Value)  && ~isnat(app.PeriodEnd.Value)) || ...
-               (~isnat(app.PeriodBegin.Value) &&  isnat(app.PeriodEnd.Value)) || ...
-               (~isnat(app.PeriodBegin.Value) && ~isnat(app.PeriodEnd.Value) && app.PeriodEnd.Value < app.PeriodBegin.Value)
+
+            isPeriodBeginNaT = isnat(app.PeriodBegin.Value);
+            isPeriodEndNaT   = isnat(app.PeriodEnd.Value);
+            if xor(isPeriodBeginNaT, isPeriodEndNaT) || (~isPeriodBeginNaT && ~isPeriodEndNaT && app.PeriodEnd.Value < app.PeriodBegin.Value)
                 issues{end+1} = 'período de observação';
             end
 
-            if isnan(app.FreqStop.Value - app.FreqStart.Value) || (~isnan(app.FreqStart.Value) && ~isnan(app.FreqStop.Value) && app.FreqStop.Value <= app.FreqStart.Value)
+            isFreqStartEmpty = isempty(app.FreqStart.Value);
+            isFreqStopEmpty  = isempty(app.FreqStop.Value);
+            if xor(isFreqStartEmpty, isFreqStopEmpty) || (~isFreqStartEmpty && ~isFreqStopEmpty && app.FreqStop.Value <= app.FreqStart.Value)
                 issues{end+1} = 'faixa de frequência';
             end
 
@@ -217,6 +265,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             currentFilter = struct( ...
                 'stateCode', app.State.Value, ...
+                'location', app.Location.Value, ...
+                'receiver', app.Receiver.Value, ...
                 'districtId', getParameterId(app, 'location'), ...
                 'siteId', NaN, ...
                 'equipmentId', getParameterId(app, 'receiver'), ...
@@ -225,13 +275,13 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 'freqStart', NaN, ...
                 'freqEnd', NaN, ...
                 'description', strtrim(app.Description.Value) ...
-                );
+            );
 
-            if ~isempty(app.FreqStart.Value)
+            if ~isFreqStartEmpty
                 currentFilter.freqStart = round(app.FreqStart.Value, 3);
             end
 
-            if ~isempty(app.FreqStop.Value)
+            if ~isFreqStopEmpty
                 currentFilter.freqEnd = round(app.FreqStop.Value, 3);
             end
         end
@@ -275,143 +325,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                         end
                     end
             end
-        end
-
-
-        %-----------------------------------------------------------------%
-        % Formatação da tabela para exibição em tela
-        %-----------------------------------------------------------------%
-        function refreshTableFootnote(app)
-            app.FilterDescription.Text = sprintf('%d resultado(s)', height(app.UITable1.Data));
-        end
-
-        %-----------------------------------------------------------------%
-        function toggleSelectedFileDetail(app)
-            % Abre ou recolhe o detalhe do arquivo atualmente apontado pela seleção.
-            %
-            % Esse helper concentra a ação do botão de detalhe: valida a linha ativa,
-            % resolve o identificador do arquivo e decide entre fechar o painel já
-            % aberto ou consultar novamente os espectros do item selecionado.
-            rowIndex = getSelectedDetailRow(app);
-            rawRows = app.UITable1.UserData;
-        
-            % Interrompe o fluxo quando não existir uma linha válida na tabela
-            % principal para servir de origem à abertura do detalhe.
-            if isnan(rowIndex) || ~istable(rawRows) || isempty(rawRows) || (rowIndex < 1) || (rowIndex > height(rawRows))
-                ui.Dialog(app.UIFigure, 'warning', 'Selecione ao menos um arquivo para visualizar os detalhes.');
-                return
-            end
-        
-            % Traduz o identificador bruto do arquivo para o formato numérico usado
-            % pela consulta de espectros no repositório.
-            fileId = str2double(formatIdValue(app, rawRows.ID_FILE(rowIndex)));
-            if isnan(fileId)
-                ui.Dialog(app.UIFigure, 'warning', 'Não foi possível identificar o arquivo selecionado.');
-                return
-            end
-        
-            % Se o painel já estiver mostrando exatamente esse mesmo arquivo, a ação
-            % passa a ser de recolhimento para funcionar como toggle visual.
-            if app.expandedFileId == fileId
-                resetDetailState(app, false)
-                return
-            end
-        
-            % Fora desse caso, segue para a carga do detalhe do arquivo escolhido.
-            openFileDetail(app, rowIndex, fileId)
-        end
-        
-        %-----------------------------------------------------------------%
-        function openFileDetail(app, rowIndex, fileId)
-            % Consulta os espectros do arquivo selecionado e publica o detalhe no dock.
-            %
-            % Esse helper materializa a expansão do painel inferior: reaproveita os
-            % filtros correntes, busca os espectros associados ao arquivo em foco e
-            % sincroniza tabela, resumo e estado visual do detalhe aberto.
-            [currentFilter, warningMsg] = getCurrentFilter(app);
-            if ~isempty(warningMsg)
-                ui.Dialog(app.UIFigure, 'warning', warningMsg);
-                return
-            end
-
-            rawRows = app.UITable1.UserData;
-
-            app.UITable2.Data(:, :) = [];
-            app.expandedFileId = NaN;
-        
-            try
-                % Executa a consulta detalhada já respeitando o mesmo recorte atual
-                % aplicado à busca principal do dock.
-                detailRows = app.dbHandlerObj.getSpectraByFileId(fileId, currentFilter);
-                
-                if ~istable(detailRows) || isempty(detailRows)
-                    error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
-                end
-
-                detailRows = sortrows(detailRows, 'NU_FREQ_START');
-                
-                detailRows.ID_SPECTRUM = string(detailRows.ID_SPECTRUM);
-                detailRows.NA_DESCRIPTION(detailRows.NA_DESCRIPTION == "" | ismissing(detailRows.NA_DESCRIPTION)) = "-";
-                detailRows.LOCALIDADE = detailRows.LOCALITY_LABEL + " (" + detailRows.COUNTY_NAME + "/" + detailRows.STATE_CODE + ")";
-                detailRows.FAIXA = string(detailRows.NU_FREQ_START) + " - " + string(detailRows.NU_FREQ_END);                
-                detailRows.INICIO = string(detailRows.DT_TIME_START);
-                detailRows.INICIO(ismissing(detailRows.INICIO)) = "-";
-                detailRows.FIM = string(detailRows.DT_TIME_END);
-                detailRows.FIM(ismissing(detailRows.FIM)) = "-";
-
-                app.UITable2.Data(1:height(detailRows), :) = detailRows(:, {'ID_SPECTRUM', 'NA_DESCRIPTION', 'LOCALIDADE', 'FAIXA', 'INICIO', 'FIM'});
-                app.expandedFileId = fileId;
-                
-            catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
-            end
-        end
-        
-        %-----------------------------------------------------------------%
-        function restoreSearchPageState(app)
-            % Esse helper recoloca a interface no ponto neutro entre uma busca e outra:
-            % limpa o resultado anterior, zera os acumuladores visuais e recolhe o
-            % detalhe para evitar que a UI mantenha seleções ou dados obsoletos.
-            app.UITable1.Data(:,:) = [];
-        
-            % Zera o total agregado para manter o rodapé coerente com a ausência
-            % momentânea de resultados após a mudança de filtro.
-            app.totalResults = 0;
-            refreshTableFootnote(app)
-        
-            % Limpa também o estado do painel inferior e a seleção associada ao
-            % resultado anterior, que deixa de ser válido após o recálculo.
-            resetDetailState(app)
-        end
-
-        %-----------------------------------------------------------------%
-        function output = buildRepositoryFilePath(app, row)
-            % Monta o caminho completo do arquivo no repositório a partir da pasta e do nome.
-            %
-            % Esse helper é usado no fluxo de download e visualização para compor o
-            % srcPath que alimenta copyfile, combinando o prefixo fixo do servidor
-            % com o diretório relativo armazenado no banco e o nome do arquivo.
-
-            % Extrai a subpasta relativa registrada no banco antes de tentar
-            % compor o caminho completo no servidor de repositório.
-            folder = char(displayText(app, row.NA_PATH, ''));
-
-            % Sem um caminho de pasta válido não é possível localizar o arquivo no
-            % sistema de arquivos, então devolve vazio como sinal de metadado ausente.
-            if isempty(folder)
-                output = '';
-                return
-            end
-
-            % O RF.Fusion armazena o caminho com o prefixo do ponto de montagem
-            % do container Linux (/mnt/reposfi). Esse segmento deve ser removido
-            % antes de compor o caminho UNC real no servidor de repositório.
-            folder = regexprep(folder, '^[/\\]mnt[/\\]reposfi', '', 'ignorecase');
-
-            % Com a pasta disponível, monta o caminho completo combinando o prefixo
-            % fixo do servidor com a subpasta e o nome de arquivo normalizado.
-            fileName = buildRepositoryFileName(app, row);
-            output = fullfile(class.Constants.repoSFIRoot, folder, char(fileName));
         end
     end
 
@@ -479,9 +392,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
                 case app.Location
                     app.Receiver.Value = '';
+                    applyFilter(app);
 
                 case app.Receiver
                     app.Location.Value = '';
+                    applyFilter(app);
 
                 case {app.FreqStart, app.FreqStop}
                     event.Source.Value = round(event.Source.Value, 3);
@@ -503,152 +418,139 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 return
             end
 
+            app.progressDialog.Visible = 'visible';
+
             try
                 pageSizeTotal = getSpectrumFileDataCount(app.dbHandlerObj, currentFilter);
                 currentFilter.page = 1;
                 currentFilter.pageSize = max(pageSizeTotal, 1);
         
                 resultData = getSpectrumFileData(app.dbHandlerObj, currentFilter);
+
+                if ~istable(resultData) || isempty(resultData)
+                    error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
+                end
+
                 refreshTable(app, 'files', resultData)
+                refreshTableFootnote(app, currentFilter)
 
             catch ME
-                app.UITable1.Data(:,:) = [];
-                ui.Dialog(app.UIFigure, 'error', sprintf('Erro ao consultar arquivos do repositório:\n%s', ME.message));
+                ui.Dialog(app.UIFigure, 'error', ME.message);
             end
 
-            refreshTableFootnote(app)
+            app.progressDialog.Visible = 'hidden';
 
         end
 
-        % Cell selection callback: UITable1
+        % Selection changed function: UITable1
         function onTableSelectionValueChanged(app, event)
             
-            rowIndices = [];
-            selectedFileRows = table();
-            rawRows = app.UITable1.UserData;
+            selectedRows = app.UITable1.Selection;
+            
+            if ~isempty(selectedRows) && isscalar(selectedRows)
+                fileId = app.UITable1.Data.ID(selectedRows);
 
-            if ~isempty(event.Indices)
-                rowIndices = unique(event.Indices(:, 1), 'stable')';
-                app.selectedDetailRow = event.Indices(end, 1);
+                app.progressDialog.Visible = 'visible';
 
-                if istable(rawRows) && ~isempty(rawRows)
-                    validMask = (rowIndices >= 1) & (rowIndices <= height(rawRows));
-                    rowIndices = rowIndices(validMask);
-
-                    if ~isempty(rowIndices)
-                        selectedFileRows = rawRows(rowIndices, :);
+                try
+                    resultData = getSpectraByFileId(app.dbHandlerObj, fileId);
+                    
+                    if ~istable(resultData) || isempty(resultData)
+                        error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
                     end
-                end
-            else
-                app.selectedDetailRow = NaN;
-            end
-        
-            app.selectedRows = rowIndices;
-            app.selectedRowData = selectedFileRows;
 
-            if isscalar(app.selectedRows)
-                toggleSelectedFileDetail(app)
+                    refreshTable(app, 'fileDetails', resultData)
+                    
+                catch ME
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
+                    
+                    app.UITable1.Selection = [];
+                    onTableSelectionValueChanged(app)
+                end
+
+                app.progressDialog.Visible = 'hidden';
+
             else
-                app.UITable2.Data(:, :) = [];
-                app.expandedFileId = NaN;
+                set(app.UITable2, 'Data', [], 'Enable', 'off')
+                app.UITable2Warning.Visible = 'on';
             end
-            app.SelectedRowsLabel.Text = sprintf('%d arquivo(s) selecionado(s)', numel(app.selectedRows));
             
         end
 
         % Image clicked function: DownloadButton
         function onToolbarButtonClicked(app, event)
             
-            selectedFileRows = app.selectedRowData;
-            selectedCount = height(selectedFileRows);
-
-            if selectedCount == 0
+            selectedRows = app.UITable1.Selection;
+            numSelectedRows = numel(selectedRows);
+            
+            if isempty(selectedRows)
                 ui.Dialog(app.UIFigure, 'warning', 'Selecione ao menos um arquivo para continuar.');
                 return
             end
 
-            questionMsg = sprintf('O que você quer fazer com os %d arquivo(s) selecionado(s)?', selectedCount);
-            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Download', 'Visualizar', 'Cancelar'}, 1, 3);
+            questionMsg = sprintf('O que deseja fazer com o(s) %d arquivo(s) selecionado(s)?', numSelectedRows);
+            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Apenas download', 'Visualizar', 'Cancelar'}, 1, 3);
             if userSelection == "Cancelar"
                 return
             end
 
-            if userSelection == "Download"
-                destFolder = app.mainApp.General.fileFolder.userPath;
+            if userSelection == "Apenas download"
+                appName = class.Constants.appName;
+                [~, zipFileBase] = appEngine.util.DefaultFileName('', [appName '_RepoSFI'], -1);
+                zipFile = ui.Dialog(app.UIFigure, 'uiputfile', '', {'*.zip', [appName ' (*.zip)']}, fullfile(app.mainApp.General.fileFolder.userPath, [zipFileBase '.zip']));
+                if isempty(zipFile)
+                    return
+                end                 
+            end
 
-                d = ui.Dialog(app.UIFigure, 'progressdlg', sprintf('Copiando %d arquivo(s) para:\n%s', selectedCount, destFolder));
-                
-                successCount = 0;
-                errorList    = {};
+            d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento...', 'Cancelable', 'on');
 
-                for ii = 1:selectedCount
-                    fileRow  = selectedFileRows(ii, :);
-                    srcPath  = buildRepositoryFilePath(app, fileRow);
-                    fileName = buildRepositoryFileName(app, fileRow);
+            zipFileList = {};
+            errorMsg = {};
 
-                    if isempty(srcPath)
-                        errorList{end+1} = sprintf('Arquivo %d: metadados de caminho ausentes no banco de dados.', ii);
-                        continue
-                    end
+            httpBaseUrl = sprintf('%s://%s:%d%s', app.mainApp.General.context.REPOSFI.protocol, app.mainApp.General.context.REPOSFI.host, app.mainApp.General.context.REPOSFI.httpPort, app.mainApp.General.context.REPOSFI.httpBasePath);
 
-                    destPath = fullfile(destFolder, char(fileName));
-                    [status, msg] = copyfile(char(srcPath), destPath);
-
-                    if status
-                        successCount = successCount + 1;
-                    else
-                        errorList{end+1} = sprintf('%s: %s', fileName, msg);
-                    end
+            for ii = 1:numSelectedRows
+                if d.CancelRequested
+                    break
                 end
 
-                if isempty(errorList)
-                    ui.Dialog(app.UIFigure, 'success', sprintf('%d arquivo(s) copiado(s) com sucesso para:\n%s', successCount, destFolder));
-                elseif successCount > 0
-                    ui.Dialog(app.UIFigure, 'warning', sprintf('%d de %d arquivo(s) copiado(s). Erros:\n%s', successCount, selectedCount, strjoin(errorList, newline)));
-                else
-                    ui.Dialog(app.UIFigure, 'error', sprintf('Nenhum arquivo copiado. Erros:\n%s', strjoin(errorList, newline)));
+                d.Message = sprintf('Em andamento o download do arquivo %d de %d.', ii, numSelectedRows);
+
+                originFilePath = char(app.UITable1.Data.("ARQUIVO")(selectedRows(ii)));
+                [~, fileName, fileExt] = fileparts(originFilePath);
+                fileName = [fileName, fileExt];
+
+                httpFileUrl = sprintf('%s%s', httpBaseUrl, originFilePath);
+                destFilePath = fullfile(app.mainApp.General.fileFolder.tempPath, fileName);
+
+                if isfile(destFilePath)
+                    zipFileList{end+1} = destFilePath;
+                    continue
                 end
 
-            else  % "Visualizar"
-                tempFolder = app.mainApp.General.fileFolder.tempPath;
-
-                d = ui.Dialog(app.UIFigure, 'progressdlg', sprintf('Preparando %d arquivo(s) para visualização...', selectedCount));
-
-                copiedPaths = {};
-                errorList   = {};
-
-                for ii = 1:selectedCount
-                    fileRow  = selectedFileRows(ii, :);
-                    srcPath  = buildRepositoryFilePath(app, fileRow);
-                    fileName = buildRepositoryFileName(app, fileRow);
-
-                    if isempty(srcPath)
-                        errorList{end+1} = sprintf('Arquivo %d: metadados de caminho ausentes no banco de dados.', ii);
-                        continue
-                    end
-
-                    destPath = fullfile(tempFolder, char(fileName));
-                    [status, msg] = copyfile(char(srcPath), destPath);
-
-                    if status
-                        copiedPaths{end+1} = destPath;
-                    else
-                        errorList{end+1} = sprintf('%s: %s', fileName, msg);
-                    end
-                end
-
-                if ~isempty(errorList)
-                    ui.Dialog(app.UIFigure, 'warning', sprintf('Alguns arquivos não puderam ser preparados:\n%s', strjoin(errorList, newline)));
-                end
-
-                if ~isempty(copiedPaths)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onImportFilesFromPaths', copiedPaths)
+                try
+                    zipFileList{end+1} = websave(destFilePath, httpFileUrl);
+                catch ME
+                    errorMsg{end+1} = sprintf('%s: %s', fileName, ME.message);
                 end
             end
 
-            if exist('d', 'var')
-                delete(d)
+            if ~isempty(errorMsg)
+                ui.Dialog(app.UIFigure, 'error', sprintf('Evidenciado <font style="color: red;"><b>ERRO</b></font> na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', textFormatGUI.cellstr2Bullets(errorMsg)))
             end
+
+            if ~isempty(zipFileList)
+                switch userSelection 
+                    case 'Apenas download'
+                        zip(zipFile, zipFileList)
+
+                    otherwise % 'Visualizar'
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onImportFilesFromPaths', zipFileList);
+                end
+            end
+
+            delete(d)
 
         end
     end
@@ -860,12 +762,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create UITable1
             app.UITable1 = uitable(app.GridLayout);
-            app.UITable1.ColumnName = {'REGIÃO'; 'SENSOR'; 'LIMITES (MHz)'; 'QTD. FLUXOS'; 'INÍCIO'; 'FIM'; 'TAMANHO'; 'ARQUIVO'};
-            app.UITable1.ColumnWidth = {130, 130, 130, 90, 90, 90, 90, 'auto'};
+            app.UITable1.ColumnName = {'REGIÃO'; 'SENSOR'; 'LIMITES (MHz)'; 'QTD. FLUXOS'; 'INÍCIO'; 'FIM'; 'ID'; 'ARQUIVO'; 'TAMANHO'};
+            app.UITable1.ColumnWidth = {130, 130, 130, 90, 90, 90, 90, 'auto', 90};
             app.UITable1.RowName = {};
             app.UITable1.ColumnSortable = [true true false false true true false false];
             app.UITable1.SelectionType = 'row';
-            app.UITable1.CellSelectionCallback = createCallbackFcn(app, @onTableSelectionValueChanged, true);
+            app.UITable1.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionValueChanged, true);
             app.UITable1.Layout.Row = 3;
             app.UITable1.Layout.Column = [1 3];
             app.UITable1.FontSize = 11;
@@ -891,8 +793,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2.ColumnName = {'FAIXA (MHz)'; 'INÍCIO'; 'FIM'; 'DESCRIÇÃO'};
             app.UITable2.ColumnWidth = {130, 130, 130, 'auto'};
             app.UITable2.RowName = {};
+            app.UITable2.ColumnSortable = true;
             app.UITable2.SelectionType = 'row';
-            app.UITable2.Multiselect = 'off';
             app.UITable2.Enable = 'off';
             app.UITable2.Layout.Row = 7;
             app.UITable2.Layout.Column = [1 3];
@@ -913,7 +815,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.DownloadButton = uiimage(app.GridLayout);
             app.DownloadButton.ScaleMethod = 'none';
             app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
-            app.DownloadButton.Enable = 'off';
             app.DownloadButton.Layout.Row = 9;
             app.DownloadButton.Layout.Column = 1;
             app.DownloadButton.ImageSource = 'Import_16.png';
@@ -922,14 +823,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.FilterDescription = uilabel(app.GridLayout);
             app.FilterDescription.HorizontalAlignment = 'right';
             app.FilterDescription.WordWrap = 'on';
-            app.FilterDescription.FontSize = 11;
+            app.FilterDescription.FontSize = 10;
             app.FilterDescription.Layout.Row = 9;
             app.FilterDescription.Layout.Column = 2;
+            app.FilterDescription.Interpreter = 'html';
             app.FilterDescription.Text = '';
 
             % Create FilterDescriptionIcon
             app.FilterDescriptionIcon = uiimage(app.GridLayout);
             app.FilterDescriptionIcon.ScaleMethod = 'none';
+            app.FilterDescriptionIcon.Visible = 'off';
             app.FilterDescriptionIcon.Layout.Row = 9;
             app.FilterDescriptionIcon.Layout.Column = 3;
             app.FilterDescriptionIcon.ImageSource = 'filter.svg';
