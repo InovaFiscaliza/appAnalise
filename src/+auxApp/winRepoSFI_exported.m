@@ -171,7 +171,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
             warningMsg = '';
-            if isempty(app.mainApp.dbHandlerObj) || ~isvalid(app.mainApp.dbHandlerObj) || ~app.mainApp.dbHandlerObj.Status
+            if isempty(app.mainApp.dbHandlerObj) || ~isvalid(app.mainApp.dbHandlerObj)
                 [app.mainApp.dbHandlerObj, warningMsg] = util.DBHandler(app.mainApp.General);
             end
 
