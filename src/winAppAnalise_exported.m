@@ -439,6 +439,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', eventName, varargin{:})
 
                                     case 'onImportFilesFromPaths'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
                                         filePaths = varargin{1};
 
                                         navigateToTab(app, app.Tab1Button)
@@ -563,6 +569,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
     methods (Access = public)
         %-----------------------------------------------------------------%
         function navigateToTab(app, clickedButton)
+            clickedButton.Value = true;
             onTabNavigatorButtonPushed(app, struct('Source', clickedButton, 'PreviousValue', false))
         end
 

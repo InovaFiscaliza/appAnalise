@@ -6,6 +6,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         GridLayout             matlab.ui.container.GridLayout
         FilterDescriptionIcon  matlab.ui.control.Image
         FilterDescription      matlab.ui.control.Label
+        FileDetailsButton      matlab.ui.control.Image
         DownloadButton         matlab.ui.control.Image
         UITable2Warning        matlab.ui.control.Label
         UITable2               matlab.ui.control.Table
@@ -82,14 +83,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             appName = class(app);
             elToModify = {
                 app.State;
-                app.DownloadButton
+                app.DownloadButton;
+                app.FileDetailsButton
             };
             ui.CustomizationBase.getElementsDataTag(elToModify);
 
             try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                     struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
-                    struct('appName', appName, 'dataTag', app.DownloadButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Download arquivos', 'zIndex', 901)) ... 
+                    struct('appName', appName, 'dataTag', app.DownloadButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Download de arquivos', 'zIndex', 901)), ... 
+                    struct('appName', appName, 'dataTag', app.FileDetailsButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Detalhes do arquivo selecionado', 'zIndex', 901)) ... 
                 });
             catch
             end
@@ -106,6 +109,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         function initializeUIComponents(app)
             app.UITable1.RowName = 'numbered';
             app.UITable2.RowName = 'numbered';
+            app.FileDetailsButton.UserData.status = false;
         end
 
         %-----------------------------------------------------------------%
@@ -445,6 +449,10 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         % Selection changed function: UITable1
         function onTableSelectionValueChanged(app, event)
             
+            if ~app.FileDetailsButton.UserData.status
+                return
+            end
+
             selectedRows = app.UITable1.Selection;
             
             if ~isempty(selectedRows) && isscalar(selectedRows)
@@ -478,7 +486,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: DownloadButton
-        function onToolbarButtonClicked(app, event)
+        function onToolbarDownloadButtonClicked(app, event)
             
             selectedRows = app.UITable1.Selection;
             numSelectedRows = numel(selectedRows);
@@ -544,13 +552,29 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 switch userSelection 
                     case 'Apenas download'
                         zip(zipFile, zipFileList)
+                        delete(d)
 
                     otherwise % 'Visualizar'
+                        delete(d)
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onImportFilesFromPaths', zipFileList);
                 end
             end
 
-            delete(d)
+        end
+
+        % Image clicked function: FileDetailsButton
+        function onToolbarFileDetailsButtonClicked(app, event)
+            
+            app.FileDetailsButton.UserData.status = ~app.FileDetailsButton.UserData.status;
+            
+            if app.FileDetailsButton.UserData.status
+                app.UITable2.Visible = 'on';
+                app.GridLayout.RowHeight(5:8) = {17, 5, '.5x', 10};
+                onTableSelectionValueChanged(app)
+            else
+                app.UITable2.Visible = 'off';
+                app.GridLayout.RowHeight(5:8) = {0, 0, 0, 0};
+            end
 
         end
     end
@@ -591,8 +615,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {22, '1x', 22};
-            app.GridLayout.RowHeight = {66, 10, '1x', 10, 17, 5, '0.5x', 10, 22};
+            app.GridLayout.ColumnWidth = {22, 22, '1x', 22};
+            app.GridLayout.RowHeight = {66, 10, '1x', 10, 0, 0, 0, 0, 22};
             app.GridLayout.ColumnSpacing = 5;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
@@ -601,7 +625,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             % Create FilterPanel
             app.FilterPanel = uipanel(app.GridLayout);
             app.FilterPanel.Layout.Row = 1;
-            app.FilterPanel.Layout.Column = [1 3];
+            app.FilterPanel.Layout.Column = [1 4];
 
             % Create FilterGrid
             app.FilterGrid = uigridlayout(app.FilterPanel);
@@ -769,7 +793,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable1.SelectionType = 'row';
             app.UITable1.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionValueChanged, true);
             app.UITable1.Layout.Row = 3;
-            app.UITable1.Layout.Column = [1 3];
+            app.UITable1.Layout.Column = [1 4];
             app.UITable1.FontSize = 11;
 
             % Create UITable2Icon
@@ -785,7 +809,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2Label.VerticalAlignment = 'bottom';
             app.UITable2Label.FontSize = 10;
             app.UITable2Label.Layout.Row = 5;
-            app.UITable2Label.Layout.Column = 2;
+            app.UITable2Label.Layout.Column = 3;
             app.UITable2Label.Text = 'INFORMAÇÕES ACERCA DO REGISTRO SELECIONADO';
 
             % Create UITable2
@@ -796,8 +820,9 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2.ColumnSortable = true;
             app.UITable2.SelectionType = 'row';
             app.UITable2.Enable = 'off';
+            app.UITable2.Visible = 'off';
             app.UITable2.Layout.Row = 7;
-            app.UITable2.Layout.Column = [1 3];
+            app.UITable2.Layout.Column = [1 4];
             app.UITable2.FontSize = 11;
 
             % Create UITable2Warning
@@ -807,17 +832,25 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2Warning.FontWeight = 'bold';
             app.UITable2Warning.FontColor = [0.502 0.502 0.502];
             app.UITable2Warning.Layout.Row = 7;
-            app.UITable2Warning.Layout.Column = [1 3];
+            app.UITable2Warning.Layout.Column = [1 4];
             app.UITable2Warning.Interpreter = 'html';
             app.UITable2Warning.Text = {'❗'; '<p style="font-size: 12px;">SELECIONE UM REGISTRO'; 'NA TABELA ACIMA</p>'};
 
             % Create DownloadButton
             app.DownloadButton = uiimage(app.GridLayout);
             app.DownloadButton.ScaleMethod = 'none';
-            app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarDownloadButtonClicked, true);
             app.DownloadButton.Layout.Row = 9;
             app.DownloadButton.Layout.Column = 1;
             app.DownloadButton.ImageSource = 'Import_16.png';
+
+            % Create FileDetailsButton
+            app.FileDetailsButton = uiimage(app.GridLayout);
+            app.FileDetailsButton.ScaleMethod = 'none';
+            app.FileDetailsButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarFileDetailsButtonClicked, true);
+            app.FileDetailsButton.Layout.Row = 9;
+            app.FileDetailsButton.Layout.Column = 2;
+            app.FileDetailsButton.ImageSource = 'split_top_bottom_24.png';
 
             % Create FilterDescription
             app.FilterDescription = uilabel(app.GridLayout);
@@ -825,7 +858,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.FilterDescription.WordWrap = 'on';
             app.FilterDescription.FontSize = 10;
             app.FilterDescription.Layout.Row = 9;
-            app.FilterDescription.Layout.Column = 2;
+            app.FilterDescription.Layout.Column = 3;
             app.FilterDescription.Interpreter = 'html';
             app.FilterDescription.Text = '';
 
@@ -834,7 +867,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.FilterDescriptionIcon.ScaleMethod = 'none';
             app.FilterDescriptionIcon.Visible = 'off';
             app.FilterDescriptionIcon.Layout.Row = 9;
-            app.FilterDescriptionIcon.Layout.Column = 3;
+            app.FilterDescriptionIcon.Layout.Column = 4;
             app.FilterDescriptionIcon.ImageSource = 'filter.svg';
 
             % Show the figure after all components are created
