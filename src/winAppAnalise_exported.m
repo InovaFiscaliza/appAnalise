@@ -25,6 +25,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         SubTabGroup              matlab.ui.container.TabGroup
         SubTab1                  matlab.ui.container.Tab
         SubGrid1                 matlab.ui.container.GridLayout
+        FileSortMethod           matlab.ui.control.DropDown
+        FileSortMethodIcon       matlab.ui.control.Image
         FileModuleInfo           matlab.ui.control.Label
         SubTab2                  matlab.ui.container.Tab
         SubGrid2                 matlab.ui.container.GridLayout
@@ -383,6 +385,19 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                   'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
 
                                 switch eventName
+                                    % auxApp.dockReportLib
+                                    case {'onProjectRestart', 'onProjectLoad', 'onFinalReportFileChanged'}
+                                        refreshProjectFiles(app, [], 'FileListChanged:ProjectLoad')
+                                        
+                                    case 'onUpdateLastVisitedFolder'
+                                        filePath = varargin{1};
+                                        updateLastVisitedFolder(app, filePath)
+
+                                    case 'onFetchIssueDetails'
+                                        context  = varargin{1};
+                                        reportFetchIssueDetails(app, context, [])
+
+                                    % Outros...
                                     case {'onEmissionAdded', 'onLocationChanged'}
                                         notifySecondaryApps(app, eventName)
 
@@ -841,66 +856,80 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 flowGroupValidIdxs = arrayfun(@(x) find(isvalid(x.Data)), app.metaData, 'UniformOutput', false);
 
-                for ii = 1:numel(app.metaData)
-                    flowValidIdxs = flowGroupValidIdxs{ii};
-
-                    [~, fileName, fileExt] = fileparts(app.metaData(ii).File);
-
-                    fileNode = uitreenode(app.FileTree, ...
-                        'Text', [fileName fileExt], ...
-                        'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', flowValidIdxs), ...
-                        'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
-                    );
-
-                    if all(~[app.metaData(ii).Data(flowValidIdxs).Enable])
-                        filteredNodes = [filteredNodes, fileNode];
-                    end
-
-                    receiverRawList = {app.metaData(ii).Data(flowValidIdxs).Receiver};
-                    receiverList = unique(receiverRawList);
-                    
-                    for jj = 1:numel(receiverList)
-                        receiver = receiverList{jj};
-                        receiverIdxs = flowValidIdxs(strcmp(receiverRawList, receiver));
-
-                        receiverNode = uitreenode(fileNode, ...
-                            'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
-                            'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', receiverIdxs), ...
-                            'Icon', util.layoutTreeNodeIcon(receiver), ...
-                            'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
-                        );
-
-                        if all(~[app.metaData(ii).Data(receiverIdxs).Enable])
-                            filteredNodes = [filteredNodes, receiverNode];
-                        end                        
-
-                        for kk = receiverIdxs
-                            occupancyFlag = '';
-                            if ismember(app.metaData(ii).Data(kk).MetaData.DataType, class.Constants.occDataTypes)
-                                occupancyFlag = ' (Ocupação)';
-                            end
-
-                            gpsStatusIcon = '';
-                            if app.metaData(ii).Data(kk).GPS.Status == 0
-                                gpsStatusIcon = ' ❗';
-                            end
-
-                            dataNode = uitreenode(receiverNode, ...
-                                'Text', sprintf('ID %d: %.3f – %.3f MHz%s%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, occupancyFlag, gpsStatusIcon), ...
-                                'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
+                switch app.FileSortMethod.Value
+                    case 'ARQUIVO'
+                        for ii = 1:numel(app.metaData)
+                            flowValidIdxs = flowGroupValidIdxs{ii};
+        
+                            [~, fileName, fileExt] = fileparts(app.metaData(ii).File);
+        
+                            fileNode = uitreenode(app.FileTree, ...
+                                'Text', [fileName fileExt], ...
+                                'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', flowValidIdxs), ...
                                 'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                             );
-
-                            if ~app.metaData(ii).Data(kk).Enable
-                                filteredNodes = [filteredNodes, dataNode];
+        
+                            if all(~[app.metaData(ii).Data(flowValidIdxs).Enable])
+                                filteredNodes = [filteredNodes, fileNode];
                             end
-
-                            if ~isempty(previousSelectionIdxs) && ismember(ii, previousSelectionIdxs.fileIdx) && ismember(kk, previousSelectionIdxs.flowIdxs)
-                                selectedNodes = [selectedNodes, dataNode];
+        
+                            receiverRawList = {app.metaData(ii).Data(flowValidIdxs).Receiver};
+                            receiverList = unique(receiverRawList);
+                            
+                            for jj = 1:numel(receiverList)
+                                receiver = receiverList{jj};
+                                receiverIdxs = flowValidIdxs(strcmp(receiverRawList, receiver));
+        
+                                receiverNode = uitreenode(fileNode, ...
+                                    'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
+                                    'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', receiverIdxs), ...
+                                    'Icon', util.layoutTreeNodeIcon(receiver), ...
+                                    'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                );
+        
+                                if all(~[app.metaData(ii).Data(receiverIdxs).Enable])
+                                    filteredNodes = [filteredNodes, receiverNode];
+                                end                        
+        
+                                for kk = receiverIdxs
+                                    occupancyFlag = '';
+                                    if ismember(app.metaData(ii).Data(kk).MetaData.DataType, class.Constants.occDataTypes)
+                                        occupancyFlag = ' (Ocupação)';
+                                    end
+        
+                                    gpsStatusIcon = '';
+                                    if app.metaData(ii).Data(kk).GPS.Status == 0
+                                        gpsStatusIcon = ' ❗';
+                                    end
+        
+                                    dataNode = uitreenode(receiverNode, ...
+                                        'Text', sprintf('ID %d: %.3f – %.3f MHz%s%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, occupancyFlag, gpsStatusIcon), ...
+                                        'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
+                                        'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                    );
+        
+                                    if ~app.metaData(ii).Data(kk).Enable
+                                        filteredNodes = [filteredNodes, dataNode];
+                                    end
+        
+                                    if ~isempty(previousSelectionIdxs) && ismember(ii, previousSelectionIdxs.fileIdx) && ismember(kk, previousSelectionIdxs.flowIdxs)
+                                        selectedNodes = [selectedNodes, dataNode];
+                                    end
+                                end
                             end
                         end
-                    end
+
+                    otherwise % 'SENSOR'
+                        receiverList = arrayfun(@(x) {x.Data.Receiver}, app.metaData, 'UniformOutput', false);
+                        receivers = unique(horzcat(receiverList{:}));
+
+                        for ii = 1:numel(receivers)
+
+
+
+                        end
                 end
+
                 expand(app.FileTree, 'all')
 
                 if ~isempty(filteredNodes)
@@ -1634,6 +1663,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Value changed function: FileSortMethod
+        function FileSortMethodValueChanged(app, event)
+            
+            buildFileTree(app)
+
+        end
     end
 
     % Component initialization
@@ -1735,8 +1771,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create SubGrid1
             app.SubGrid1 = uigridlayout(app.SubTab1);
-            app.SubGrid1.ColumnWidth = {'1x'};
-            app.SubGrid1.RowHeight = {'1x'};
+            app.SubGrid1.ColumnWidth = {22, 150, '1x'};
+            app.SubGrid1.RowHeight = {22, 22};
+            app.SubGrid1.ColumnSpacing = 5;
+            app.SubGrid1.RowSpacing = 5;
             app.SubGrid1.BackgroundColor = [0.9804 0.9804 0.9804];
 
             % Create FileModuleInfo
@@ -1746,8 +1784,25 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileModuleInfo.FontSize = 11;
             app.FileModuleInfo.FontColor = [0.149 0.149 0.149];
             app.FileModuleInfo.Layout.Row = 1;
-            app.FileModuleInfo.Layout.Column = 1;
-            app.FileModuleInfo.Text = 'Este aplicativo permite a leitura de arquivos gerados em monitorações do espectro de radiofrequências usando o appColeta, Logger, Argus e CelPlan, organizando as informações por faixa de frequência. Também realiza detecção e classificação de emissões, comparando com informações constantes no RFDataHub. E, por fim, possibilita anotação dos dados e geração de relatório.';
+            app.FileModuleInfo.Layout.Column = [1 3];
+            app.FileModuleInfo.Text = 'Este aplicativo permite a leitura de arquivos gerados em monitorações do espectro de radiofrequências e a sua análise.';
+
+            % Create FileSortMethodIcon
+            app.FileSortMethodIcon = uiimage(app.SubGrid1);
+            app.FileSortMethodIcon.ScaleMethod = 'none';
+            app.FileSortMethodIcon.Layout.Row = 2;
+            app.FileSortMethodIcon.Layout.Column = 1;
+            app.FileSortMethodIcon.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'sort_az_ascending.png');
+
+            % Create FileSortMethod
+            app.FileSortMethod = uidropdown(app.SubGrid1);
+            app.FileSortMethod.Items = {'ARQUIVO', 'SENSOR'};
+            app.FileSortMethod.ValueChangedFcn = createCallbackFcn(app, @FileSortMethodValueChanged, true);
+            app.FileSortMethod.FontSize = 10;
+            app.FileSortMethod.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.FileSortMethod.Layout.Row = 2;
+            app.FileSortMethod.Layout.Column = 2;
+            app.FileSortMethod.Value = 'SENSOR';
 
             % Create SubTab2
             app.SubTab2 = uitab(app.SubTabGroup);
@@ -1929,7 +1984,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab5Button = uibutton(app.NavBar, 'state');
             app.Tab5Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.Tab5Button.Tag = 'RFDATAHUB';
-            app.Tab5Button.Tooltip = {'RFDataHub'};
+            app.Tab5Button.Tooltip = {'RF.DataHub'};
             app.Tab5Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'database-24px-white.svg');
             app.Tab5Button.IconAlignment = 'top';
             app.Tab5Button.Text = '';
@@ -1942,7 +1997,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.Tab6Button = uibutton(app.NavBar, 'state');
             app.Tab6Button.ValueChangedFcn = createCallbackFcn(app, @onTabNavigatorButtonPushed, true);
             app.Tab6Button.Tag = 'REPOSFI';
-            app.Tab6Button.Tooltip = {'Consulta ao repoSFI'};
+            app.Tab6Button.Tooltip = {'RF.Fusion'};
             app.Tab6Button.Icon = fullfile(pathToMLAPP, 'resources', 'Icons', 'library-24px-white.svg');
             app.Tab6Button.IconAlignment = 'top';
             app.Tab6Button.Text = '';
