@@ -4,7 +4,6 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                      matlab.ui.Figure
         GridLayout                    matlab.ui.container.GridLayout
-        Document                      matlab.ui.container.GridLayout
         btnImport                     matlab.ui.control.Image
         btnImport_2                   matlab.ui.control.Image
         TAGsDEREFERNCIATextArea       matlab.ui.control.TextArea
@@ -18,7 +17,6 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
         btnOK                         matlab.ui.control.Button
         UITable                       matlab.ui.control.Table
         UITableLabel                  matlab.ui.control.Label
-        btnClose                      matlab.ui.control.Image
         ContextMenu                   matlab.ui.container.ContextMenu
         btnDelete                     matlab.ui.container.Menu
     end
@@ -26,17 +24,28 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
     
     properties (Access = private)
         %-----------------------------------------------------------------%
+        Role = 'secondaryDockApp'
+    end
+
+
+    properties (Access = public)
+        %-----------------------------------------------------------------%
         Container
         isDocked = true
-
         mainApp
-        General
-        specData
-        projectData
+        callingApp
+        progressDialog
+    end
 
-        emptyTable  = table('Size',          [0, 4],                           ...
-                            'VariableTypes', {'cell', 'cell', 'cell', 'int8'}, ...
-                            'VariableNames', {'Type', 'Tag', 'Filename', 'ID'});
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        emptyTable  = table( ...
+            'Size', [0, 4], ...
+            'VariableTypes', {'cell', 'cell', 'cell', 'int8'}, ...
+            'VariableNames', {'Type', 'Tag', 'Filename', 'ID'} ...
+        );
+        
         editionType char {mustBeMember(editionType, {'ProjectData', 'SpectralData'})} = 'ProjectData'
         editionFlag = false
     end
@@ -139,21 +148,21 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainapp, TAGs)
+        function startupFcn(app, mainApp, callingApp, context)
 
-            app.mainApp     = mainapp;
-            app.General     = mainapp.General;
-            app.specData    = mainapp.specData;
-            app.projectData = mainapp.projectData;
-
-            initialValues(app, TAGs)
+            try
+                appEngine.boot(app, app.Role, mainApp, callingApp)
+                % initialValues(app)
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
+            end
             
         end
 
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcnCallFromPopupApp', 'mainApp', 'auxApp.dockAddFiles')
             delete(app)
             
         end
@@ -161,20 +170,21 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
         % Image clicked function: btnImport
         function btnImportPushed(app, event)
             
-            [fileName, filePath] = uigetfile({'*.xls;*.xlsx;*.csv;*.txt;*.json;*.jpg;*.jpeg;*.png'}, '', app.General.fileFolder.lastVisited, 'MultiSelect', 'on');
-            figure(app.UIFigure)
+            [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.xls;*.xlsx;*.csv;*.txt;*.json;*.jpg;*.jpeg;*.png'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
 
-            if isequal(fileName, 0)
+            if isempty(fileName)
                 return
             elseif ~iscell(fileName)
                 fileName = {fileName};
             end
-            app.General.fileFolder.lastVisited = filePath;
+
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onUpdateLastVisitedFolder', filePath);
 
             % Questiona usuário se o arquivo deve ser inserido na lista de
             % arquivo relacionado a todos os fluxos espectrais
             msgQuestion   = 'Deseja adicionar o(s) arquivo(s) selecionado(s) a todos os fluxos espectrais a processar?';
             userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+
             switch userSelection
                 case 'Sim'
                     idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
@@ -211,7 +221,7 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: btnClose, btnOK
+        % Button pushed function: btnOK
         function btnOKAndClosePushed(app, event)
             
             updateFlag = app.editionFlag;
@@ -322,78 +332,58 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 30};
-            app.GridLayout.RowHeight = {30, '1x'};
+            app.GridLayout.ColumnWidth = {22, 5, 22, '1x', 10, '1x', 90};
+            app.GridLayout.RowHeight = {17, 5, 56, 5, 22, 5, '1x', 5, 22, 5, '1x', 10, 22};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
-            app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.902 0.902 0.902];
-
-            % Create btnClose
-            app.btnClose = uiimage(app.GridLayout);
-            app.btnClose.ScaleMethod = 'none';
-            app.btnClose.ImageClickedFcn = createCallbackFcn(app, @btnOKAndClosePushed, true);
-            app.btnClose.Tag = 'Close';
-            app.btnClose.Layout.Row = 1;
-            app.btnClose.Layout.Column = 2;
-            app.btnClose.ImageSource = 'Delete_12SVG.svg';
-
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {18, 22, '1x', '1x', 90};
-            app.Document.RowHeight = {17, 56, 22, '1x', 22, '1x', 22};
-            app.Document.ColumnSpacing = 5;
-            app.Document.RowSpacing = 5;
-            app.Document.Padding = [10 10 10 5];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = [1 2];
-            app.Document.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.Padding = [20 20 20 20];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
             % Create UITableLabel
-            app.UITableLabel = uilabel(app.Document);
+            app.UITableLabel = uilabel(app.GridLayout);
             app.UITableLabel.VerticalAlignment = 'bottom';
             app.UITableLabel.FontSize = 10;
-            app.UITableLabel.Layout.Row = 5;
-            app.UITableLabel.Layout.Column = [1 5];
+            app.UITableLabel.Layout.Row = 9;
+            app.UITableLabel.Layout.Column = [1 7];
             app.UITableLabel.Text = 'ARQUIVOS EXTERNOS';
 
             % Create UITable
-            app.UITable = uitable(app.Document);
+            app.UITable = uitable(app.GridLayout);
             app.UITable.ColumnName = {'TIPO'; 'TAG'; 'ARQUIVO'; 'ID'};
             app.UITable.ColumnWidth = {70, 110, 'auto', 70};
             app.UITable.RowName = {};
             app.UITable.SelectionType = 'row';
             app.UITable.ColumnEditable = [false true false true];
             app.UITable.CellEditCallback = createCallbackFcn(app, @UITableCellEdit, true);
-            app.UITable.Layout.Row = 6;
-            app.UITable.Layout.Column = [1 5];
-            app.UITable.FontSize = 10.5;
+            app.UITable.Layout.Row = 11;
+            app.UITable.Layout.Column = [1 7];
+            app.UITable.FontSize = 11;
 
             % Create btnOK
-            app.btnOK = uibutton(app.Document, 'push');
+            app.btnOK = uibutton(app.GridLayout, 'push');
             app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @btnOKAndClosePushed, true);
             app.btnOK.Tag = 'OK';
             app.btnOK.IconAlignment = 'right';
             app.btnOK.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.btnOK.Layout.Row = 7;
-            app.btnOK.Layout.Column = 5;
+            app.btnOK.Layout.Row = 13;
+            app.btnOK.Layout.Column = 7;
             app.btnOK.Text = 'OK';
 
             % Create UITableLabel_2
-            app.UITableLabel_2 = uilabel(app.Document);
+            app.UITableLabel_2 = uilabel(app.GridLayout);
             app.UITableLabel_2.VerticalAlignment = 'bottom';
             app.UITableLabel_2.FontSize = 10;
             app.UITableLabel_2.Layout.Row = 1;
-            app.UITableLabel_2.Layout.Column = [1 3];
+            app.UITableLabel_2.Layout.Column = [1 4];
             app.UITableLabel_2.Text = 'TIPO';
 
             % Create ButtonGroup
-            app.ButtonGroup = uibuttongroup(app.Document);
+            app.ButtonGroup = uibuttongroup(app.GridLayout);
             app.ButtonGroup.AutoResizeChildren = 'off';
             app.ButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ButtonGroupSelectionChanged, true);
             app.ButtonGroup.BackgroundColor = [1 1 1];
-            app.ButtonGroup.Layout.Row = 2;
-            app.ButtonGroup.Layout.Column = [1 3];
+            app.ButtonGroup.Layout.Row = 3;
+            app.ButtonGroup.Layout.Column = [1 4];
 
             % Create PROJETOButton
             app.PROJETOButton = uiradiobutton(app.ButtonGroup);
@@ -409,51 +399,52 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
             app.FLUXOSAPROCESSARButton.Position = [10 6 142 22];
 
             % Create report_Tree
-            app.report_Tree = uitree(app.Document);
+            app.report_Tree = uitree(app.GridLayout);
             app.report_Tree.SelectionChangedFcn = createCallbackFcn(app, @report_TreeSelectionChanged, true);
             app.report_Tree.Enable = 'off';
-            app.report_Tree.FontSize = 10;
-            app.report_Tree.Layout.Row = [2 4];
-            app.report_Tree.Layout.Column = [4 5];
+            app.report_Tree.FontSize = 11;
+            app.report_Tree.Layout.Row = [3 7];
+            app.report_Tree.Layout.Column = [6 7];
 
             % Create UITableLabel_3
-            app.UITableLabel_3 = uilabel(app.Document);
+            app.UITableLabel_3 = uilabel(app.GridLayout);
             app.UITableLabel_3.VerticalAlignment = 'bottom';
             app.UITableLabel_3.FontSize = 10;
             app.UITableLabel_3.Layout.Row = 1;
-            app.UITableLabel_3.Layout.Column = [4 5];
+            app.UITableLabel_3.Layout.Column = [6 7];
             app.UITableLabel_3.Text = 'FLUXOS A PROCESSAR';
 
             % Create TAGsDEREFERNCIATextAreaLabel
-            app.TAGsDEREFERNCIATextAreaLabel = uilabel(app.Document);
+            app.TAGsDEREFERNCIATextAreaLabel = uilabel(app.GridLayout);
             app.TAGsDEREFERNCIATextAreaLabel.VerticalAlignment = 'bottom';
             app.TAGsDEREFERNCIATextAreaLabel.FontSize = 10;
-            app.TAGsDEREFERNCIATextAreaLabel.Layout.Row = 3;
-            app.TAGsDEREFERNCIATextAreaLabel.Layout.Column = [1 3];
+            app.TAGsDEREFERNCIATextAreaLabel.Layout.Row = 5;
+            app.TAGsDEREFERNCIATextAreaLabel.Layout.Column = [1 4];
             app.TAGsDEREFERNCIATextAreaLabel.Text = 'TAGs DE REFERÊNCIA';
 
             % Create TAGsDEREFERNCIATextArea
-            app.TAGsDEREFERNCIATextArea = uitextarea(app.Document);
+            app.TAGsDEREFERNCIATextArea = uitextarea(app.GridLayout);
             app.TAGsDEREFERNCIATextArea.Editable = 'off';
-            app.TAGsDEREFERNCIATextArea.FontSize = 10.5;
-            app.TAGsDEREFERNCIATextArea.Layout.Row = 4;
-            app.TAGsDEREFERNCIATextArea.Layout.Column = [1 3];
+            app.TAGsDEREFERNCIATextArea.FontSize = 11;
+            app.TAGsDEREFERNCIATextArea.Layout.Row = 7;
+            app.TAGsDEREFERNCIATextArea.Layout.Column = [1 4];
 
             % Create btnImport_2
-            app.btnImport_2 = uiimage(app.Document);
+            app.btnImport_2 = uiimage(app.GridLayout);
+            app.btnImport_2.ScaleMethod = 'none';
             app.btnImport_2.ImageClickedFcn = createCallbackFcn(app, @btnImport_2ImageClicked, true);
             app.btnImport_2.Tooltip = {'Reinicia mapeamento de arquivos'};
-            app.btnImport_2.Layout.Row = 7;
+            app.btnImport_2.Layout.Row = 13;
             app.btnImport_2.Layout.Column = 1;
             app.btnImport_2.ImageSource = 'Refresh_18.png';
 
             % Create btnImport
-            app.btnImport = uiimage(app.Document);
+            app.btnImport = uiimage(app.GridLayout);
             app.btnImport.ScaleMethod = 'none';
             app.btnImport.ImageClickedFcn = createCallbackFcn(app, @btnImportPushed, true);
             app.btnImport.Tooltip = {'Seleciona arquivos'};
-            app.btnImport.Layout.Row = 7;
-            app.btnImport.Layout.Column = 2;
+            app.btnImport.Layout.Row = 13;
+            app.btnImport.Layout.Column = 3;
             app.btnImport.ImageSource = 'Import_16.png';
 
             % Create ContextMenu

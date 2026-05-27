@@ -309,6 +309,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 msg = util.HtmlTextGenerator.issueDetails(system, issue, details);
                                 ui.Dialog(app.UIFigure, 'info', msg);
 
+                            case 'onExternalFileModuleOpenRequest'
+                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ExternalFiles', 'PLAYBACK')
+
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end

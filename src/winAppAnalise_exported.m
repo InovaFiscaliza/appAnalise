@@ -278,6 +278,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         initializeRFDataHub(app)
                                         ipcMainMatlabCallAuxiliarApp(app, 'RFDATAHUB', 'MATLAB', eventName)
 
+                                    case 'onFileSortMethodChanged'
+                                        if ~strcmp(app.FileSortMethod.Value, app.General.context.FILE.sortMethod)
+                                            app.FileSortMethod.Value = app.General.context.FILE.sortMethod;
+                                            onFileSortMethodValueChanged(app)
+                                        end
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -396,6 +402,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onFetchIssueDetails'
                                         context  = varargin{1};
                                         reportFetchIssueDetails(app, context, [])
+
+                                    case 'onExternalFileModuleOpenRequest'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onExternalFileModuleOpenRequest')
 
                                     % Outros...
                                     case {'onEmissionAdded', 'onLocationChanged'}
@@ -763,6 +778,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
             updateWarningLampVisibility(app)
+            app.FileSortMethod.Value = app.General.context.FILE.sortMethod;
         end
     end
 
@@ -854,79 +870,235 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 selectedNodes = [];
                 filteredNodes = [];
 
-                flowGroupValidIdxs = arrayfun(@(x) find(isvalid(x.Data)), app.metaData, 'UniformOutput', false);
+                referenceTable = buildSpectrumReferenceTable(app.metaData, app.General, true);
 
                 switch app.FileSortMethod.Value
-                    case 'ARQUIVO'
-                        for ii = 1:numel(app.metaData)
-                            flowValidIdxs = flowGroupValidIdxs{ii};
-        
-                            [~, fileName, fileExt] = fileparts(app.metaData(ii).File);
-        
+                    case 'ARQUIVO' % Ordenação "ARQUIVO >> SENSOR >> FLUXO ESPECTRAL"
+                        referenceTable = sortrows(referenceTable, {'File', 'Receiver', 'FreqStart', 'FreqStop', 'IsOccupancyFlow', 'BeginTime'});
+                        [uniqueFiles, ~, fileGroupIdxs] = unique(referenceTable.File, 'stable');
+
+                        for ii = 1:numel(uniqueFiles)
+                            [~, fileName, fileExt] = fileparts(uniqueFiles{ii});
+
+                            level1Idxs = find(fileGroupIdxs == ii)';
+                            fileIdx = referenceTable.FileIdx(level1Idxs(1));
+
                             fileNode = uitreenode(app.FileTree, ...
                                 'Text', [fileName fileExt], ...
-                                'NodeData', struct('level', 1, 'fileIdx', ii, 'flowIdx', flowValidIdxs), ...
+                                'NodeData', struct('sortType', 'ARQUIVO', 'level', 1, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(level1Idxs)'), ...
                                 'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                             );
-        
-                            if all(~[app.metaData(ii).Data(flowValidIdxs).Enable])
+
+                            if ~any(referenceTable.IsEnable(level1Idxs))
                                 filteredNodes = [filteredNodes, fileNode];
                             end
-        
-                            receiverRawList = {app.metaData(ii).Data(flowValidIdxs).Receiver};
-                            receiverList = unique(receiverRawList);
-                            
-                            for jj = 1:numel(receiverList)
-                                receiver = receiverList{jj};
-                                receiverIdxs = flowValidIdxs(strcmp(receiverRawList, receiver));
-        
+
+                            [uniqueReceivers, ~, receiverGroupIdxs] = unique(referenceTable.Receiver(level1Idxs), 'stable');
+
+                            for jj = 1:numel(uniqueReceivers)
+                                receiver  = uniqueReceivers{jj};
+                                level2Idx = level1Idxs(receiverGroupIdxs == jj);
+
                                 receiverNode = uitreenode(fileNode, ...
                                     'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
-                                    'NodeData', struct('level', 2, 'fileIdx', ii, 'flowIdx', receiverIdxs), ...
+                                    'NodeData', struct('sortType', 'ARQUIVO', 'level', 2, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(level2Idx)'), ...
                                     'Icon', util.layoutTreeNodeIcon(receiver), ...
                                     'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                 );
-        
-                                if all(~[app.metaData(ii).Data(receiverIdxs).Enable])
+
+                                if ~any(referenceTable.IsEnable(level2Idx))
                                     filteredNodes = [filteredNodes, receiverNode];
-                                end                        
-        
-                                for kk = receiverIdxs
+                                end
+
+                                for kk = level2Idx
                                     occupancyFlag = '';
-                                    if ismember(app.metaData(ii).Data(kk).MetaData.DataType, class.Constants.occDataTypes)
+                                    if referenceTable.IsOccupancyFlow(kk)
                                         occupancyFlag = ' (Ocupação)';
                                     end
-        
+
                                     gpsStatusIcon = '';
-                                    if app.metaData(ii).Data(kk).GPS.Status == 0
+                                    if referenceTable.GpsStatus(kk) == 0
                                         gpsStatusIcon = ' ❗';
                                     end
-        
+
                                     dataNode = uitreenode(receiverNode, ...
-                                        'Text', sprintf('ID %d: %.3f – %.3f MHz%s%s', app.metaData(ii).Data(kk).RelatedFiles.Id(1), app.metaData(ii).Data(kk).MetaData.FreqStart * 1e-6, app.metaData(ii).Data(kk).MetaData.FreqStop  * 1e-6, occupancyFlag, gpsStatusIcon), ...
-                                        'NodeData', struct('level', 3, 'fileIdx', ii, 'flowIdx', kk), ...
+                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(kk), referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'NodeData', struct('sortType', 'ARQUIVO', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
-        
-                                    if ~app.metaData(ii).Data(kk).Enable
+
+                                    if ~referenceTable.IsEnable(kk)
                                         filteredNodes = [filteredNodes, dataNode];
                                     end
-        
-                                    if ~isempty(previousSelectionIdxs) && ismember(ii, previousSelectionIdxs.fileIdx) && ismember(kk, previousSelectionIdxs.flowIdxs)
+
+                                    if ~isempty(previousSelectionIdxs) && ismember(fileIdx, previousSelectionIdxs.fileIdx) && ismember(referenceTable.FlowIdx(kk), previousSelectionIdxs.flowIdxs)
                                         selectedNodes = [selectedNodes, dataNode];
                                     end
                                 end
                             end
                         end
 
-                    otherwise % 'SENSOR'
-                        receiverList = arrayfun(@(x) {x.Data.Receiver}, app.metaData, 'UniformOutput', false);
-                        receivers = unique(horzcat(receiverList{:}));
+                    case 'SENSOR' % Ordenação "SENSOR >> ARQUIVO >> FLUXO ESPECTRAL"
+                        referenceTable = sortrows(referenceTable, {'Receiver', 'File', 'FreqStart', 'FreqStop', 'IsOccupancyFlow', 'BeginTime'});
+                        [uniqueReceivers, ~, receiverGroupIdxs] = unique(referenceTable.Receiver, 'stable');
 
-                        for ii = 1:numel(receivers)
+                        for ii = 1:numel(uniqueReceivers)
+                            receiver = uniqueReceivers{ii};
+                            level1Idxs = find(receiverGroupIdxs == ii)';
 
+                            [uniqueReceiverFiles, ~, receiverFileGroupIdxs] = unique(referenceTable.File(level1Idxs), 'stable');
 
+                            receiverFileIdxs = {};
+                            receiverFileFlowIdxs = {};
+                            for mm = 1:numel(uniqueReceiverFiles)
+                                level2Idxs = level1Idxs(receiverFileGroupIdxs == mm);
+                                receiverFileIdxs{end+1} = referenceTable.FileIdx(level2Idxs(1));
+                                receiverFileFlowIdxs{end+1} = referenceTable.FlowIdx(level2Idxs)';
+                            end
 
+                            receiverNode = uitreenode(app.FileTree, ...
+                                'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
+                                'NodeData', struct('sortType', 'SENSOR', 'level', 1, 'fileIdx', receiverFileIdxs, 'flowIdx', receiverFileFlowIdxs), ...
+                                'Icon', util.layoutTreeNodeIcon(receiver), ...
+                                'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                            );
+
+                            if ~any(referenceTable.IsEnable(level1Idxs))
+                                filteredNodes = [filteredNodes, receiverNode];
+                            end
+
+                            for mm = 1:numel(uniqueReceiverFiles)
+                                [~, fileName, fileExt] = fileparts(uniqueReceiverFiles{mm});
+                                
+                                fileIdx = receiverFileIdxs{mm};
+                                flowIdxs = receiverFileFlowIdxs{mm};
+
+                                fileNode = uitreenode(receiverNode, ...
+                                    'Text', [fileName fileExt], ...
+                                    'NodeData', struct('sortType', 'SENSOR', 'level', 2, 'fileIdx', fileIdx, 'flowIdx', flowIdxs), ...
+                                    'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                );
+
+                                level2Idxs = level1Idxs(receiverFileGroupIdxs == mm);
+
+                                if ~any(referenceTable.IsEnable(level2Idxs))
+                                    filteredNodes = [filteredNodes, fileNode];
+                                end
+
+                                for kk = level2Idxs
+                                    occupancyFlag = '';
+                                    if referenceTable.IsOccupancyFlow(kk)
+                                        occupancyFlag = ' (Ocupação)';
+                                    end
+
+                                    gpsStatusIcon = '';
+                                    if referenceTable.GpsStatus(kk) == 0
+                                        gpsStatusIcon = ' ❗';
+                                    end
+
+                                    dataNode = uitreenode(fileNode, ...
+                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(kk), referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'NodeData', struct('sortType', 'SENSOR', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
+                                        'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                    );
+
+                                    if ~referenceTable.IsEnable(kk)
+                                        filteredNodes = [filteredNodes, dataNode];
+                                    end
+
+                                    if ~isempty(previousSelectionIdxs) && ismember(fileIdx, previousSelectionIdxs.fileIdx) && ismember(referenceTable.FlowIdx(kk), previousSelectionIdxs.flowIdxs)
+                                        selectedNodes = [selectedNodes, dataNode];
+                                    end
+                                end
+                            end
+                        end
+
+                    otherwise % Ordenação "FLUXO ESPECTRAL >> SENSOR >> ARQUIVO"
+                        referenceTable = sortrows(referenceTable, {'FreqStart', 'FreqStop', 'Receiver', 'IsOccupancyFlow', 'BeginTime'});
+                        [uniqueBands, ~, uniqueBandIdxs] = unique(referenceTable.Band, 'stable');
+
+                        for ii = 1:numel(uniqueBands)
+                            level1Idxs = find(uniqueBandIdxs == ii)';
+
+                            bandFiles = referenceTable.File(level1Idxs);
+                            [uniqueBandFiles, ~, bandFileGroupIdxs] = unique(bandFiles, 'stable');
+
+                            bandFileIdxs = {};
+                            bandFlowIdxs = {};
+                            for ff = 1:numel(uniqueBandFiles)
+                                level2Idxs = level1Idxs(bandFileGroupIdxs == ff);
+                                bandFileIdxs{end+1} = referenceTable.FileIdx(level2Idxs(1));
+                                bandFlowIdxs{end+1} = referenceTable.FlowIdx(level2Idxs)';
+                            end
+
+                            bandNode = uitreenode(app.FileTree, ...
+                                'Text', referenceTable.Band{level1Idxs(1)}, ...
+                                'NodeData', struct('sortType', 'FLUXO ESPECTRAL', 'level', 1, 'fileIdx', bandFileIdxs, 'flowIdx', bandFlowIdxs), ...
+                                'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                            );
+
+                            if ~any(referenceTable.IsEnable(level1Idxs))
+                                filteredNodes = [filteredNodes, bandNode];
+                            end
+
+                            bandReceivers = referenceTable.Receiver(level1Idxs);
+                            [uniqueBandReceivers, ~, receiverGroupIdxs] = unique(bandReceivers, 'stable');
+
+                            for rr = 1:numel(uniqueBandReceivers)
+                                receiver = uniqueBandReceivers{rr};
+                                level2Idxs = level1Idxs(receiverGroupIdxs == rr);
+
+                                receiverFiles = referenceTable.File(level2Idxs);
+                                [uniqueFiles, ~, receiverFileGroupIdxs] = unique(receiverFiles, 'stable');
+
+                                receiverFileIdxs = {};
+                                receiverFlowdxs = {};
+                                for ff = 1:numel(uniqueFiles)
+                                    level3Idxs = level2Idxs(receiverFileGroupIdxs == ff);
+                                    receiverFileIdxs{end+1} = referenceTable.FileIdx(level3Idxs(1));
+                                    receiverFlowdxs{end+1} = referenceTable.FlowIdx(level3Idxs)';
+                                end
+
+                                receiverNode = uitreenode(bandNode, ...
+                                    'Text', util.layoutTreeNodeText(receiver, 'file_TreeBuilding'), ...
+                                    'NodeData', struct('sortType', 'FLUXO ESPECTRAL', 'level', 2, 'fileIdx', receiverFileIdxs, 'flowIdx', receiverFlowdxs), ...
+                                    'Icon', util.layoutTreeNodeIcon(receiver), ...
+                                    'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                );
+
+                                if ~any(referenceTable.IsEnable(level2Idxs))
+                                    filteredNodes = [filteredNodes, receiverNode];
+                                end
+
+                                for jj = level2Idxs
+                                    fileIdx = referenceTable.FileIdx(jj);
+                                    [~, fileName, fileExt] = fileparts(referenceTable.File{jj});
+
+                                    occupancyFlag = '';
+                                    if referenceTable.IsOccupancyFlow(jj)
+                                        occupancyFlag = ' (Ocupação)';
+                                    end
+
+                                    gpsStatusIcon = '';
+                                    if referenceTable.GpsStatus(jj) == 0
+                                        gpsStatusIcon = ' ❗';
+                                    end
+
+                                    dataNode = uitreenode(receiverNode, ...
+                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(jj), [fileName fileExt], occupancyFlag, gpsStatusIcon), ...
+                                        'NodeData', struct('sortType', 'FLUXO ESPECTRAL', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(jj)), ...
+                                        'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
+                                    );
+
+                                    if ~referenceTable.IsEnable(jj)
+                                        filteredNodes = [filteredNodes, dataNode];
+                                    end
+
+                                    if ~isempty(previousSelectionIdxs) && ismember(fileIdx, previousSelectionIdxs.fileIdx) && ismember(referenceTable.FlowIdx(jj), previousSelectionIdxs.flowIdxs)
+                                        selectedNodes = [selectedNodes, dataNode];
+                                    end
+                                end
+                            end
                         end
                 end
 
@@ -1403,13 +1575,33 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         'VariableNames', {'level', 'fileIdx', 'flowIdxs'} ...
                     );
         
+                    nodeDataList = {};
                     for ii = 1:numel(app.FileTree.SelectedNodes)
-                        idx = find(referenceTable.fileIdx == app.FileTree.SelectedNodes(ii).NodeData.fileIdx, 1);
+                        nd = app.FileTree.SelectedNodes(ii).NodeData;
+                        if ~isscalar(nd)
+                            for child = app.FileTree.SelectedNodes(ii).Children'
+                                childNd = child.NodeData;
+                                if ~isscalar(childNd)
+                                    for grandchild = child.Children'
+                                        nodeDataList{end+1} = grandchild.NodeData;
+                                    end
+                                else
+                                    nodeDataList{end+1} = childNd;
+                                end
+                            end
+                        else
+                            nodeDataList{end+1} = nd;
+                        end
+                    end
+
+                    for ii = 1:numel(nodeDataList)
+                        nd = nodeDataList{ii};
+                        idx = find(referenceTable.fileIdx == nd.fileIdx, 1);
         
                         if isempty(idx)
-                            referenceTable(end+1, :)   = {app.FileTree.SelectedNodes(ii).NodeData.level, app.FileTree.SelectedNodes(ii).NodeData.fileIdx, {app.FileTree.SelectedNodes(ii).NodeData.flowIdx}};
+                            referenceTable(end+1, :)   = {nd.level, nd.fileIdx, {nd.flowIdx}};
                         else
-                            referenceTable(idx, [1,3]) = {min([referenceTable{idx, 1}, app.FileTree.SelectedNodes(ii).NodeData.level]), {unique([cell2mat(referenceTable{idx, 3}), app.FileTree.SelectedNodes(ii).NodeData.flowIdx])}};
+                            referenceTable(idx, [1,3]) = {min([referenceTable{idx, 1}, nd.level]), {unique([cell2mat(referenceTable{idx, 3}), nd.flowIdx])}};
                         end
                     end
         
@@ -1419,7 +1611,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         fileIdx  = referenceTable.fileIdx(kk);
                         flowIdxs = referenceTable.flowIdxs{kk};
         
-                        if referenceTable.level(kk) == 1 || isequal(referenceTable.flowIdxs{kk}, 1:numel(app.metaData(fileIdx).Data))
+                        if (strcmp(app.FileSortMethod.Value, 'ARQUIVO') && referenceTable.level(kk) == 1) || isequal(referenceTable.flowIdxs{kk}, 1:numel(app.metaData(fileIdx).Data))
                             delete(app.metaData(fileIdx))
                             app.metaData(fileIdx) = [];
         
@@ -1447,6 +1639,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     previousSelectionIdxs = app.FileTree.UserData.previousSelection;
                     refreshProjectFiles(app, previousSelectionIdxs, 'onFileFilterChanged')
             end
+
+        end
+
+        % Value changed function: FileSortMethod
+        function onFileSortMethodValueChanged(app, event)
+            
+            buildFileTree(app)
 
         end
 
@@ -1547,12 +1746,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             
             currentSelectedIdxs = [];
             if ~isempty(app.FileTree.SelectedNodes)
-                fileIdxList = arrayfun(@(x) x.NodeData.fileIdx, app.FileTree.SelectedNodes, "UniformOutput", false);
-                fileIdxs = unique(horzcat(fileIdxList{:}));
+                fileIdxList = arrayfun(@(x) {x.NodeData.fileIdx}, app.FileTree.SelectedNodes, "UniformOutput", false);
+                fileIdxs = unique(cell2mat(horzcat(fileIdxList{:})));
 
                 if isscalar(fileIdxs)
-                    flowIdxList = arrayfun(@(x) x.NodeData.flowIdx, app.FileTree.SelectedNodes, "UniformOutput", false);
-                    flowIdxs = unique(horzcat(flowIdxList{:}));
+                    flowIdxList = arrayfun(@(x) {x.NodeData.flowIdx}, app.FileTree.SelectedNodes, "UniformOutput", false);
+                    flowIdxs = unique(cell2mat(horzcat(flowIdxList{:})));
                     currentSelectedIdxs = struct('fileIdx', fileIdxs, 'flowIdxs', flowIdxs);
                 end
             end
@@ -1661,13 +1860,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         app.FileFilterValueList.Items = {};
                     end
             end
-
-        end
-
-        % Value changed function: FileSortMethod
-        function FileSortMethodValueChanged(app, event)
-            
-            buildFileTree(app)
 
         end
     end
@@ -1796,13 +1988,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create FileSortMethod
             app.FileSortMethod = uidropdown(app.SubGrid1);
-            app.FileSortMethod.Items = {'ARQUIVO', 'SENSOR'};
-            app.FileSortMethod.ValueChangedFcn = createCallbackFcn(app, @FileSortMethodValueChanged, true);
+            app.FileSortMethod.Items = {'ARQUIVO', 'SENSOR', 'FLUXO ESPECTRAL'};
+            app.FileSortMethod.ValueChangedFcn = createCallbackFcn(app, @onFileSortMethodValueChanged, true);
             app.FileSortMethod.FontSize = 10;
             app.FileSortMethod.BackgroundColor = [0.9804 0.9804 0.9804];
             app.FileSortMethod.Layout.Row = 2;
             app.FileSortMethod.Layout.Column = 2;
-            app.FileSortMethod.Value = 'SENSOR';
+            app.FileSortMethod.Value = 'FLUXO ESPECTRAL';
 
             % Create SubTab2
             app.SubTab2 = uitab(app.SubTabGroup);

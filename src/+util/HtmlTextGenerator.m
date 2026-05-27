@@ -120,7 +120,7 @@ classdef (Abstract) HtmlTextGenerator
                 else
                     receiverList = unique(arrayfun(@(x) x.Receiver, metaData(fileIdx).Data(flowIdxs), "UniformOutput", false));
                     receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
-                    flowTag = strjoin(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), '<br>');
+                    flowTag = util.HtmlTextGenerator.createTag('Flow', specData);
 
                     htmlIntro = [ ...
                         strjoin(cellfun(@(r) [util.HtmlTextGenerator.receiverBadge(r) '<br>'], receiverList, 'UniformOutput', false), '') ...
@@ -142,7 +142,7 @@ classdef (Abstract) HtmlTextGenerator
 
                 receiverList = unique({specData.Receiver});
                 receiverList = cellfun(@(x) util.layoutTreeNodeText(x, 'play_TreeBuilding'), receiverList, 'UniformOutput', false);
-                flowTag = strjoin(unique(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
+                flowTag = util.HtmlTextGenerator.createTag('Flow', specData);
 
                 displayEntry = util.HtmlTextGenerator.makeDisplayEntry( ...
                     'GERAL', ...
@@ -785,7 +785,13 @@ classdef (Abstract) HtmlTextGenerator
             switch type
                 case 'Flow'
                     specData = varargin{1};
-                    tag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+                    if isscalar(specData)
+                        tag = sprintf('%.3f – %.3f MHz', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6);
+                    else
+                        [~, sortIdx] = sortrows(table(arrayfun(@(x) x.MetaData.FreqStart, specData)', arrayfun(@(x) x.MetaData.FreqStart, specData)', 'VariableNames', {'FreqStart', 'FreqStop'}), {'FreqStart', 'FreqStop'});
+                        specData = specData(sortIdx);
+                        tag = strjoin(unique(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
+                    end
 
                 otherwise % 'Emission'
                     frequencyMHz = varargin{1};

@@ -449,6 +449,13 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onReportFlowListChanged', app.inputArgs.context)
             
         end
+
+        % Image clicked function: prjOpenFileButton_4
+        function prjOpenFileButton_4ImageClicked(app, event)
+            
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onExternalFileModuleOpenRequest')
+
+        end
     end
 
     % Component initialization
@@ -834,6 +841,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create prjOpenFileButton_4
             app.prjOpenFileButton_4 = uiimage(app.reportGrid);
+            app.prjOpenFileButton_4.ImageClickedFcn = createCallbackFcn(app, @prjOpenFileButton_4ImageClicked, true);
             app.prjOpenFileButton_4.Tooltip = {'Abre projeto'};
             app.prjOpenFileButton_4.Layout.Row = 1;
             app.prjOpenFileButton_4.Layout.Column = 4;

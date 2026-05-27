@@ -1,5 +1,5 @@
 {
-    "version": 1.41,
+    "version": 1.43,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -24,6 +24,8 @@
     },
     "context": {
         "FILE": {
+            "input": "file",
+            "sortMethod": "ARQUIVO",
             "spectrumConsolidationPolicy": {
                 "maxCoLocationDistanceMeters": 100,
                 "dataTypePolicy": "remove",
