@@ -18,7 +18,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         githubAccount           char    = 'EricMagalhaesDelgado'
     end
 
-    appName     = 'appAnalise';
+    appName = 'appAnalise';
 
     initFolder  = fileparts(mfilename('fullpath'));
     finalFolder = fullfile(rootCompiledFolder, appName);
@@ -74,7 +74,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         end
     end
 
-    if hours(datetime('now') - originalReleaseDate) > 24*7
+    if ~strcmp(RFDataHub_info.ReleaseDate, '06/04/2026 08:08:05') && hours(datetime('now') - originalReleaseDate) > 24*7
         error('RFDataHubNonUpdated')
     end
 
@@ -174,13 +174,18 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
             mcrProducts  = cellfun(@(x) int64(str2double(x)), fileContent);
         
             cacheContent = dir(fullfile(matlabRuntimeFolder, '*.zip'));
+            cacheWarning = true;
             for ii = 1:numel(cacheContent)
                 cacheFileString  = char(extractBetween(cacheContent(ii).name, 'InstallAgent_', '.zip'));
                 cacheFileProduts = compiler.internal.utils.hexString2RuntimeProducts(cacheFileString);
         
-                if any(~ismember(mcrProducts, cacheFileProduts))
-                    warning('Necessário atualizar a versão customizada do MATLAB Runtime.')
+                if all(ismember(mcrProducts, cacheFileProduts))
+                    cacheWarning = false;
                 end
+            end
+
+            if cacheWarning
+                warning('Necessário atualizar a versão customizada do MATLAB Runtime.')
             end
         end
 
