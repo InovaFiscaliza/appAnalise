@@ -410,7 +410,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                             delete(callingApp)
                                         end
 
-                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onExternalFileModuleOpenRequest')
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onExternalFileModuleOpenRequest', varargin{:})
 
                                     % Outros...
                                     case {'onEmissionAdded', 'onLocationChanged'}
@@ -1762,10 +1762,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             if ~isempty(currentSelectedIdxs)
                 app.FileTree.UserData.previousSelection = currentSelectedIdxs;
-
-                expand(app.FileTree.Children(fileIdxs), 'all')
-                scroll(app.FileTree, app.FileTree.SelectedNodes(end))
-
                 ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, flowIdxs));
             else
                 initializeFileTreeSelectionIdx(app)

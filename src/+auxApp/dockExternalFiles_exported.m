@@ -9,9 +9,9 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
         TAGsDEREFERNCIATextArea       matlab.ui.control.TextArea
         TAGsDEREFERNCIATextAreaLabel  matlab.ui.control.Label
         UITableLabel_3                matlab.ui.control.Label
-        report_Tree                   matlab.ui.container.Tree
+        SpectrumFlowTree              matlab.ui.container.Tree
         ButtonGroup                   matlab.ui.container.ButtonGroup
-        FLUXOSAPROCESSARButton        matlab.ui.control.RadioButton
+        FLUXOSESPECTRAISAINCLUIRNORELATRIOButton  matlab.ui.control.RadioButton
         PROJETOButton                 matlab.ui.control.RadioButton
         UITableLabel_2                matlab.ui.control.Label
         btnOK                         matlab.ui.control.Button
@@ -34,7 +34,9 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
         isDocked = true
         mainApp
         callingApp
+        jsBackDoor
         progressDialog
+        projectData
     end
 
 
@@ -53,42 +55,39 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%        
-        function initialValues(app, TAGs)
-            app.TAGsDEREFERNCIATextArea.Value = TAGs;
-            TreeBuilding(app)
-            ButtonGroupSelectionChanged(app)
+        function initialValues(app, tags)
+            app.TAGsDEREFERNCIATextArea.Value = tags;
+            buildTree(app)
         end
 
         %-----------------------------------------------------------------%
-        function TreeBuilding(app)
-            initialNodeData = Index(app);
+        function buildTree(app)
+            if ~isempty(app.SpectrumFlowTree.Children)
+                delete(app.SpectrumFlowTree.Children)
+            end
 
-            if ~isempty(app.report_Tree.Children)
-                delete(app.report_Tree.Children);
-            end            
-            
-            idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
-            [receiverList, ~, ic] = unique({app.specData(idxThreads).Receiver});
+            if ~isempty(app.mainApp.specData)
+                [receiverList, ~, receiverListIdxs] = unique({app.mainApp.specData.Receiver});
+    
+                for ii = 1:numel(receiverList)
+                    receiverIdxs  = find(receiverListIdxs == ii)';
+                    reportIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData(receiverIdxs));
+                    receiverIdxs(~reportIdxs) = [];
 
-            for ii = 1:numel(receiverList)
-                idx2 = find(ic == ii)';
-                parentNode = uitreenode(app.report_Tree, 'Text',     receiverList{ii}, ...
-                                                         'NodeData', idxThreads(idx2), ...
-                                                         'Icon',     util.layoutTreeNodeIcon(receiverList{ii}));                
-                for jj = idx2
-                    idx3 = idxThreads(jj);
-                    childNode = uitreenode(parentNode, 'Text', misc_nodeTreeText(app, idx3), ...
-                                                       'NodeData', idx3);
-                    if ~isempty(app.specData(idx3).UserData.reportExternalFiles)
-                        childNode.Icon = 'attach_32.png';
+                    if isempty(receiverIdxs)
+                        continue
+                    end
+
+                    receiverNode = uitreenode(app.SpectrumFlowTree, 'Text',  util.layoutTreeNodeText(receiverList{ii}, 'play_TreeBuilding'), ...
+                                                                    'NodeData', receiverIdxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
+
+                    for jj = receiverIdxs
+                        uitreenode(receiverNode, 'Text', util.HtmlTextGenerator.createTag('Flow', app.mainApp.specData(jj)), ...
+                                                 'NodeData', jj, 'Tag', 'BAND');
                     end
                 end
-            end
-            expand(app.report_Tree, 'all')
 
-            if ~isempty(initialNodeData)
-                idxSelectedTree = findobj(app.report_Tree.Children, 'NodeData', initialNodeData);
-                app.report_Tree.SelectedNodes = idxSelectedTree(end);
+                expand(app.SpectrumFlowTree, 'all')
             end
         end
 
@@ -135,8 +134,8 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function idx = Index(app)
-            if ~isempty(app.report_Tree.SelectedNodes) && isscalar(app.report_Tree.SelectedNodes.NodeData)
-                idx = app.report_Tree.SelectedNodes.NodeData;
+            if ~isempty(app.SpectrumFlowTree.SelectedNodes) && isscalar(app.SpectrumFlowTree.SelectedNodes.NodeData)
+                idx = app.SpectrumFlowTree.SelectedNodes.NodeData;
             else
                 idx = [];
             end
@@ -148,11 +147,11 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, callingApp, context)
+        function startupFcn(app, mainApp, callingApp, context, tags)
 
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-                % initialValues(app)
+                initialValues(app, tags)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -256,18 +255,18 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
             switch app.ButtonGroup.SelectedObject
                 case app.PROJETOButton
                     app.editionType = 'ProjectData';
-                    app.report_Tree.Enable = 0;                    
+                    app.SpectrumFlowTree.Enable = 0;                    
                 otherwise
                     app.editionType = 'SpectralData';
-                    app.report_Tree.Enable = 1;                    
+                    app.SpectrumFlowTree.Enable = 1;                    
             end
 
             app.UITable.Data = getTable(app);
             
         end
 
-        % Selection changed function: report_Tree
-        function report_TreeSelectionChanged(app, event)
+        % Selection changed function: SpectrumFlowTree
+        function SpectrumFlowTreeSelectionChanged(app, event)
             
             app.UITable.Data = getTable(app);
             
@@ -392,19 +391,18 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
             app.PROJETOButton.Position = [10 27 71 22];
             app.PROJETOButton.Value = true;
 
-            % Create FLUXOSAPROCESSARButton
-            app.FLUXOSAPROCESSARButton = uiradiobutton(app.ButtonGroup);
-            app.FLUXOSAPROCESSARButton.Text = 'FLUXOS A PROCESSAR';
-            app.FLUXOSAPROCESSARButton.FontSize = 10.5;
-            app.FLUXOSAPROCESSARButton.Position = [10 6 142 22];
+            % Create FLUXOSESPECTRAISAINCLUIRNORELATRIOButton
+            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton = uiradiobutton(app.ButtonGroup);
+            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.Text = 'FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO';
+            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.FontSize = 10.5;
+            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.Position = [10 6 272 22];
 
-            % Create report_Tree
-            app.report_Tree = uitree(app.GridLayout);
-            app.report_Tree.SelectionChangedFcn = createCallbackFcn(app, @report_TreeSelectionChanged, true);
-            app.report_Tree.Enable = 'off';
-            app.report_Tree.FontSize = 11;
-            app.report_Tree.Layout.Row = [3 7];
-            app.report_Tree.Layout.Column = [6 7];
+            % Create SpectrumFlowTree
+            app.SpectrumFlowTree = uitree(app.GridLayout);
+            app.SpectrumFlowTree.SelectionChangedFcn = createCallbackFcn(app, @SpectrumFlowTreeSelectionChanged, true);
+            app.SpectrumFlowTree.FontSize = 11;
+            app.SpectrumFlowTree.Layout.Row = [3 7];
+            app.SpectrumFlowTree.Layout.Column = [6 7];
 
             % Create UITableLabel_3
             app.UITableLabel_3 = uilabel(app.GridLayout);
@@ -412,7 +410,7 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
             app.UITableLabel_3.FontSize = 10;
             app.UITableLabel_3.Layout.Row = 1;
             app.UITableLabel_3.Layout.Column = [6 7];
-            app.UITableLabel_3.Text = 'FLUXOS A PROCESSAR';
+            app.UITableLabel_3.Text = 'FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO';
 
             % Create TAGsDEREFERNCIATextAreaLabel
             app.TAGsDEREFERNCIATextAreaLabel = uilabel(app.GridLayout);

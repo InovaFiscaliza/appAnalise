@@ -453,7 +453,24 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         % Image clicked function: prjOpenFileButton_4
         function prjOpenFileButton_4ImageClicked(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onExternalFileModuleOpenRequest')
+            if isempty(app.reportModel.Value)
+                warningMsg = [ ...
+                    'O modelo do relatório deve ser escolhido previamente à '  ...
+                    'inclusão de arquivos externos relacionados ao projeto ou ' ...
+                    'aos fluxos espectrais a incluir no relatório.' ...
+                ];
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                return
+            end
+
+            [~, reportModelIdx] = ismember(app.reportModel.Value, {app.mainApp.projectData.report.templates.Name});
+            
+            tags = '';
+            if reportModelIdx && ~isempty(app.mainApp.projectData.report.templates(reportModelIdx).UserData) && isfield(app.mainApp.projectData.report.templates(reportModelIdx).UserData, 'ExternalFileTags')
+                tags = matlab.jsonencode(app.mainApp.projectData.report.templates(reportModelIdx).UserData.ExternalFileTags);
+            end
+
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onExternalFileModuleOpenRequest', tags)
 
         end
     end
