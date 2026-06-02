@@ -8,7 +8,6 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         SpectrumFlowTreeLabel   matlab.ui.control.Label
         reportPanel             matlab.ui.container.Panel
         reportGrid              matlab.ui.container.GridLayout
-        prjOpenFileButton_4     matlab.ui.control.Image
         reportEntityPanel       matlab.ui.container.Panel
         reportEntityGrid        matlab.ui.container.GridLayout
         reportEntityName        matlab.ui.control.EditField
@@ -22,6 +21,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         reportVersion           matlab.ui.control.DropDown
         reportVersionLabel      matlab.ui.control.Label
         reportModel             matlab.ui.control.DropDown
+        reportModelButton       matlab.ui.control.Image
         reportModelLabel        matlab.ui.control.Label
         reportLabel             matlab.ui.control.Label
         eFiscalizaPanel         matlab.ui.container.Panel
@@ -119,6 +119,9 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             % REPORT PANEL
             set(app.reportModel, 'Items', app.projectData.modules.(context).ui.templates, 'Value', app.projectData.modules.(context).ui.reportModel)
             app.reportVersion.Value    = app.projectData.modules.(context).ui.reportVersion;
+
+            [~, reportModelIdx] = ismember(app.reportModel.Value, {app.mainApp.projectData.report.templates.Name});
+            app.reportModelButton.Enable = reportModelIdx && ~isempty(app.mainApp.projectData.report.templates(reportModelIdx).ExternalFiles);
 
             set(app.reportEntityType, 'Items', app.projectData.modules.(context).ui.entityTypes, 'Value', app.projectData.modules.(context).ui.entity.type)
             app.reportEntityName.Value = app.projectData.modules.(context).ui.entity.name;
@@ -450,27 +453,19 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: prjOpenFileButton_4
-        function prjOpenFileButton_4ImageClicked(app, event)
+        % Image clicked function: reportModelButton
+        function onExternalFileModuleOpenRequest(app, event)
             
-            if isempty(app.reportModel.Value)
+            if ~any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData))
                 warningMsg = [ ...
-                    'O modelo do relatório deve ser escolhido previamente à '  ...
-                    'inclusão de arquivos externos relacionados ao projeto ou ' ...
-                    'aos fluxos espectrais a incluir no relatório.' ...
+                    'Antes de incluir anexos ao projeto ou a um fluxo espectral, ' ...
+                    'defina ao menos um fluxo como "Fluxo a incluir no relatório".' ...
                 ];
                 ui.Dialog(app.UIFigure, 'warning', warningMsg);
                 return
             end
 
-            [~, reportModelIdx] = ismember(app.reportModel.Value, {app.mainApp.projectData.report.templates.Name});
-            
-            tags = '';
-            if reportModelIdx && ~isempty(app.mainApp.projectData.report.templates(reportModelIdx).UserData) && isfield(app.mainApp.projectData.report.templates(reportModelIdx).UserData, 'ExternalFileTags')
-                tags = matlab.jsonencode(app.mainApp.projectData.report.templates(reportModelIdx).UserData.ExternalFileTags);
-            end
-
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onExternalFileModuleOpenRequest', tags)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onExternalFileModuleOpenRequest')
 
         end
     end
@@ -511,7 +506,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 81, 10, '1x', 5, 22, 5, 22, 5, 22};
+            app.GridLayout.ColumnWidth = {286, 81, 10, 286, 5, 22, 5, 22, 5, 22};
             app.GridLayout.RowHeight = {17, 136, 22, 100, 22, 230};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 5;
@@ -746,6 +741,16 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportModelLabel.Layout.Column = [1 2];
             app.reportModelLabel.Text = 'Modelo (.json):';
 
+            % Create reportModelButton
+            app.reportModelButton = uiimage(app.reportGrid);
+            app.reportModelButton.ImageClickedFcn = createCallbackFcn(app, @onExternalFileModuleOpenRequest, true);
+            app.reportModelButton.Enable = 'off';
+            app.reportModelButton.Tooltip = {'Adiciona arquivos externos'};
+            app.reportModelButton.Layout.Row = 1;
+            app.reportModelButton.Layout.Column = 4;
+            app.reportModelButton.VerticalAlignment = 'bottom';
+            app.reportModelButton.ImageSource = 'attach_32.png';
+
             % Create reportModel
             app.reportModel = uidropdown(app.reportGrid);
             app.reportModel.Items = {''};
@@ -855,15 +860,6 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             app.reportEntityName.FontSize = 11;
             app.reportEntityName.Layout.Row = 4;
             app.reportEntityName.Layout.Column = [1 3];
-
-            % Create prjOpenFileButton_4
-            app.prjOpenFileButton_4 = uiimage(app.reportGrid);
-            app.prjOpenFileButton_4.ImageClickedFcn = createCallbackFcn(app, @prjOpenFileButton_4ImageClicked, true);
-            app.prjOpenFileButton_4.Tooltip = {'Abre projeto'};
-            app.prjOpenFileButton_4.Layout.Row = 1;
-            app.prjOpenFileButton_4.Layout.Column = 4;
-            app.prjOpenFileButton_4.VerticalAlignment = 'bottom';
-            app.prjOpenFileButton_4.ImageSource = 'attach_32.png';
 
             % Create SpectrumFlowTreeLabel
             app.SpectrumFlowTreeLabel = uilabel(app.GridLayout);

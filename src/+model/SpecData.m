@@ -517,6 +517,7 @@ classdef SpecData < model.SpecDataBase
                                                                'UserData:Emissions', ...
                                                                'UserData:PlotDisplayConfig', ...
                                                                'UserData:OccupancyFields', ...
+                                                               'UserData:ReportAttachments', ...
                                                                'UserData:ReportFields', ...
                                                                'UserData:ReportInclude', ...
                                                                'UserData:OccupancyFields+ReportFields'})}
@@ -913,40 +914,50 @@ classdef SpecData < model.SpecDataBase
 
                     hasEmissionsInSearchBand(obj)
 
+                case 'UserData:ReportAttachments'
+                    switch updateType
+                        case 'add'
+                            attachmentInfo = varargin{1};
+                            attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+
+                            for ii = 1:numel(obj)
+                                entryIdx = strcmp(obj(ii).UserData.ReportAttachments.Tag, attachmentInfo.Tag) & strcmp(obj(ii).UserData.ReportAttachments.Type, attachmentInfo.Type);
+
+                                if ~any(entryIdx)
+                                    obj(ii).UserData.ReportAttachments(end+1, :) = { ...
+                                        attachmentInfo.Type, ...
+                                        attachmentInfo.Tag, ...
+                                        attachmentInfo.Filename, ...
+                                        attachmentInfo.Id, ...
+                                        attachmentHash ...
+                                    };
+                                end
+                            end
+
+                        case 'edit'
+                            attachmentIdx = varargin{1};
+                            attachmentValue = varargin{2};
+        
+                            obj.UserData.ReportAttachments.Id(attachmentIdx) = attachmentValue;
+        
+                            attachmentInfo = table2struct(obj.UserData.ReportAttachments(attachmentIdx, :));
+                            attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+        
+                            obj.UserData.ReportAttachments.Hash{attachmentIdx} = attachmentHash;
+        
+                        otherwise % 'delete'
+                            attachmentHash = varargin{1};
+                            [~, attachmentsHashIdx] = ismember(attachmentHash, obj.UserData.ReportAttachments.Hash);
+
+                            if attachmentsHashIdx
+                                obj.UserData.ReportAttachments(attachmentsHashIdx, :) = [];
+                            end
+                    end
 
                 case 'UserData:ReportInclude'
                     flowIdxs = updateType;
                     for ii = 1:numel(obj)
                         obj(ii).UserData.ReportInclude = ismember(ii, flowIdxs);
-                    end
-
-                case 'UserData:OccupancyFields'
-                    checkIfScalar(obj)
-
-                    switch updateType
-                        case 'SelectedHashChanged'
-                            obj.UserData.OccupancyComputationMode.SelectedHash = varargin{1};
-                        
-                        case 'SelectedHashRefresh'
-                            relatedHashes = obj.UserData.OccupancyComputationMode.RelatedHashes;
-                            if ~isempty(relatedHashes)
-                                obj.UserData.OccupancyComputationMode.SelectedHash = relatedHashes{1};
-                            end
-
-                        case 'AddToCacheRequest'
-                            occParameters = varargin{1};
-                            occThreshold  = RF.Occupancy.getThreshold(occParameters.Method, occParameters, obj, 'bin');
-                            occData       = RF.Occupancy.run(obj.Data{1}, obj.Data{2}, occParameters.Method, occThreshold, occParameters.IntegrationTime);
-                            occIndex      = numel(obj.UserData.OccupancyFiniteIntegrationCache) + 1;
-            
-                            obj.UserData.OccupancyComputationMode.CacheIndex = occIndex;
-                            obj.UserData.OccupancyFiniteIntegrationCache(occIndex) = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Data', {occData});
-
-                        case 'SelectedCacheChanged'
-                            obj.UserData.OccupancyComputationMode.CacheIndex = varargin{1};
-
-                        otherwise
-                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
                     end
 
                 case 'UserData:ReportFields'
@@ -976,6 +987,35 @@ classdef SpecData < model.SpecDataBase
                             checkIfScalar(obj)
 
                             obj.UserData.ReportAlgorithms.Detection.ManualMode = varargin{1};
+
+                        otherwise
+                            error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
+                    end
+
+                case 'UserData:OccupancyFields'
+                    checkIfScalar(obj)
+
+                    switch updateType
+                        case 'SelectedHashChanged'
+                            obj.UserData.OccupancyComputationMode.SelectedHash = varargin{1};
+                        
+                        case 'SelectedHashRefresh'
+                            relatedHashes = obj.UserData.OccupancyComputationMode.RelatedHashes;
+                            if ~isempty(relatedHashes)
+                                obj.UserData.OccupancyComputationMode.SelectedHash = relatedHashes{1};
+                            end
+
+                        case 'AddToCacheRequest'
+                            occParameters = varargin{1};
+                            occThreshold  = RF.Occupancy.getThreshold(occParameters.Method, occParameters, obj, 'bin');
+                            occData       = RF.Occupancy.run(obj.Data{1}, obj.Data{2}, occParameters.Method, occThreshold, occParameters.IntegrationTime);
+                            occIndex      = numel(obj.UserData.OccupancyFiniteIntegrationCache) + 1;
+            
+                            obj.UserData.OccupancyComputationMode.CacheIndex = occIndex;
+                            obj.UserData.OccupancyFiniteIntegrationCache(occIndex) = struct('Method', occParameters.Method, 'Parameters', occParameters, 'Threshold', occThreshold, 'Data', {occData});
+
+                        case 'SelectedCacheChanged'
+                            obj.UserData.OccupancyComputationMode.CacheIndex = varargin{1};
 
                         otherwise
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)

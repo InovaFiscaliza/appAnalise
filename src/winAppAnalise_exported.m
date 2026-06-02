@@ -159,8 +159,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             deleteContextMenu(app.tabGroupController, hApp.UIFigure, popupCurrentAppTag)
                         end
 
-                        delete(app.popupCurrentApp)
-                        app.popupCurrentApp = [];
+                        if contains(class(app.popupCurrentApp), popupCurrentAppTag)
+                            delete(app.popupCurrentApp)
+                            app.popupCurrentApp = [];
+                        end
                     
                     case 'customForm'
                         switch event.HTMLEventData.uuid
@@ -406,6 +408,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case 'onExternalFileModuleOpenRequest'
                                         if callingApp.isDocked
                                             sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                            pause(.100)
                                         else
                                             delete(callingApp)
                                         end
@@ -549,7 +552,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications( 5, :) = {"DriveTestFilter", 412, 338, false};
                 popupSpecifications( 6, :) = {"DriveTestPoints", 412, 408, false};
                 popupSpecifications( 7, :) = {"EmissionChannel", 412, 138, false};
-                popupSpecifications( 8, :) = {"ExternalFiles",   880, 480, false}; % Não iniciada revisão
+                popupSpecifications( 8, :) = {"ExternalFiles",   880, 480, true};
                 popupSpecifications( 9, :) = {"FilterByLevel",   550, 308, false};
                 popupSpecifications(10, :) = {"FilterByTime",    452, 208, false};
                 popupSpecifications(11, :) = {"FlowMerge",       880, 480, true};
@@ -1664,7 +1667,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         fileList = dir(filePath);
                         
                         fileName = {fileList.name};
-                        fileName = fileName(endsWith(lower(fileName), '.mat'));
+                        fileName = fileName(endsWith(lower(fileName), '.bin'));
     
                         if ~isempty(fileName)
                             break

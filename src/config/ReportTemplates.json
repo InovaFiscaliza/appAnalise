@@ -8,7 +8,7 @@
         "Author": "Leonardo Lago Araújo",
         "Version": "1.00",
         "Release": "22/01/2025",
-        "UserData": []
+        "ExternalFiles": []
     },
     {
         "Name": "PMEC 2025 (DT)",
@@ -19,7 +19,7 @@
         "Author": "Leonardo Lago Araújo",
         "Version": "1.00",
         "Release": "22/01/2025",
-        "UserData": ""
+        "ExternalFiles": []
     },
     {
         "Name": "PMRD 2025",
@@ -30,7 +30,7 @@
         "Author": "Arthur Pisaruk",
         "Version": "1.00",
         "Release": "03/02/2025",
-        "UserData": []
+        "ExternalFiles": []
     },
     {
         "Name": "PMEF 2025",
@@ -41,18 +41,28 @@
         "Author": "Centralizador PMEF 2024",
         "Version": "1.01",
         "Release": "02/11/2024",
-        "UserData": {
-            "ExternalFileTags": {
-                "Image": [
-                    "ROMES"
-                ],
-                "Table": [
-                    "METODOLOGIA",
-                    "ROMES",
-                    "SUMÁRIO"
-                ]
+        "ExternalFiles": [
+            {
+                "Tag": "METODOLOGIA",
+                "Recurrence": 0,
+                "Type": "Table"
+            },
+            {
+                "Tag": "ROMES",
+                "Recurrence": 1,
+                "Type": "Image"
+            },
+            {
+                "Tag": "ROMES",
+                "Recurrence": 1,
+                "Type": "Table"
+            },
+            {
+                "Tag": "SUMÁRIO",
+                "Recurrence": 0,
+                "Type": "Table"
             }
-        }
+        ]
     },
     {
         "Name": "PMSAT 2024",
@@ -63,7 +73,7 @@
         "Author": "Centralizador PMSAT 2024",
         "Version": "1.01",
         "Release": "02/11/2024",
-        "UserData": []
+        "ExternalFiles": []
     },
     {
         "Name": "Grandes Eventos 2025",
@@ -74,13 +84,12 @@
         "Author": "Breno César Santana Caldas da Silva",
         "Version": "1.00",
         "Release": "03/02/2025",
-        "UserData": {
-            "ExternalFileTags": {
-                "Image": [],
-                "Table": [
-                    "SUMÁRIO"
-                ]
+        "ExternalFiles": [
+            {
+                "Tag": "SUMÁRIO",
+                "Recurrence": 0,
+                "Type": "Table"
             }
-        }
+        ]
     }
 ]

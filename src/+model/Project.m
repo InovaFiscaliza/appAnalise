@@ -18,6 +18,15 @@ classdef Project < model.ProjectCommon
     %   └── contextInitialization
     %       └── initialization (SuperClass)
 
+    properties
+        %-----------------------------------------------------------------%
+        ReportAttachments = table( ...
+            'Size', [0, 5], ...
+            'VariableTypes', {'cell', 'cell', 'cell', 'int8', 'cell'}, ...
+            'VariableNames', {'Type', 'Tag', 'Filename', 'Id', 'Hash'} ...
+        )
+    end
+
 
     methods
         %-----------------------------------------------------------------%
@@ -192,10 +201,53 @@ classdef Project < model.ProjectCommon
         end
 
         %-----------------------------------------------------------------%
-        % ## VALIDATION ##
-        %-----------------------------------------------------------------%
         function validateAuditorClassification(obj, context, generalSettings, varargin)
             % ...
+        end
+
+        %-----------------------------------------------------------------%
+        function updateReportAttachments(obj, updateType, varargin)
+            arguments
+                obj 
+                updateType {mustBeMember(updateType, {'add', 'edit', 'delete'})} 
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            switch updateType
+                case 'add'
+                    attachmentInfo = varargin{1};
+                    attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+                    if ~ismember(attachmentHash, obj.ReportAttachments.Hash)
+                        obj.ReportAttachments(end+1, :) = { ...
+                            attachmentInfo.Type, ...
+                            attachmentInfo.Tag, ...
+                            attachmentInfo.Filename, ...
+                            attachmentInfo.Id, ...
+                            attachmentHash ...
+                        };
+                    end
+
+                case 'edit'
+                    attachmentIdx = varargin{1};
+                    attachmentValue = varargin{2};
+
+                    obj.ReportAttachments.Id(attachmentIdx) = attachmentValue;
+
+                    attachmentInfo = table2struct(obj.ReportAttachments(attachmentIdx, :));
+                    attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+
+                    obj.ReportAttachments.Hash{attachmentIdx} = attachmentHash;
+
+                otherwise % 'delete'
+                    attachmentHash = varargin{1};
+                    [~, attachmentsHashIdx] = ismember(attachmentHash, obj.ReportAttachments.Hash);
+                    if attachmentsHashIdx
+                        obj.ReportAttachments(attachmentsHashIdx, :) = [];
+                    end
+            end
         end
     end
 

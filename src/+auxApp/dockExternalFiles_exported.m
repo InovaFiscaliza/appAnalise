@@ -2,23 +2,18 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        GridLayout                    matlab.ui.container.GridLayout
-        btnImport                     matlab.ui.control.Image
-        btnImport_2                   matlab.ui.control.Image
-        TAGsDEREFERNCIATextArea       matlab.ui.control.TextArea
-        TAGsDEREFERNCIATextAreaLabel  matlab.ui.control.Label
-        UITableLabel_3                matlab.ui.control.Label
-        SpectrumFlowTree              matlab.ui.container.Tree
-        ButtonGroup                   matlab.ui.container.ButtonGroup
-        FLUXOSESPECTRAISAINCLUIRNORELATRIOButton  matlab.ui.control.RadioButton
-        PROJETOButton                 matlab.ui.control.RadioButton
-        UITableLabel_2                matlab.ui.control.Label
-        btnOK                         matlab.ui.control.Button
-        UITable                       matlab.ui.control.Table
-        UITableLabel                  matlab.ui.control.Label
-        ContextMenu                   matlab.ui.container.ContextMenu
-        btnDelete                     matlab.ui.container.Menu
+        UIFigure           matlab.ui.Figure
+        GridLayout         matlab.ui.container.GridLayout
+        UITable2           matlab.ui.control.Table
+        UITable2Button     matlab.ui.control.Image
+        UITable2Label      matlab.ui.control.Label
+        UITable1           matlab.ui.control.Table
+        UITable1Button     matlab.ui.control.Image
+        UITable1Label      matlab.ui.control.Label
+        ReportModel        matlab.ui.control.DropDown
+        ReportModelLabel   matlab.ui.control.Label
+        ContextMenu        matlab.ui.container.ContextMenu
+        ContextMenuDelete  matlab.ui.container.Menu
     end
 
     
@@ -42,103 +37,84 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        emptyTable  = table( ...
-            'Size', [0, 4], ...
-            'VariableTypes', {'cell', 'cell', 'cell', 'int8'}, ...
-            'VariableNames', {'Type', 'Tag', 'Filename', 'ID'} ...
-        );
-        
-        editionType char {mustBeMember(editionType, {'ProjectData', 'SpectralData'})} = 'ProjectData'
-        editionFlag = false
+        inputArgs
     end
     
 
     methods (Access = private)
         %-----------------------------------------------------------------%        
-        function initialValues(app, tags)
-            app.TAGsDEREFERNCIATextArea.Value = tags;
-            buildTree(app)
+        function initialValues(app, context)
+            app.UITable1.Data = table( ...
+                'Size', [0, 4], ...
+                'VariableTypes', {'cell', 'cell', 'cell', 'double'}, ...
+                'VariableNames', {'TAG', 'TIPO', 'ARQUIVO', 'ID'} ...
+            );
+
+            app.UITable2.Data = table( ...
+                'Size', [0, 5], ...
+                'VariableTypes', {'cell', 'cell', 'cell', 'cell', 'double'}, ...
+                'VariableNames', {'TAG', 'TIPO', 'BANDA', 'ARQUIVO', 'ID'} ...
+            );
+
+            refreshPanelContent(app, context)
         end
 
         %-----------------------------------------------------------------%
-        function buildTree(app)
-            if ~isempty(app.SpectrumFlowTree.Children)
-                delete(app.SpectrumFlowTree.Children)
-            end
-
-            if ~isempty(app.mainApp.specData)
-                [receiverList, ~, receiverListIdxs] = unique({app.mainApp.specData.Receiver});
+        function refreshPanelContent(app, context)
+            reportModel = app.projectData.modules.(context).ui.reportModel;
+            refreshPanelStatus(app, reportModel)
+            
+            [~, reportModelIdx] = ismember(reportModel, {app.projectData.report.templates.Name});            
+            flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+            mappingFlowIdxs = [];
+            
+            if reportModelIdx
+                externalFiles = app.projectData.report.templates(reportModelIdx).ExternalFiles;
     
-                for ii = 1:numel(receiverList)
-                    receiverIdxs  = find(receiverListIdxs == ii)';
-                    reportIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData(receiverIdxs));
-                    receiverIdxs(~reportIdxs) = [];
+                for ii = 1:numel(externalFiles)
+                    tag = externalFiles(ii).Tag;
+                    recurrence = externalFiles(ii).Recurrence;
+                    type = externalFiles(ii).Type;
 
-                    if isempty(receiverIdxs)
-                        continue
-                    end
+                    switch recurrence
+                        case 0 % PROJECT
+                            app.UITable1.Data(end+1, :) = {tag, type, '', -1};        
+                            entryIdx = find(strcmp(app.projectData.ReportAttachments.Tag, tag) & strcmp(app.projectData.ReportAttachments.Type, type));
+                            if ~isempty(entryIdx)
+                                entryIdx = entryIdx(1);
+                                app.UITable1.Data(end, {'ARQUIVO', 'ID'}) = {app.projectData.ReportAttachments.Filename{entryIdx}, app.projectData.ReportAttachments.Id(entryIdx)};
+                            end
 
-                    receiverNode = uitreenode(app.SpectrumFlowTree, 'Text',  util.layoutTreeNodeText(receiverList{ii}, 'play_TreeBuilding'), ...
-                                                                    'NodeData', receiverIdxs, 'Icon', util.layoutTreeNodeIcon(receiverList{ii}), 'Tag', 'RECEIVER');
+                        otherwise % FLOW
+                            for jj = flowIdxs
+                                app.UITable2.Data(end+1, :) = {tag, type, util.HtmlTextGenerator.createTag('Flow', app.mainApp.specData(jj)), '', -1};
+                                entryIdx = find(strcmp(app.mainApp.specData(jj).UserData.ReportAttachments.Tag, tag) & strcmp(app.mainApp.specData(jj).UserData.ReportAttachments.Type, type));
+                                if ~isempty(entryIdx)
+                                    entryIdx = entryIdx(1);
+                                    app.UITable2.Data(end, {'ARQUIVO', 'ID'}) = {app.mainApp.specData(jj).UserData.ReportAttachments.Filename{entryIdx}, app.mainApp.specData(jj).UserData.ReportAttachments.Id(entryIdx)};
+                                end
+                            end
 
-                    for jj = receiverIdxs
-                        uitreenode(receiverNode, 'Text', util.HtmlTextGenerator.createTag('Flow', app.mainApp.specData(jj)), ...
-                                                 'NodeData', jj, 'Tag', 'BAND');
+                            mappingFlowIdxs = [mappingFlowIdxs, flowIdxs];
                     end
                 end
 
-                expand(app.SpectrumFlowTree, 'all')
+                app.UITable2.UserData.flowIdxs = mappingFlowIdxs;
             end
         end
 
         %-----------------------------------------------------------------%
-        function nodeText = misc_nodeTreeText(app, idx)
-            FreqStart = app.specData(idx).MetaData.FreqStart / 1e+6;
-            FreqStop  = app.specData(idx).MetaData.FreqStop  / 1e+6;
+        function refreshPanelStatus(app, reportModel)
+            app.ReportModel.Items = {reportModel};
+            
+            app.UITable1.Data(:, :) = [];
+            app.UITable1.Selection  = [];
+            
+            app.UITable2.Data(:, :) = [];
+            app.UITable2.Selection  = [];
+            app.UITable2.UserData.flowIdxs = [];
 
-            nodeText = sprintf('%.3f - %.3f MHz', FreqStart, FreqStop);
-        end
-
-        %-----------------------------------------------------------------%
-        function srcTable = getTable(app)
-            switch app.editionType
-                case 'ProjectData'
-                    srcTable = app.projectData.externalFiles;
-                otherwise
-                    idx = Index(app);
-                    if isempty(idx)
-                        srcTable = app.emptyTable;
-                    else
-                        srcTable = app.specData(idx).UserData.reportExternalFiles;                        
-                    end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function setTable(app)
-            switch app.editionType
-                case 'ProjectData'
-                    app.projectData.externalFiles = app.UITable.Data;
-                otherwise
-                    idx = Index(app);
-                    if isempty(idx)
-                        return                        
-                    end
-
-                    app.specData(idx).UserData.reportExternalFiles = app.UITable.Data;
-            end
-
-            TreeBuilding(app)
-            app.editionFlag = true;
-        end
-
-        %-----------------------------------------------------------------%
-        function idx = Index(app)
-            if ~isempty(app.SpectrumFlowTree.SelectedNodes) && isscalar(app.SpectrumFlowTree.SelectedNodes.NodeData)
-                idx = app.SpectrumFlowTree.SelectedNodes.NodeData;
-            else
-                idx = [];
-            end
+            set([app.UITable1Button, app.UITable2Button], 'Enable', 'off')
         end
     end
     
@@ -147,11 +123,12 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, callingApp, context, tags)
+        function startupFcn(app, mainApp, callingApp, context)
 
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-                initialValues(app, tags)
+                app.inputArgs = struct('context', context);
+                initialValues(app, context)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -166,131 +143,181 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: btnImport
-        function btnImportPushed(app, event)
+        % Menu selected function: ContextMenuDelete
+        function onContextMenuOptionClicked(app, event)
             
-            [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.xls;*.xlsx;*.csv;*.txt;*.json;*.jpg;*.jpeg;*.png'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
-
-            if isempty(fileName)
+            evtSource = event.ContextObject;
+            selection = evtSource.Selection;
+            if isempty(selection)
                 return
-            elseif ~iscell(fileName)
-                fileName = {fileName};
+            end
+
+            attachmentInfo = struct( ...
+                'Type', evtSource.Data.TIPO{selection}, ...
+                'Tag', evtSource.Data.TAG{selection}, ...
+                'Filename', evtSource.Data.ARQUIVO{selection}, ...
+                'Id', evtSource.Data.ID(selection) ...
+            );
+
+            attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+
+            switch evtSource
+                case app.UITable1
+                    updateReportAttachments(app.projectData, 'delete', attachmentHash)
+
+                otherwise % app.UITable2
+                    flowIdx = app.UITable2.UserData.flowIdxs(selection);
+                    update(app.mainApp.specData(flowIdx), 'UserData:ReportAttachments', 'delete', attachmentHash)
+            end
+
+            context = app.inputArgs.context;
+            refreshPanelContent(app, context)
+
+        end
+
+        % Image clicked function: UITable1Button, UITable2Button
+        function onTableButtonClicked(app, event)
+            
+            switch event.Source
+                case app.UITable1Button
+                    selection = app.UITable1.Selection;
+                    expectedFileType = app.UITable1.Data.TIPO{selection};
+
+                otherwise % app.UITable2Button
+                    selection = app.UITable2.Selection;
+                    expectedFileType = app.UITable2.Data.TIPO{selection};
+            end
+
+            switch expectedFileType
+                case 'Image'
+                    expectedFileExtensions = {'*.jpg;*.jpeg;*.png'};
+
+                otherwise % 'Table'
+                    expectedFileExtensions = {'*.xls;*.xlsx;*.csv;*.txt'};
+            end
+
+            [fileFullPath, filePath, fileExt] = ui.Dialog(app.UIFigure, 'uigetfile', '', expectedFileExtensions, app.mainApp.General.fileFolder.lastVisited);
+
+            if isempty(fileFullPath)
+                return
+            elseif ~iscell(fileFullPath)
+                fileFullPath = {fileFullPath};
+            end
+
+            switch fileExt
+                case {'.xls', '.xlsx', '.csv', '.txt', '.json'}
+                    fileType = 'Table';
+                case {'.jpg', '.jpeg', '.png'}
+                    fileType = 'Image';
+                otherwise
+                    return
+            end
+
+            if ~strcmp(expectedFileType, fileType)
+                return
             end
 
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onUpdateLastVisitedFolder', filePath);
 
-            % Questiona usuário se o arquivo deve ser inserido na lista de
-            % arquivo relacionado a todos os fluxos espectrais
-            msgQuestion   = 'Deseja adicionar o(s) arquivo(s) selecionado(s) a todos os fluxos espectrais a processar?';
-            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+            switch event.Source
+                case app.UITable1Button
+                    attachmentInfo = struct( ...
+                        'Type', fileType, ...
+                        'Tag', app.UITable1.Data.TAG{selection}, ...
+                        'Filename', fileFullPath, ...
+                        'Id', -1 ...
+                    );
 
-            switch userSelection
-                case 'Sim'
-                    idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
-                otherwise
-                    idxThreads = Index(app);
+                    updateReportAttachments(app.projectData, 'add', attachmentInfo)
+
+                otherwise % app.UITable2Button
+                    attachmentInfo = struct( ...
+                        'Type', fileType, ...
+                        'Tag', app.UITable2.Data.TAG{selection}, ...
+                        'Filename', fileFullPath, ...
+                        'Id', -1 ...
+                    );
+
+                    % Questiona usuário se o arquivo deve ser inserido na lista de
+                    % arquivo relacionado a todos os fluxos espectrais
+                    flowIdxs = app.UITable2.UserData.flowIdxs;
+
+                    if ~isscalar(flowIdxs)
+                        questionMsg = 'Deseja adicionar o arquivo apenas ao fluxo selecionado ou a todos os fluxos espectrais a processar?';
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 2, 2);
+
+                        if strcmp(userSelection, 'Não')
+                            flowIdxs = flowIdxs(selection);
+                        end
+                    end
+
+                    flowIdxs = unique(flowIdxs);
+                    update(app.mainApp.specData(flowIdxs), 'UserData:ReportAttachments', 'add', attachmentInfo)
             end
 
-            fileFullName  = fullfile(filePath, fileName);
-            for ii = 1:numel(fileFullName)
-                [~,~,fileExt] = fileparts(fileFullName{ii});
+            context = app.inputArgs.context;
+            refreshPanelContent(app, context)
 
-                switch lower(fileExt)
-                    case {'.xls', '.xlsx', '.csv', '.txt', '.json'}
-                        fileType = 'Table';
-                    case {'.jpg', '.jpeg', '.png'}
-                        fileType = 'Image';
-                    otherwise
-                        continue
-                end
-                newRow = {fileType, '-1', fileFullName{ii}, -1};
+        end
 
-                app.UITable.Data(end+1, :) = newRow;
-                if strcmp(app.editionType, 'ProjectData')
-                    app.projectData.externalFiles(end+1, :) = newRow;
-                end
+        % Selection changed function: UITable1, UITable2
+        function onTableSelectionChanged(app, event)
+            
+            switch event.Source
+                case app.UITable1
+                    set(app.UITable2, 'Selection', [], 'ContextMenu', [])
 
-                for jj = idxThreads
-                    app.specData(jj).UserData.reportExternalFiles(end+1, :) = newRow;
-                end
+                otherwise % app.UITable2
+                    set(app.UITable1, 'Selection', [], 'ContextMenu', [])
             end
 
-            TreeBuilding(app)
-            app.editionFlag = true;
-
-        end
-
-        % Button pushed function: btnOK
-        function btnOKAndClosePushed(app, event)
-            
-            updateFlag = app.editionFlag;
-            returnFlag = false;
-
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'REPORT:EXTERNALFILES', updateFlag, returnFlag)
-            closeFcn(app)
-
-        end
-
-        % Menu selected function: btnDelete
-        function btnDeletePushed(app, event)
-            
-            idxRow = app.UITable.Selection;
-            if ~isempty(idxRow)
-                app.UITable.Data(idxRow, :) = [];
-                setTable(app)
+            isNonEmptyUITable1Selection = ~isempty(app.UITable1.Selection);
+            if isNonEmptyUITable1Selection
+                app.UITable1.ContextMenu = app.ContextMenu;
             end
 
-        end
-
-        % Cell edit callback: UITable
-        function UITableCellEdit(app, event)
-            
-            setTable(app)
-
-        end
-
-        % Selection changed function: ButtonGroup
-        function ButtonGroupSelectionChanged(app, event)
-            
-            switch app.ButtonGroup.SelectedObject
-                case app.PROJETOButton
-                    app.editionType = 'ProjectData';
-                    app.SpectrumFlowTree.Enable = 0;                    
-                otherwise
-                    app.editionType = 'SpectralData';
-                    app.SpectrumFlowTree.Enable = 1;                    
+            isNonEmptyUITable2Selection = ~isempty(app.UITable2.Selection);
+            if isNonEmptyUITable2Selection
+                app.UITable2.ContextMenu = app.ContextMenu;
             end
 
-            app.UITable.Data = getTable(app);
+            app.UITable1Button.Enable   = isNonEmptyUITable1Selection;
+            app.UITable2Button.Enable   = isNonEmptyUITable2Selection;
             
         end
 
-        % Selection changed function: SpectrumFlowTree
-        function SpectrumFlowTreeSelectionChanged(app, event)
+        % Cell edit callback: UITable1, UITable2
+        function onTableSelectionEdited(app, event)
             
-            app.UITable.Data = getTable(app);
-            
-        end
+            selection = event.Indices(1);
+            newValue  = round(event.NewData);
 
-        % Image clicked function: btnImport_2
-        function btnImport_2ImageClicked(app, event)
-            
-            msgQuestion   = 'Deseja reiniciar o mapeamento entre o projeto e arquivos externos?';
-            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
-            if strcmp(userSelection, 'Não')
+            if strcmp(event.Source.Data.TIPO{selection}, 'Image') || isempty(event.Source.Data.ARQUIVO{selection}) || isnan(newValue) || newValue <= 0 || isinf(newValue)
+                event.Source.Data.ID(selection) = event.PreviousData;
                 return
             end
 
-            app.projectData.externalFiles = app.emptyTable;
-            
-            idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.specData));
-            for ii = idxThreads
-                app.specData(ii).UserData.reportExternalFiles = app.emptyTable;
-            end
+            tag = event.Source.Data.TAG{selection};
+            type = event.Source.Data.TIPO{selection};
 
-            app.UITable.Data = getTable(app);
-            TreeBuilding(app)
-            app.editionFlag = true;
+            switch event.Source
+                case app.UITable1
+                    entryIdx = find(strcmp(app.projectData.ReportAttachments.Tag, tag) & strcmp(app.projectData.ReportAttachments.Type, type));
+                    
+                    if ~isempty(entryIdx)
+                        entryIdx = entryIdx(1);
+                        updateReportAttachments(app.projectData, 'edit', entryIdx, newValue)
+                    end
+
+                otherwise % app.UITable2
+                    flowIdx = event.Source.UserData.flowIdxs(selection);
+                    entryIdx = find(strcmp(app.mainApp.specData(flowIdx).UserData.ReportAttachments.Tag, tag) & strcmp(app.mainApp.specData(flowIdx).UserData.ReportAttachments.Type, type));
+                    
+                    if ~isempty(entryIdx)
+                        entryIdx = entryIdx(1);
+                        update(app.mainApp.specData(flowIdx), 'UserData:ReportAttachments', 'edit', entryIdx, newValue)
+                    end
+            end
 
         end
     end
@@ -331,131 +358,105 @@ classdef dockExternalFiles_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {22, 5, 22, '1x', 10, '1x', 90};
-            app.GridLayout.RowHeight = {17, 5, 56, 5, 22, 5, '1x', 5, 22, 5, '1x', 10, 22};
-            app.GridLayout.ColumnSpacing = 0;
-            app.GridLayout.RowSpacing = 0;
+            app.GridLayout.ColumnWidth = {367, '1x', 18};
+            app.GridLayout.RowHeight = {17, 22, 22, '0.5x', 22, '1x'};
+            app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create UITableLabel
-            app.UITableLabel = uilabel(app.GridLayout);
-            app.UITableLabel.VerticalAlignment = 'bottom';
-            app.UITableLabel.FontSize = 10;
-            app.UITableLabel.Layout.Row = 9;
-            app.UITableLabel.Layout.Column = [1 7];
-            app.UITableLabel.Text = 'ARQUIVOS EXTERNOS';
+            % Create ReportModelLabel
+            app.ReportModelLabel = uilabel(app.GridLayout);
+            app.ReportModelLabel.VerticalAlignment = 'bottom';
+            app.ReportModelLabel.FontSize = 11;
+            app.ReportModelLabel.Layout.Row = 1;
+            app.ReportModelLabel.Layout.Column = 1;
+            app.ReportModelLabel.Text = 'Modelo (.json):';
 
-            % Create UITable
-            app.UITable = uitable(app.GridLayout);
-            app.UITable.ColumnName = {'TIPO'; 'TAG'; 'ARQUIVO'; 'ID'};
-            app.UITable.ColumnWidth = {70, 110, 'auto', 70};
-            app.UITable.RowName = {};
-            app.UITable.SelectionType = 'row';
-            app.UITable.ColumnEditable = [false true false true];
-            app.UITable.CellEditCallback = createCallbackFcn(app, @UITableCellEdit, true);
-            app.UITable.Layout.Row = 11;
-            app.UITable.Layout.Column = [1 7];
-            app.UITable.FontSize = 11;
+            % Create ReportModel
+            app.ReportModel = uidropdown(app.GridLayout);
+            app.ReportModel.Items = {};
+            app.ReportModel.Enable = 'off';
+            app.ReportModel.FontSize = 11;
+            app.ReportModel.Layout.Row = 2;
+            app.ReportModel.Layout.Column = 1;
+            app.ReportModel.Value = {};
 
-            % Create btnOK
-            app.btnOK = uibutton(app.GridLayout, 'push');
-            app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @btnOKAndClosePushed, true);
-            app.btnOK.Tag = 'OK';
-            app.btnOK.IconAlignment = 'right';
-            app.btnOK.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.btnOK.Layout.Row = 13;
-            app.btnOK.Layout.Column = 7;
-            app.btnOK.Text = 'OK';
+            % Create UITable1Label
+            app.UITable1Label = uilabel(app.GridLayout);
+            app.UITable1Label.VerticalAlignment = 'bottom';
+            app.UITable1Label.FontSize = 11;
+            app.UITable1Label.Layout.Row = 3;
+            app.UITable1Label.Layout.Column = [1 2];
+            app.UITable1Label.Interpreter = 'html';
+            app.UITable1Label.Text = 'Arquivos externos relacionados ao <b>PROJETO</b>:';
 
-            % Create UITableLabel_2
-            app.UITableLabel_2 = uilabel(app.GridLayout);
-            app.UITableLabel_2.VerticalAlignment = 'bottom';
-            app.UITableLabel_2.FontSize = 10;
-            app.UITableLabel_2.Layout.Row = 1;
-            app.UITableLabel_2.Layout.Column = [1 4];
-            app.UITableLabel_2.Text = 'TIPO';
+            % Create UITable1Button
+            app.UITable1Button = uiimage(app.GridLayout);
+            app.UITable1Button.ScaleMethod = 'none';
+            app.UITable1Button.ImageClickedFcn = createCallbackFcn(app, @onTableButtonClicked, true);
+            app.UITable1Button.Tag = 'DataHub_POST';
+            app.UITable1Button.Enable = 'off';
+            app.UITable1Button.Layout.Row = 3;
+            app.UITable1Button.Layout.Column = 3;
+            app.UITable1Button.VerticalAlignment = 'bottom';
+            app.UITable1Button.ImageSource = 'folder-opened-16px.svg';
 
-            % Create ButtonGroup
-            app.ButtonGroup = uibuttongroup(app.GridLayout);
-            app.ButtonGroup.AutoResizeChildren = 'off';
-            app.ButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @ButtonGroupSelectionChanged, true);
-            app.ButtonGroup.BackgroundColor = [1 1 1];
-            app.ButtonGroup.Layout.Row = 3;
-            app.ButtonGroup.Layout.Column = [1 4];
+            % Create UITable1
+            app.UITable1 = uitable(app.GridLayout);
+            app.UITable1.ColumnName = {'TAG'; 'TIPO'; 'ARQUIVO'; 'ID'};
+            app.UITable1.ColumnWidth = {90, 90, 'auto', 70};
+            app.UITable1.RowName = {};
+            app.UITable1.SelectionType = 'row';
+            app.UITable1.ColumnEditable = [false false false true];
+            app.UITable1.CellEditCallback = createCallbackFcn(app, @onTableSelectionEdited, true);
+            app.UITable1.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionChanged, true);
+            app.UITable1.Multiselect = 'off';
+            app.UITable1.Layout.Row = 4;
+            app.UITable1.Layout.Column = [1 3];
+            app.UITable1.FontSize = 11;
 
-            % Create PROJETOButton
-            app.PROJETOButton = uiradiobutton(app.ButtonGroup);
-            app.PROJETOButton.Text = 'PROJETO';
-            app.PROJETOButton.FontSize = 10.5;
-            app.PROJETOButton.Position = [10 27 71 22];
-            app.PROJETOButton.Value = true;
+            % Create UITable2Label
+            app.UITable2Label = uilabel(app.GridLayout);
+            app.UITable2Label.VerticalAlignment = 'bottom';
+            app.UITable2Label.FontSize = 11;
+            app.UITable2Label.Layout.Row = 5;
+            app.UITable2Label.Layout.Column = [1 2];
+            app.UITable2Label.Interpreter = 'html';
+            app.UITable2Label.Text = 'Arquivos externos relacionados aos <b>FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO</b>:';
 
-            % Create FLUXOSESPECTRAISAINCLUIRNORELATRIOButton
-            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton = uiradiobutton(app.ButtonGroup);
-            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.Text = 'FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO';
-            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.FontSize = 10.5;
-            app.FLUXOSESPECTRAISAINCLUIRNORELATRIOButton.Position = [10 6 272 22];
+            % Create UITable2Button
+            app.UITable2Button = uiimage(app.GridLayout);
+            app.UITable2Button.ScaleMethod = 'none';
+            app.UITable2Button.ImageClickedFcn = createCallbackFcn(app, @onTableButtonClicked, true);
+            app.UITable2Button.Tag = 'DataHub_POST';
+            app.UITable2Button.Enable = 'off';
+            app.UITable2Button.Layout.Row = 5;
+            app.UITable2Button.Layout.Column = 3;
+            app.UITable2Button.VerticalAlignment = 'bottom';
+            app.UITable2Button.ImageSource = 'folder-opened-16px.svg';
 
-            % Create SpectrumFlowTree
-            app.SpectrumFlowTree = uitree(app.GridLayout);
-            app.SpectrumFlowTree.SelectionChangedFcn = createCallbackFcn(app, @SpectrumFlowTreeSelectionChanged, true);
-            app.SpectrumFlowTree.FontSize = 11;
-            app.SpectrumFlowTree.Layout.Row = [3 7];
-            app.SpectrumFlowTree.Layout.Column = [6 7];
-
-            % Create UITableLabel_3
-            app.UITableLabel_3 = uilabel(app.GridLayout);
-            app.UITableLabel_3.VerticalAlignment = 'bottom';
-            app.UITableLabel_3.FontSize = 10;
-            app.UITableLabel_3.Layout.Row = 1;
-            app.UITableLabel_3.Layout.Column = [6 7];
-            app.UITableLabel_3.Text = 'FLUXOS ESPECTRAIS A INCLUIR NO RELATÓRIO';
-
-            % Create TAGsDEREFERNCIATextAreaLabel
-            app.TAGsDEREFERNCIATextAreaLabel = uilabel(app.GridLayout);
-            app.TAGsDEREFERNCIATextAreaLabel.VerticalAlignment = 'bottom';
-            app.TAGsDEREFERNCIATextAreaLabel.FontSize = 10;
-            app.TAGsDEREFERNCIATextAreaLabel.Layout.Row = 5;
-            app.TAGsDEREFERNCIATextAreaLabel.Layout.Column = [1 4];
-            app.TAGsDEREFERNCIATextAreaLabel.Text = 'TAGs DE REFERÊNCIA';
-
-            % Create TAGsDEREFERNCIATextArea
-            app.TAGsDEREFERNCIATextArea = uitextarea(app.GridLayout);
-            app.TAGsDEREFERNCIATextArea.Editable = 'off';
-            app.TAGsDEREFERNCIATextArea.FontSize = 11;
-            app.TAGsDEREFERNCIATextArea.Layout.Row = 7;
-            app.TAGsDEREFERNCIATextArea.Layout.Column = [1 4];
-
-            % Create btnImport_2
-            app.btnImport_2 = uiimage(app.GridLayout);
-            app.btnImport_2.ScaleMethod = 'none';
-            app.btnImport_2.ImageClickedFcn = createCallbackFcn(app, @btnImport_2ImageClicked, true);
-            app.btnImport_2.Tooltip = {'Reinicia mapeamento de arquivos'};
-            app.btnImport_2.Layout.Row = 13;
-            app.btnImport_2.Layout.Column = 1;
-            app.btnImport_2.ImageSource = 'Refresh_18.png';
-
-            % Create btnImport
-            app.btnImport = uiimage(app.GridLayout);
-            app.btnImport.ScaleMethod = 'none';
-            app.btnImport.ImageClickedFcn = createCallbackFcn(app, @btnImportPushed, true);
-            app.btnImport.Tooltip = {'Seleciona arquivos'};
-            app.btnImport.Layout.Row = 13;
-            app.btnImport.Layout.Column = 3;
-            app.btnImport.ImageSource = 'Import_16.png';
+            % Create UITable2
+            app.UITable2 = uitable(app.GridLayout);
+            app.UITable2.ColumnName = {'TAG'; 'TIPO'; 'BANDA'; 'ARQUIVO'; 'ID'};
+            app.UITable2.ColumnWidth = {90, 90, 150, 'auto', 70};
+            app.UITable2.RowName = {};
+            app.UITable2.SelectionType = 'row';
+            app.UITable2.ColumnEditable = [false false false false true];
+            app.UITable2.CellEditCallback = createCallbackFcn(app, @onTableSelectionEdited, true);
+            app.UITable2.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionChanged, true);
+            app.UITable2.Multiselect = 'off';
+            app.UITable2.Layout.Row = 6;
+            app.UITable2.Layout.Column = [1 3];
+            app.UITable2.FontSize = 11;
 
             % Create ContextMenu
             app.ContextMenu = uicontextmenu(app.UIFigure);
             app.ContextMenu.Tag = 'auxApp.dockAddFiles';
 
-            % Create btnDelete
-            app.btnDelete = uimenu(app.ContextMenu);
-            app.btnDelete.MenuSelectedFcn = createCallbackFcn(app, @btnDeletePushed, true);
-            app.btnDelete.Text = 'Deletar';
-            
-            % Assign app.ContextMenu
-            app.UITable.ContextMenu = app.ContextMenu;
+            % Create ContextMenuDelete
+            app.ContextMenuDelete = uimenu(app.ContextMenu);
+            app.ContextMenuDelete.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
+            app.ContextMenuDelete.Text = '❌ Excluir';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

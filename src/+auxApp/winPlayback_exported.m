@@ -297,10 +297,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 updateToolbar(app, specData)
 
                             case 'onFetchIssueDetails'
-                                system   = varargin{1};
-                                issue    = varargin{2};
-                                details  = varargin{3};
-                                msgError = varargin{4};
+                                system   = varargin{2};
+                                issue    = varargin{3};
+                                details  = varargin{4};
+                                msgError = varargin{5};
 
                                 if ~isempty(msgError)
                                     error(msgError)
@@ -310,7 +310,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 ui.Dialog(app.UIFigure, 'info', msg);
 
                             case 'onExternalFileModuleOpenRequest'
-                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ExternalFiles', 'PLAYBACK')
+                                ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ExternalFiles', 'PLAYBACK', varargin{2:end})
 
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)

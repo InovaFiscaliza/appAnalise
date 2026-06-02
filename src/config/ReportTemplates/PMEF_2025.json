@@ -292,7 +292,8 @@
                     "Type": "Image",
                     "Data": {
                         "Origin": "External",
-                        "Source": "img_Plot",
+                        "Source": "",
+                        "Context": "",
                         "Name": "ROMES",
                         "Layout": "1",
                         "Caption": "Imagem extraída do ROMES.",

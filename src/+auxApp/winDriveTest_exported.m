@@ -2463,7 +2463,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.FilterTreeButton.Layout.Row = 8;
             app.FilterTreeButton.Layout.Column = 4;
             app.FilterTreeButton.VerticalAlignment = 'bottom';
-            app.FilterTreeButton.ImageSource = 'Filter_18.png';
+            app.FilterTreeButton.ImageSource = 'filter.svg';
 
             % Create FilterTree
             app.FilterTree = uitree(app.EmissionPanelGrid);
