@@ -23,7 +23,7 @@ classdef (Abstract) Emissions
                 for ii = 1:height(emissions)
                     freqStart = emissions.Frequency(ii) - emissions.BandWidthkHz(ii) / 2000;
                     freqStop  = emissions.Frequency(ii) + emissions.BandWidthkHz(ii) / 2000;
-                    bandWidthKHz = specData.UserData.Emissions.BandWidthkHz(ii) / 1000;            
+                    widthkHz  = specData.UserData.Emissions.BandWidthkHz(ii) / 1000;            
                     
                     % Cria uma linha por emissão, posicionando-o na parte inferior
                     % do plot.
@@ -32,7 +32,7 @@ classdef (Abstract) Emissions
                     % Cria um ROI para a emissão selecionada, posicionando-o em
                     % todo o plot.
                     if ii == emissionSelectedIdx
-                        roiPosition = [freqStart, yLevel1, bandWidthKHz, yLevel2];
+                        roiPosition = [freqStart, yLevel1, widthkHz, yLevel2];
                         emissionSelected = images.roi.Rectangle(axesHandle, 'Position', roiPosition, 'Color', [0.40,0.73,0.88], 'MarkerSize', 5, 'Deletable', 0, 'FaceSelectable', 0, 'LineWidth', 1, 'Tag', 'emissionSelected');
                     end
                 end

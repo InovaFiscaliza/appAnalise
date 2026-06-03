@@ -5,7 +5,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
         ConfigRefresh                   matlab.ui.control.Image
-        SearchAllFlows                  matlab.ui.control.CheckBox
         SearchButton                    matlab.ui.control.Button
         AlgorithmPanel                  matlab.ui.container.Panel
         AlgorithmGrid                   matlab.ui.container.GridLayout
@@ -48,10 +47,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
         FindPeaksDistanceLabel          matlab.ui.control.Label
         FindPeaksTrace                  matlab.ui.control.DropDown
         FindPeaksTraceLabel             matlab.ui.control.Label
-        ManualAlgorithmDescription      matlab.ui.control.Label
-        ExternalFileTemplateDownload    matlab.ui.control.Hyperlink
-        ExternalFileSource              matlab.ui.control.DropDown
-        ExternalFileSourceLabel         matlab.ui.control.Label
         Algorithm                       matlab.ui.control.DropDown
         AlgorithmLabel                  matlab.ui.control.Label
         SearchModePanel                 matlab.ui.container.ButtonGroup
@@ -90,38 +85,25 @@ classdef dockDetection_exported < matlab.apps.AppBase
             configRefresh = false;
 
             switch app.Algorithm.Value
-                case 'Arquivo'
-                    relatedElHandles = findobj(elHandles, 'Tag', 'ExternalFile');
-                    app.AlgorithmGrid.RowHeight = {26, 22, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-                case 'Manual – selecionar região da emissão'
-                    relatedElHandles = findobj(elHandles, 'Tag', 'Manual');
-                    app.AlgorithmGrid.RowHeight = {0, 0, 0, '1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-                case 'Manual – usar pontos marcados (datatips)'
-                    relatedElHandles = findobj(elHandles, 'Tag', 'Manual');
-                    app.AlgorithmGrid.RowHeight = {0, 0, 0, '1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
                 case 'Detecção por picos'
                     relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaks');
-                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
+                    app.AlgorithmGrid.RowHeight = {26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
                     configRefresh = true;
 
                 case 'Picos com ocupação'
                     relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaksPlusOCC');
-                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 0, 26, 22, '1x', 0, 0, 0, 0};
+                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, '1x', 0, 0, 0, 0};
                     configRefresh = true;
 
-                case 'Regiões conectadas'
+                otherwise % 'Regiões conectadas'
                     relatedElHandles = findobj(elHandles, 'Tag', 'ConnectedRegions');
-                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 26, 22, 32, 22};
+                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 26, 22, 32, 22};
                     configRefresh = true;
             end
 
             set(relatedElHandles, 'Visible', true)
             set(setdiff(elHandles, relatedElHandles), 'Visible', false)            
             app.ConfigRefresh.Visible = configRefresh;
-            SearchModePanelSelectionChanged(app)
 
             % initialValues(app)
         end
@@ -283,84 +265,45 @@ classdef dockDetection_exported < matlab.apps.AppBase
             algorithm = app.Algorithm.Value;
             specData = app.callingApp.bandObj.SpecData;
 
-            if app.SearchAllFlows.Visible && app.SearchAllFlows.Value && ~isscalar(app.mainApp.specData)
-                msgQuestion = 'Confirma a busca de emissões em todos os fluxos de espectro?';
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
-                
-                if userSelection == "Não"
-                    if app.SearchAllFlows.Value
-                        app.SearchAllFlows.Value = false;
-                    end
-                    return
-
-                else
-                    specData = app.mainApp.specData;
-                end
-            end
-
             for ii = 1:numel(specData)
                 switch algorithm
-                    case 'Arquivo'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % identifica [idxList, freqList, widthKHzList, methodList]
-    
-                    case 'Manual – selecionar região da emissão'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % inclui ROI... e identifica [idxList, freqList, widthKHzList, methodList]
-    
-                    case 'Manual – usar pontos marcados (datatips)'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % identifica [idxList, freqList, widthKHzList, methodList]
+                    case 'Regiões conectadas'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindConnectedRegions', ...
+                            'Offset', app.ConnectedRegionsOffset.Value, ...
+                            'CumulativeAreaThreshold', app.ConnectedRegionsArea.Value, ...
+                            'MaxOccupancyForRegions', app.ConnectedRegionsMaxOccupancy.Value, ...
+                            'MinOccupancy', app.ConnectedRegionsMinOccupancy.Value, ...
+                            'MinAbsOrientation', app.ConnectedRegionsMinOrientation.Value ...
+                        );
+                    
+                    case 'Detecção por picos'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindPeaks', ...
+                            'MinDistanceKHz', app.FindPeaksDistance.Value, ...
+                            'MinWidthKHz', app.FindPeaksBandWidth.Value, ...
+                            'TraceMode', app.FindPeaksTrace.Value, ...
+                            'MinProminence', app.FindPeaksProminence.Value, ...
+                            'NumPeaks', app.FindPeaksNumPeaks.Value, ...
+                            'Threshold', app.FindPeaksThreshold.Value ...
+                        );
+                    
+                    case 'Picos com ocupação'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindPeaks+OCC', ...
+                            'MinDistanceKHz', app.FindPeaksPlusOCCDistance.Value, ...
+                            'MinWidthKHz', app.FindPeaksPlusOCCBandWidth.Value, ...
+                            'MinProminenceCenter', app.FindPeaksPlusOCCProminence1.Value, ...
+                            'MinProminenceMax', app.FindPeaksPlusOCCProminence2.Value, ...
+                            'MinOccupancyMeanOverTime', app.FindPeaksPlusOCCMinOccupancy.Value, ...
+                            'MinOccupancyMaxOverTime', app.FindPeaksPlusOCCMaxOccupancy.Value ...
+                        );
 
                     otherwise
-                        switch algorithm
-                            case 'Regiões conectadas'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindConnectedRegions', ...
-                                    'Offset', app.ConnectedRegionsOffset.Value, ...
-                                    'CumulativeAreaThreshold', app.ConnectedRegionsArea.Value, ...
-                                    'MaxOccupancyForRegions', app.ConnectedRegionsMaxOccupancy.Value, ...
-                                    'MinOccupancy', app.ConnectedRegionsMinOccupancy.Value, ...
-                                    'MinAbsOrientation', app.ConnectedRegionsMinOrientation.Value ...
-                                );
-                            
-                            case 'Detecção por picos'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindPeaks', ...
-                                    'MinDistanceKHz', app.FindPeaksDistance.Value, ...
-                                    'MinWidthKHz', app.FindPeaksBandWidth.Value, ...
-                                    'TraceMode', app.FindPeaksTrace.Value, ...
-                                    'MinProminence', app.FindPeaksProminence.Value, ...
-                                    'NumPeaks', app.FindPeaksNumPeaks.Value, ...
-                                    'Threshold', app.FindPeaksThreshold.Value ...
-                                );
-                            
-                            case 'Picos com ocupação'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindPeaks+OCC', ...
-                                    'MinDistanceKHz', app.FindPeaksPlusOCCDistance.Value, ...
-                                    'MinWidthKHz', app.FindPeaksPlusOCCBandWidth.Value, ...
-                                    'MinProminenceCenter', app.FindPeaksPlusOCCProminence1.Value, ...
-                                    'MinProminenceMax', app.FindPeaksPlusOCCProminence2.Value, ...
-                                    'MinOccupancyMeanOverTime', app.FindPeaksPlusOCCMinOccupancy.Value, ...
-                                    'MinOccupancyMaxOverTime', app.FindPeaksPlusOCCMaxOccupancy.Value ...
-                                );
-
-                            otherwise
-                                error('auxApp:dockDetection:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
-                        end
-                        
-                        [idxList, freqList, widthKHzList, methodList] = util.Detection.run(specData, detectionConfig);
+                        error('auxApp:dockDetection:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
                 end
+                        
+                [idxList, freqList, widthkHzList, methodList] = util.Detection.run(specData, detectionConfig);
 
                 if isempty(idxList)
                     ui.Dialog(app.UIFigure, 'info', 'Não foi encontrada emissão que atenda aos critérios especificados.');
@@ -368,20 +311,13 @@ classdef dockDetection_exported < matlab.apps.AppBase
                 end
 
                 if app.OnlySearchEmissions.Value
-                    util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthKHzList)
+                    util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthkHzList)
                 else
-                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], app.mainApp.channelObj)
+                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
                 end
             end
 
-        end
-
-        % Selection changed function: SearchModePanel
-        function SearchModePanelSelectionChanged(app, event)
-            
-            app.SearchAllFlows.Visible = ~app.OnlySearchEmissions.Value && ~strcmp(app.Algorithm.Value, 'Manual – selecionar região da emissão');
-            
         end
     end
 
@@ -438,7 +374,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create SearchModePanel
             app.SearchModePanel = uibuttongroup(app.GridLayout);
             app.SearchModePanel.AutoResizeChildren = 'off';
-            app.SearchModePanel.SelectionChangedFcn = createCallbackFcn(app, @SearchModePanelSelectionChanged, true);
             app.SearchModePanel.BackgroundColor = [1 1 1];
             app.SearchModePanel.Layout.Row = 2;
             app.SearchModePanel.Layout.Column = [1 3];
@@ -478,7 +413,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create Algorithm
             app.Algorithm = uidropdown(app.GridLayout);
-            app.Algorithm.Items = {'Arquivo', 'Manual – selecionar região da emissão', 'Manual – usar pontos marcados (datatips)', 'Detecção por picos', 'Picos com ocupação', 'Regiões conectadas'};
+            app.Algorithm.Items = {'Detecção por picos', 'Picos com ocupação', 'Regiões conectadas'};
             app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @AlgorithmValueChanged, true);
             app.Algorithm.FontSize = 11;
             app.Algorithm.BackgroundColor = [1 1 1];
@@ -495,60 +430,16 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create AlgorithmGrid
             app.AlgorithmGrid = uigridlayout(app.AlgorithmPanel);
             app.AlgorithmGrid.ColumnWidth = {110, 110, 110};
-            app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
+            app.AlgorithmGrid.RowHeight = {26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
             app.AlgorithmGrid.RowSpacing = 5;
             app.AlgorithmGrid.BackgroundColor = [1 1 1];
-
-            % Create ExternalFileSourceLabel
-            app.ExternalFileSourceLabel = uilabel(app.AlgorithmGrid);
-            app.ExternalFileSourceLabel.Tag = 'ExternalFile';
-            app.ExternalFileSourceLabel.VerticalAlignment = 'bottom';
-            app.ExternalFileSourceLabel.FontSize = 11;
-            app.ExternalFileSourceLabel.Visible = 'off';
-            app.ExternalFileSourceLabel.Layout.Row = 1;
-            app.ExternalFileSourceLabel.Layout.Column = [1 3];
-            app.ExternalFileSourceLabel.Text = {'Formato do arquivo a ser importado:'; '(origem dos dados)'};
-
-            % Create ExternalFileSource
-            app.ExternalFileSource = uidropdown(app.AlgorithmGrid);
-            app.ExternalFileSource.Items = {'Genérico (.csv, .txt, .json, .xls e .xlsx)', 'ROMES (.csv)'};
-            app.ExternalFileSource.Tag = 'ExternalFile';
-            app.ExternalFileSource.Visible = 'off';
-            app.ExternalFileSource.FontSize = 11;
-            app.ExternalFileSource.BackgroundColor = [1 1 1];
-            app.ExternalFileSource.Layout.Row = 2;
-            app.ExternalFileSource.Layout.Column = [1 3];
-            app.ExternalFileSource.Value = 'Genérico (.csv, .txt, .json, .xls e .xlsx)';
-
-            % Create ExternalFileTemplateDownload
-            app.ExternalFileTemplateDownload = uihyperlink(app.AlgorithmGrid);
-            app.ExternalFileTemplateDownload.Tag = 'ExternalFile';
-            app.ExternalFileTemplateDownload.VerticalAlignment = 'top';
-            app.ExternalFileTemplateDownload.FontSize = 10;
-            app.ExternalFileTemplateDownload.Visible = 'off';
-            app.ExternalFileTemplateDownload.Layout.Row = 3;
-            app.ExternalFileTemplateDownload.Layout.Column = [1 3];
-            app.ExternalFileTemplateDownload.Text = 'Download modelo do arquivo';
-
-            % Create ManualAlgorithmDescription
-            app.ManualAlgorithmDescription = uilabel(app.AlgorithmGrid);
-            app.ManualAlgorithmDescription.Tag = 'Manual';
-            app.ManualAlgorithmDescription.BackgroundColor = [0.4667 0.6745 0.1882];
-            app.ManualAlgorithmDescription.VerticalAlignment = 'top';
-            app.ManualAlgorithmDescription.WordWrap = 'on';
-            app.ManualAlgorithmDescription.FontSize = 11;
-            app.ManualAlgorithmDescription.FontColor = [1 1 1];
-            app.ManualAlgorithmDescription.Visible = 'off';
-            app.ManualAlgorithmDescription.Layout.Row = 4;
-            app.ManualAlgorithmDescription.Layout.Column = [1 3];
-            app.ManualAlgorithmDescription.Text = 'PLACE HOLDER';
 
             % Create FindPeaksTraceLabel
             app.FindPeaksTraceLabel = uilabel(app.AlgorithmGrid);
             app.FindPeaksTraceLabel.Tag = 'FindPeaks';
             app.FindPeaksTraceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksTraceLabel.FontSize = 11;
-            app.FindPeaksTraceLabel.Layout.Row = 5;
+            app.FindPeaksTraceLabel.Layout.Row = 1;
             app.FindPeaksTraceLabel.Layout.Column = 1;
             app.FindPeaksTraceLabel.Text = {'Tipo de traço:'; '(agregação dados)'};
 
@@ -558,7 +449,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksTrace.Tag = 'FindPeaks';
             app.FindPeaksTrace.FontSize = 11;
             app.FindPeaksTrace.BackgroundColor = [1 1 1];
-            app.FindPeaksTrace.Layout.Row = 6;
+            app.FindPeaksTrace.Layout.Row = 2;
             app.FindPeaksTrace.Layout.Column = 1;
             app.FindPeaksTrace.Value = 'Mean';
 
@@ -568,7 +459,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksDistanceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksDistanceLabel.WordWrap = 'on';
             app.FindPeaksDistanceLabel.FontSize = 11;
-            app.FindPeaksDistanceLabel.Layout.Row = 5;
+            app.FindPeaksDistanceLabel.Layout.Row = 1;
             app.FindPeaksDistanceLabel.Layout.Column = 2;
             app.FindPeaksDistanceLabel.Text = 'Distância entre picos (kHz):';
 
@@ -580,7 +471,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksDistance.ValueDisplayFormat = '%.0f';
             app.FindPeaksDistance.Tag = 'FindPeaks';
             app.FindPeaksDistance.FontSize = 11;
-            app.FindPeaksDistance.Layout.Row = 6;
+            app.FindPeaksDistance.Layout.Row = 2;
             app.FindPeaksDistance.Layout.Column = 2;
             app.FindPeaksDistance.Value = 25;
 
@@ -590,7 +481,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksBandWidthLabel.VerticalAlignment = 'bottom';
             app.FindPeaksBandWidthLabel.WordWrap = 'on';
             app.FindPeaksBandWidthLabel.FontSize = 11;
-            app.FindPeaksBandWidthLabel.Layout.Row = 5;
+            app.FindPeaksBandWidthLabel.Layout.Row = 1;
             app.FindPeaksBandWidthLabel.Layout.Column = 3;
             app.FindPeaksBandWidthLabel.Text = {'Largura ocupada'; '(kHz):'};
 
@@ -602,7 +493,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksBandWidth.ValueDisplayFormat = '%.0f';
             app.FindPeaksBandWidth.Tag = 'FindPeaks';
             app.FindPeaksBandWidth.FontSize = 11;
-            app.FindPeaksBandWidth.Layout.Row = 6;
+            app.FindPeaksBandWidth.Layout.Row = 2;
             app.FindPeaksBandWidth.Layout.Column = 3;
             app.FindPeaksBandWidth.Value = 10;
 
@@ -612,7 +503,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksProminenceLabel.VerticalAlignment = 'bottom';
             app.FindPeaksProminenceLabel.WordWrap = 'on';
             app.FindPeaksProminenceLabel.FontSize = 11;
-            app.FindPeaksProminenceLabel.Layout.Row = 7;
+            app.FindPeaksProminenceLabel.Layout.Row = 3;
             app.FindPeaksProminenceLabel.Layout.Column = 1;
             app.FindPeaksProminenceLabel.Text = {'Proeminência'; '(dB):'};
 
@@ -624,7 +515,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksProminence.ValueDisplayFormat = '%.0f';
             app.FindPeaksProminence.Tag = 'FindPeaks';
             app.FindPeaksProminence.FontSize = 11;
-            app.FindPeaksProminence.Layout.Row = 8;
+            app.FindPeaksProminence.Layout.Row = 4;
             app.FindPeaksProminence.Layout.Column = 1;
             app.FindPeaksProminence.Value = 12;
 
@@ -634,7 +525,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksNumPeaksLabel.VerticalAlignment = 'bottom';
             app.FindPeaksNumPeaksLabel.WordWrap = 'on';
             app.FindPeaksNumPeaksLabel.FontSize = 11;
-            app.FindPeaksNumPeaksLabel.Layout.Row = 7;
+            app.FindPeaksNumPeaksLabel.Layout.Row = 3;
             app.FindPeaksNumPeaksLabel.Layout.Column = 2;
             app.FindPeaksNumPeaksLabel.Text = {'Número máximo '; 'de picos:'};
 
@@ -646,7 +537,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksNumPeaks.ValueDisplayFormat = '%.0f';
             app.FindPeaksNumPeaks.Tag = 'FindPeaks';
             app.FindPeaksNumPeaks.FontSize = 11;
-            app.FindPeaksNumPeaks.Layout.Row = 8;
+            app.FindPeaksNumPeaks.Layout.Row = 4;
             app.FindPeaksNumPeaks.Layout.Column = 2;
             app.FindPeaksNumPeaks.Value = 50;
 
@@ -655,7 +546,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksThresholdLabel.Tag = 'FindPeaks';
             app.FindPeaksThresholdLabel.VerticalAlignment = 'bottom';
             app.FindPeaksThresholdLabel.FontSize = 11;
-            app.FindPeaksThresholdLabel.Layout.Row = 7;
+            app.FindPeaksThresholdLabel.Layout.Row = 3;
             app.FindPeaksThresholdLabel.Layout.Column = 3;
             app.FindPeaksThresholdLabel.Text = {'Threshold'; '(dB):'};
 
@@ -666,7 +557,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksThreshold.ValueDisplayFormat = '%.0f';
             app.FindPeaksThreshold.Tag = 'FindPeaks';
             app.FindPeaksThreshold.FontSize = 11;
-            app.FindPeaksThreshold.Layout.Row = 8;
+            app.FindPeaksThreshold.Layout.Row = 4;
             app.FindPeaksThreshold.Layout.Column = 3;
             app.FindPeaksThreshold.Value = -Inf;
 
@@ -676,7 +567,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCClassLabel.VerticalAlignment = 'bottom';
             app.FindPeaksPlusOCCClassLabel.FontSize = 11;
             app.FindPeaksPlusOCCClassLabel.Visible = 'off';
-            app.FindPeaksPlusOCCClassLabel.Layout.Row = 9;
+            app.FindPeaksPlusOCCClassLabel.Layout.Row = 5;
             app.FindPeaksPlusOCCClassLabel.Layout.Column = 1;
             app.FindPeaksPlusOCCClassLabel.Text = {'Classe de emissão:'; '(tecnologia)'};
 
@@ -687,7 +578,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCClass.Visible = 'off';
             app.FindPeaksPlusOCCClass.FontSize = 11;
             app.FindPeaksPlusOCCClass.BackgroundColor = [1 1 1];
-            app.FindPeaksPlusOCCClass.Layout.Row = 10;
+            app.FindPeaksPlusOCCClass.Layout.Row = 6;
             app.FindPeaksPlusOCCClass.Layout.Column = 1;
             app.FindPeaksPlusOCCClass.Value = {};
 
@@ -698,7 +589,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCDistanceLabel.WordWrap = 'on';
             app.FindPeaksPlusOCCDistanceLabel.FontSize = 11;
             app.FindPeaksPlusOCCDistanceLabel.Visible = 'off';
-            app.FindPeaksPlusOCCDistanceLabel.Layout.Row = 9;
+            app.FindPeaksPlusOCCDistanceLabel.Layout.Row = 5;
             app.FindPeaksPlusOCCDistanceLabel.Layout.Column = 2;
             app.FindPeaksPlusOCCDistanceLabel.Text = 'Distância entre picos (kHz):';
 
@@ -711,7 +602,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCDistance.Tag = 'FindPeaksPlusOCC';
             app.FindPeaksPlusOCCDistance.FontSize = 11;
             app.FindPeaksPlusOCCDistance.Visible = 'off';
-            app.FindPeaksPlusOCCDistance.Layout.Row = 10;
+            app.FindPeaksPlusOCCDistance.Layout.Row = 6;
             app.FindPeaksPlusOCCDistance.Layout.Column = 2;
             app.FindPeaksPlusOCCDistance.Value = 25;
 
@@ -722,7 +613,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCBandWidthLabel.WordWrap = 'on';
             app.FindPeaksPlusOCCBandWidthLabel.FontSize = 11;
             app.FindPeaksPlusOCCBandWidthLabel.Visible = 'off';
-            app.FindPeaksPlusOCCBandWidthLabel.Layout.Row = 9;
+            app.FindPeaksPlusOCCBandWidthLabel.Layout.Row = 5;
             app.FindPeaksPlusOCCBandWidthLabel.Layout.Column = 3;
             app.FindPeaksPlusOCCBandWidthLabel.Text = {'Largura ocupada'; '(kHz):'};
 
@@ -735,7 +626,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCBandWidth.Tag = 'FindPeaksPlusOCC';
             app.FindPeaksPlusOCCBandWidth.FontSize = 11;
             app.FindPeaksPlusOCCBandWidth.Visible = 'off';
-            app.FindPeaksPlusOCCBandWidth.Layout.Row = 10;
+            app.FindPeaksPlusOCCBandWidth.Layout.Row = 6;
             app.FindPeaksPlusOCCBandWidth.Layout.Column = 3;
             app.FindPeaksPlusOCCBandWidth.Value = 10;
 
@@ -745,7 +636,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCPanel1.Title = 'MÉDIA';
             app.FindPeaksPlusOCCPanel1.Visible = 'off';
             app.FindPeaksPlusOCCPanel1.Tag = 'FindPeaksPlusOCC';
-            app.FindPeaksPlusOCCPanel1.Layout.Row = 11;
+            app.FindPeaksPlusOCCPanel1.Layout.Row = 7;
             app.FindPeaksPlusOCCPanel1.Layout.Column = 1;
             app.FindPeaksPlusOCCPanel1.FontSize = 10;
 
@@ -783,7 +674,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCPanel2.Title = 'MAXHOLD';
             app.FindPeaksPlusOCCPanel2.Visible = 'off';
             app.FindPeaksPlusOCCPanel2.Tag = 'FindPeaksPlusOCC';
-            app.FindPeaksPlusOCCPanel2.Layout.Row = 11;
+            app.FindPeaksPlusOCCPanel2.Layout.Row = 7;
             app.FindPeaksPlusOCCPanel2.Layout.Column = [2 3];
             app.FindPeaksPlusOCCPanel2.FontSize = 10;
 
@@ -856,7 +747,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsOffsetLabel.WordWrap = 'on';
             app.ConnectedRegionsOffsetLabel.FontSize = 11;
             app.ConnectedRegionsOffsetLabel.Visible = 'off';
-            app.ConnectedRegionsOffsetLabel.Layout.Row = 12;
+            app.ConnectedRegionsOffsetLabel.Layout.Row = 8;
             app.ConnectedRegionsOffsetLabel.Layout.Column = 1;
             app.ConnectedRegionsOffsetLabel.Text = {'Proeminência'; '(dB):'};
 
@@ -869,7 +760,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsOffset.Tag = 'ConnectedRegions';
             app.ConnectedRegionsOffset.FontSize = 11;
             app.ConnectedRegionsOffset.Visible = 'off';
-            app.ConnectedRegionsOffset.Layout.Row = 13;
+            app.ConnectedRegionsOffset.Layout.Row = 9;
             app.ConnectedRegionsOffset.Layout.Column = 1;
             app.ConnectedRegionsOffset.Value = 12;
 
@@ -880,7 +771,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsAreaLabel.WordWrap = 'on';
             app.ConnectedRegionsAreaLabel.FontSize = 11;
             app.ConnectedRegionsAreaLabel.Visible = 'off';
-            app.ConnectedRegionsAreaLabel.Layout.Row = 12;
+            app.ConnectedRegionsAreaLabel.Layout.Row = 8;
             app.ConnectedRegionsAreaLabel.Layout.Column = 2;
             app.ConnectedRegionsAreaLabel.Text = 'Área mínima acumulada (%):';
 
@@ -892,7 +783,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsArea.Tag = 'ConnectedRegions';
             app.ConnectedRegionsArea.FontSize = 11;
             app.ConnectedRegionsArea.Visible = 'off';
-            app.ConnectedRegionsArea.Layout.Row = 13;
+            app.ConnectedRegionsArea.Layout.Row = 9;
             app.ConnectedRegionsArea.Layout.Column = 2;
             app.ConnectedRegionsArea.Value = 99;
 
@@ -903,7 +794,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMaxOccupancyLabel.WordWrap = 'on';
             app.ConnectedRegionsMaxOccupancyLabel.FontSize = 11;
             app.ConnectedRegionsMaxOccupancyLabel.Visible = 'off';
-            app.ConnectedRegionsMaxOccupancyLabel.Layout.Row = 12;
+            app.ConnectedRegionsMaxOccupancyLabel.Layout.Row = 8;
             app.ConnectedRegionsMaxOccupancyLabel.Layout.Column = 3;
             app.ConnectedRegionsMaxOccupancyLabel.Text = 'Ocupação mínima refinamento pico (%)';
 
@@ -915,7 +806,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMaxOccupancy.Tag = 'ConnectedRegions';
             app.ConnectedRegionsMaxOccupancy.FontSize = 11;
             app.ConnectedRegionsMaxOccupancy.Visible = 'off';
-            app.ConnectedRegionsMaxOccupancy.Layout.Row = 13;
+            app.ConnectedRegionsMaxOccupancy.Layout.Row = 9;
             app.ConnectedRegionsMaxOccupancy.Layout.Column = 3;
             app.ConnectedRegionsMaxOccupancy.Value = 99;
 
@@ -926,7 +817,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOccupancyLabel.WordWrap = 'on';
             app.ConnectedRegionsMinOccupancyLabel.FontSize = 11;
             app.ConnectedRegionsMinOccupancyLabel.Visible = 'off';
-            app.ConnectedRegionsMinOccupancyLabel.Layout.Row = 14;
+            app.ConnectedRegionsMinOccupancyLabel.Layout.Row = 10;
             app.ConnectedRegionsMinOccupancyLabel.Layout.Column = 1;
             app.ConnectedRegionsMinOccupancyLabel.Text = {'Ocupação mínima'; '(%):'};
 
@@ -939,7 +830,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOccupancy.Tag = 'ConnectedRegions';
             app.ConnectedRegionsMinOccupancy.FontSize = 11;
             app.ConnectedRegionsMinOccupancy.Visible = 'off';
-            app.ConnectedRegionsMinOccupancy.Layout.Row = 15;
+            app.ConnectedRegionsMinOccupancy.Layout.Row = 11;
             app.ConnectedRegionsMinOccupancy.Layout.Column = 1;
             app.ConnectedRegionsMinOccupancy.Value = 3;
 
@@ -950,7 +841,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOrientationLabel.WordWrap = 'on';
             app.ConnectedRegionsMinOrientationLabel.FontSize = 11;
             app.ConnectedRegionsMinOrientationLabel.Visible = 'off';
-            app.ConnectedRegionsMinOrientationLabel.Layout.Row = 14;
+            app.ConnectedRegionsMinOrientationLabel.Layout.Row = 10;
             app.ConnectedRegionsMinOrientationLabel.Layout.Column = 2;
             app.ConnectedRegionsMinOrientationLabel.Text = 'Inclinação absoluta mínima (º):';
 
@@ -963,7 +854,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.ConnectedRegionsMinOrientation.Tag = 'ConnectedRegions';
             app.ConnectedRegionsMinOrientation.FontSize = 11;
             app.ConnectedRegionsMinOrientation.Visible = 'off';
-            app.ConnectedRegionsMinOrientation.Layout.Row = 15;
+            app.ConnectedRegionsMinOrientation.Layout.Row = 11;
             app.ConnectedRegionsMinOrientation.Layout.Column = 2;
             app.ConnectedRegionsMinOrientation.Value = 75;
 
@@ -976,13 +867,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.SearchButton.Layout.Row = 6;
             app.SearchButton.Layout.Column = [2 3];
             app.SearchButton.Text = 'Pesquisar';
-
-            % Create SearchAllFlows
-            app.SearchAllFlows = uicheckbox(app.GridLayout);
-            app.SearchAllFlows.Text = 'Aplicar a todos os fluxos espectrais';
-            app.SearchAllFlows.FontSize = 11;
-            app.SearchAllFlows.Layout.Row = 6;
-            app.SearchAllFlows.Layout.Column = 1;
 
             % Create ConfigRefresh
             app.ConfigRefresh = uiimage(app.GridLayout);

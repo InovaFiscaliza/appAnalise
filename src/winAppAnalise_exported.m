@@ -317,6 +317,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                                         requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')
 
+                                    case 'onEmissionAdded'
+                                        notifySecondaryApps(app, eventName)
+
                                     otherwise
                                         error('winAppAnalise:UnexpectedCall', 'Unexpected call "%s"', eventName)
                                 end
@@ -413,7 +416,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                             delete(callingApp)
                                         end
 
-                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', 'onExternalFileModuleOpenRequest', varargin{:})
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName, varargin{:})
 
                                     % Outros...
                                     case {'onEmissionAdded', 'onLocationChanged'}

@@ -6,7 +6,7 @@ classdef (Abstract) HtmlTextGenerator
     %   ├── getSelectedFileInfo           ⇐ winAppAnalise
     %   ├── getSelectedFlowMetadata       ⇐ auxApp.winPlayback
     %   ├── computeFlowAnalysis           ⇐ auxApp.winPlayback
-    %   ├── getSelectedEmissionMetaData   ⇐ auxApp.winSignalAnalysis | auxApp.winDriveTest
+    %   ├── getSelectedEmissionMetaData   ⇐ auxApp.winPlayback | auxApp.winSignalAnalysis | auxApp.winDriveTest
     %   ├── checkEmissionEditConfirmation ⇐ auxApp.winPlayback
     %   ├── checkAvailableUpdate          ⇐ auxApp.winConfig
     %   ├── getStationInfo                ⇐ auxApp.winRFDataHub
@@ -428,7 +428,7 @@ classdef (Abstract) HtmlTextGenerator
             arguments
                 specData
                 emissionIdx
-                context {mustBeMember(context, {'SIGNALANALYSIS', 'DRIVETEST'})}
+                context {mustBeMember(context, {'PLAYBACK', 'SIGNALANALYSIS', 'DRIVETEST'})}
                 appHandleNameInBase = ''
                 generalSettings = []
             end
@@ -495,7 +495,7 @@ classdef (Abstract) HtmlTextGenerator
                     htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', htmlIntro);
                     varargout = {htmlContent1, htmlContent2, emissionTag, emissionTable.Description(1), emissionTable.Classification.UserModified};
 
-                case 'DRIVETEST'
+                otherwise % 'PLAYBACK' | 'DRIVETEST'
                     if ~isempty(emissionIdx)
                         % CANAL
                         channelAssigned = specData.UserData.Emissions(emissionIdx, :).ChannelAssigned;
@@ -531,15 +531,6 @@ classdef (Abstract) HtmlTextGenerator
                             'EmissionCumulativeOccupancy', sprintf('%.1f%%', measures.FCO.Channel_Infinite) ...
                         );
         
-                        % RELATÓRIO
-                        if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
-                            reportIncludeIcon = util.HtmlTextGenerator.CHECKBOX_HTML.on;
-                            reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
-                        else
-                            reportIncludeIcon = util.HtmlTextGenerator.CHECKBOX_HTML.off;
-                            reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
-                        end
-        
                         % TEXTO FORMATADO
                         displayEntry = struct('group', 'CANAL', 'value', channelInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onChannelEditRequested'));
                         displayEntry(2) = struct('group', 'CLASSIFICAÇÃO', 'value', classificationInfo, 'link', util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onClassificationEditRequested'));
@@ -548,13 +539,30 @@ classdef (Abstract) HtmlTextGenerator
                             '&emsp;', ...
                             util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onMeasurementsDetailsRequested', '', 'question', 'info.svg') ...
                         ]);
-                        displayEntry(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', '', reportIncludeIcon));
+
+                        % RELATÓRIO
+                        if strcmp(context, 'DRIVETEST')
+                            if ~isempty(specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest) && specData.UserData.Emissions.AuxAppData(emissionIdx).DriveTest.ReportInclude
+                                reportIncludeIcon = util.HtmlTextGenerator.CHECKBOX_HTML.on;
+                                reportIncludeText = 'O plot desta emissão foi incluído para compor relatório de análise, caso previsto um dos plots suportados por este módulo.';
+                            else
+                                reportIncludeIcon = util.HtmlTextGenerator.CHECKBOX_HTML.off;
+                                reportIncludeText = 'O plot desta emissão está restrito a este módulo.';
+                            end
+
+                            displayEntry(4) = struct('group', 'RELATÓRIO', 'value', reportIncludeText, 'link', ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onReportIncludeRequested', '', reportIncludeIcon));
+                        end                        
 
                     else
                         displayEntry = util.HtmlTextGenerator.makeDisplayEntry('INFO', 'Nenhuma emissão selecionada — toda a faixa monitorada está sendo tratada como uma emissão virtual');
                     end
 
-                    htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro);
+                    outputFormat = 'textview';
+                    if strcmp(context, 'PLAYBACK')
+                        outputFormat = 'popup';
+                    end
+
+                    htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro, outputFormat);
                     varargout = {htmlContent};
             end
 
