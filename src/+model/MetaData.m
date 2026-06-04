@@ -12,31 +12,27 @@ classdef MetaData < handle
 
     methods
         %-----------------------------------------------------------------%
-        function [obj, msg] = importFile(obj, fileFullPath, projectData, generalSettings)
-            msg = '';
+        function [obj, warningMsg] = importFile(obj, fileFullPath, projectData, generalSettings, specData)
+            idx = numel(obj) + 1;            
+            obj(idx).File = fileFullPath;
+            [~, fileName, fileExt] = fileparts(fileFullPath);
 
             try
-                idx = numel(obj) + 1;
-                obj(idx).File = fileFullPath;
-
-                [~, ~, fileExt] = fileparts(fileFullPath);
-
                 % O arquivo .MAT, disponível no RepoSFI, concentra informações de 
-                % um ou mais arquivos .DBM em uma única variável: "out".
-
-                % Além disso, há o .MAT que registra informações do projeto
-                % nas variáveis "source", "type", "version", "variables" e
-                % "userData".
+                % um ou mais arquivos .DBM em uma única variável: "out". Além disso, 
+                % há o .MAT que registra informações do projeto nas variáveis 
+                % "source", "type", "version", "variables" e "userData".
                 
                 varsInFile = {};
                 if strcmpi(fileExt, '.mat')
                     varsInFile = who('-file', fileFullPath);
                 end
 
-                if ~isempty(varsInFile) && ~contains(varsInFile, 'out')
-                    [specData, fileType, msg] = load(projectData, 'PLAYBACK', fileFullPath, 'MetaData', generalSettings);
-                    if ~isempty(msg)
-                        error(msg)
+                if ~isempty(varsInFile) && ~any(contains(varsInFile, 'out'))
+                    [specData, errorMsg] = load(projectData, fileFullPath, 'MetaData', specData, generalSettings);
+                    fileType = 'ProjectData';
+                    if ~isempty(errorMsg)
+                        error(errorMsg)
                     end
                 else
                     specData = read(obj(idx).Data, fileFullPath, 'MetaData');
@@ -53,10 +49,9 @@ classdef MetaData < handle
                 end
                 obj(idx).Memory = computeEstimatedMemory(obj(idx).Data);
 
-            catch ME
-                [~, fileName, fileExt] = fileparts(fileFullPath);
-                msg = sprintf('%s - "%s"', [fileName fileExt], ME.message);
+                warningMsg = '';
 
+            catch ME
                 delete(obj(idx))
                 obj(idx) = [];
                 fclose('all');
@@ -64,6 +59,8 @@ classdef MetaData < handle
                 if ~isvalid(obj)
                     obj = model.MetaData.empty;
                 end
+
+                warningMsg = sprintf('%s - "%s"', [fileName fileExt], ME.message);
             end
         end
 

@@ -822,7 +822,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             buildFileTree(app, previousSelectionIdxs)
-            app.specData = syncCollection(app.specData, app.metaData, app.channelObj, app.General);
+            app.specData = syncCollection(app.specData, app.metaData, app.projectData, app.channelObj, app.General);
             notifySecondaryApps(app, updateType)
         end
 
@@ -928,7 +928,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     end
 
                                     dataNode = uitreenode(receiverNode, ...
-                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(kk), referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
                                         'NodeData', struct('sortType', 'ARQUIVO', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1003,7 +1003,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     end
 
                                     dataNode = uitreenode(fileNode, ...
-                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(kk), referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
                                         'NodeData', struct('sortType', 'SENSOR', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1091,7 +1091,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     end
 
                                     dataNode = uitreenode(receiverNode, ...
-                                        'Text', sprintf('ID %d: %s%s%s', referenceTable.Id(jj), [fileName fileExt], occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', [fileName fileExt], occupancyFlag, gpsStatusIcon), ...
                                         'NodeData', struct('sortType', 'FLUXO ESPECTRAL', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(jj)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1479,21 +1479,22 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 return
             end
 
-            msgQuestion = '';
-            if checkIfUpdateNeeded(app.projectData, app.specData)
-                msgQuestion = sprintf([ ...
-                    'O projeto "%s" foi modificado (nome, arquivo de saída, '      ...
-                    'lista de arquivos de entrada ou anotações das estações). '    ...
+            questionMsg = '';
+            flowIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.specData);
+            if any(flowIdxs) && checkIfUpdateNeeded(app.projectData, app.specData(flowIdxs))
+                questionMsg = sprintf([ ...
+                    'O projeto "%s" foi modificado (nome, arquivo de saída, ' ...
+                    'lista de arquivos de entrada ou anotações das estações). ' ...
                     'Caso o aplicativo seja encerrado agora, todas as alterações ' ...
-                    'serão descartadas.\n\nDeseja realmente fechar o aplicativo?'  ...
-                    ], app.projectData.name);
+                    'serão descartadas.\n\nDeseja realmente fechar o aplicativo?' ...
+                ], app.projectData.name);
 
             elseif ~strcmp(app.executionMode, 'webApp')
-                msgQuestion = 'Deseja fechar o aplicativo?';
+                questionMsg = 'Deseja fechar o aplicativo?';
             end
 
-            if ~isempty(msgQuestion)                
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+            if ~isempty(questionMsg)                
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
                 if userSelection == "Não"
                     return
                 end
@@ -1703,7 +1704,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             d = ui.Dialog(app.UIFigure, 'progressdlg', 'Em andamento a leitura de metadados do(s) arquivo(s) selecionado(s).', 'Cancelable', 'on');
             
             repeteadFiles = {};
-            errorMessage  = {};
+            errorMsg = {};
 
             for ii = 1:numel(fileName)
                 if d.CancelRequested
@@ -1718,12 +1719,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     continue
                 end
 
-                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General);
+                [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General, app.specData);
                 
                 if isempty(msg)
                     hasReadNewFiles = true;
                 else
-                    errorMessage{end+1} = msg;
+                    errorMsg{end+1} = msg;
                 end
             end
 
@@ -1732,17 +1733,17 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 refreshProjectFiles(app, previousSelectionIdxs, 'onFileListAdded')
             end
 
-            dialogBoxMessage = {};            
+            dialogBoxMsg = {};            
             if ~isempty(repeteadFiles)
-                dialogBoxMessage{end+1} = sprintf('Os metadados do(s) arquivo(s) indicado(s) a seguir já tinham sido lidos.\n%s', textFormatGUI.cellstr2Bullets(repeteadFiles));
+                dialogBoxMsg{end+1} = sprintf('Os metadados do(s) arquivo(s) indicado(s) a seguir já tinham sido lidos.\n%s', textFormatGUI.cellstr2Bullets(repeteadFiles));
             end
 
-            if ~isempty(errorMessage)
-                dialogBoxMessage{end+1} = sprintf('Evidenciado <font style="color: red;"><b>ERRO</b></font> na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', textFormatGUI.cellstr2Bullets(errorMessage));
+            if ~isempty(errorMsg)
+                dialogBoxMsg{end+1} = sprintf('Evidenciado <font style="color: red;"><b>ERRO</b></font> na leitura do(s) arquivo(s) indicado(s) a seguir.\n%s', textFormatGUI.cellstr2Bullets(errorMsg));
             end
 
-            if ~isempty(dialogBoxMessage)
-                ui.Dialog(app.UIFigure, 'error', strjoin(dialogBoxMessage, '<br><br>'));
+            if ~isempty(dialogBoxMsg)
+                ui.Dialog(app.UIFigure, 'error', strjoin(dialogBoxMsg, '<br><br>'));
             end
 
         end

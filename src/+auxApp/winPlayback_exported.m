@@ -610,34 +610,34 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateFlowView(app, idx)
+        function loadSelectedFlow(app, flowIdx)
             % Caso não esteja em cache os dados do fluxo espectral selecionado, 
             % procede-se a sua leitura, preenchendo a propriedade "Data" com
             % timestamps, níveis das varreduras, azimutes e notas de qualidade.
             % Caso ocorra erro na leitura, o registro é excluído e o layout é
             % reinicializado.
             specData = [];
-            if ~isempty(idx)
-                specData = app.mainApp.specData(idx);
+            if ~isempty(flowIdx)
+                specData = app.mainApp.specData(flowIdx);
             end
 
             if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
                 requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
 
                 try
-                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
                     
                     relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
                     if ~isempty(relatedHases)
                         relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
-                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
                     end
 
                 catch ME
                     ui.Dialog(app.UIFigure, 'error', ME.message);
 
-                    delete(app.mainApp.specData(idx))
-                    app.mainApp.specData(idx) = [];
+                    delete(app.mainApp.specData(flowIdx))
+                    app.mainApp.specData(flowIdx) = [];
                     refreshFlowDropDown(app)
 
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
@@ -1310,7 +1310,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.plotUpdateEvent = 1;
 
                         flowIdx = findSpecDataIndex(app);
-                        updateFlowView(app, flowIdx)
+                        loadSelectedFlow(app, flowIdx)
 
                         if isempty(flowIdx)
                             break
@@ -1473,7 +1473,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.plotUpdateEvent = -1;
             else
                 idx = findSpecDataIndex(app);
-                updateFlowView(app, idx)
+                loadSelectedFlow(app, idx)
                 updatePlot(app)
             end
             

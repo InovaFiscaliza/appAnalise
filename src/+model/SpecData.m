@@ -57,7 +57,7 @@ classdef SpecData < model.SpecDataBase
 
     methods
         %-----------------------------------------------------------------%
-        function obj = syncCollection(obj, metaData, channelObj, generalSettings)
+        function obj = syncCollection(obj, metaData, projectData, channelObj, generalSettings)
             % Identifica fluxos espectrais presentes nos arquivos.
             referenceTable = buildSpectrumReferenceTable(metaData, generalSettings);
             [uniqueHashs, ~, uniqueHashIdxs] = unique(referenceTable.Hash, 'stable');
@@ -148,12 +148,12 @@ classdef SpecData < model.SpecDataBase
             % emissão identificada.
             emissionDetectedIdxs = find(arrayfun(@(x) ~isempty(x.UserData.Emissions), obj));
             if ~isempty(emissionDetectedIdxs)
-                populateSpectrum(obj(emissionDetectedIdxs), metaData, channelObj, generalSettings)
+                populateSpectrum(obj(emissionDetectedIdxs), metaData, projectData, channelObj, generalSettings)
             end
         end
 
         %-----------------------------------------------------------------%
-        function populateSpectrum(obj, metaData, channelObj, generalSettings)
+        function populateSpectrum(obj, metaData, projectData, channelObj, generalSettings)
             for ii = 1:numel(obj)
                 if ~isempty(obj(ii).Data) && (numel(obj(ii).Data{1}) == sum(obj(ii).RelatedFiles.NumSweeps))
                     continue
@@ -172,8 +172,20 @@ classdef SpecData < model.SpecDataBase
                     fileIdx  = obj(ii).InputFiles(jj).Indexes(1);
                     flowIdx  = obj(ii).InputFiles(jj).Indexes(2);
                     
-                    fileName = metaData(fileIdx).File;    
-                    tempObj  = read(metaData(fileIdx).Data(flowIdx), fileName, 'SpecData', flowIdx);
+                    fileFullPath = metaData(fileIdx).File;
+                    [~, ~, fileExt] = fileparts(fileFullPath);
+
+                    varsInFile = {};
+                    if strcmpi(fileExt, '.mat')
+                        varsInFile = who('-file', fileFullPath);
+                    end
+
+                    if ~isempty(varsInFile) && ~any(contains(varsInFile, 'out'))
+                        tempObj = load(projectData, fileFullPath, 'SpecData', metaData(fileIdx).Data(flowIdx), generalSettings, flowIdx);
+                    else
+                        tempObj = read(metaData(fileIdx).Data(flowIdx), fileFullPath, 'SpecData', flowIdx);
+                    end
+
                     if ~isscalar(tempObj)
                         delete(tempObj(setdiff(1:numel(tempObj), flowIdx)))
                         tempObj = tempObj(flowIdx);

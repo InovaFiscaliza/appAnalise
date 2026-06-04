@@ -256,19 +256,53 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             
             appName  = class.Constants.appName;
             context  = app.inputArgs.context;
-            varargin = app.inputArgs.varargin;
 
-            if isfile(app.projectData.file)
-                if ~checkIfUpdateNeeded(app.projectData, varargin{:})
-                    msgQuestion = sprintf('Ao que parece, o projeto "<b>%s</b>" não sofreu alterações.<br><br>Deseja continuar mesmo assim?', app.projectData.name);
-                    selection   = ui.Dialog(app.UIFigure, "uiconfirm", msgQuestion, {'Sim', 'Não'}, 1, 2);
-                    if strcmp(selection, 'Não')
+            flowIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData);
+            specData = app.mainApp.specData(flowIdxs);
+
+            invalidCache = false;
+            for ii = 1:numel(specData)
+                if isempty(specData(ii).Data) || numel(specData(ii).Data{1}) ~= sum(specData(ii).RelatedFiles.NumSweeps)
+                    invalidCache = true;
+                    break
+                end
+            end
+
+            if invalidCache
+                warningMsg = [ ...
+                    'Navegue ao menos uma vez por cada fluxo espectral a ser ' ...
+                    'processado antes de salvar o projeto.' ...
+                ];
+
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                return
+            end
+
+            if ~any(flowIdxs)
+                warningMsg = [ ...
+                    'Não é possível criar um projeto sem ao menos um fluxo ' ...
+                    'espectral selecionado a incluir no relatório.' ...
+                ];
+
+                ui.Dialog(app.UIFigure, 'warning', warningMsg);
+                return
+
+            elseif isfile(app.projectData.file)
+                if ~checkIfUpdateNeeded(app.projectData, specData)
+                    questionMsg = sprintf([ ...
+                        'Ao que parece, o projeto "<b>%s</b>" não sofreu ' ...
+                        'alterações.<br><br>Deseja continuar mesmo assim?' ...
+                    ], app.projectData.name);
+
+                    userSelection = ui.Dialog(app.UIFigure, "uiconfirm", questionMsg, {'Sim', 'Não'}, 1, 2);
+                    if strcmp(userSelection, 'Não')
                         return
                     end
                 end
 
                 [defaultPath, defaultFile] = fileparts(app.projectData.file);
                 defaultName = fullfile(defaultPath, defaultFile);
+
             else
                 defaultName = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, [appName '_ProjectData'], -1);
             end
@@ -281,9 +315,6 @@ classdef dockReportLib_exported < matlab.apps.AppBase
 
             % Fluxos que irão compor o .MAT englobam, também, os de
             % ocupação...
-            specDataIdx = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
-            specData = app.mainApp.specData(specDataIdx);
-
             occupancyFlows = arrayfun(@(x) x.UserData.OccupancyComputationMode.RelatedHashes, specData, 'UniformOutput', false);
             occupancyFlows = horzcat(occupancyFlows{:});
 

@@ -48,7 +48,7 @@ classdef Project < model.ProjectCommon
             updateNeeded = false;
             
             if ~isempty(obj.name)
-                currentPrjHash = model.ProjectBase.computeProjectHash(obj.name, obj.file, obj.modules, obj.issueDetails, obj.entityDetails, specData);
+                currentPrjHash = model.ProjectBase.computeProjectHash(obj.name, obj.file, obj.issueDetails, obj.entityDetails, obj.ReportAttachments, specData);
                 updateNeeded   = ~isequal(obj.hash, currentPrjHash);
             end
         end
@@ -68,15 +68,21 @@ classdef Project < model.ProjectCommon
             source    = class.Constants.appName;
             version   = 4;
             userData  = [];
-
-            prjHash   = model.ProjectBase.computeProjectHash(prjName, prjFile, obj.modules, obj.issueDetails, obj.entityDetails, specData);
+            prjHash   = model.ProjectBase.computeProjectHash(prjName, prjFile, obj.issueDetails, obj.entityDetails, obj.ReportAttachments, specData);
+            
+            specDataObj = copy(specData, {});
+            for ii = 1:numel(specDataObj)
+                specDataObj(ii).InputFiles(:) = [];
+            end
+            
             variables = struct( ...
                 'name',    prjName, ...
                 'hash',    prjHash, ...
                 'modules', obj.modules, ...
                 'issueDetails', obj.issueDetails, ...
                 'entityDetails', obj.entityDetails, ...
-                'specDataObj', specData ...
+                'externalFiles', obj.ReportAttachments, ...
+                'specDataObj', specDataObj ...
             );
 
             compressionMode = {};
@@ -92,13 +98,17 @@ classdef Project < model.ProjectCommon
         end
 
         %-----------------------------------------------------------------%
-        function [specDataObj, msg] = load(obj, context, fileName, readType, generalSettings)
+        function [specDataObj, errorMsg] = load(obj, fileName, readType, specDataObj, generalSettings, varargin)
             arguments
                 obj
-                context (1,:) char {mustBeMember(context, {'PLAYBACK'})}
                 fileName
                 readType {mustBeMember(readType, {'MetaData', 'SpecData'})}
+                specDataObj
                 generalSettings
+            end
+
+            arguments (Repeating)
+                varargin
             end
 
             try
@@ -116,87 +126,100 @@ classdef Project < model.ProjectCommon
                 end
     
                 switch prjData.version
-                    case {1, 2, 3}
-                        error('UnexpectedVersion')
-
                     case 4
-                        restart(obj, {'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'RFDATAHUB'}, 'onProjectLoad', generalSettings)
-
-                        obj.name = prjData.variables.name;
-                        obj.file = fileName;
-                        obj.hash = prjData.variables.hash;
-
-                        contextList = {'PLAYBACK'};
-                        for ii = 1:numel(contextList)
-                            context = contextList{ii};
-
-                            if isfile(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath)
-                                try
-                                    unzipFiles = unzip(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath, generalSettings.fileFolder.tempPath);
-                                    for jj = 1:numel(unzipFiles)
-                                        [~, ~, unzipFileExt] = fileparts(unzipFiles{jj});
-    
-                                        switch lower(unzipFileExt)
-                                            case '.html'
-                                                obj.modules.(context).generatedFiles.lastHTMLDocFullPath = unzipFiles{jj};
-                                            case '.json'
-                                                obj.modules.(context).generatedFiles.lastJSONFullPath    = unzipFiles{jj};
-                                            case '.xlsx'
-                                                obj.modules.(context).generatedFiles.lastTableFullPath   = unzipFiles{jj};
-                                            case '.teams'
-                                                obj.modules.(context).generatedFiles.lastTEAMSFullPath   = unzipFiles{jj};
-                                            otherwise
-                                                obj.modules.(context).generatedFiles.rawFiles{end+1}     = unzipFiles{jj};
+                        switch readType
+                            case 'MetaData'
+                                restart(obj, {'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'RFDATAHUB'}, 'onProjectLoad', generalSettings)
+        
+                                obj.name = prjData.variables.name;
+                                obj.file = fileName;
+                                obj.hash = prjData.variables.hash;
+        
+                                contextList = {'PLAYBACK'};
+                                for ii = 1:numel(contextList)
+                                    context = contextList{ii};
+        
+                                    if isfile(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath)
+                                        try
+                                            unzipFiles = unzip(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath, generalSettings.fileFolder.tempPath);
+                                            for jj = 1:numel(unzipFiles)
+                                                [~, ~, unzipFileExt] = fileparts(unzipFiles{jj});
+            
+                                                switch lower(unzipFileExt)
+                                                    case '.html'
+                                                        obj.modules.(context).generatedFiles.lastHTMLDocFullPath = unzipFiles{jj};
+                                                    case '.json'
+                                                        obj.modules.(context).generatedFiles.lastJSONFullPath    = unzipFiles{jj};
+                                                    case '.xlsx'
+                                                        obj.modules.(context).generatedFiles.lastTableFullPath   = unzipFiles{jj};
+                                                    case '.teams'
+                                                        obj.modules.(context).generatedFiles.lastTEAMSFullPath   = unzipFiles{jj};
+                                                    otherwise
+                                                        obj.modules.(context).generatedFiles.rawFiles{end+1}     = unzipFiles{jj};
+                                                end
+                                            end
+                                            
+                                            obj.modules.(context).generatedFiles.id              = prjData.variables.modules.(context).generatedFiles.id;
+                                            obj.modules.(context).generatedFiles.lastZIPFullPath = prjData.variables.modules.(context).generatedFiles.lastZIPFullPath;
+                                        catch 
                                         end
                                     end
-                                    
-                                    obj.modules.(context).generatedFiles.id              = prjData.variables.modules.(context).generatedFiles.id;
-                                    obj.modules.(context).generatedFiles.lastZIPFullPath = prjData.variables.modules.(context).generatedFiles.lastZIPFullPath;
-                                catch 
-                                end
-                            end
-    
-                            obj.modules.(context).ui.system = prjData.variables.modules.(context).ui.system;
-                            obj.modules.(context).ui.unit   = prjData.variables.modules.(context).ui.unit;
-                            obj.modules.(context).ui.issue  = prjData.variables.modules.(context).ui.issue;
-                            obj.modules.(context).ui.entity = prjData.variables.modules.(context).ui.entity;
+            
+                                    obj.modules.(context).ui.system = prjData.variables.modules.(context).ui.system;
+                                    obj.modules.(context).ui.unit   = prjData.variables.modules.(context).ui.unit;
+                                    obj.modules.(context).ui.issue  = prjData.variables.modules.(context).ui.issue;
+                                    obj.modules.(context).ui.entity = prjData.variables.modules.(context).ui.entity;
+                
+                                    reportModel = prjData.variables.modules.(context).ui.reportModel;
+                                    if ismember(reportModel, obj.modules.(context).ui.templates)
+                                        obj.modules.(context).ui.reportModel = reportModel;
+                                    end
         
-                            reportModel = prjData.variables.modules.(context).ui.reportModel;
-                            if ismember(reportModel, obj.modules.(context).ui.templates)
-                                obj.modules.(context).ui.reportModel = reportModel;
-                            end
+                                    obj.modules.(context).annotationTable = prjData.variables.modules.(context).annotationTable;
+            
+                                    obj.modules.(context).uploadedFiles = [prjData.variables.modules.(context).uploadedFiles, obj.modules.(context).uploadedFiles];
+                                    [~, uniqueUploadedFilesIndexes] = unique({obj.modules.(context).uploadedFiles.hash});
+                                    obj.modules.(context).uploadedFiles = obj.modules.(context).uploadedFiles(uniqueUploadedFilesIndexes);
+                                end
+        
+                                obj.issueDetails = [prjData.variables.issueDetails, obj.issueDetails];                        
+                                
+                                obj.entityDetails = [prjData.variables.entityDetails, obj.entityDetails];                        
+                                [~, uniqueDetailsIndexes] = unique({obj.entityDetails.id});
+                                obj.entityDetails = obj.entityDetails(uniqueDetailsIndexes);
+        
+                                obj.ReportAttachments = prjData.variables.externalFiles;
 
-                            obj.modules.(context).annotationTable = prjData.variables.modules.(context).annotationTable;
-    
-                            obj.modules.(context).uploadedFiles = [prjData.variables.modules.(context).uploadedFiles, obj.modules.(context).uploadedFiles];
-                            [~, uniqueUploadedFilesIndexes] = unique({obj.modules.(context).uploadedFiles.hash});
-                            obj.modules.(context).uploadedFiles = obj.modules.(context).uploadedFiles(uniqueUploadedFilesIndexes);
+                               % Elimina dados de espectro, mantendo apenas metadados...
+                               specData = prjData.variables.specDataObj;
+                               for kk = 1:numel(specData)
+                                   specData(kk).Data = {};
+                               end
+        
+                                % Pode ocorrer uma coincidência de fluxos que compõem
+                                % o projeto e fluxos já lidos. Se evidenciado, serão
+                                % mantidos os fluxos do projeto.
+                                idx = ismember({specDataObj.Hash}, {specData.Hash});
+                                if any(idx)
+                                    delete(specDataObj(idx))
+                                    specDataObj(idx) = [];
+                                end
+            
+                                specDataObj = [specDataObj, specData];
+
+                            case 'SpecData'
+                                flowIdx = varargin{1};
+                                specData = prjData.variables.specDataObj(flowIdx);
+                                specDataObj = copy(specData, {});
                         end
-
-                        obj.issueDetails = [prjData.variables.issueDetails, obj.issueDetails];                        
-                        
-                        obj.entityDetails = [prjData.variables.entityDetails, obj.entityDetails];                        
-                        [~, uniqueDetailsIndexes] = unique({obj.entityDetails.id});
-                        obj.entityDetails = obj.entityDetails(uniqueDetailsIndexes);
-
-                        % Pode ocorrer uma coincidência de fluxos que compõem
-                        % o projeto e fluxos já lidos. Se evidenciado, serão
-                        % mantidos os fluxos do projeto.
-                        idx = ismember({specDataObj.Hash}, {prjData.variables.EMFieldObj.Hash});
-                        if any(idx)
-                            delete(specDataObj(idx))
-                            specDataObj(idx) = [];
-                        end
-    
-                        specDataObj = [specDataObj, prjData.variables.EMFieldObj];
     
                     otherwise
-                        error('UnexpectedVersion')
+                        error('model:Project:UnexpectedVersion', 'Unexpected version')
                 end
-                msg = '';
+                errorMsg = '';
 
             catch ME
-                msg = ME.message;
+                errorMsg = ME.message;
             end
         end
 

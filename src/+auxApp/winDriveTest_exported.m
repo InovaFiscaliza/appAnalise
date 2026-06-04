@@ -648,12 +648,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
 
                 try
-                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
                     
                     relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
                     if ~isempty(relatedHases)
                         relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
-                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.channelObj, app.mainApp.General)
+                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
                     end
 
                 catch ME

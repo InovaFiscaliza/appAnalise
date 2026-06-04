@@ -11,22 +11,19 @@ classdef (Abstract) ProjectBase
         % Hash do projeto, utilizado para identificar alterações em
         % informações sensíveis durante a sessão corrente do app.
         %-----------------------------------------------------------------%
-        function hash = computeProjectHash(prjName, prjFile, prjModules, prjIssueDetails, prjEntityDetails, specData)
-            hashList = sort({specData.Hash});
-
-            contextList = fieldnames(prjModules);
-            annotationTable = [];
-
-            for ii = 1:numel(contextList)
-                context = contextList{ii};
-                annotationTable = [annotationTable; prjModules.(context).annotationTable];
+        function hash = computeProjectHash(prjName, prjFile, prjIssueDetails, prjEntityDetails, prjExternalFiles, specData)
+            flowHashs = '';
+            emissionUuids = '';
+            
+            if ~isempty(specData)
+                flowHashs = strjoin(sort({specData.Hash}), ' - ');
+                
+                emissionUuids = arrayfun(@(x) x.UserData.Emissions.Uuid, specData, 'UniformOutput', false);
+                emissionUuids = vertcat(emissionUuids{:});
+                emissionUuids = strjoin(sort(emissionUuids), ' - ');
             end
 
-            if ~isempty(annotationTable)
-                annotationTable = sortrows(annotationTable, 'Hash');
-            end
-
-            hash = Hash.sha1(sprintf('%s - %s - %s - %s - %s - %s', prjName, prjFile, strjoin(hashList, ' - '), jsonencode(annotationTable), jsonencode(prjIssueDetails), jsonencode(prjEntityDetails)));
+            hash = Hash.sha1(sprintf('%s - %s - %s - %s - %s - %s - %s', prjName, prjFile, jsonencode(prjIssueDetails), jsonencode(prjEntityDetails), jsonencode(prjExternalFiles), flowHashs, emissionUuids));
         end
 
         %-----------------------------------------------------------------%
