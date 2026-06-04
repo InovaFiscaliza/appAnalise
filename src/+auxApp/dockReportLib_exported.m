@@ -257,7 +257,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             appName  = class.Constants.appName;
             context  = app.inputArgs.context;
 
-            flowIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData);
+            flowIdxs = getReportIncludeIdxs(app.mainApp.specData);
             specData = app.mainApp.specData(flowIdxs);
 
             invalidCache = false;
@@ -278,7 +278,7 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 return
             end
 
-            if ~any(flowIdxs)
+            if isempty(specData)
                 warningMsg = [ ...
                     'Não é possível criar um projeto sem ao menos um fluxo ' ...
                     'espectral selecionado a incluir no relatório.' ...
@@ -487,7 +487,9 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         % Image clicked function: reportModelButton
         function onExternalFileModuleOpenRequest(app, event)
             
-            if ~any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData))
+            flowIdxs = getReportIncludeIdxs(app.mainApp.specData);
+
+            if isempty(flowIdxs)
                 warningMsg = [ ...
                     'Antes de incluir anexos ao projeto ou a um fluxo espectral, ' ...
                     'defina ao menos um fluxo como "Fluxo a incluir no relatório".' ...

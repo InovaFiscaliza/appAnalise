@@ -191,21 +191,10 @@ classdef Project < model.ProjectCommon
                                 obj.ReportAttachments = prjData.variables.externalFiles;
 
                                % Elimina dados de espectro, mantendo apenas metadados...
-                               specData = prjData.variables.specDataObj;
-                               for kk = 1:numel(specData)
-                                   specData(kk).Data = {};
+                               specDataObj = prjData.variables.specDataObj;
+                               for kk = 1:numel(specDataObj)
+                                   specDataObj(kk).Data = {};
                                end
-        
-                                % Pode ocorrer uma coincidência de fluxos que compõem
-                                % o projeto e fluxos já lidos. Se evidenciado, serão
-                                % mantidos os fluxos do projeto.
-                                idx = ismember({specDataObj.Hash}, {specData.Hash});
-                                if any(idx)
-                                    delete(specDataObj(idx))
-                                    specDataObj(idx) = [];
-                                end
-            
-                                specDataObj = [specDataObj, specData];
 
                             case 'SpecData'
                                 flowIdx = varargin{1};

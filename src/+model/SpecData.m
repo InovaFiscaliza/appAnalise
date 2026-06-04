@@ -10,6 +10,7 @@ classdef SpecData < model.SpecDataBase
     %   │   │── basicStats                  (model.SpecDataBase)
     %   │   └── computeOccupancyPerBin
     %   ├── generateFlowHash
+    %   ├── getReportIncludeIdxs
     %   ├── addHashColumnToRelatedFilesTable
     %   ├── validateFlowMergeRequest
     %   ├── mergeWith
@@ -69,16 +70,33 @@ classdef SpecData < model.SpecDataBase
             % proximidade geográfica e timestamps não sobrepostos.
             for ii = 1:numel(uniqueHashs)
                 flowHash = uniqueHashs{ii};
-                flowHashIdxs = find(uniqueHashIdxs == ii)';                
+                flowHashIdxs = find(uniqueHashIdxs == ii)';
+                
+                % Eliminando fluxos duplicados, o que pode ocorrer quando são
+                % lidos arquivo .MAT com os arquivos brutos que o gerou, assim
+                % como quando se renomeia um arquivo bruto.
+                [~, flowHashUniqueIdxs] = unique(referenceTable.BeginTime(flowHashIdxs));
+                flowHashIdxs = flowHashIdxs(flowHashUniqueIdxs);
                 
                 % Identifica fluxos que não foram alterados...
                 flowRelatedFiles = referenceTable.RelatedFiles(flowHashIdxs);
                 if any(cellfun(@iscellstr, flowRelatedFiles))
                     flowRelatedFiles = vertcat(flowRelatedFiles{:});
                 end
+                flowRelatedFiles = unique(flowRelatedFiles);
 
-                identicalObjIdx = find(arrayfun(@(x) strcmp(x.Hash, flowHash) & isequal(sort(x.RelatedFiles.File), sort(flowRelatedFiles)), obj), 1);
+                identicalObjIdx = find(arrayfun(@(x) strcmp(x.Hash, flowHash) & isequal(sort(x.RelatedFiles.File), flowRelatedFiles), obj), 1);
                 if ~isempty(identicalObjIdx)
+                    % Atualiza UserData apenas se evidenciado que fluxo espectral 
+                    % já foi inicializado, usando, para tanto, o primeiro fluxo 
+                    % que retorna pois pode ser o do projeto...
+                    fileIdx = referenceTable.Idx{flowHashIdxs(1)}{1}(1);
+                    flowIdx = referenceTable.Idx{flowHashIdxs(1)}{1}(2);
+
+                    if ~isempty(metaData(fileIdx).Data(flowIdx).UserData.PlotDisplayConfig)
+                        obj(identicalObjIdx).UserData = metaData(fileIdx).Data(flowIdx).UserData;
+                    end
+
                     addInputFileInfo(obj(identicalObjIdx), referenceTable(flowHashIdxs, :))
                     continue
                 end
@@ -253,6 +271,16 @@ classdef SpecData < model.SpecDataBase
         function hash = generateFlowHash(obj, generalSettings)
             hashSource = model.SpecDataBase.comparableMetaData(obj, generalSettings);
             hash = Hash.sha1(jsonencode(hashSource));
+        end
+
+        %-----------------------------------------------------------------%
+        function flowIdxs = getReportIncludeIdxs(obj)
+            flowIdxs = [];
+            for ii = 1:numel(obj)
+                if isvalid(obj(ii)) && obj(ii).UserData.ReportInclude
+                    flowIdxs = [flowIdxs, ii];
+                end
+            end
         end
 
         %-----------------------------------------------------------------%

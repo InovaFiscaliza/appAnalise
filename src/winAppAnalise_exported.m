@@ -398,7 +398,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                 switch eventName
                                     % auxApp.dockReportLib
                                     case {'onProjectRestart', 'onProjectLoad', 'onFinalReportFileChanged'}
-                                        refreshProjectFiles(app, [], 'FileListChanged:ProjectLoad')
+                                        refreshProjectFiles(app, [], 'onProjectLoad')
                                         
                                     case 'onUpdateLastVisitedFolder'
                                         filePath = varargin{1};
@@ -818,6 +818,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 updateType char {mustBeMember(updateType, {'onFileListAdded', ...
                                                            'onFileListRemoved', ...
                                                            'onFileFilterChanged', ...
+                                                           'onProjectLoad', ...
                                                            'onFlowUnlockRequested'})}
             end
 
@@ -917,6 +918,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                 end
 
                                 for kk = level2Idx
+                                    % durationFlag = sprintf(' (⌛%s)', referenceTable.Duration(kk));
+                                    % if referenceTable.Duration(kk) < minutes(10)
+                                    %     durationFlag = [durationFlag(1:end-1), '⚠️)'];
+                                    % end
+
                                     occupancyFlag = '';
                                     if referenceTable.IsOccupancyFlow(kk)
                                         occupancyFlag = ' (Ocupação)';
@@ -1480,8 +1486,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
             questionMsg = '';
-            flowIdxs = arrayfun(@(x) x.UserData.ReportInclude, app.specData);
-            if any(flowIdxs) && checkIfUpdateNeeded(app.projectData, app.specData(flowIdxs))
+            flowIdxs = getReportIncludeIdxs(app.specData);
+            if ~isempty(flowIdxs) && checkIfUpdateNeeded(app.projectData, app.specData(flowIdxs))
                 questionMsg = sprintf([ ...
                     'O projeto "%s" foi modificado (nome, arquivo de saída, ' ...
                     'lista de arquivos de entrada ou anotações das estações). ' ...
