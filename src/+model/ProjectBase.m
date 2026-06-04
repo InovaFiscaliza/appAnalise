@@ -17,13 +17,14 @@ classdef (Abstract) ProjectBase
             
             if ~isempty(specData)
                 flowHashs = strjoin(sort({specData.Hash}), ' - ');
+                flowSweeps = jsonencode(arrayfun(@(x) sum(x.RelatedFiles.NumSweeps), specData));
                 
                 emissionUuids = arrayfun(@(x) x.UserData.Emissions.Uuid, specData, 'UniformOutput', false);
                 emissionUuids = vertcat(emissionUuids{:});
                 emissionUuids = strjoin(sort(emissionUuids), ' - ');
             end
 
-            hash = Hash.sha1(sprintf('%s - %s - %s - %s - %s - %s - %s', prjName, prjFile, jsonencode(prjIssueDetails), jsonencode(prjEntityDetails), jsonencode(prjExternalFiles), flowHashs, emissionUuids));
+            hash = Hash.sha1(sprintf('%s - %s - %s - %s - %s - %s - %s - %s', prjName, prjFile, jsonencode(prjIssueDetails), jsonencode(prjEntityDetails), jsonencode(prjExternalFiles), flowHashs, flowSweeps, emissionUuids));
         end
 
         %-----------------------------------------------------------------%
