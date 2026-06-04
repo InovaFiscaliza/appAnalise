@@ -1997,6 +1997,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.progressDialog.Visible = 'visible';
 
             update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+            emissionAddedIdx = find(specData.UserData.Emissions.FrequencyIdx == idxList(1), 1);
+            if ~isempty(emissionAddedIdx)
+                app.emissionSelectedHash = specData.UserData.Emissions.Uuid(emissionAddedIdx);
+            end
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', app.Context)
 
             app.progressDialog.Visible = 'hidden';
