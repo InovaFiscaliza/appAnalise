@@ -42,29 +42,32 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
     methods (Access = private)
         %-----------------------------------------------------------------%
         function updatePanel(app)
+            if specData.UserData.DetectionSubBandsEnabled && ~isempty(specData.UserData.DetectionSubBands)
+                app.FlowDetectionLimits.Items = cellstr(string(specData.UserData.DetectionSubBands.FreqStart) + " – " + string(specData.UserData.DetectionSubBands.FreqStop) + " MHz");
+            else
+                app.FlowDetectionLimits.Items = {sprintf('%.3f – %.3f MHz (padrão)', specData.MetaData.FreqStart/1e+6, specData.MetaData.FreqStop/1e+6)};
+            end
 
         end
         
         %-----------------------------------------------------------------%
-        function play_BandLimits_Layout(app, idx)
+        function updateStatus(app, specData)
+            update(specData, 'UserData:BandLimits', 'Status:Edit', app.play_BandLimits_Status.Value)
+
             if app.play_BandLimits_Status.Value
-                update(app.specData(idx), 'UserData:BandLimits', 'Status:Edit', true)
-                
-                set(app.play_BandLimits_Grid.Children, Enable=1)
+                set(app.play_BandLimits_Grid.Children, 'Enable', 'on')
                 app.play_BandLimits_add.Enable  = 1;
                 app.play_BandLimits_Tree.Enable = 1;
 
             else
-                update(app.specData(idx), 'UserData:BandLimits', 'Status:Edit', false)
-
-                set(findobj(app.play_BandLimits_Grid, 'Type', 'uinumericeditfield'), Enable=0)
+                set(findobj(app.play_BandLimits_Grid, 'Type', 'uinumericeditfield'), 'Enable', 'off')
                 app.play_BandLimits_add.Enable  = 0;
                 app.play_BandLimits_Tree.Enable = 0;
             end
         end
 
         %-----------------------------------------------------------------%
-        function play_BandLimits_TreeBuilding(app, idx)
+        function buildTree(app, idx)
             
             if ~isempty(app.play_BandLimits_Tree.Children)
                 delete(app.play_BandLimits_Tree.Children)
@@ -76,73 +79,6 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
                                                      'NodeData', ii, 'ContextMenu', app.play_BandLimits_ContextMenu);
             end
         end
-        % 
-        % %-----------------------------------------------------------------%
-        % function initialValues(app)
-        %     idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-        % 
-        %     app.Algorithm.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm;
-        %     set(app.FindPeaksPlusOCCClass, 'Items', [{''}; app.channelObj.FindPeaks.Name], 'Value', '')
-        %     updatePanel(app)
-        % 
-        %     switch app.Algorithm.Value
-        %         case 'FindPeaks'
-        %             app.FindPeaksTrace.Value               = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn;
-        %             app.FindPeaksNumPeaks.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks;
-        %             app.FindPeaksThreshold.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR;
-        %             app.FindPeaksProminence.Value          = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence;
-        %             app.FindPeaksDistance.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-        %             app.FindPeaksBandWidth.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
-        % 
-        %         case 'FindPeaks+OCC'
-        %             app.FindPeaksDistance.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-        %             app.FindPeaksBandWidth.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
-        %             app.FindPeaksPlusOCCProminence1.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1;
-        %             app.FindPeaksPlusOCCProminence2.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2;
-        %             app.FindPeaksPlusOCCMinOccupancy.Value = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC;
-        %             app.FindPeaksPlusOCCMaxOccupancy.Value = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC;
-        %     end
-        % end
-        % 
-        % %-----------------------------------------------------------------%
-        % function editionFlag = checkEdition(app)
-        %     editionFlag = false;
-        % 
-        %     idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-        %     if ~isequal(app.Algorithm.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm)
-        %         editionFlag = true;
-        % 
-        %     else
-        %         switch app.Algorithm.Value
-        %             case 'FindPeaks'
-        %                 if ~isequal(app.FindPeaksTrace.Value,       app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn)          || ...
-        %                    ~isequal(app.FindPeaksNumPeaks.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks)       || ...
-        %                    ~isequal(app.FindPeaksThreshold.Value,         app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR)          || ...
-        %                    ~isequal(app.FindPeaksProminence.Value,  app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence)   || ...
-        %                    ~isequal(app.FindPeaksDistance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-        %                    ~isequal(app.FindPeaksBandWidth.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)
-        % 
-        %                     editionFlag = true;
-        %                 end
-        % 
-        %             case 'FindPeaks+OCC'
-        %                 if ~isequal(app.FindPeaksDistance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-        %                    ~isequal(app.FindPeaksBandWidth.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)       || ...
-        %                    ~isequal(app.FindPeaksPlusOCCProminence1.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1)  || ...
-        %                    ~isequal(app.FindPeaksPlusOCCProminence2.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2)  || ...
-        %                    ~isequal(app.FindPeaksPlusOCCMinOccupancy.Value,     app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC)      || ...
-        %                    ~isequal(app.FindPeaksPlusOCCMaxOccupancy.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC)
-        % 
-        %                     editionFlag = true;
-        %                 end
-        %         end
-        %     end
-        % end
-        % 
-        % %-----------------------------------------------------------------%
-        % function callingMainApp(app, updateFlag, returnFlag, idxThread)
-        %     ipcMainMatlabCallsHandler(app.mainApp, app, 'REPORT:DETECTION', updateFlag, returnFlag, idxThread)
-        % end
     end
     
 
@@ -171,178 +107,19 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function
-        function AlgorithmValueChanged(app, event)
+        % Value changed function: play_BandLimits_Status
+        function onSubBandsModeChanged(app, event)
             
-            updatePanel(app)
-
-        end
-
-        % Callback function
-        function FindPeaksPlusOCCClassValueChanged(app, event)
-            
-            if ~isempty(app.FindPeaksPlusOCCClass.Value)
-                [~, idxFindPeaks] = ismember(app.FindPeaksPlusOCCClass.Value, app.channelObj.FindPeaks.Name);
-
-                if idxFindPeaks    
-                    app.FindPeaksDistance.Value    = 1000 * app.channelObj.FindPeaks.Distance(idxFindPeaks);
-                    app.FindPeaksBandWidth.Value      = 1000 * app.channelObj.FindPeaks.BW(idxFindPeaks);
-                    app.FindPeaksPlusOCCProminence1.Value = app.channelObj.FindPeaks.Prominence1(idxFindPeaks);
-                    app.FindPeaksPlusOCCProminence2.Value = app.channelObj.FindPeaks.Prominence2(idxFindPeaks);
-                    app.FindPeaksPlusOCCMinOccupancy.Value     = app.channelObj.FindPeaks.meanOCC(idxFindPeaks);
-                    app.FindPeaksPlusOCCMaxOccupancy.Value      = app.channelObj.FindPeaks.maxOCC(idxFindPeaks);
-    
-                    ParameterValueChanged(app)
-                end
-            end
-
-        end
-
-        % Callback function
-        function occValueChanged(app, event)
-            
-            switch event.Source
-                case app.FindPeaksPlusOCCMinOccupancy
-                    if app.FindPeaksPlusOCCMinOccupancy.Value > app.FindPeaksPlusOCCMaxOccupancy.Value
-                        app.FindPeaksPlusOCCMaxOccupancy.Value = app.FindPeaksPlusOCCMinOccupancy.Value;
-                    end
-
-                case app.FindPeaksPlusOCCMaxOccupancy
-                    if app.FindPeaksPlusOCCMaxOccupancy.Value < app.FindPeaksPlusOCCMinOccupancy.Value
-                        app.FindPeaksPlusOCCMinOccupancy.Value = app.FindPeaksPlusOCCMaxOccupancy.Value;
-                    end
-            end
-
-        end
-
-        % Callback function
-        function ParameterValueChanged(app, event)
-            
-            if checkEdition(app)
-                app.SearchButton.Enable = 1;
-            else
-                app.SearchButton.Enable = 0;
-            end
-
-        end
-
-        % Callback function
-        function ButtonPushed(app, event)
-
-            algorithm = app.Algorithm.Value;
             specData = app.callingApp.bandObj.SpecData;
+            updateStatus(app, specData)
 
-            if app.SearchAllFlows.Visible && app.SearchAllFlows.Value && ~isscalar(app.mainApp.specData)
-                msgQuestion = 'Confirma a busca de emissões em todos os fluxos de espectro?';
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+            if app.play_BandLimits_Status.Value && ~isempty(specData.UserData.bandLimitsTable) && ~isempty(specData.UserData.Emissions)
+                questionMsg = 'Confirma a reanálise das emissões, eventualmente eliminando aquelas que não estão em uma das subfaixas sob análise?';
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
                 
                 if userSelection == "Não"
-                    if app.SearchAllFlows.Value
-                        app.SearchAllFlows.Value = false;
-                    end
-                    return
-
-                else
-                    specData = app.mainApp.specData;
-                end
-            end
-
-            for ii = 1:numel(specData)
-                switch algorithm
-                    case 'Arquivo'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % identifica [idxList, freqList, widthKHzList, methodList]
-    
-                    case 'Manual – selecionar região da emissão'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % inclui ROI... e identifica [idxList, freqList, widthKHzList, methodList]
-    
-                    case 'Manual – usar pontos marcados (datatips)'
-                        idxList      = [];
-                        freqList     = [];
-                        widthKHzList = [];
-                        methodList   = {};
-                        % identifica [idxList, freqList, widthKHzList, methodList]
-
-                    otherwise
-                        switch algorithm
-                            case 'Regiões conectadas'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindConnectedRegions', ...
-                                    'Offset', app.ConnectedRegionsOffset.Value, ...
-                                    'CumulativeAreaThreshold', app.ConnectedRegionsArea.Value, ...
-                                    'MaxOccupancyForRegions', app.ConnectedRegionsMaxOccupancy.Value, ...
-                                    'MinOccupancy', app.ConnectedRegionsMinOccupancy.Value, ...
-                                    'MinAbsOrientation', app.ConnectedRegionsMinOrientation.Value ...
-                                );
-                            
-                            case 'Detecção por picos'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindPeaks', ...
-                                    'MinDistanceKHz', app.FindPeaksDistance.Value, ...
-                                    'MinWidthKHz', app.FindPeaksBandWidth.Value, ...
-                                    'TraceMode', app.FindPeaksTrace.Value, ...
-                                    'MinProminence', app.FindPeaksProminence.Value, ...
-                                    'NumPeaks', app.FindPeaksNumPeaks.Value, ...
-                                    'Threshold', app.FindPeaksThreshold.Value ...
-                                );
-                            
-                            case 'Picos com ocupação'
-                                detectionConfig = struct( ...
-                                    'Algorithm', 'FindPeaks+OCC', ...
-                                    'MinDistanceKHz', app.FindPeaksPlusOCCDistance.Value, ...
-                                    'MinWidthKHz', app.FindPeaksPlusOCCBandWidth.Value, ...
-                                    'MinProminenceCenter', app.FindPeaksPlusOCCProminence1.Value, ...
-                                    'MinProminenceMax', app.FindPeaksPlusOCCProminence2.Value, ...
-                                    'MinOccupancyMeanOverTime', app.FindPeaksPlusOCCMinOccupancy.Value, ...
-                                    'MinOccupancyMaxOverTime', app.FindPeaksPlusOCCMaxOccupancy.Value ...
-                                );
-
-                            otherwise
-                                error('auxApp:dockDetection:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
-                        end
-                        
-                        [idxList, freqList, widthKHzList, methodList] = util.Detection.run(specData, detectionConfig);
-                end
-
-                if app.OnlySearchEmissions.Value
-                    util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthKHzList)
-                else
-                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthKHzList, methodList, [], channelObj)
-                    % atualiza plot...
-                end
-            end
-
-        end
-
-        % Callback function
-        function SearchModePanelSelectionChanged(app, event)
-            
-            app.SearchAllFlows.Visible = ~app.OnlySearchEmissions.Value && ~strcmp(app.Algorithm.Value, 'Manual – selecionar região da emissão');
-            
-        end
-
-        % Value changed function: play_BandLimits_Status
-        function play_BandLimits_StatusValueChanged(app, event)
-            
-            idx = app.play_PlotPanel.UserData.NodeData;
-            play_BandLimits_Layout(app, idx)
-
-            if app.play_BandLimits_Status.Value                      && ...
-                ~isempty(app.specData(idx).UserData.bandLimitsTable) && ...
-                ~isempty(app.specData(idx).UserData.Emissions)
-
-                msgQuestion   = 'Confirma a reanálise das emissões, eventualmente eliminando aquelas que não estão em uma das subfaixas sob análise?';
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
-                if userSelection == "Não"
                     app.play_BandLimits_Status.Value = 0;
-                    play_BandLimits_Layout(app, idx)
+                    updateStatus(app, specData)
                     return
                 end
 
@@ -360,7 +137,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
         end
 
         % Image clicked function: play_BandLimits_add
-        function play_BandLimits_addImageClicked(app, event)
+        function onSubBandsAdded(app, event)
             
             idx = app.play_PlotPanel.UserData.NodeData;
             bandLimitsTable = app.specData(idx).UserData.bandLimitsTable;
@@ -432,13 +209,13 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
                 update(app.specData(idx), 'UserData:BandLimits', 'Table:Edit', bandLimitsTable)
             end
 
-            play_BandLimits_TreeBuilding(app, idx)
+            buildTree(app, idx)
             plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, idx, 'BandLimits')
 
         end
 
         % Menu selected function: ExcluirMenu
-        function ExcluirMenuSelected(app, event)
+        function onSubBandsDeleted(app, event)
             
             if ~isempty(app.play_BandLimits_Tree.SelectedNodes)
                 idx = app.play_PlotPanel.UserData.NodeData;
@@ -458,7 +235,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
                     play_UpdateAuxiliarApps(app)
                 end
     
-                play_BandLimits_TreeBuilding(app, idx)
+                buildTree(app, idx)
                 plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, idx, 'BandLimits')
             end
 
@@ -509,7 +286,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
             % Create play_BandLimits_Status
             app.play_BandLimits_Status = uicheckbox(app.GridLayout);
-            app.play_BandLimits_Status.ValueChangedFcn = createCallbackFcn(app, @play_BandLimits_StatusValueChanged, true);
+            app.play_BandLimits_Status.ValueChangedFcn = createCallbackFcn(app, @onSubBandsModeChanged, true);
             app.play_BandLimits_Status.Text = 'Limitar detecção de emissões a subfaixa(s)';
             app.play_BandLimits_Status.FontSize = 11;
             app.play_BandLimits_Status.Layout.Row = 1;
@@ -574,7 +351,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             % Create play_BandLimits_add
             app.play_BandLimits_add = uiimage(app.GridLayout);
             app.play_BandLimits_add.ScaleMethod = 'none';
-            app.play_BandLimits_add.ImageClickedFcn = createCallbackFcn(app, @play_BandLimits_addImageClicked, true);
+            app.play_BandLimits_add.ImageClickedFcn = createCallbackFcn(app, @onSubBandsAdded, true);
             app.play_BandLimits_add.Enable = 'off';
             app.play_BandLimits_add.Layout.Row = 3;
             app.play_BandLimits_add.Layout.Column = 2;
@@ -585,7 +362,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
 
             % Create ExcluirMenu
             app.ExcluirMenu = uimenu(app.ContextMenu);
-            app.ExcluirMenu.MenuSelectedFcn = createCallbackFcn(app, @ExcluirMenuSelected, true);
+            app.ExcluirMenu.MenuSelectedFcn = createCallbackFcn(app, @onSubBandsDeleted, true);
             app.ExcluirMenu.Text = '❌ Excluir';
 
             % Show the figure after all components are created

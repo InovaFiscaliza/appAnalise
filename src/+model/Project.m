@@ -279,7 +279,12 @@ classdef Project < model.ProjectCommon
                     initialization(obj, contextList, generalSettings)
 
                 case {'onProjectLoad', 'onProjectRestart'}
-                    % ...
+                    for ii = 1:numel(contextList)
+                        context = contextList{ii};
+                        uploadedFiles = obj.modules.(context).uploadedFiles;
+                        initialization(obj, {context}, generalSettings)
+                        obj.modules.(context).uploadedFiles = uploadedFiles;
+                    end
             end
         end
     end

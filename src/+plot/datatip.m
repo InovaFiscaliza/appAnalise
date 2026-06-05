@@ -131,7 +131,8 @@ classdef (Abstract) datatip
 
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = 'Lat:';
                     dtParent.DataTipTemplate.DataTipRows(2).Label  = 'Lon:';
-                    dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', hTable.Frequency);
+                    dtParent.DataTipTemplate.DataTipRows(3)        = dataTipTextRow('', hTable.Frequency, '%.3f MHz');
+                    dtParent.DataTipTemplate.DataTipRows(4)        = dataTipTextRow('', hTable.Name);
 
                     dtParent.DataTipTemplate.DataTipRows           = dtParent.DataTipTemplate.DataTipRows([3:4,1:2]);
 

@@ -17,7 +17,7 @@ classdef SpecData < model.SpecDataBase
     %   ├── applyFilter
     %   ├── update ⚠️
     %   ├── computeOccupancyPerBin ⚠️
-    %   ├── hasEmissionsInSearchBand ⚠️
+    %   ├── hasEmissionsInSearchBand
     %   ├── calculateAntennaHeight
     %   └── buildSpectrumReferenceTable
 
@@ -658,19 +658,20 @@ classdef SpecData < model.SpecDataBase
                     end
 
                 case 'UserData:BandLimits'
-                    if ~isscalar(obj)
-                        error('Unexpected non scalar object')
-                    end
+                    checkIfScalar(obj)
 
                     switch updateType
                         case 'Status:Edit'
-                            obj.UserData.DetectionSubBandsEnabled = varargin{1};
+                            subBandsMode = varargin{1};
+                            obj.UserData.DetectionSubBandsEnabled = subBandsMode;
 
                         case 'Table:Edit'
-                            obj.UserData.DetectionSubBands = varargin{1};
+                            subBands = varargin{1};
+                            obj.UserData.DetectionSubBands = subBands;
 
                         case 'Table:DeleteRows'
-                            obj.UserData.DetectionSubBands(varargin{1}, :) = [];
+                            subBandsIdxs = varargin{1};
+                            obj.UserData.DetectionSubBands(subBandsIdxs, :) = [];
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
@@ -943,10 +944,12 @@ classdef SpecData < model.SpecDataBase
                             idx = varargin{1};
                             driveTestAttributes = varargin{2};
                             obj.UserData.Emissions.AuxAppData(idx).DriveTest = driveTestAttributes;
+                            return
 
                         case 'AuxAppData:DriveTest:ReportInclude'
                             idx = varargin{1};
                             obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude = ~obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude;
+                            return
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
@@ -1106,16 +1109,16 @@ classdef SpecData < model.SpecDataBase
         %-----------------------------------------------------------------% 
         function hasEmissionsInSearchBand(obj)
             for ii = 1:numel(obj)
-                bandLimitsStatus = obj(ii).UserData.DetectionSubBandsEnabled;
-                bandLimitsTable  = obj(ii).UserData.DetectionSubBands;
-                emissionsTable   = obj(ii).UserData.Emissions;
+                subBandsMode = obj(ii).UserData.DetectionSubBandsEnabled;
+                subBands = obj(ii).UserData.DetectionSubBands;
+                emissions = obj(ii).UserData.Emissions;
             
-                if bandLimitsStatus && ~isempty(bandLimitsTable)
-                    for jj = height(emissionsTable):-1:1
-                        emissionsInSearchableBand = any((emissionsTable.Frequency(jj) >= bandLimitsTable.FreqStart) & (emissionsTable.Frequency(jj) <= bandLimitsTable.FreqStop));
+                if subBandsMode && ~isempty(subBands)
+                    for jj = height(emissions):-1:1
+                        emissionsInSearchableBand = any((emissions.Frequency(jj) >= subBands.FreqStart) & (emissions.Frequency(jj) <= subBands.FreqStop));
 
                         if ~emissionsInSearchableBand
-                            emissionsTable(jj, :) = [];
+                            emissions(jj, :) = [];
                         end
                     end
                 end
@@ -1123,11 +1126,11 @@ classdef SpecData < model.SpecDataBase
                 % Insere a coluna "Base64", que retorna um Hash do tag da emissão, no
                 % formato "100.300 MHz ⌂ 256.0 kHz", por exemplo. Esse Hash é usado p/
                 % identificar as emissões únicas.
-                emissionHashs  = cellfun(@(x) Hash.sha1(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissionsTable.Frequency, emissionsTable.BandWidthkHz, "UniformOutput", false), 'UniformOutput', false);
+                emissionHashs  = cellfun(@(x) Hash.sha1(x), arrayfun(@(x, y) sprintf('%.3f MHz ⌂ %.1f kHz', x, y), emissions.Frequency, emissions.BandWidthkHz, "UniformOutput", false), 'UniformOutput', false);
                 [~, hashIdxs]  = unique(emissionHashs);
-                emissionsTable = sortrows(emissionsTable(hashIdxs, :), {'FrequencyIdx', 'BandWidthkHz'});
+                emissions = sortrows(emissions(hashIdxs, :), {'FrequencyIdx', 'BandWidthkHz'});
 
-                obj(ii).UserData.Emissions = emissionsTable;
+                obj(ii).UserData.Emissions = emissions;
             end
         end
 

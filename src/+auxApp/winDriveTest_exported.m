@@ -256,6 +256,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             case {'onFileListAdded', ...
                                   'onFileListRemoved', ...
                                   'onFileFilterChanged', ...
+                                  'onProjectLoad', ...
                                   'onFlowMergeRequested', ...
                                   'onReportFlowListChanged', ...
                                   'onFlowUnlockRequested', ...
@@ -1344,12 +1345,13 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function plotHighlightedPoints(app)
-            delete(findobj(app.UIAxes1.Children, 'Tag', 'points'))
+            delete(findobj(app.UIAxes1.Children, 'Tag', 'points', '-or', 'Tag', 'estimatedEmissorLocation'))
 
             if ~isempty(app.pointsTable)
                 markerStyle = app.PointsMarker.Value;
                 markerColor = app.PointsColor.Value;
                 markerSize  = app.PointsSize.Value;
+
                 plot.DriveTest.Points(app.UIAxes1, app.pointsTable, markerStyle, markerColor, markerSize)
                 plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:DRIVETEST')
             end
@@ -1782,10 +1784,8 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             end
 
             if numel(specData.Data) > 3
-                % algorithm = 'aoA';
-                
-                questionMsg = 'Os dados possuem informação de azimute, de forma que pode ser aplicada não apenas o poa, mas também o aoa, na estimativa do local de geração da emissão sob análise?<br><br> Qual técnica deseja simular?';
-                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'poA', 'aoA', 'Cancelar'}, 1, 3);
+                questionMsg = 'Os dados possuem informação de azimute, de forma que pode ser aplicada não apenas o PoA, mas também o AoA, na estimativa do local de geração da emissão sob análise?<br><br> Qual técnica deseja simular?';
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'PoA', 'AoA', 'Cancelar'}, 1, 3);
                 if userSelection == "Cancelar"
                     return
                 end
@@ -1793,24 +1793,53 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 algorithm = userSelection;
 
             else
-                algorithm = 'poA';
+                algorithm = 'PoA';
             end
 
-            frequencyCenterMHz = specData.UserData.Emissions.Frequency(emissionIdx);
-            bandWidthkHz = specData.UserData.Emissions.BandWidthkHz(emissionIdx);
-
             try
-                [~, estimatedLatitude, estimatedLongitude, uncertaintyRadius] = evalc(sprintf('RF.Geolocation.%s(specData, frequencyCenterMHz, bandWidthkHz);', algorithm));
-    
-                if isnan(uncertaintyRadius) || uncertaintyRadius < 0
-                    uncertaintyRadius = 500;
-                end
-    
-                if isnan(estimatedLatitude) || isnan(estimatedLongitude)
-                    error('Dados insuficientes para estimar o local de geração da emissão.')
+                estimatedLatitude  = NaN;
+                estimatedLongitude = NaN;
+
+                geoLocationIdxs = find(strcmp(app.pointsTable.type, 'GeoLocation'))';
+                if ~isempty(geoLocationIdxs)
+                    for ii = geoLocationIdxs
+                        if strcmp(app.pointsTable.value(ii).source, algorithm)
+                            estimatedLatitude  = app.pointsTable.value(ii).data.estimatedLatitude;
+                            estimatedLongitude = app.pointsTable.value(ii).data.estimatedLongitude;
+                            
+                            break
+                        end
+                    end
                 end
 
-                RF.Geolocation.drawResults(app.UIAxes1, estimatedLatitude, estimatedLongitude, uncertaintyRadius)
+                if isnan(estimatedLatitude) || isnan(estimatedLongitude)
+                    app.progressDialog.Visible = 'visible';
+
+                    frequencyCenterMHz = specData.UserData.Emissions.Frequency(emissionIdx);
+                    bandWidthkHz = specData.UserData.Emissions.BandWidthkHz(emissionIdx);
+                    algorithmFcn = str2func(sprintf('RF.Geolocation.%s%s', lower(algorithm(1)), algorithm(2:end)));
+                    [estimatedLatitude, estimatedLongitude, uncertaintyRadius] = algorithmFcn(specData, frequencyCenterMHz, bandWidthkHz);
+
+                    app.progressDialog.Visible = 'hidden';
+
+                    if isnan(estimatedLatitude) || isnan(estimatedLongitude)
+                        error('Dados insuficientes para estimar o local de geração da emissão.')
+                    end
+
+                    if isnan(uncertaintyRadius) || uncertaintyRadius < 0
+                        uncertaintyRadius = 500;
+                    end
+
+                    newRowType = 'GeoLocation';
+                    newRowData = struct('source', algorithm, 'data', struct('estimatedLatitude', estimatedLatitude, 'estimatedLongitude', estimatedLongitude, 'uncertaintyRadius', uncertaintyRadius), 'dataIdx', algorithm);
+                    newRowHash = Hash.sha1(sprintf('%s - %s', newRowType, jsonencode(newRowData)));
+
+                    app.pointsTable(end+1, :) = {newRowType, newRowData, true, newRowHash};
+                    replotAfterPointsChange(app)
+
+                else
+                    plotHighlightedPoints(app)
+                end
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', ME.message);

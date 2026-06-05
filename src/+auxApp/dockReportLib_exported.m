@@ -182,12 +182,12 @@ classdef dockReportLib_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, callingApp, context, varargin)
+        function startupFcn(app, mainApp, callingApp, context)
             
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
 
-                app.inputArgs = struct('context', context, 'varargin', {varargin});
+                app.inputArgs = struct('context', context);
                 updatePanel(app, context)
                 
             catch ME
@@ -222,32 +222,18 @@ classdef dockReportLib_exported < matlab.apps.AppBase
         % Image clicked function: prjOpenFileButton
         function onProjectLoad(app, event)
             
-            appName  = class.Constants.appName;
-            context  = app.inputArgs.context;
-            varargin = app.inputArgs.varargin;
+            appName = class.Constants.appName;
             
             [fileFullPath, fileFolder] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.mat', [appName ' (*.mat)']}, app.mainApp.General.fileFolder.lastVisited, {'MultiSelect', 'off'});
             if isempty(fileFullPath)
                 return
             end
+
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onUpdateLastVisitedFolder', fileFolder)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onProjectLoad', {fileFullPath});
 
-            d = ui.Dialog(app.UIFigure, "progressdlg", "Em andamento...");
-            
-            try
-                [app.mainApp.measData, msg] = load(app.projectData, context, fileFullPath, app.mainApp.General, varargin{:});
-                ipcMainMatlabCallsHandler(app.mainApp, app, 'onProjectLoad', context)
-                updatePanel(app, context)
-
-                if ~isempty(msg)
-                    ui.Dialog(app.UIFigure, "warning", msg)
-                end
-
-            catch ME
-                ui.Dialog(app.UIFigure, "error", ME.message);
-            end
-            
-            delete(d)
+            context = app.inputArgs.context;
+            updatePanel(app, context)
 
         end
 

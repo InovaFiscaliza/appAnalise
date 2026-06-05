@@ -5,7 +5,7 @@ classdef (Abstract) StackingOrder
         winAppAnalise     = {'mkrLabels', 'occupancyThreshold', 'mkrROI', 'ROI', 'average', 'clearWrite', 'maxHold', ...
                              'mkrLine', 'channel', 'bandLimits', 'persistence', 'minHold', 'waterfallTime', 'waterfall'}        
         
-        winDriveTest      = {'filterROI', 'car', 'points', 'distortion', 'density', 'routePassFilter', 'routeFailFilter', ... % app.UIAxes1   (GeographicAxes)
+        winDriveTest      = {'filterROI', 'car', 'points', 'distortion', 'density', 'estimatedEmissorLocation', 'routePassFilter', 'routeFailFilter', ... % app.UIAxes1   (GeographicAxes)
                              'channelROI', 'clearWrite', 'persistence', 'channelPower', 'waterfallTime', 'waterfall'}  % app.UIAxes2-4 (CartesianAxes)
         
         winSignalAnalysis = {'emissionROI', 'average', 'maxHold', 'minHold'}                                      % app.UIAxes2   (CartesianAxes)
