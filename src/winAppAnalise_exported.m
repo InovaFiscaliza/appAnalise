@@ -456,7 +456,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         requestVisibilityChange(callingApp.progressDialog, 'visible', 'locked')
 
                                         flowIdxs = varargin{1};
-                                        app.specData = mergeWith(app.specData, flowIdxs, app.General);
+                                        app.specData = mergeWith(app.specData, flowIdxs);
                                         notifySecondaryApps(app, eventName)
 
                                         requestVisibilityChange(callingApp.progressDialog, 'hidden', 'locked')

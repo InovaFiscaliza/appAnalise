@@ -72,12 +72,6 @@ classdef SpecData < model.SpecDataBase
                 flowHash = uniqueHashs{ii};
                 flowHashIdxs = find(uniqueHashIdxs == ii)';
                 
-                % Eliminando fluxos duplicados, o que pode ocorrer quando são
-                % lidos arquivo .MAT com os arquivos brutos que o gerou, assim
-                % como quando se renomeia um arquivo bruto.
-                [~, flowHashUniqueIdxs] = unique(referenceTable.BeginTime(flowHashIdxs));
-                flowHashIdxs = flowHashIdxs(flowHashUniqueIdxs);
-                
                 % Identifica fluxos que não foram alterados...
                 flowRelatedFiles = referenceTable.RelatedFiles(flowHashIdxs);
                 if any(cellfun(@iscellstr, flowRelatedFiles))
@@ -134,6 +128,12 @@ classdef SpecData < model.SpecDataBase
 
                     addInputFileInfo(obj(idx), referenceTable(jj, :))
                 end
+            end
+
+            % Elimina registros duplicados, caso existam.
+            for kk = 1:numel(obj)
+                [~, uniqueBeginTimeIdxs] = unique(obj(kk).RelatedFiles.BeginTime, 'stable');
+                 obj(kk).RelatedFiles = obj(kk).RelatedFiles(uniqueBeginTimeIdxs, :);
             end
 
             % Verifica fluxos bloqueados e garante sua presença na tabela de 
@@ -313,6 +313,7 @@ classdef SpecData < model.SpecDataBase
             end
 
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
+            mergeType = model.SpecData.identifyMergeType(mergeTable);
             
             receiverList  = unique(mergeTable.Receiver);
             dataTypeList  = unique(mergeTable.DataType);
@@ -333,6 +334,10 @@ classdef SpecData < model.SpecDataBase
 
             if any(mergeTable.NumCoordinates == 0)
                 blockingWarning{end+1} = 'Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.';
+            end
+
+            if strcmp(mergeType, 'co-channel') && ~issorted(reshape([mergeTable.BeginTime, mergeTable.EndTime]', 1, []), "strictascend")
+                blockingWarning{end+1} = 'A mesclagem do tipo "co-channel" demanda que os fluxos tenham sido coletados em períodos distintos.';
             end
 
             if ~isempty(blockingWarning)
@@ -369,7 +374,7 @@ classdef SpecData < model.SpecDataBase
         end
 
         %-----------------------------------------------------------------%
-        function obj = mergeWith(obj, flowIdxs, generalSettings)
+        function obj = mergeWith(obj, flowIdxs)
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
             mergeType = model.SpecData.identifyMergeType(mergeTable);
 
@@ -1167,9 +1172,9 @@ classdef SpecData < model.SpecDataBase
         function referenceTable = buildSpectrumReferenceTable(obj, flowIdxs)
             numFlows = numel(flowIdxs);
             referenceTable = table( ...
-                'Size', [numFlows, 11], ...
-                'VariableTypes', {'double', 'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double'}, ...
-                'VariableNames', {'Idx', 'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates'} ...
+                'Size', [numFlows, 13], ...
+                'VariableTypes', {'double', 'cell', 'double', 'double', 'double', 'cell', 'double', 'double', 'double', 'double', 'double', 'datetime', 'datetime'}, ...
+                'VariableNames', {'Idx', 'Receiver', 'DataType', 'FreqStart', 'FreqStop', 'LevelUnit', 'DataPoints', 'StepWidth', 'Resolution', 'NumSweeps', 'NumCoordinates', 'BeginTime', 'EndTime'} ...
             );
 
             for ii = 1:numFlows
@@ -1186,7 +1191,9 @@ classdef SpecData < model.SpecDataBase
                     (obj(idx).MetaData.FreqStop - obj(idx).MetaData.FreqStart) / (obj(idx).MetaData.DataPoints - 1), ...
                     obj(idx).MetaData.Resolution, ...
                     sum(obj(idx).RelatedFiles.NumSweeps), ...
-                    obj(idx).GPS.Count ...
+                    obj(idx).GPS.Count, ...
+                    min(obj(idx).RelatedFiles.BeginTime), ...
+                    max(obj(idx).RelatedFiles.EndTime)
                 };
             end
             
@@ -1267,16 +1274,13 @@ classdef SpecData < model.SpecDataBase
             flowLng = referenceTable.Longitude(refTableIdx);
             
             for ii = objIdxs
-                if obj(ii).IsUserModified
-                    if all(ismember(newFlowRelatedFiles.File, obj(ii).RelatedFiles.File))
+                if all(ismember(newFlowRelatedFiles.File, obj(ii).RelatedFiles.File))
+                    if obj(ii).IsUserModified
                         candidateIdx = -1;
+                    else
+                        candidateIdx = ii;
                     end
 
-                    continue
-                end
-
-                if all(ismember(newFlowRelatedFiles.Hash, obj(ii).RelatedFiles.Hash))
-                    candidateIdx = ii;
                     return
                 end
 

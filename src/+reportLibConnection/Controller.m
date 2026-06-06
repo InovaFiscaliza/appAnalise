@@ -241,15 +241,29 @@ classdef (Abstract) Controller
                 case 'final'
                     try
                         [issueDetails, msgError] = getOrFetchIssueDetails(projectData, projectData.modules.(context).ui.system, projectData.modules.(context).ui.issue, mainApp.eFiscalizaObj);
+
                         if ~isempty(msgError)
                             error('reportLibConnection:Controller', msgError)
                         end
+
+                        if ~isdeployed() && ~ismember(issueDetails.issueContext.solicitacao.classificacao.macrotema, generalSettings.reportLib.allowedMacrothemes)
+                            issueDetails.solicitacao.macrotema = generalSettings.reportLib.allowedMacrothemes{1};
+                        end
+
                     catch ME
                         if ~isdeployed()
-                            issueDetails = struct('usuario', struct('nome', 'NOME_FISCAL', 'email', 'EMAIL_FISCAL@anatel.gov.br', 'unidade', 'LOTACAO_FISCAL', 'funcao', 'FISCAL'));
+                            issueDetails = struct( ...
+                                'usuario', struct('nome', 'NOME_FISCAL', 'email', 'EMAIL_FISCAL@anatel.gov.br', 'unidade', 'LOTACAO_FISCAL', 'funcao', 'FISCAL'), ...
+                                'issueContext', struct('solicitacao', struct('macrotema', generalSettings.reportLib.allowedMacrothemes{1})) ...
+                            );
                         else
                             rethrow(ME)
                         end
+                    end
+
+                    macrotheme = issueDetails.issueContext.solicitacao.classificacao.macrotema;
+                    if ~ismember(macrotheme, generalSettings.reportLib.allowedMacrothemes)
+                        error('reportLibConnection:Controller:UnexpectedMacrothemes', 'O macrotema "%s" não está configurado para geração de relatórios.', macrotheme)
                     end
 
                     JSONFile  = '';

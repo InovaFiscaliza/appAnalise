@@ -73,6 +73,7 @@ classdef Project < model.ProjectCommon
             specDataObj = copy(specData, {});
             for ii = 1:numel(specDataObj)
                 specDataObj(ii).InputFiles(:) = [];
+                specDataObj(ii).IsUserModified = false;
             end
             
             variables = struct( ...

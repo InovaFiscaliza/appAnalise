@@ -1,5 +1,5 @@
 {
-    "version": 1.47,
+    "version": 1.49,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -330,6 +330,15 @@
     "reportLib": {
         "system": "eFiscaliza",
         "unit": "",
+        "allowedMacrothemes": [
+            "PM-EC",
+            "PM-EF",
+            "PM-EM (Mobilidade)",
+            "PM-RD",
+            "PM-SAT",
+            "PM-SAT (Banda C e KU)",
+            "PM-SAT (Banda Ka)"
+        ],
         "outputCompressionMode": "Sim",
         "entityType": {
             "default": "",

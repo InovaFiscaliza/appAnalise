@@ -35,6 +35,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         TXLocationEditMode            matlab.ui.control.Image
         TXLocationPanelLabel          matlab.ui.control.Label
         RiskLevel                     matlab.ui.control.DropDown
+        RiskLevelIcon                 matlab.ui.control.Label
         RiskLevelLabel                matlab.ui.control.Label
         Compliance                    matlab.ui.control.DropDown
         ComplianceLabel               matlab.ui.control.Label
@@ -192,6 +193,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     elToModify = { 
                         app.AxesToolbar;
                         app.ClassificationRefresh;
+                        app.RiskLevel;
                         app.TXLocationEditMode;
                         app.TXLocationEditConfirm;
                         app.TXLocationEditCancel;
@@ -209,6 +211,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,                  'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                             struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Retorna à classificação automática')), ...
+                            struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id,                    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id,           'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel de edição')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Confirma edição, recriando perfil de terreno')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Cancela edição')), ...
@@ -437,6 +440,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.SelectedEmissionPanelGrid.Visible = 0;
                 app.tool_ExportJSONFile.Enable = 0;
             end
+
+            updateRiskLevelStyle(app)
         end
 
         %-----------------------------------------------------------------%
@@ -498,6 +503,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 set(app.RiskLevel,      'Enable', 1, 'Items', {'Baixo', 'Médio', 'Alto'})
                 set(app.RiskLevelLabel, 'Enable', 1)
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateRiskLevelStyle(app)
+            app.RiskLevelIcon.Visible = isequal(app.RiskLevel.Value, 'Alto');
         end
 
         %-----------------------------------------------------------------%
@@ -634,6 +644,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             [flowIdx, emissionIdx] = getEmissionIndexes(app);
             specData = app.mainApp.specData(flowIdx);
 
+            app.progressDialog.Visible = 'visible';
+
             switch triggeredComponent
                 case app.ClassificationRefresh
                     specData.UserData.Emissions.Classification(emissionIdx).UserModified = specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested;
@@ -699,8 +711,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         end
                     end
             end
+
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
             onToolbarCheckBoxValueChanged(app)
+
+            app.progressDialog.Visible = 'hidden';
         end
 
         %-----------------------------------------------------------------%
@@ -934,6 +949,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 case app.EmissionType
                     updateEmissionTypeStyle(app)
+
+                case app.RiskLevel
+                    updateRiskLevelStyle(app)
 
                 case app.AdditionalDescription
                     userDescription = strtrim(app.AdditionalDescription.Value);
@@ -1284,7 +1302,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create SelectedEmissionPanelGrid
             app.SelectedEmissionPanelGrid = uigridlayout(app.SelectedEmissionPanel);
-            app.SelectedEmissionPanelGrid.ColumnWidth = {'1x', '1x', 62, 18};
+            app.SelectedEmissionPanelGrid.ColumnWidth = {'1x', '1x', 67, 18};
             app.SelectedEmissionPanelGrid.RowHeight = {108, 15, 22, 17, 22, 17, 22, 19, 61, 17, 22, 22, '1x'};
             app.SelectedEmissionPanelGrid.RowSpacing = 5;
             app.SelectedEmissionPanelGrid.BackgroundColor = [1 1 1];
@@ -1375,6 +1393,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.RiskLevelLabel.Layout.Row = 6;
             app.RiskLevelLabel.Layout.Column = [3 4];
             app.RiskLevelLabel.Text = 'Potencial lesivo:';
+
+            % Create RiskLevelIcon
+            app.RiskLevelIcon = uilabel(app.SelectedEmissionPanelGrid);
+            app.RiskLevelIcon.HorizontalAlignment = 'right';
+            app.RiskLevelIcon.VerticalAlignment = 'bottom';
+            app.RiskLevelIcon.FontSize = 11;
+            app.RiskLevelIcon.Visible = 'off';
+            app.RiskLevelIcon.Layout.Row = 6;
+            app.RiskLevelIcon.Layout.Column = 4;
+            app.RiskLevelIcon.Text = '❗';
 
             % Create RiskLevel
             app.RiskLevel = uidropdown(app.SelectedEmissionPanelGrid);
