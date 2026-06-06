@@ -247,14 +247,14 @@ classdef (Abstract) Controller
                         end
 
                         if ~isdeployed() && ~ismember(issueDetails.issueContext.solicitacao.classificacao.macrotema, generalSettings.reportLib.allowedMacrothemes)
-                            issueDetails.solicitacao.macrotema = generalSettings.reportLib.allowedMacrothemes{1};
+                            issueDetails.issueContext.solicitacao.classificacao.macrotema = generalSettings.reportLib.allowedMacrothemes{1};
                         end
 
                     catch ME
                         if ~isdeployed()
                             issueDetails = struct( ...
                                 'usuario', struct('nome', 'NOME_FISCAL', 'email', 'EMAIL_FISCAL@anatel.gov.br', 'unidade', 'LOTACAO_FISCAL', 'funcao', 'FISCAL'), ...
-                                'issueContext', struct('solicitacao', struct('macrotema', generalSettings.reportLib.allowedMacrothemes{1})) ...
+                                'issueContext', struct('solicitacao', struct('classificacao', struct('macrotema', generalSettings.reportLib.allowedMacrothemes{1}))) ...
                             );
                         else
                             rethrow(ME)
@@ -277,7 +277,7 @@ classdef (Abstract) Controller
 
                     ZIPFileList = {HTMLFile};
 
-                    if strcmp(context, 'ECD')
+                    if strcmp(context, 'PLAYBACK')
                         JSONFile     = fullfile(generalSettings.fileFolder.tempPath, [sharepointFileBase '.json']);
                         TEAMSFile    = fullfile(generalSettings.fileFolder.tempPath, [sharepointFileBase '.teams']);
 

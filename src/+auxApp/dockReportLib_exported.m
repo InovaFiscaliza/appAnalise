@@ -309,8 +309,12 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 specData = [specData, app.mainApp.specData(occupancyFlowsIdxs)];
             end
 
+            app.progressDialog.Visible = 'visible';
+
             save(app.projectData, 'ProjectData', context, projectName, projectFile, app.mainApp.General.reportLib.outputCompressionMode, specData)
             updatePanel(app, context)
+
+            app.progressDialog.Visible = 'hidden';
 
         end
 
