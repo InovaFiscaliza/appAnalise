@@ -1864,13 +1864,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Image clicked function: FlowEmissionsFileImport
         function onEmissionsFileImportButtonClicked(app, event)
             
+            specData = app.bandObj.SpecData;
+
             if numel(app.mainApp.specData) > 1
                 questionMsg = 'Você deseja importar uma lista de emissões apenas para o fluxo espectral selecionado ou para todos os fluxos espectrais?';
                 userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Apenas selecionado', 'Todos', 'Cancelar'}, 1, 3);
 
                 switch userSelection
-                    case 'Apenas selecionado'
-                        specData = app.bandObj.SpecData;
                     case 'Todos'
                         specData = app.mainApp.specData;
                     case 'Cancelar'

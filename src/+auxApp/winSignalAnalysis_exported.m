@@ -215,7 +215,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id,           'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel de edição')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Confirma edição, recriando perfil de terreno')), ...
                             struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Cancela edição')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta arquivo JSON com informações das emissões')), ...
+                            struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta arquivo com informações das emissões')), ...
                             struct('appName', appName, 'dataTag', app.tool_ShowGlobalExceptionList.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Mostra lista global de exceções')), ...
                             struct('appName', appName, 'dataTag', app.tool_ControlPanelVisibility.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
                             struct('appName', appName, 'dataTag', app.RFLinkWarning.UserData.id,                'tooltip', struct('defaultPosition', 'top',    'textContent', 'Evidenciada obstrução total da 1ª Zona de Fresnel')), ...
@@ -1067,61 +1067,30 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 %---------------------------------------------------------%
                 case app.tool_ExportJSONFile
-                    msgQuestion = 'Deseja exportar JSON com todas as emissões apresentadas em tabela, ou JSON no formato que sobe para o Sharepoint, de forma que possa ser importado no appEventos?';
-                    userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Emissões', 'Para importar no AppEventos', 'Cancelar'}, 1, 3);
-    
-                    switch userSelection
-                        case 'Cancelar'
-                            return
+                    nameFormatMap = {'*.xlsx';'*.json'};
+                    defaultName = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, [class.Constants.appName '_Emissions'], -1);
+                    [fileFullPath, ~, fileExt] = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
+                    if isempty(fileFullPath)
+                        return
+                    end
 
-                        case 'Emissões'
-                            if numel(idx) < numel(app.specData)
-                                msgQuestion   = 'Você deseja exportar a lista de emissões apenas dos fluxos espectrais selecionados ou de todos os fluxos espectrais?';
-                                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Apenas seleção', 'Todos', 'Cancelar'}, 1, 3);
-                                switch userSelection
-                                    case 'Todos'
-                                        idx = 1:numel(app.specData);
-                                    case 'Cancelar'
-                                        return
-                                end
-                            end
-                
-                            nameFormatMap = {'*.mat', 'appAnalise (*.mat)'};
-                            defaultName   = class.Constants.DefaultFileName(app.General.fileFolder.userPath, 'UserData', -1); 
-                            fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
-                            if isempty(fileFullPath)
-                                return
-                            end
+                    emissions = app.UITable.Data(:, {'Frequency', 'BandWidthkHz', 'RFDataHubDescription'});
+                    emissions = renamevars(emissions, {'RFDataHubDescription'}, {'Description'});
+                    emissions.Frequency = round(emissions.Frequency, 3);
+                    emissions.BandWidthkHz = round(emissions.BandWidthkHz, 1);
 
-                            model.fileWriter.MAT(fileFullPath, '.mat', 'UserData', app.specData(idx));
-    
-                        case 'Para importar no AppEventos'
-                            if app.tool_EmissionReportListLimit.Value
-                                idxThreads = find(arrayfun(@(x) x.UserData.reportFlag, app.mainApp.specData));
-                            else
-                                idxThreads = 1:numel(app.mainApp.specData);
-                            end
-        
-                            emissionSummaryTable   = util.createEmissionsTable(app.mainApp.specData, idxThreads, 'SIGNALANALYSIS: JSONFile');
-                            emissionFiscalizaTable = reportLibConnection.table.fiscalizaJsonFile(app.mainApp.specData, idxThreads, emissionSummaryTable);
-            
-                            nameFormatMap   = {'*.json', 'appAnalise (*.json)'};
-                            defaultFilename = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, 'preReport');
-                            JSONFullPath    = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultFilename);
-        
-                            if isempty(JSONFullPath)
-                                return
-                            end
-        
-                            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
-                            
-                            try
-                                writematrix(emissionFiscalizaTable, JSONFullPath, "FileType", "text", "QuoteStrings", "none", "Encoding", "UTF-8")
-                            catch ME
-                                ui.Dialog(app.UIFigure, 'error', ME.message);
-                            end
-        
-                            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+                    try
+                        switch fileExt
+                            case '.xlsx'
+                                writetable(emissions, fileFullPath)
+                            case '.json'
+                                writematrix(jsonencode(emissions, "PrettyPrint", true),  fileFullPath,  "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
+                            otherwise 
+                                error('auxApp:winSignalAnalysis:UnexpectedFileFormat', 'Unexpected file format "%s"', fileExt)
+                        end
+
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'error', ME.message);
                     end
 
                 %---------------------------------------------------------%
