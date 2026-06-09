@@ -272,9 +272,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         onFilteTreeAddRequested(app, struct('EventName', eventName))
 
                                     case 'onYAxesScaleChange'
-                                        if ~isempty(app.UIAxes2) && isvalid(app.UIAxes2)
-                                            set(app.UIAxes2, 'YScale', app.General.plot.cartesianAxes.yOccupancyScale)
-                                        end
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
 
                                     case 'onRFDataHubUpdate'
                                         initializeRFDataHub(app)

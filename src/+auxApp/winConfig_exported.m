@@ -35,7 +35,6 @@ classdef winConfig_exported < matlab.apps.AppBase
         configAnalysisLabel2         matlab.ui.control.Label
         analysis_FilePanel           matlab.ui.container.Panel
         analysis_FileGrid            matlab.ui.container.GridLayout
-        detectionManualMode          matlab.ui.control.CheckBox
         channelManualMode            matlab.ui.control.CheckBox
         mergeDistance                matlab.ui.control.Spinner
         mergeLabel2                  matlab.ui.control.Label
@@ -231,8 +230,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             
             % DETECTION
             app.channelManualMode.Value    = app.mainApp.General.context.PLAYBACK.channel.manualMode;
-            app.detectionManualMode.Value  = app.mainApp.General.context.PLAYBACK.detection.manualMode;
-            app.InitialBW_kHz.Value        = app.mainApp.General.context.PLAYBACK.detection.initialBandwidth_kHz;
+            app.InitialBW_kHz.Value        = app.mainApp.General.context.PLAYBACK.detection.datatipBandWidthkHz;
 
             % ELEVATION
             app.elevationNPoints.Value     = num2str(app.mainApp.General.elevation.pointCount);
@@ -250,8 +248,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.reportBasemap.Value       = app.mainApp.General.reportLib.basemap;
             app.reportImgFormat.Value     = app.mainApp.General.reportLib.image.format;
             app.reportImgDpi.Value        = num2str(app.mainApp.General.reportLib.image.resolutionDpi);
-            app.reportBinningLength.Value = app.mainApp.General.reportLib.dataBinning.binLengthMeters;
-            app.reportBinningFcn.Value    = app.mainApp.General.reportLib.dataBinning.aggregationFunction;
+            app.reportBinningLength.Value = app.mainApp.General.context.DRIVETEST.dataBinning.binLengthMeters;
+            app.reportBinningFcn.Value    = app.mainApp.General.context.DRIVETEST.dataBinning.aggregationFunction;
 
             if ismember(app.mainApp.General.reportLib.outputCompressionMode, app.prjFileCompressionMode.Items)
                 app.prjFileCompressionMode.Value = app.mainApp.General.reportLib.outputCompressionMode;
@@ -460,7 +458,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         end
 
         % Value changed function: InitialBW_kHz, channelManualMode, 
-        % ...and 8 other components
+        % ...and 7 other components
         function Config_AnalysisParameterValueChanged(app, event)
             
             switch event.Source
@@ -479,16 +477,15 @@ classdef winConfig_exported < matlab.apps.AppBase
                     app.mainApp.General.context.FILE.spectrumConsolidationPolicy.antennaPolicy = AntennaStatus;
                     app.mainApp.General.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters = app.mergeDistance.Value;
 
-                case {app.channelManualMode, app.detectionManualMode}
-                    app.mainApp.General.context.PLAYBACK.channel.manualMode   = app.channelManualMode.Value;
-                    app.mainApp.General.context.PLAYBACK.detection.manualMode = app.detectionManualMode.Value;
+                case app.channelManualMode
+                    app.mainApp.General.context.PLAYBACK.channel.manualMode = app.channelManualMode.Value;
 
                 case app.yOccupancyScale
                     app.mainApp.General.plot.cartesianAxes.yOccupancyScale = app.yOccupancyScale.Value;
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onYAxesScaleChange')
 
                 case app.InitialBW_kHz
-                    app.mainApp.General.context.PLAYBACK.detection.initialBandwidth_kHz  = app.InitialBW_kHz.Value;
+                    app.mainApp.General.context.PLAYBACK.detection.datatipBandWidthkHz  = app.InitialBW_kHz.Value;
 
                 case app.elevationNPoints
                     app.mainApp.General.elevation.pointCount = str2double(app.elevationNPoints.Value);
@@ -549,10 +546,10 @@ classdef winConfig_exported < matlab.apps.AppBase
                     app.mainApp.General.reportLib.image.resolutionDpi = str2double(event.Value);
 
                 case app.reportBinningLength
-                    app.mainApp.General.reportLib.dataBinning.binLengthMeters = event.Value;
+                    app.mainApp.General.context.DRIVETEST.dataBinning.binLengthMeters = event.Value;
 
                 case app.reportBinningFcn
-                    app.mainApp.General.reportLib.dataBinning.aggregationFunction = event.Value;
+                    app.mainApp.General.context.DRIVETEST.dataBinning.aggregationFunction = event.Value;
 
                 case app.prjFileCompressionMode
                     app.mainApp.General.reportLib.outputCompressionMode = event.Value;
@@ -780,7 +777,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create SubGrid2
             app.SubGrid2 = uigridlayout(app.SubTab2);
             app.SubGrid2.ColumnWidth = {'1x', 22};
-            app.SubGrid2.RowHeight = {17, 200, 22, 116, 22, '1x'};
+            app.SubGrid2.RowHeight = {17, 177, 22, 116, 22, '1x'};
             app.SubGrid2.RowSpacing = 5;
             app.SubGrid2.BackgroundColor = [1 1 1];
 
@@ -814,7 +811,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create analysis_FileGrid
             app.analysis_FileGrid = uigridlayout(app.analysis_FilePanel);
             app.analysis_FileGrid.ColumnWidth = {10, 90, '1x'};
-            app.analysis_FileGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22};
+            app.analysis_FileGrid.RowHeight = {17, 22, 22, 22, 22, 1, 22};
             app.analysis_FileGrid.ColumnSpacing = 0;
             app.analysis_FileGrid.RowSpacing = 5;
             app.analysis_FileGrid.BackgroundColor = [1 1 1];
@@ -877,17 +874,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.channelManualMode.Text = 'Não identificar automaticamente canais relacionados aos fluxos espectrais na leitura de arquivos.';
             app.channelManualMode.FontSize = 11;
             app.channelManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelManualMode.Layout.Row = 6;
+            app.channelManualMode.Layout.Row = 7;
             app.channelManualMode.Layout.Column = [1 3];
-
-            % Create detectionManualMode
-            app.detectionManualMode = uicheckbox(app.analysis_FileGrid);
-            app.detectionManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
-            app.detectionManualMode.Text = 'Não detectar automaticamente emissões na geração preliminar do relatório (editável no modo RELATÓRIO).';
-            app.detectionManualMode.FontSize = 11;
-            app.detectionManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.detectionManualMode.Layout.Row = 7;
-            app.detectionManualMode.Layout.Column = [1 3];
 
             % Create configAnalysisLabel2
             app.configAnalysisLabel2 = uilabel(app.SubGrid2);

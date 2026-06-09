@@ -315,6 +315,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'onExternalFileModuleOpenRequest'
                                 ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ExternalFiles', 'PLAYBACK', varargin{2:end})
 
+                            case 'onYAxesScaleChange'
+                                set(app.UIAxes2, 'YScale', app.mainApp.General.plot.cartesianAxes.yOccupancyScale)
+
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
