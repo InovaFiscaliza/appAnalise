@@ -31,5 +31,10 @@ classdef (Abstract) ProjectBase
         function hash = computeFilterRuleHash(filterType, filterOperation, filterValue)
             hash = Hash.sha1(sprintf('%s - %s - %s', filterType, filterOperation, strjoin(string(filterValue), ' - ')));
         end
+
+        %-----------------------------------------------------------------%
+        function hash = computeReportHash(specData)
+            hash = strjoin(sort({specData.Hash}), ' - ');
+        end
     end
 end

@@ -9,7 +9,7 @@ function preCompile()
     %
     % - "winDriveTest", "winSignalAnalysis", "winRFDataHub" etc
     %   A versão .M  traz manipulações que possibilitam que esses módulos do 
-    %   appAnalise possam ser renderizados na figura de "winAppAnalise".
+    %   app possam ser renderizados na sua figura principal.
 
     initFolder = fileparts(mfilename('fullpath'));
 

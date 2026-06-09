@@ -254,7 +254,10 @@ classdef (Abstract) Controller
                         if ~isdeployed()
                             issueDetails = struct( ...
                                 'usuario', struct('nome', 'NOME_FISCAL', 'email', 'EMAIL_FISCAL@anatel.gov.br', 'unidade', 'LOTACAO_FISCAL', 'funcao', 'FISCAL'), ...
-                                'issueContext', struct('solicitacao', struct('classificacao', struct('macrotema', generalSettings.reportLib.allowedMacrothemes{1}))) ...
+                                'issueContext', struct( ...
+                                    'solicitacao', struct('classificacao', struct('macrotema', generalSettings.reportLib.allowedMacrothemes{1})), ...
+                                    'acao', struct('sei', struct('processo', '00000.000000/0000-00')) ...
+                                ) ...
                             );
                         else
                             rethrow(ME)
@@ -282,7 +285,7 @@ classdef (Abstract) Controller
                         TEAMSFile    = fullfile(generalSettings.fileFolder.tempPath, [sharepointFileBase '.teams']);
 
                         JSONContent  = reportLibConnection.Table.scarabJsonFile(projectData, context, specData, correlationKey, mainApp.executionMode, issueDetails);
-                        TEAMSContent = reportLibConnection.Table.scarabTeamsFileContent(issueDetails, sharepointFileBase);
+                        TEAMSContent = reportLibConnection.Table.scarabTeamsFileContent(projectData, context, specData, issueDetails, {[sharepointFileBase '.json']});
 
                         writematrix(JSONContent,  JSONFile,  "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
                         writematrix(TEAMSContent, TEAMSFile, "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
@@ -292,7 +295,7 @@ classdef (Abstract) Controller
                     
                     zip(ZIPFile, ZIPFileList)
 
-                    generatedFileId = model.ProjectBase.computeReportFileInventoryHash(specData);
+                    generatedFileId = model.ProjectBase.computeReportHash(specData);
                     updateGeneratedFiles(projectData, context, generatedFileId, RAWFiles, HTMLFile, JSONFile, XLSXFile, TEAMSFile, ZIPFile)
             end
         end

@@ -2247,10 +2247,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 return
             end
 
-            selectedECD = getSelectedECD(app);
+            flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+            specData = app.mainApp.specData(flowIdxs);
 
             storedReportHash  = app.projectData.modules.(context).generatedFiles.id;
-            currentReportHash = model.ProjectBase.computeReportAnalysisResultsHash(selectedECD);
+            currentReportHash = model.ProjectBase.computeReportHash(specData);
 
             if ~isequal(storedReportHash, currentReportHash)
                 [~, generatedHtmlFileName, generatedHtmlFileExt] = fileparts(generatedHtmlFilePath);

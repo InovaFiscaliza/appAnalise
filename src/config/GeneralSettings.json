@@ -1,5 +1,5 @@
 {
-    "version": 1.49,
+    "version": 1.50,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -371,7 +371,7 @@
         "legalBasisId": "33",
         "accessLevelId": "1",
         "description": "",
-        "note": "Documento gerado no monitorSPED",
+        "note": "Documento gerado no appAnalise",
         "defaultValues": {
             "unit": [
                 "",
