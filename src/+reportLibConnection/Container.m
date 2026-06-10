@@ -78,9 +78,16 @@ classdef (Abstract) Container
                                 end
                             end
 
-                        case {'Image', 'Table'}
-                            vararginArgument = eval(sprintf('internalFcn_%s(reportInfo, dataOverview, analyzedData, childNode.Data, false)', childType));
-                            if strcmp(childType, 'Table') && isempty(vararginArgument)
+                        case 'Image'
+                            vararginArgument = internalFcn_Image(reportInfo, dataOverview, analyzedData, childNode.Data, false);
+
+                        case 'Table'
+                            try
+                                vararginArgument = internalFcn_Table(reportInfo, dataOverview, analyzedData, childNode.Data, false);
+                                if isempty(vararginArgument)
+                                    continue
+                                end
+                            catch
                                 continue
                             end
 
@@ -132,8 +139,12 @@ classdef (Abstract) Container
                             vararginArgument = internalFcn_Image(reportInfo, dataOverview, analyzedData, childNode.Data, false);
 
                         case 'Table'
-                            vararginArgument = internalFcn_Table(reportInfo, dataOverview, analyzedData, childNode.Data, false);
-                            if isempty(vararginArgument)
+                            try
+                                vararginArgument = internalFcn_Table(reportInfo, dataOverview, analyzedData, childNode.Data, false);
+                                if isempty(vararginArgument)
+                                    continue
+                                end
+                            catch
                                 continue
                             end
 

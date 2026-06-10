@@ -134,24 +134,33 @@ classdef dockFlowMerge_exported < matlab.apps.AppBase
             if isempty(selectedNodes)
                 return
             end
+
+            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
             
             flowIdxs = unique([selectedNodes.NodeData]);
-            invalidCache = false;
-
             for ii = flowIdxs
                 specData = app.mainApp.specData(ii);
-                if isempty(specData.Data) || numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)
-                    invalidCache = true;
-                    break
+
+                if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))    
+                    try
+                        populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        
+                        relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                        if ~isempty(relatedHases)
+                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        end
+    
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'warning', ME.message);
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                        return
+                    end
                 end
             end
-
-            if invalidCache
-                ui.Dialog(app.UIFigure, 'warning', 'Navegue ao menos uma vez por cada fluxo espectral a ser mesclado antes de iniciar o processo de mesclagem.');
-                return
-            end
-            
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onFlowMergeRequested', flowIdxs)
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
 
         end
     end

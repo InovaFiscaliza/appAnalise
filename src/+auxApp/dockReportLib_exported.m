@@ -211,11 +211,16 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             if strcmp(selection, 'Não')
                 return
             end
+
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
     
             context = app.inputArgs.context;
             restart(app.projectData, {context}, 'onProjectRestart', app.mainApp.General)
+            update(app.mainApp.specData, 'UserData:ReportInclude', [])
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onProjectRestart', context)
             updatePanel(app, context)
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
         end
 
@@ -469,8 +474,12 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 flowIdxs = unique([checkedNodes.NodeData]);
             end
 
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
             update(app.mainApp.specData, 'UserData:ReportInclude', flowIdxs)
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onReportFlowListChanged', app.inputArgs.context)
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
             
         end
 

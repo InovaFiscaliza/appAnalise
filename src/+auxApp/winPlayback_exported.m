@@ -645,6 +645,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     refreshFlowDropDown(app)
 
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
+                    requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
                     return
                 end
 

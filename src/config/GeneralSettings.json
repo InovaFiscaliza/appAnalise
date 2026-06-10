@@ -1,5 +1,5 @@
 {
-    "version": 1.56,
+    "version": 1.57,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -337,7 +337,8 @@
             "PM-RD",
             "PM-SAT",
             "PM-SAT (Banda C e KU)",
-            "PM-SAT (Banda Ka)"
+            "PM-SAT (Banda Ka)",
+            "UTE"
         ],
         "outputCompressionMode": "Não",
         "entityType": {

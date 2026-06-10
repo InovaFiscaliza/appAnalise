@@ -105,7 +105,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             set(setdiff(elHandles, relatedElHandles), 'Visible', false)            
             % app.ConfigRefresh.Visible = configRefresh;
 
-            initialValues(app)
+            % initialValues(app)
         end
 
         %-----------------------------------------------------------------%
@@ -126,10 +126,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCProminence2.Value
             app.FindPeaksPlusOCCMinOccupancy.Value
             app.FindPeaksPlusOCCMaxOccupancy.Value
-
-
-
-            updatePanel(app)
         end
 
         %-----------------------------------------------------------------%
