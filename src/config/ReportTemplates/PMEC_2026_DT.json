@@ -60,8 +60,8 @@
                 {
                     "Type": "ItemN2",
                     "Data": {
-                        "Editable": "false",
-                        "Text": "Neste ano de 2025, o PMEC foi formalizado por meio do <b>Processo nº 53500.100474/2024-61</b>, o qual contempla o Plano de Trabalho (SEI nº 13112788).",
+                        "Editable": "true",
+                        "Text": "Neste ano de 2026, o PMEC foi formalizado por meio do <b>Processo nº 53500.108324/2025-87</b>, o qual contempla o Plano de Trabalho (SEI nº 15129806).",
                         "Variable": []
                     }
                 }

@@ -1,46 +1,35 @@
 [
     {
-        "Name": "PMEC 2025",
-        "File": "PMEC_2025.json",
+        "Name": "PMEC 2026",
+        "File": "PMEC_2026.json",
         "Module": "PLAYBACK",
         "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro utilizado por Aplicações Críticas",
-        "Author": "Leonardo Lago Araújo",
-        "Version": "1.00",
-        "Release": "22/01/2025",
+        "Author": "Gilmar Ferreira do Nascimento",
+        "Version": "1.01",
+        "Release": "09/06/2026",
         "ExternalFiles": []
     },
     {
-        "Name": "PMEC 2025 (DT)",
-        "File": "PMEC_2025_DT.json",
+        "Name": "PMEC 2026 (DT)",
+        "File": "PMEC_2026_DT.json",
         "Module": "PLAYBACK",
         "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro utilizado por Aplicações Críticas",
-        "Author": "Leonardo Lago Araújo",
-        "Version": "1.00",
-        "Release": "22/01/2025",
+        "Author": "Gilmar Ferreira do Nascimento",
+        "Version": "1.01",
+        "Release": "09/06/2026",
         "ExternalFiles": []
     },
     {
-        "Name": "PMRD 2025",
-        "File": "PMRD_2025.json",
-        "Module": "PLAYBACK",
-        "DocumentType": "Relatório de Atividades",
-        "Description": "Plano de Monitoração de Radiodifusão",
-        "Author": "Arthur Pisaruk",
-        "Version": "1.00",
-        "Release": "03/02/2025",
-        "ExternalFiles": []
-    },
-    {
-        "Name": "PMEF 2025",
-        "File": "PMEF_2025.json",
+        "Name": "PMEF 2026",
+        "File": "PMEF_2026.json",
         "Module": "PLAYBACK",
         "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração do Espectro na Fronteira",
-        "Author": "Centralizador PMEF 2024",
-        "Version": "1.01",
-        "Release": "02/11/2024",
+        "Author": "Centralizador PMEF",
+        "Version": "1.02",
+        "Release": "09/06/2026",
         "ExternalFiles": [
             {
                 "Tag": "METODOLOGIA",
@@ -65,25 +54,25 @@
         ]
     },
     {
-        "Name": "PMSAT 2024",
-        "File": "PMSAT_2024.json",
+        "Name": "PMSAT 2026",
+        "File": "PMSAT_2026.json",
         "Module": "PLAYBACK",
         "DocumentType": "Relatório de Atividades",
         "Description": "Plano de Monitoração de Satélites",
-        "Author": "Centralizador PMSAT 2024",
-        "Version": "1.01",
-        "Release": "02/11/2024",
+        "Author": "Centralizador PMSAT",
+        "Version": "1.02",
+        "Release": "09/06/2026",
         "ExternalFiles": []
     },
     {
-        "Name": "Grandes Eventos 2025",
-        "File": "GrandesEventos_2025.json",
+        "Name": "Grandes Eventos 2026",
+        "File": "GrandesEventos_2026.json",
         "Module": "PLAYBACK",
         "DocumentType": "Relatório de Atividades",
-        "Description": "Grandes Eventos 2025",
-        "Author": "Breno César Santana Caldas da Silva",
-        "Version": "1.00",
-        "Release": "03/02/2025",
+        "Description": "Grandes Eventos",
+        "Author": "Leonardo Lago Araújo",
+        "Version": "1.01",
+        "Release": "09/06/2026",
         "ExternalFiles": [
             {
                 "Tag": "SUMÁRIO",
@@ -91,5 +80,16 @@
                 "Type": "Table"
             }
         ]
+    },
+    {
+        "Name": "PMRD 2025",
+        "File": "PMRD_2025.json",
+        "Module": "PLAYBACK",
+        "DocumentType": "Relatório de Atividades",
+        "Description": "Plano de Monitoração de Radiodifusão",
+        "Author": "Arthur Pisaruk",
+        "Version": "1.00",
+        "Release": "03/02/2025",
+        "ExternalFiles": []
     }
 ]

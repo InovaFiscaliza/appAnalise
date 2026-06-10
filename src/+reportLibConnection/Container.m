@@ -3,8 +3,6 @@ classdef (Abstract) Container
     methods (Static = true)
         %-----------------------------------------------------------------%
         function [reportInfo, htmlReport] = DriveTestRoute(reportInfo, dataOverview, ~, containerSettings, internalFcn_FillWords, internalFcn_Image, internalFcn_Table)
-            bandObj = model.Band('appAnalise:REPORT:BAND', reportInfo.App);
-
             gpsSummary = struct('lat', {}, 'lng', {});
             htmlReport = '';
 
@@ -19,7 +17,6 @@ classdef (Abstract) Container
                 
                 gpsSummary(end+1) = struct('lat', specData.GPS.Latitude, 'lng', specData.GPS.Longitude);
                 
-                updateSpectrumInfo(bandObj, specData);
                 htmlReport = [htmlReport, reportLib.sourceCode.Separator];
                 
                 for jj = 1:numel(containerSettings.Data.Component)
@@ -100,9 +97,55 @@ classdef (Abstract) Container
 
 
         %-----------------------------------------------------------------%
-        function [reportInfo, htmlReport] = Channel(reportInfo, dataOverview, analyzedData, containerSettings, internalFcn_FillWords, internalFcn_Image, internalFcn_Table)
+        function [reportInfo, htmlReport] = Channels(reportInfo, dataOverview, analyzedData, containerSettings, internalFcn_FillWords, internalFcn_Image, internalFcn_Table)
+            bandObj = model.Band('appAnalise:REPORT:CHANNEL', reportInfo.App);
+
+            specData = analyzedData.InfoSet;
+            channels = specData.UserData.ReportChannels;
+            if isempty(channels)
+                channels = ChannelTable2Plot(bandObj.mainApp.channelObj, specData);
+                specData.UserData.ReportChannels = channels;
+            end
+
             htmlReport = '';
-            % ...
+            for ii = 1:height(channels)
+                reportInfo.Function.var_IndexChannel = ii;
+
+                updateSpectrumInfo(bandObj, specData, ii);
+                htmlReport = [htmlReport, reportLib.sourceCode.Separator];
+
+                for jj = 1:numel(containerSettings.Data.Component)
+                    childNode = containerSettings.Data.Component(jj);
+                    childType = containerSettings.Data.Component(jj).Type;
+
+                    switch childType
+                        case {'ItemN2', 'Paragraph'}
+                            vararginArgument = [];
+
+                            for kk = 1:numel(childNode.Data)
+                                if ~isempty(childNode.Data(kk).Variable)
+                                    childNode.Data(kk).Text = internalFcn_FillWords(reportInfo, dataOverview, analyzedData, childNode, kk);
+                                end
+                            end
+
+                        case 'Image'
+                            vararginArgument = internalFcn_Image(reportInfo, dataOverview, analyzedData, childNode.Data, false);
+
+                        case 'Table'
+                            vararginArgument = internalFcn_Table(reportInfo, dataOverview, analyzedData, childNode.Data, false);
+                            if isempty(vararginArgument)
+                                continue
+                            end
+
+                        otherwise 
+                            error('reportLibConnection:Container:UnexpectedContainerElement', 'Unexpected container element "%s"', childType)
+                    end
+
+                    htmlReport = [htmlReport, reportLib.sourceCode.htmlCreation(childNode, vararginArgument)];
+                end
+            end
+
+            reportInfo.Function.var_IndexChannel = [];
         end
     end
 

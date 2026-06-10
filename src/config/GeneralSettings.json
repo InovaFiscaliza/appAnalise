@@ -1,5 +1,5 @@
 {
-    "version": 1.51,
+    "version": 1.56,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -105,7 +105,7 @@
         "DRIVETEST": {
             "dataBinning": {
                 "binLengthMeters": 100,
-                "aggregationFunction": "rms-linear"
+                "aggregationFunction": "rms"
             }
         },
         "SIGNALANALYSIS": [],
@@ -339,7 +339,7 @@
             "PM-SAT (Banda C e KU)",
             "PM-SAT (Banda Ka)"
         ],
-        "outputCompressionMode": "Sim",
+        "outputCompressionMode": "Não",
         "entityType": {
             "default": "",
             "options": [

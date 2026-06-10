@@ -103,36 +103,33 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             set(relatedElHandles, 'Visible', true)
             set(setdiff(elHandles, relatedElHandles), 'Visible', false)            
-            app.ConfigRefresh.Visible = configRefresh;
+            % app.ConfigRefresh.Visible = configRefresh;
 
-            % initialValues(app)
+            initialValues(app)
         end
 
         %-----------------------------------------------------------------%
         function initialValues(app)
-            idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-            
-            app.Algorithm.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm;
-            set(app.FindPeaksPlusOCCClass, 'Items', [{''}; app.channelObj.FindPeaks.Name], 'Value', '')
+            specData = app.callingApp.bandObj.SpecData;
+            channelObj = app.mainApp.channelObj;
+
+            app.FindPeaksPlusOCCClass.Items = [{''}; channelObj.FindPeaks.EmissionClass];
+            findPeaks = FindPeaksOfPrimaryBand(channelObj, specData);
+
+            app.FindPeaksDistance.Value
+            app.FindPeaksBandWidth.Value
+            app.FindPeaksProminence.Value
+
+            app.FindPeaksPlusOCCDistance.Value
+            app.FindPeaksPlusOCCBandWidth.Value
+            app.FindPeaksPlusOCCProminence1.Value
+            app.FindPeaksPlusOCCProminence2.Value
+            app.FindPeaksPlusOCCMinOccupancy.Value
+            app.FindPeaksPlusOCCMaxOccupancy.Value
+
+
+
             updatePanel(app)
-
-            switch app.Algorithm.Value
-                case 'FindPeaks'
-                    app.FindPeaksTrace.Value               = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn;
-                    app.FindPeaksNumPeaks.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks;
-                    app.FindPeaksThreshold.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR;
-                    app.FindPeaksProminence.Value          = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence;
-                    app.FindPeaksDistance.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-                    app.FindPeaksBandWidth.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
-
-                case 'FindPeaks+OCC'
-                    app.FindPeaksDistance.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-                    app.FindPeaksBandWidth.Value           = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
-                    app.FindPeaksPlusOCCProminence1.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1;
-                    app.FindPeaksPlusOCCProminence2.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2;
-                    app.FindPeaksPlusOCCMinOccupancy.Value = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC;
-                    app.FindPeaksPlusOCCMaxOccupancy.Value = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC;
-            end
         end
 
         %-----------------------------------------------------------------%
@@ -310,11 +307,17 @@ classdef dockDetection_exported < matlab.apps.AppBase
                     return
                 end
 
-                if app.OnlySearchEmissions.Value
-                    util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthkHzList)
-                else
-                    update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
+                switch app.SearchModePanel.SelectedObject
+                    case app.AddEmissions
+                        update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
+                    
+                    case app.ReplaceEmissions
+                        update(specData, 'UserData:Emissions', 'Replace', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
+
+                    otherwise % app.OnlySearchEmissions
+                        util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthkHzList)
                 end
             end
 

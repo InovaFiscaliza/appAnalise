@@ -65,8 +65,8 @@
                 {
                     "Type": "ItemN2",
                     "Data": {
-                        "Editable": "false",
-                        "Text": "Neste ano de 2024, o PMSAT foi formalizado por meio do <b>Processo nº 53500.105181/2023-90</b>.",
+                        "Editable": "true",
+                        "Text": "Neste ano de 2026, o PMSAT foi formalizado por meio do <b>Processo nº 53500.108512/2025-13</b>.",
                         "Variable": []
                     }
                 }
@@ -196,7 +196,7 @@
                     "Type": "Table",
                     "Data": {
                         "Origin": "FunctionEvaluation",
-                        "Source": "tbl_BandChannels",
+                        "Source": "tbl_Channel",
                         "Columns": [
                             "ID",
                             "Transponder",
@@ -288,7 +288,7 @@
                 {
                     "Type": "Container",
                     "Data": {
-                        "Source": "Channel",
+                        "Source": "Channels",
                         "Component": [
                             {
                                 "Type": "Paragraph",
@@ -304,7 +304,7 @@
                                     "Origin": "FunctionEvaluation",
                                     "Source": "img_Plot",
                                     "Context": "appAnalise:REPORT:CHANNEL",
-                                    "Plot": "minHold+average+maxHold+emission+channel+occupancyThreshold:occupancyPerBin:waterfall",
+                                    "Name": "minHold+average+maxHold+emission+channel+occupancyThreshold:occupancyPerBin:waterfall",
                                     "Layout": "2:1:1",
                                     "Caption": "Representação gráfica do canal sob análise.",
                                     "Settings": {
@@ -320,7 +320,7 @@
                                 "Type": "Table",
                                 "Data": {
                                     "Origin": "FunctionEvaluation",
-                                    "Source": "tbl_EmissionPerChannel",
+                                    "Source": "tbl_ChannelEmissions",
                                     "Columns": [
                                         "ID",
                                         "Frequência central (MHz)",

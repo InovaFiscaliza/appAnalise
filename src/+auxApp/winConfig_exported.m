@@ -1241,14 +1241,14 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create reportBinningFcn
             app.reportBinningFcn = uidropdown(app.reportBinningGrid);
-            app.reportBinningFcn.Items = {'min', 'mean-linear', 'median-linear', 'rms-linear', 'max'};
+            app.reportBinningFcn.Items = {'min', 'mean', 'median', 'rms', 'max'};
             app.reportBinningFcn.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
             app.reportBinningFcn.FontSize = 11;
             app.reportBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.reportBinningFcn.BackgroundColor = [1 1 1];
             app.reportBinningFcn.Layout.Row = 2;
             app.reportBinningFcn.Layout.Column = 2;
-            app.reportBinningFcn.Value = 'min';
+            app.reportBinningFcn.Value = 'rms';
 
             % Create prjFileCompressionModeLabel
             app.prjFileCompressionModeLabel = uilabel(app.reportGrid_2);

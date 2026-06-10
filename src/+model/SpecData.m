@@ -831,13 +831,17 @@ classdef SpecData < model.SpecDataBase
                     checkIfScalar(obj)
 
                     switch updateType
-                        case 'Add'
+                        case {'Add', 'Replace'}
                             idxList     = varargin{1};
                             freqList    = varargin{2};
                             widthList   = varargin{3};
                             methodList  = varargin{4};
                             userComment = varargin{5};
                             channelObj  = varargin{6};
+
+                            if strcmp(updateType, 'Replace')
+                                obj.UserData.Emissions(:, :) = [];
+                            end
 
                             for ii = 1:numel(idxList)
                                 idx = height(obj.UserData.Emissions) + 1;

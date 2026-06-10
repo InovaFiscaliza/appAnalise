@@ -55,7 +55,7 @@
                 {
                     "Type": "ItemN2",
                     "Data": {
-                        "Editable": "false",
+                        "Editable": "true",
                         "Text": "Neste ano de 2025, o PMRD foi formalizado por meio do <b>Processo nº 53500.100466/2024-15</b>, o qual contempla o Plano de Trabalho (SEI nº 13183357).",
                         "Variable": []
                     }

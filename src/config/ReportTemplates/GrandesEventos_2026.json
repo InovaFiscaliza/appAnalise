@@ -40,8 +40,8 @@
                 {
                     "Type": "ItemN2",
                     "Data": {
-                        "Editable": "false",
-                        "Text": "A Fiscalização Centralizada de Espectro em Grandes Eventos, em 2025, é orientada pelo <b>Plano de Ação de Fiscalização (SEI nº 13215915)</b>, que estabelece as diretrizes para o planejamento, execução e conclusão de ações de inspeção nesses eventos.",
+                        "Editable": "true",
+                        "Text": "A Fiscalização Centralizada de Espectro em Grandes Eventos, em 2026, é orientada pelo <b>Plano de Ação de Fiscalização (SEI nº 14940269)</b>, que estabelece as diretrizes para o planejamento, execução e conclusão de ações de inspeção nesses eventos.",
                         "Variable": []
                     }
                 },

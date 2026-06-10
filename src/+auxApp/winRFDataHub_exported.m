@@ -2270,7 +2270,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.tool_tableNRowsIcon.Enable = 'off';
             app.tool_tableNRowsIcon.Layout.Row = [1 3];
             app.tool_tableNRowsIcon.Layout.Column = 9;
-            app.tool_tableNRowsIcon.ImageSource = 'Filter_18.png';
+            app.tool_tableNRowsIcon.ImageSource = 'filter.svg';
 
             % Create SubTabGroup
             app.SubTabGroup = uitabgroup(app.GridLayout);
