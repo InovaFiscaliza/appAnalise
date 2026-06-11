@@ -4,7 +4,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                        matlab.ui.Figure
         GridLayout                      matlab.ui.container.GridLayout
-        ConfigRefresh                   matlab.ui.control.Image
         SearchButton                    matlab.ui.control.Button
         AlgorithmPanel                  matlab.ui.container.Panel
         AlgorithmGrid                   matlab.ui.container.GridLayout
@@ -80,92 +79,31 @@ classdef dockDetection_exported < matlab.apps.AppBase
     
     methods (Access = private)
         %-----------------------------------------------------------------%
+        function initialValues(app)
+            channelObj = app.mainApp.channelObj;
+            app.FindPeaksPlusOCCClass.Items = [{''}; channelObj.FindPeaks.EmissionClass];
+        end
+
+        %-----------------------------------------------------------------%
         function updatePanel(app)
             elHandles = app.AlgorithmGrid.Children;
-            configRefresh = false;
 
             switch app.Algorithm.Value
                 case 'Detecção por picos'
                     relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaks');
                     app.AlgorithmGrid.RowHeight = {26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
-                    configRefresh = true;
 
                 case 'Picos com ocupação'
                     relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaksPlusOCC');
                     app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, '1x', 0, 0, 0, 0};
-                    configRefresh = true;
 
                 otherwise % 'Regiões conectadas'
                     relatedElHandles = findobj(elHandles, 'Tag', 'ConnectedRegions');
                     app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 26, 22, 32, 22};
-                    configRefresh = true;
             end
 
             set(relatedElHandles, 'Visible', true)
-            set(setdiff(elHandles, relatedElHandles), 'Visible', false)            
-            % app.ConfigRefresh.Visible = configRefresh;
-
-            % initialValues(app)
-        end
-
-        %-----------------------------------------------------------------%
-        function initialValues(app)
-            specData = app.callingApp.bandObj.SpecData;
-            channelObj = app.mainApp.channelObj;
-
-            app.FindPeaksPlusOCCClass.Items = [{''}; channelObj.FindPeaks.EmissionClass];
-            findPeaks = FindPeaksOfPrimaryBand(channelObj, specData);
-
-            app.FindPeaksDistance.Value
-            app.FindPeaksBandWidth.Value
-            app.FindPeaksProminence.Value
-
-            app.FindPeaksPlusOCCDistance.Value
-            app.FindPeaksPlusOCCBandWidth.Value
-            app.FindPeaksPlusOCCProminence1.Value
-            app.FindPeaksPlusOCCProminence2.Value
-            app.FindPeaksPlusOCCMinOccupancy.Value
-            app.FindPeaksPlusOCCMaxOccupancy.Value
-        end
-
-        %-----------------------------------------------------------------%
-        function editionFlag = checkEdition(app)
-            editionFlag = false;
-
-            idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-            if ~isequal(app.Algorithm.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm)
-                editionFlag = true;
-
-            else
-                switch app.Algorithm.Value
-                    case 'FindPeaks'
-                        if ~isequal(app.FindPeaksTrace.Value,       app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn)          || ...
-                           ~isequal(app.FindPeaksNumPeaks.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks)       || ...
-                           ~isequal(app.FindPeaksThreshold.Value,         app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR)          || ...
-                           ~isequal(app.FindPeaksProminence.Value,  app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence)   || ...
-                           ~isequal(app.FindPeaksDistance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-                           ~isequal(app.FindPeaksBandWidth.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)
-                            
-                            editionFlag = true;
-                        end
-
-                    case 'FindPeaks+OCC'
-                        if ~isequal(app.FindPeaksDistance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-                           ~isequal(app.FindPeaksBandWidth.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)       || ...
-                           ~isequal(app.FindPeaksPlusOCCProminence1.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1)  || ...
-                           ~isequal(app.FindPeaksPlusOCCProminence2.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2)  || ...
-                           ~isequal(app.FindPeaksPlusOCCMinOccupancy.Value,     app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC)      || ...
-                           ~isequal(app.FindPeaksPlusOCCMaxOccupancy.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC)
-                            
-                            editionFlag = true;
-                        end
-                end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function callingMainApp(app, updateFlag, returnFlag, idxThread)
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'REPORT:DETECTION', updateFlag, returnFlag, idxThread)
+            set(setdiff(elHandles, relatedElHandles), 'Visible', false)
         end
     end
     
@@ -180,6 +118,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
                 appEngine.boot(app, app.Role, mainApp, callingApp)
 
                 app.inputArgs = struct('context', context);
+                initialValues(app)
                 updatePanel(app)
                 
             catch ME
@@ -196,27 +135,26 @@ classdef dockDetection_exported < matlab.apps.AppBase
         end
 
         % Value changed function: Algorithm
-        function AlgorithmValueChanged(app, event)
+        function onAlgorithmValueChanged(app, event)
             
             updatePanel(app)
 
         end
 
-        % Callback function
-        function FindPeaksPlusOCCClassValueChanged(app, event)
+        % Value changed function: FindPeaksPlusOCCClass
+        function onEmissionClassValueChanged(app, event)
             
             if ~isempty(app.FindPeaksPlusOCCClass.Value)
-                [~, idxFindPeaks] = ismember(app.FindPeaksPlusOCCClass.Value, app.channelObj.FindPeaks.Name);
+                channelObj = app.mainApp.channelObj;
+                [~, findPeaksIdx] = ismember(app.FindPeaksPlusOCCClass.Value, channelObj.FindPeaks.EmissionClass);
 
-                if idxFindPeaks    
-                    app.FindPeaksDistance.Value    = 1000 * app.channelObj.FindPeaks.Distance(idxFindPeaks);
-                    app.FindPeaksBandWidth.Value      = 1000 * app.channelObj.FindPeaks.BW(idxFindPeaks);
-                    app.FindPeaksPlusOCCProminence1.Value = app.channelObj.FindPeaks.Prominence1(idxFindPeaks);
-                    app.FindPeaksPlusOCCProminence2.Value = app.channelObj.FindPeaks.Prominence2(idxFindPeaks);
-                    app.FindPeaksPlusOCCMinOccupancy.Value     = app.channelObj.FindPeaks.meanOCC(idxFindPeaks);
-                    app.FindPeaksPlusOCCMaxOccupancy.Value      = app.channelObj.FindPeaks.maxOCC(idxFindPeaks);
-    
-                    ParameterValueChanged(app)
+                if findPeaksIdx
+                    app.FindPeaksPlusOCCDistance.Value     = 1000 * channelObj.FindPeaks.MinDistanceMHz(findPeaksIdx);
+                    app.FindPeaksPlusOCCBandWidth.Value    = 1000 * channelObj.FindPeaks.MinWidthMHz(findPeaksIdx);
+                    app.FindPeaksPlusOCCProminence1.Value  = channelObj.FindPeaks.MinProminenceCenter(findPeaksIdx);
+                    app.FindPeaksPlusOCCProminence2.Value  = channelObj.FindPeaks.MinProminenceMax(findPeaksIdx);
+                    app.FindPeaksPlusOCCMinOccupancy.Value = channelObj.FindPeaks.MinOccupancyMeanOverTime(findPeaksIdx);
+                    app.FindPeaksPlusOCCMaxOccupancy.Value = channelObj.FindPeaks.MinOccupancyMaxOverTime(findPeaksIdx);
                 end
             end
 
@@ -224,7 +162,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
         % Value changed function: FindPeaksPlusOCCMaxOccupancy, 
         % ...and 1 other component
-        function occValueChanged(app, event)
+        function onOccupancyValueChanged(app, event)
             
             switch event.Source
                 case app.FindPeaksPlusOCCMinOccupancy
@@ -240,19 +178,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function
-        function ParameterValueChanged(app, event)
-            
-            if checkEdition(app)
-                app.SearchButton.Enable = 1;
-            else
-                app.SearchButton.Enable = 0;
-            end
-
-        end
-
         % Button pushed function: SearchButton
-        function ButtonPushed(app, event)
+        function onSearchButtonClicked(app, event)
 
             context = app.inputArgs.context;
             algorithm = app.Algorithm.Value;
@@ -356,8 +283,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 82, 18};
-            app.GridLayout.RowHeight = {17, 166, 22, 22, '1x', 22};
+            app.GridLayout.ColumnWidth = {252, 110};
+            app.GridLayout.RowHeight = {17, 166, 22, 22, 168, 24};
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
@@ -375,7 +302,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.SearchModePanel.AutoResizeChildren = 'off';
             app.SearchModePanel.BackgroundColor = [1 1 1];
             app.SearchModePanel.Layout.Row = 2;
-            app.SearchModePanel.Layout.Column = [1 3];
+            app.SearchModePanel.Layout.Column = [1 2];
 
             % Create AddEmissions
             app.AddEmissions = uiradiobutton(app.SearchModePanel);
@@ -413,18 +340,18 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create Algorithm
             app.Algorithm = uidropdown(app.GridLayout);
             app.Algorithm.Items = {'Detecção por picos', 'Picos com ocupação', 'Regiões conectadas'};
-            app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @AlgorithmValueChanged, true);
+            app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @onAlgorithmValueChanged, true);
             app.Algorithm.FontSize = 11;
             app.Algorithm.BackgroundColor = [1 1 1];
             app.Algorithm.Layout.Row = 4;
-            app.Algorithm.Layout.Column = [1 3];
+            app.Algorithm.Layout.Column = [1 2];
             app.Algorithm.Value = 'Detecção por picos';
 
             % Create AlgorithmPanel
             app.AlgorithmPanel = uipanel(app.GridLayout);
             app.AlgorithmPanel.AutoResizeChildren = 'off';
             app.AlgorithmPanel.Layout.Row = 5;
-            app.AlgorithmPanel.Layout.Column = [1 3];
+            app.AlgorithmPanel.Layout.Column = [1 2];
 
             % Create AlgorithmGrid
             app.AlgorithmGrid = uigridlayout(app.AlgorithmPanel);
@@ -573,6 +500,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create FindPeaksPlusOCCClass
             app.FindPeaksPlusOCCClass = uidropdown(app.AlgorithmGrid);
             app.FindPeaksPlusOCCClass.Items = {};
+            app.FindPeaksPlusOCCClass.ValueChangedFcn = createCallbackFcn(app, @onEmissionClassValueChanged, true);
             app.FindPeaksPlusOCCClass.Tag = 'FindPeaksPlusOCC';
             app.FindPeaksPlusOCCClass.Visible = 'off';
             app.FindPeaksPlusOCCClass.FontSize = 11;
@@ -689,7 +617,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             % Create FindPeaksPlusOCCProminence2Label
             app.FindPeaksPlusOCCProminence2Label = uilabel(app.FindPeaksPlusOCCGrid2);
             app.FindPeaksPlusOCCProminence2Label.VerticalAlignment = 'bottom';
-            app.FindPeaksPlusOCCProminence2Label.WordWrap = 'on';
             app.FindPeaksPlusOCCProminence2Label.FontSize = 11;
             app.FindPeaksPlusOCCProminence2Label.Layout.Row = 1;
             app.FindPeaksPlusOCCProminence2Label.Layout.Column = [1 5];
@@ -712,8 +639,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCOccupancyLabel.FontSize = 11;
             app.FindPeaksPlusOCCOccupancyLabel.Layout.Row = 1;
             app.FindPeaksPlusOCCOccupancyLabel.Layout.Column = [3 5];
-            app.FindPeaksPlusOCCOccupancyLabel.Interpreter = 'html';
-            app.FindPeaksPlusOCCOccupancyLabel.Text = {'Ocupação (%):'; '<p style="line-height:10px; font-size:9px; color:gray;">(Mínima | Máxima)</p>'};
+            app.FindPeaksPlusOCCOccupancyLabel.Text = {'Ocupação (%):'; '(Mínima | Máxima)'};
 
             % Create FindPeaksPlusOCCMinOccupancy
             app.FindPeaksPlusOCCMinOccupancy = uispinner(app.FindPeaksPlusOCCGrid2);
@@ -721,7 +647,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCMinOccupancy.Limits = [0 100];
             app.FindPeaksPlusOCCMinOccupancy.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCMinOccupancy.ValueDisplayFormat = '%.0f';
-            app.FindPeaksPlusOCCMinOccupancy.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
+            app.FindPeaksPlusOCCMinOccupancy.ValueChangedFcn = createCallbackFcn(app, @onOccupancyValueChanged, true);
             app.FindPeaksPlusOCCMinOccupancy.FontSize = 11;
             app.FindPeaksPlusOCCMinOccupancy.Layout.Row = 2;
             app.FindPeaksPlusOCCMinOccupancy.Layout.Column = 3;
@@ -733,7 +659,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCMaxOccupancy.Limits = [0 100];
             app.FindPeaksPlusOCCMaxOccupancy.RoundFractionalValues = 'on';
             app.FindPeaksPlusOCCMaxOccupancy.ValueDisplayFormat = '%.0f';
-            app.FindPeaksPlusOCCMaxOccupancy.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
+            app.FindPeaksPlusOCCMaxOccupancy.ValueChangedFcn = createCallbackFcn(app, @onOccupancyValueChanged, true);
             app.FindPeaksPlusOCCMaxOccupancy.FontSize = 11;
             app.FindPeaksPlusOCCMaxOccupancy.Layout.Row = 2;
             app.FindPeaksPlusOCCMaxOccupancy.Layout.Column = 5;
@@ -859,21 +785,13 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create SearchButton
             app.SearchButton = uibutton(app.GridLayout, 'push');
-            app.SearchButton.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
+            app.SearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchButtonClicked, true);
             app.SearchButton.Icon = 'search-sparkle.svg';
             app.SearchButton.IconAlignment = 'leftmargin';
             app.SearchButton.BackgroundColor = [0.9804 0.9804 0.9804];
             app.SearchButton.Layout.Row = 6;
-            app.SearchButton.Layout.Column = [2 3];
+            app.SearchButton.Layout.Column = 2;
             app.SearchButton.Text = 'Pesquisar';
-
-            % Create ConfigRefresh
-            app.ConfigRefresh = uiimage(app.GridLayout);
-            app.ConfigRefresh.ScaleMethod = 'none';
-            app.ConfigRefresh.Visible = 'off';
-            app.ConfigRefresh.Layout.Row = 3;
-            app.ConfigRefresh.Layout.Column = 3;
-            app.ConfigRefresh.ImageSource = 'Refresh_18.png';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

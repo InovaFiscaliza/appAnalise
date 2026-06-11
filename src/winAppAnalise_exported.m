@@ -425,6 +425,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     case {'onEmissionAdded', 'onLocationChanged'}
                                         notifySecondaryApps(app, eventName)
 
+                                    case 'onDetectionSubBandsChanged'
+                                        emissionsDeleted = varargin{1};
+                                        if emissionsDeleted
+                                            notifySecondaryApps(app, eventName)
+                                        else
+                                            ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
+                                        end
+
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
 
@@ -848,6 +856,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onEmissionParameterValueChanged', ...
                                                            'onEmissionChannelChanged', ...
                                                            'onEmissionDeleted', ...
+                                                           'onDetectionSubBandsChanged', ...
                                                            'onSpectralDataReadError'})}
                 excludeTags cell = {}
             end

@@ -9,14 +9,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
         dockModule_Undock              matlab.ui.control.Image
         Document                       matlab.ui.container.GridLayout
         AxesToolbar                    matlab.ui.container.GridLayout
-        axesTool_FlowInfo              matlab.ui.control.Image
-        axesTool_Separator4            matlab.ui.control.Image
         axesTool_DataTip               matlab.ui.control.Image
         axesTool_waterfall             matlab.ui.control.Image
         axesTool_Separator3            matlab.ui.control.Image
         axesTool_occupancy             matlab.ui.control.Image
         axesTool_Separator2            matlab.ui.control.Image
         axesTool_persistence           matlab.ui.control.Image
+        axesTool_emissions             matlab.ui.control.Image
         axesTool_maxHold               matlab.ui.control.Image
         axesTool_average               matlab.ui.control.Image
         axesTool_minHold               matlab.ui.control.Image
@@ -287,9 +286,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                             case {'onEmissionAdded', ...
                                   'onEmissionParameterValueChanged', ...
-                                  'onEmissionDeleted'}
+                                  'onEmissionDeleted', ...
+                                  'onDetectionSubBandsChanged'}
                                 updateUIPanelContent(app)
                                 updateEmissionsPlot(app)
+
+                                if strcmp(eventName, 'onDetectionSubBandsChanged')
+                                    updateDetectionLimitsPlot(app)
+                                end
             
                             case {'onTabNavigatorButtonPushed', ...
                                   'onPlaybackStarted'}
@@ -691,7 +695,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.axesTool_minHold;
                 app.axesTool_average;
                 app.axesTool_maxHold;
-                app.axesTool_FlowInfo
+                app.axesTool_emissions
             ], 'Enable', nonEmptySpecData)
 
             set([
@@ -1005,7 +1009,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 updateEmissionsPlot(app)
 
                 % BandLimits & Channels
-                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
+                updateDetectionLimitsPlot(app)
                 % plot_Draw_Channels(app, idx)
         
                 % Occupancy
@@ -1181,6 +1185,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+        end
+
+        %-----------------------------------------------------------------%
+        function updateDetectionLimitsPlot(app)
+            plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
         end
 
         %-----------------------------------------------------------------%
@@ -1522,7 +1531,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: axesTool_DataTip, axesTool_FlowInfo, 
+        % Image clicked function: axesTool_DataTip, axesTool_Pan, 
         % ...and 9 other components
         function onAxesToolbarButtonClicked(app, event)
             
@@ -1626,10 +1635,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
 
-                case app.axesTool_FlowInfo
-                    if ~isempty(specData)
-                        flowAnalysis = util.HtmlTextGenerator.computeFlowAnalysis(specData);
-                        ui.Dialog(app.UIFigure, 'info', flowAnalysis);
+                case app.axesTool_emissions
+                    emissionsHandle = findobj(app.UIAxes1, 'Tag', 'emissionsTemp');
+                    if ~isempty(emissionsHandle)
+                        delete(emissionsHandle)
+                    else
+                        if ~isempty(app.FlowEmissions.Data)
+                            freqList = app.FlowEmissions.Data.Frequency;
+                            widthkHzList = app.FlowEmissions.Data.BandWidthkHz;
+                            util.Detection.drawEmission('Creation', app.UIAxes1, app.restoreView, freqList, widthkHzList)
+                        end
                     end
             end
             drawnow
@@ -3198,7 +3213,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, 25, 25, 25, 25, 25, 5, 25, 5, 25, 25, 5, 25, 10};
+            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, 25, 25, 25, 25, 25, 25, 7, 25, 8, 25, 25, 10};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -3267,13 +3282,21 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_maxHold.Layout.Column = 8;
             app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
 
+            % Create axesTool_emissions
+            app.axesTool_emissions = uiimage(app.AxesToolbar);
+            app.axesTool_emissions.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_emissions.Enable = 'off';
+            app.axesTool_emissions.Layout.Row = 1;
+            app.axesTool_emissions.Layout.Column = 9;
+            app.axesTool_emissions.ImageSource = 'wave-roi-22px-red.svg';
+
             % Create axesTool_persistence
             app.axesTool_persistence = uiimage(app.AxesToolbar);
             app.axesTool_persistence.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_persistence.Tag = 'persistence';
             app.axesTool_persistence.Enable = 'off';
             app.axesTool_persistence.Layout.Row = 1;
-            app.axesTool_persistence.Layout.Column = 9;
+            app.axesTool_persistence.Layout.Column = 10;
             app.axesTool_persistence.ImageSource = 'persistence-36px.png';
 
             % Create axesTool_Separator2
@@ -3281,7 +3304,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator2.ScaleMethod = 'none';
             app.axesTool_Separator2.Enable = 'off';
             app.axesTool_Separator2.Layout.Row = 1;
-            app.axesTool_Separator2.Layout.Column = 10;
+            app.axesTool_Separator2.Layout.Column = 11;
             app.axesTool_Separator2.ImageSource = 'LineV.svg';
 
             % Create axesTool_occupancy
@@ -3290,7 +3313,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_occupancy.Tag = 'occupancy';
             app.axesTool_occupancy.Enable = 'off';
             app.axesTool_occupancy.Layout.Row = 1;
-            app.axesTool_occupancy.Layout.Column = 11;
+            app.axesTool_occupancy.Layout.Column = 12;
             app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
 
             % Create axesTool_Separator3
@@ -3298,7 +3321,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator3.ScaleMethod = 'none';
             app.axesTool_Separator3.Enable = 'off';
             app.axesTool_Separator3.Layout.Row = 1;
-            app.axesTool_Separator3.Layout.Column = 12;
+            app.axesTool_Separator3.Layout.Column = 13;
             app.axesTool_Separator3.ImageSource = 'LineV.svg';
 
             % Create axesTool_waterfall
@@ -3308,7 +3331,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_waterfall.Tag = 'waterfall';
             app.axesTool_waterfall.Enable = 'off';
             app.axesTool_waterfall.Layout.Row = 1;
-            app.axesTool_waterfall.Layout.Column = 13;
+            app.axesTool_waterfall.Layout.Column = 14;
             app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
 
             % Create axesTool_DataTip
@@ -3317,24 +3340,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_DataTip.Enable = 'off';
             app.axesTool_DataTip.Layout.Row = 1;
-            app.axesTool_DataTip.Layout.Column = 14;
+            app.axesTool_DataTip.Layout.Column = 15;
             app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
-
-            % Create axesTool_Separator4
-            app.axesTool_Separator4 = uiimage(app.AxesToolbar);
-            app.axesTool_Separator4.ScaleMethod = 'none';
-            app.axesTool_Separator4.Enable = 'off';
-            app.axesTool_Separator4.Layout.Row = 1;
-            app.axesTool_Separator4.Layout.Column = 15;
-            app.axesTool_Separator4.ImageSource = 'LineV.svg';
-
-            % Create axesTool_FlowInfo
-            app.axesTool_FlowInfo = uiimage(app.AxesToolbar);
-            app.axesTool_FlowInfo.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_FlowInfo.Enable = 'off';
-            app.axesTool_FlowInfo.Layout.Row = 1;
-            app.axesTool_FlowInfo.Layout.Column = 16;
-            app.axesTool_FlowInfo.ImageSource = 'Info_32.png';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
