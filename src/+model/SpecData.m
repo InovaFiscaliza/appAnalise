@@ -704,8 +704,8 @@ classdef SpecData < model.SpecDataBase
                             end
 
                             % calibrationCurve
-                            freqStart  = obj.MetaData.FreqStart;
-                            freqStop   = obj.MetaData.FreqStop;
+                            freqStart  = obj.MetaData.FreqStart / 1e+6;
+                            freqStop   = obj.MetaData.FreqStop  / 1e+6;
                             dataPoints = obj.MetaData.DataPoints;
 
                             calibrationCurve = interp1(calibrationData.xData, calibrationData.yData, linspace(freqStart, freqStop, dataPoints)', 'linear');                            
@@ -719,6 +719,8 @@ classdef SpecData < model.SpecDataBase
                         
                             obj.UserData.CalibrationCurve(end+1, :) = {calibrationData.Name, calibrationData.Type, previousLevelUnit, currentLevelUnit};
                             obj.UserData.CalibrationCurve = sortrows(obj.UserData.CalibrationCurve, 'Type', 'descend');
+
+                            obj.UserData.LOG{end+1} = matlab.jsonencode(struct('Action', 'Calibration', 'Type', calibrationData));
 
                         otherwise
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)

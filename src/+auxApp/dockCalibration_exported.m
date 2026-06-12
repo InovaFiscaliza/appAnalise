@@ -61,7 +61,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updatePanel(app)
             flowIdx = app.inputArgs.flowIdx;
-            specData = aoo.mainApp.specData(flowIdx);
+            specData = app.mainApp.specData(flowIdx);
 
             if isempty(specData.UserData.CalibrationCurve)
                 app.InitialLevelUnit.Value = specData.MetaData.LevelUnit;
@@ -130,7 +130,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             % DADOS DO FLUXO ESPECTRAL SOB ANÁLISE
             flowIdx = app.inputArgs.flowIdx;
-            specData = aoo.mainApp.specData(flowIdx);
+            specData = app.mainApp.specData(flowIdx);
 
             freqStart = specData.MetaData.FreqStart / 1e+6;
             freqStop = specData.MetaData.FreqStop  / 1e+6;
@@ -160,7 +160,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
                     error('A curva de correção não engloba a faixa monitorada.')
                 end
 
-                 update(specData, 'UserData:CalibrationCurve', calibrationData)
+                 update(specData, 'UserData:CalibrationCurve', 'Add', calibrationData)
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', ME.message);
