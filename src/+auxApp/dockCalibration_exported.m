@@ -41,11 +41,7 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initializeAppProperties(app, context, flowIdx)
-            % inputArgs
-            app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
-
-            % refCalibrationData
+        function initialValues(app)
             [projectFolder, ...
              programDataFolder] = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
 
@@ -71,23 +67,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             app.CurveNames.Items = [{''}; {app.refCalibrationData.Name}'];
         end
-
-        %-----------------------------------------------------------------%
-        function msgError = applyCalibration(app, operationType, idxThread, idxCalibration, kFactorName)
-            msgError = '';
-
-            try
-                util.measCalibration(app.specData, app.rootFolder, operationType, idxThread, idxCalibration, kFactorName)
-            catch ME
-                msgError = ME.message;
-                ui.Dialog(app.UIFigure, 'warning', ME.message);
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function calibrationCurve = computeCalibrationCurve(refCalibrationData, freqStart, freqStop, dataPoints, levelUnit)
-
-        end
     end
     
 
@@ -99,7 +78,9 @@ classdef dockCalibration_exported < matlab.apps.AppBase
             
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
-                initializeAppProperties(app, context, flowIdx)
+
+                app.inputArgs = struct('context', context, 'flowIdx', flowIdx);
+                initialValues(app)
                 updatePanel(app)
                 
             catch ME
@@ -134,7 +115,6 @@ classdef dockCalibration_exported < matlab.apps.AppBase
 
             freqStart = specData.MetaData.FreqStart / 1e+6;
             freqStop = specData.MetaData.FreqStop  / 1e+6;
-            dataPoints = specData.MetaData.DataPoints;
 
             try
                 % VALIDAÇÃO
@@ -160,7 +140,8 @@ classdef dockCalibration_exported < matlab.apps.AppBase
                     error('A curva de correção não engloba a faixa monitorada.')
                 end
 
-                 update(specData, 'UserData:CalibrationCurve', 'Add', calibrationData)
+                 update(specData, 'UserData:CalibrationCurve', 'Add', calibrationData, app.mainApp.channelObj, app.mainApp.General)
+                 ipcMainMatlabCallsHandler(app.mainApp, app, 'onCalibrationCurveApplied')
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', ME.message);

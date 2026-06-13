@@ -433,6 +433,15 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                             ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
                                         end
 
+                                    case 'onCalibrationCurveApplied'
+                                        if callingApp.isDocked
+                                            sendEventToHTMLSource(callingApp.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', callingApp.GridLayout.UserData.id))
+                                        else
+                                            delete(callingApp)
+                                        end
+
+                                        notifySecondaryApps(app, eventName)
+
                                     case 'onEmissionChannelChanged'
                                         notifySecondaryApps(app, eventName, {'PLAYBACK'})
 
@@ -857,6 +866,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                                            'onEmissionChannelChanged', ...
                                                            'onEmissionDeleted', ...
                                                            'onDetectionSubBandsChanged', ...
+                                                           'onCalibrationCurveApplied', ...
                                                            'onSpectralDataReadError'})}
                 excludeTags cell = {}
             end

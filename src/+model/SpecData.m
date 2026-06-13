@@ -688,6 +688,8 @@ classdef SpecData < model.SpecDataBase
                     switch updateType
                         case 'Add'
                             calibrationData = varargin{1};
+                            channelObj = varargin{2};
+                            generalSettings = varargin{3};
 
                             switch calibrationData.Type
                                 case 'Antenna k-Factor'  
@@ -716,11 +718,16 @@ classdef SpecData < model.SpecDataBase
                             obj.Data{2} = obj.Data{2} + calibrationCurve;
                             obj.Data{3} = obj.Data{3} + calibrationCurve;
                             obj.MetaData.LevelUnit = currentLevelUnit;
+
+                            for ii = 1:height(obj.UserData.Emissions)
+                                util.Measures(obj, 1, ii, 'Emission', channelObj)
+                            end
                         
                             obj.UserData.CalibrationCurve(end+1, :) = {calibrationData.Name, calibrationData.Type, previousLevelUnit, currentLevelUnit};
                             obj.UserData.CalibrationCurve = sortrows(obj.UserData.CalibrationCurve, 'Type', 'descend');
 
                             obj.UserData.LOG{end+1} = matlab.jsonencode(struct('Action', 'Calibration', 'Type', calibrationData));
+                            obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
 
                         otherwise
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)
