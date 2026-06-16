@@ -2,107 +2,113 @@ classdef (Abstract) Classification
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        ParametersDefault     = struct('Algorithm',  'Frequency+Distance Type 1', ...
-                                       'Parameters', struct('Contour', 30,        ...
-                                                            'ClassMultiplier', 2, ...
-                                                            'bwFactors', [100, 300]))
+        CONFIG_DEFAULT = struct( ...
+            'Algorithm', 'Frequency+Distance Type 1', ...
+            'Parameters', struct( ...
+                'MaxDistanceKm', 30, ...
+                'ClassExpansionFactor', 2, ...
+                'BandwidthTolerancePercent', [100, 300] ...
+            ) ...
+        )
 
-        ClassificationDefault = struct('Service',       int16(-1),                ...
-                                       'Station',       int32(-1),                ...
-                                       'Latitude',      -1,                       ...
-                                       'Longitude',     -1,                       ...
-                                       'AntennaHeight', 0,                        ...
-                                       'Description',   '-',                      ...
-                                       'Details',       '',                       ...
-                                       'Distance',      -1,                       ...
-                                       'Regulatory',    'Não licenciada',         ...
-                                       'EmissionType',  'Pendente identificação', ...
-                                       'Irregular',     'Sim',                    ...
-                                       'RiskLevel',     'Baixo')
+        RESULT_DEFAULT = struct( ...
+            'Service', int16(-1), ...
+            'Station', int32(-1), ...
+            'Latitude', -1, ...
+            'Longitude', -1, ...
+            'AntennaHeight', 0, ...
+            'Description', '-', ...
+            'Details', '', ...
+            'Distance', -1, ...
+            'Regulatory', 'Não licenciada', ...
+            'EmissionType', 'Pendente identificação', ...
+            'Irregular', 'Sim', ...
+            'RiskLevel', 'Baixo' ...
+        )
+
+        FLOAT_TOLERANCE = 1e-5
     end
 
     
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function emissionInfo = run(specData, idxThread, idxEmission, channelObj)    
+        function emissionInfo = run(specData, flowIdx, emissionIdx, channelObj)    
             % Classificação inicial....
-            emissionInfo = util.Classification.ClassificationDefault;
+            emissionInfo = util.Classification.RESULT_DEFAULT;
         
             % Trunca a frequência central da emissão, caso aplicável, possibilitando 
             % a sua classificação.
-            Truncated = specData(idxThread).UserData.Emissions.Frequency(idxEmission);
-            if specData(idxThread).UserData.Emissions.isTruncated(idxEmission)
-                Truncated = TruncatedFrequency(channelObj, specData(idxThread), idxEmission);
+            emissionFrequency = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx);
+            if specData(flowIdx).UserData.Emissions.IsTruncated(emissionIdx)
+                emissionFrequency = estimateChannelFrequency(channelObj, specData(flowIdx), specData(flowIdx).UserData.Emissions.Frequency(emissionIdx), 0);
             end
         
-            % Se a frequência trunca estiver na lista de exceção global, então esse
-            % registro retorna como a provável fonte de emissão.
-            idxException = find((abs(channelObj.Exception.FreqCenter - Truncated) <= 1e-5), 1);   
+            % Se a frequência truncada estiver na lista de exceção global, então esse
+            % registro é retornado como a provável fonte de emissão.
+            exceptionIdx = find((abs(channelObj.Exception.FreqCenter - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE), 1);   
         
-            if ~isempty(idxException)
+            if ~isempty(exceptionIdx)
                 emissionInfo.Regulatory   = 'Não passível de licenciamento';
-                emissionInfo.Description  = channelObj.Exception.Description{idxException};
+                emissionInfo.Description  = channelObj.Exception.Description{exceptionIdx};
                 emissionInfo.EmissionType = 'Fundamental';
                 emissionInfo.Irregular    = 'Não';
                 emissionInfo.RiskLevel    = '-';
         
             else
-                switch specData(idxThread).UserData.reportAlgorithms.Classification.Algorithm
+                algorithm = specData(flowIdx).UserData.ReportAlgorithms.Classification.Algorithm;
+                switch algorithm
                     case 'Frequency+Distance Type 1'
-                        emissionInfo = util.Classification.Type1_FreqDist(emissionInfo, Truncated, specData, idxThread, idxEmission, channelObj);
+                        emissionInfo = util.Classification.classifyByFrequencyDistance(specData, flowIdx, emissionIdx, emissionFrequency, emissionInfo, channelObj);
             
                     otherwise
-                        error('Unexpected classification algorithm.')
+                        error('util:Classification:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
                 end
             end
         end
         
-        %-------------------------------------------------------------------------%
-        function emissionInfo = Type1_FreqDist(emissionInfo, Truncated, specData, idxThread, idxEmission, channelObj)
-        
+        %-----------------------------------------------------------------%
+        function emissionInfo = classifyByFrequencyDistance(specData, flowIdx, emissionIdx, emissionFrequency, emissionInfo, channelObj)
             global RFDataHub
         
             % Características da canalização primária do fluxo de dados sob análise,
             % além dos parâmetros relacionados ao algoritmo "Frequency+Distance Type 1".
-            findPeaks       = FindPeaksOfPrimaryBand(channelObj, specData(idxThread));
-            ruralContour    = specData(idxThread).UserData.reportAlgorithms.Classification.Parameters.Contour;
-            classMultiplier = specData(idxThread).UserData.reportAlgorithms.Classification.Parameters.ClassMultiplier;
-            bandwidthRange  = specData(idxThread).UserData.reportAlgorithms.Classification.Parameters.bwFactors / 100;
+            findPeaks = FindPeaksOfPrimaryBand(channelObj, specData(flowIdx));
+            maxDistanceKm = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.MaxDistanceKm;
+            expansionFactor = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.ClassExpansionFactor;
+            bandwidthTolerance = specData(flowIdx).UserData.ReportAlgorithms.Classification.Parameters.BandwidthTolerancePercent / 100;
             
             % Identifica registros de RFDataHub que possuem a mesma frequência da
             % emissão.
-            idxRFDataHub    = find(abs(RFDataHub.Frequency - Truncated) <= 1e-5);
-            if isempty(idxRFDataHub)
+            stationIdx = find(abs(RFDataHub.Frequency - emissionFrequency) <= util.Classification.FLOAT_TOLERANCE);
+            if isempty(stationIdx)
                 return
             end
         
             % Classifica...
-            RFDataHubStationsDistance = deg2km(distance(specData(idxThread).GPS.Latitude, specData(idxThread).GPS.Longitude, ...
-                                                        RFDataHub.Latitude(idxRFDataHub), RFDataHub.Longitude(idxRFDataHub)));
+            stationDistance = deg2km(distance(specData(flowIdx).GPS.Latitude, specData(flowIdx).GPS.Longitude, RFDataHub.Latitude(stationIdx), RFDataHub.Longitude(stationIdx)));
         
             while true
-                if isempty(RFDataHubStationsDistance)
+                if isempty(stationDistance)
                     break
                 end
         
                 % Identifica a estação mais próxima...
-                [refStationDistance, ...
-                 idxStation]          = min(RFDataHubStationsDistance);
+                [refStationDistance, idx] = min(stationDistance);
         
                 % ToDo:
                 % Criar método na classe RFDataHub que retorne os dados da estação.
         
                 % stationID   = ['#' num2str(idxRFDataHub(idxStation))];
                 % stationInfo = query(RFDataHub, stationID, specData(idxThread).GPS.Latitude, specData(idxThread).GPS.Longitude);
-        
-                refStationService     = RFDataHub.Service(idxRFDataHub(idxStation));
-                refStationNumber      = RFDataHub.Station(idxRFDataHub(idxStation));        
-                refStationLatitude    = RFDataHub.Latitude(idxRFDataHub(idxStation));
-                refStationLongitude   = RFDataHub.Longitude(idxRFDataHub(idxStation));
-                refStationDescription = model.RFDataHub.Description(RFDataHub, idxRFDataHub(idxStation));
+
+                refStationService     = RFDataHub.Service(stationIdx(idx));
+                refStationNumber      = RFDataHub.Station(stationIdx(idx));        
+                refStationLatitude    = RFDataHub.Latitude(stationIdx(idx));
+                refStationLongitude   = RFDataHub.Longitude(stationIdx(idx));
+                refStationDescription = model.RFDataHub.Description(RFDataHub, stationIdx(idx));
         
                 try
-                    refStationAntennaHeight = str2double(char(RFDataHub.AntennaHeight(idxRFDataHub(idxStation))));
+                    refStationAntennaHeight = str2double(char(RFDataHub.AntennaHeight(stationIdx(idx))));
         
                     mustBeFinite(refStationAntennaHeight)
                     mustBeNonnegative(refStationAntennaHeight)
@@ -111,51 +117,54 @@ classdef (Abstract) Classification
                     refStationAntennaHeight = 0;
                 end
         
-                if RFDataHub.BW(idxRFDataHub(idxStation)) > 0
-                    refStationBandWidth = RFDataHub.BW(idxRFDataHub(idxStation));
+                if RFDataHub.BW(stationIdx(idx)) > 0
+                    refStationBandWidth = RFDataHub.BW(stationIdx(idx));
                 else
-                    refStationBandWidth = specData(idxThread).UserData.Emissions.BW_kHz(idxEmission);
+                    refStationBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
                 end
         
-                if isempty(findPeaks) || ~ismember(findPeaks.Name{1}, {'FM', 'TV'})
+                if isempty(findPeaks) || ~ismember(findPeaks.EmissionClass{1}, {'BroadcastFM', 'BroadcastTV'})
                     break
                 else
-                    switch findPeaks.Name{1}
-                        case 'FM'
+                    switch findPeaks.EmissionClass{1}
+                        case 'BroadcastFM'
                             if contains(refStationDescription, ["[SRD] RADCOM", "[SRD] 231"])
-                                if refStationDistance <= classMultiplier * 2.2
-                                    classContour = 2.2;
+                                if refStationDistance <= expansionFactor * 2.2
+                                    classBaseContour = 2.2;
                                     break
                                 else
-                                    idxRFDataHub(idxStation)              = [];
-                                    RFDataHubStationsDistance(idxStation) = [];
-                                    continue
-                                end                        
-                            elseif contains(refStationDescription, "[MOSAICO-SRD] FM") 
-                                classStation = char(RFDataHub.StationClass(idxRFDataHub(idxStation)));
-                                if ismember(classStation(1), {'A', 'B', 'C', 'E'})
-                                    classContour = util.Classification.FM_classCountour(classStation(1));
-                                    break
-                                else
-                                    idxRFDataHub(idxStation)              = [];
-                                    RFDataHubStationsDistance(idxStation) = [];
+                                    stationIdx(idx) = [];
+                                    stationDistance(idx) = [];
                                     continue
                                 end
+
+                            elseif contains(refStationDescription, "[MOSAICO-SRD] FM") 
+                                classStation = char(RFDataHub.StationClass(stationIdx(idx)));
+                                if ismember(classStation(1), {'A', 'B', 'C', 'E'})
+                                    classBaseContour = util.Classification.getFMClassContour(classStation(1));
+                                    break
+                                else
+                                    stationIdx(idx) = [];
+                                    stationDistance(idx) = [];
+                                    continue
+                                end
+
                             else
                                 break
                             end
                         
-                        case 'TV'
+                        case 'BroadcastTV'
                             if contains(refStationDescription, "[MOSAICO-SRD] TV")
-                                classStation = char(RFDataHub.StationClass(idxRFDataHub(idxStation)));
+                                classStation = char(RFDataHub.StationClass(stationIdx(idx)));
                                 if ismember(classStation(1), {'A', 'B', 'C', 'E'})
-                                    classContour = util.Classification.TV_classCountour(classStation(1));
+                                    classBaseContour = util.Classification.getTVClassContour(classStation(1));
                                     break
                                 else
-                                    idxRFDataHub(idxStation)              = [];
-                                    RFDataHubStationsDistance(idxStation) = [];
+                                    stationIdx(idx) = [];
+                                    stationDistance(idx) = [];
                                     continue
                                 end
+
                             else
                                 break
                             end
@@ -164,12 +173,12 @@ classdef (Abstract) Classification
             end
         
             if ~isempty(refStationDistance)
-                emissionBandWidth = specData(idxThread).UserData.Emissions.BW_kHz(idxEmission);
-                if exist('classContour', 'var')
-                    ruralContour = classMultiplier * classContour;
+                emissionBandWidth = specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx);
+                if exist('classBaseContour', 'var')
+                    maxDistanceKm = expansionFactor * classBaseContour;
                 end        
         
-                if (refStationDistance > ruralContour) || (refStationBandWidth < (1-bandwidthRange(1))*emissionBandWidth) || (refStationBandWidth > (1+bandwidthRange(2))*emissionBandWidth)
+                if (refStationDistance > maxDistanceKm) || (refStationBandWidth < (1-bandwidthTolerance(1))*emissionBandWidth) || (refStationBandWidth > (1+bandwidthTolerance(2))*emissionBandWidth)
                     return
                 end
                 
@@ -180,7 +189,7 @@ classdef (Abstract) Classification
                 emissionInfo.AntennaHeight  = refStationAntennaHeight;
                 emissionInfo.Description    = refStationDescription;
                 emissionInfo.Distance       = refStationDistance;
-                emissionInfo.Details        = jsonencode(RFDataHub(idxRFDataHub(idxStation), setdiff(RFDataHub.Properties.VariableNames, {'Service', 'Station', 'Latitude', 'Longitude', 'AntennaHeight'})));
+                emissionInfo.Details        = jsonencode(RFDataHub(stationIdx(idx), setdiff(RFDataHub.Properties.VariableNames, {'Service', 'Station', 'Latitude', 'Longitude', 'AntennaHeight'})));
                 emissionInfo.EmissionType   = 'Fundamental';
         
                 if refStationService ~= -1
@@ -190,9 +199,13 @@ classdef (Abstract) Classification
                 end
             end
         end
-        
-        %-------------------------------------------------------------------------%
-        function classContour = FM_classCountour(classStation)
+
+        %-----------------------------------------------------------------%
+        function classContour = getFMClassContour(classStation)
+            arguments
+                classStation (1,:) char {mustBeMember(classStation, {'A', 'B', 'C', 'E'})}
+            end
+
             switch classStation
                 case 'C'; classContour =  7.5;
                 case 'B'; classContour = 16.5;
@@ -201,8 +214,12 @@ classdef (Abstract) Classification
             end
         end
         
-        %-------------------------------------------------------------------------%
-        function classContour = TV_classCountour(classStation)
+        %-----------------------------------------------------------------%
+        function classContour = getTVClassContour(classStation)
+            arguments
+                classStation (1,:) char {mustBeMember(classStation, {'A', 'B', 'C', 'E'})}
+            end
+
             switch classStation
                 case 'C'; classContour = 20.2;
                 case 'B'; classContour = 32.3;

@@ -1,6 +1,7 @@
 # List of folder to ignore:
 deploy/desktop/
 deploy/webapp/
+src/webfusion/
 
 # Autosave files
 *.asv

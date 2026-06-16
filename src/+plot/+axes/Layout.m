@@ -2,12 +2,12 @@ classdef (Abstract) Layout
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function XLabel(hAxes, occVisibility, waterfallVisibility, Context)
+        function XLabel(hAxes, occVisibility, waterfallVisibility, context)
             arguments
                 hAxes               (1,3) matlab.ui.control.UIAxes
                 occVisibility       (1,1) logical
                 waterfallVisibility (1,1) logical
-                Context             (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context             (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             UIAxes1 = hAxes(1);
@@ -37,11 +37,11 @@ classdef (Abstract) Layout
         end
 
         %-----------------------------------------------------------------%
-        function YLabel(hWaterfall, waterfallVisibility, Context)
+        function YLabel(hWaterfall, waterfallVisibility, context)
             arguments
                 hWaterfall            (1,1)
                 waterfallVisibility (1,1) logical
-                Context             (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context             (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             if waterfallVisibility
@@ -57,13 +57,13 @@ classdef (Abstract) Layout
         end
         
         %-----------------------------------------------------------------%
-        function RatioAspect(hAxes, occVisibility, waterfallVisibility, ratioAspectComponent, Context)
+        function RatioAspect(hAxes, occVisibility, waterfallVisibility, ratioAspectComponent, context)
             arguments
                 hAxes                (1,3) matlab.ui.control.UIAxes
                 occVisibility        (1,1) logical
                 waterfallVisibility  (1,1) logical
                 ratioAspectComponent (1,1) matlab.ui.control.DropDown
-                Context              (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context              (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             if occVisibility && waterfallVisibility
@@ -82,15 +82,15 @@ classdef (Abstract) Layout
             end            
             set(ratioAspectComponent, 'Items', ratioAspectOptions, 'Value', ratioAspect)
             
-            plot.axes.Layout.Visibility(hAxes, ratioAspect, Context)
+            plot.axes.Layout.Visibility(hAxes, ratioAspect, context)
         end
 
         %-----------------------------------------------------------------%
-        function Visibility(hAxes, ratioAspect, Context)
+        function Visibility(hAxes, ratioAspect, context)
             arguments
                 hAxes       (1,3) matlab.ui.control.UIAxes
                 ratioAspect (1,:) char {mustBeMember(ratioAspect, {'1:0:0', '1:1:0', '1:0:1', '1:3:0', '1:0:3', '1:2:1', '1:1:2', '2:1:1', '3:1:0', '3:0:1'})}
-                Context     (1,:) char {mustBeMember(Context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
+                context     (1,:) char {mustBeMember(context, {'appAnalise:PLAYBACK'})} = 'appAnalise:PLAYBACK'
             end
 
             tiledSpan = str2double(strsplit(ratioAspect, ':'));

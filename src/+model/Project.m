@@ -1,0 +1,292 @@
+classdef Project < model.ProjectCommon
+
+    % ## model.Project (appAnalise) ##      
+    % PUBLIC
+    %   ├── Project
+    %   |   |── restart
+    %   |   └── model.ProjectBase.initializeCustomTable
+    %   ├── restart
+    %   │   └── contextInitialization
+    %   ├── checkIfUpdateNeeded
+    %   │   └── model.ProjectBase.computeProjectHash
+    %   ├── save
+    %   │   └── model.ProjectBase.computeProjectHash
+    %   ├── load
+    %   │   └── restart
+    %   └── validateAuditorClassification
+    % PRIVATE
+    %   └── contextInitialization
+    %       └── initialization (SuperClass)
+
+    properties
+        %-----------------------------------------------------------------%
+        ReportAttachments = table( ...
+            'Size', [0, 5], ...
+            'VariableTypes', {'cell', 'cell', 'cell', 'int8', 'cell'}, ...
+            'VariableNames', {'Type', 'Tag', 'Filename', 'Id', 'Hash'} ...
+        )
+    end
+
+
+    methods
+        %-----------------------------------------------------------------%
+        function obj = Project(mainApp, rootFolder, generalSettings)
+            obj@model.ProjectCommon(mainApp, rootFolder);
+            
+            restart(obj, {'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'RFDATAHUB'}, 'AppStarted', generalSettings)
+        end
+
+        %-----------------------------------------------------------------%
+        % ## LIFECYCLE MANAGEMENT ##
+        %-----------------------------------------------------------------%
+        function restart(obj, contextList, operationType, generalSettings)
+            contextInitialization(obj, contextList, operationType, generalSettings)
+        end
+
+        %-----------------------------------------------------------------%
+        function updateNeeded = checkIfUpdateNeeded(obj, specData)
+            updateNeeded = false;
+            
+            if ~isempty(obj.name)
+                currentPrjHash = model.ProjectBase.computeProjectHash(obj.name, obj.file, obj.issueDetails, obj.entityDetails, obj.ReportAttachments, specData);
+                updateNeeded   = ~isequal(obj.hash, currentPrjHash);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function save(obj, type, context, prjName, prjFile, outputFileCompressionMode, specData)
+            arguments
+                obj
+                type (1,:) char {mustBeMember(type, {'ProjectData', 'SpectralData', 'UserData'})}
+                context (1,:) char {mustBeMember(context, {'PLAYBACK'})}
+                prjName
+                prjFile
+                outputFileCompressionMode
+                specData
+            end
+
+            source    = class.Constants.appName;
+            version   = 4;
+            userData  = [];
+            prjHash   = model.ProjectBase.computeProjectHash(prjName, prjFile, obj.issueDetails, obj.entityDetails, obj.ReportAttachments, specData);
+            
+            specDataObj = copy(specData, {});
+            for ii = 1:numel(specDataObj)
+                specDataObj(ii).InputFiles(:) = [];
+                specDataObj(ii).IsUserModified = false;
+            end
+            
+            variables = struct( ...
+                'name',    prjName, ...
+                'hash',    prjHash, ...
+                'modules', obj.modules, ...
+                'issueDetails', obj.issueDetails, ...
+                'entityDetails', obj.entityDetails, ...
+                'externalFiles', obj.ReportAttachments, ...
+                'specDataObj', specDataObj ...
+            );
+
+            compressionMode = {};
+            if strcmp(outputFileCompressionMode, 'Não')
+                compressionMode = {'-nocompression'};
+            end
+
+            save(prjFile, 'source', 'type', 'version', 'variables', 'userData', '-mat', '-v7', compressionMode{:})
+
+            obj.name = prjName;
+            obj.file = prjFile;
+            obj.hash = prjHash;
+        end
+
+        %-----------------------------------------------------------------%
+        function [specDataObj, errorMsg] = load(obj, fileName, readType, specDataObj, generalSettings, varargin)
+            arguments
+                obj
+                fileName
+                readType {mustBeMember(readType, {'MetaData', 'SpecData'})}
+                specDataObj
+                generalSettings
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            try
+                required = {'source', 'type', 'version', 'variables', 'userData'};
+                varsInFile = who('-file', fileName);
+                if any(~ismember(required, varsInFile))
+                    missing = setdiff(required, varsInFile);
+                    error('Missing required variables: %s', strjoin(missing, ', '))
+                end
+                
+                prjData = load(fileName, '-mat', required{:});
+                
+                if ~strcmp(class.Constants.appName, prjData.source)
+                    error('File generated by a different application. Expected: %s. Found: %s.', class.Constants.appName, prjData.source)
+                end
+    
+                switch prjData.version
+                    case 4
+                        switch readType
+                            case 'MetaData'
+                                restart(obj, {'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'RFDATAHUB'}, 'onProjectLoad', generalSettings)
+        
+                                obj.name = prjData.variables.name;
+                                obj.file = fileName;
+                                obj.hash = prjData.variables.hash;
+        
+                                contextList = {'PLAYBACK'};
+                                for ii = 1:numel(contextList)
+                                    context = contextList{ii};
+        
+                                    if isfile(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath)
+                                        try
+                                            unzipFiles = unzip(prjData.variables.modules.(context).generatedFiles.lastZIPFullPath, generalSettings.fileFolder.tempPath);
+                                            for jj = 1:numel(unzipFiles)
+                                                [~, ~, unzipFileExt] = fileparts(unzipFiles{jj});
+            
+                                                switch lower(unzipFileExt)
+                                                    case '.html'
+                                                        obj.modules.(context).generatedFiles.lastHTMLDocFullPath = unzipFiles{jj};
+                                                    case '.json'
+                                                        obj.modules.(context).generatedFiles.lastJSONFullPath    = unzipFiles{jj};
+                                                    case '.xlsx'
+                                                        obj.modules.(context).generatedFiles.lastTableFullPath   = unzipFiles{jj};
+                                                    case '.teams'
+                                                        obj.modules.(context).generatedFiles.lastTEAMSFullPath   = unzipFiles{jj};
+                                                    otherwise
+                                                        obj.modules.(context).generatedFiles.rawFiles{end+1}     = unzipFiles{jj};
+                                                end
+                                            end
+                                            
+                                            obj.modules.(context).generatedFiles.id              = prjData.variables.modules.(context).generatedFiles.id;
+                                            obj.modules.(context).generatedFiles.lastZIPFullPath = prjData.variables.modules.(context).generatedFiles.lastZIPFullPath;
+                                        catch 
+                                        end
+                                    end
+            
+                                    obj.modules.(context).ui.system = prjData.variables.modules.(context).ui.system;
+                                    obj.modules.(context).ui.unit   = prjData.variables.modules.(context).ui.unit;
+                                    obj.modules.(context).ui.issue  = prjData.variables.modules.(context).ui.issue;
+                                    obj.modules.(context).ui.entity = prjData.variables.modules.(context).ui.entity;
+                
+                                    reportModel = prjData.variables.modules.(context).ui.reportModel;
+                                    if ismember(reportModel, obj.modules.(context).ui.templates)
+                                        obj.modules.(context).ui.reportModel = reportModel;
+                                    end
+        
+                                    obj.modules.(context).annotationTable = prjData.variables.modules.(context).annotationTable;
+            
+                                    obj.modules.(context).uploadedFiles = [prjData.variables.modules.(context).uploadedFiles, obj.modules.(context).uploadedFiles];
+                                    [~, uniqueUploadedFilesIndexes] = unique({obj.modules.(context).uploadedFiles.hash});
+                                    obj.modules.(context).uploadedFiles = obj.modules.(context).uploadedFiles(uniqueUploadedFilesIndexes);
+                                end
+        
+                                obj.issueDetails = [prjData.variables.issueDetails, obj.issueDetails];                        
+                                
+                                obj.entityDetails = [prjData.variables.entityDetails, obj.entityDetails];                        
+                                [~, uniqueDetailsIndexes] = unique({obj.entityDetails.id});
+                                obj.entityDetails = obj.entityDetails(uniqueDetailsIndexes);
+        
+                                obj.ReportAttachments = prjData.variables.externalFiles;
+
+                               % Elimina dados de espectro, mantendo apenas metadados...
+                               specDataObj = prjData.variables.specDataObj;
+                               for kk = 1:numel(specDataObj)
+                                   specDataObj(kk).Data = {};
+                               end
+
+                            case 'SpecData'
+                                flowIdx = varargin{1};
+                                specData = prjData.variables.specDataObj(flowIdx);
+                                specDataObj = copy(specData, {});
+                        end
+    
+                    otherwise
+                        error('model:Project:UnexpectedVersion', 'Unexpected version')
+                end
+                errorMsg = '';
+
+            catch ME
+                errorMsg = ME.message;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function validateAuditorClassification(obj, context, generalSettings, varargin)
+            % ...
+        end
+
+        %-----------------------------------------------------------------%
+        function updateReportAttachments(obj, updateType, varargin)
+            arguments
+                obj 
+                updateType {mustBeMember(updateType, {'add', 'edit', 'delete'})} 
+            end
+
+            arguments (Repeating)
+                varargin
+            end
+
+            switch updateType
+                case 'add'
+                    attachmentInfo = varargin{1};
+                    attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+                    if ~ismember(attachmentHash, obj.ReportAttachments.Hash)
+                        obj.ReportAttachments(end+1, :) = { ...
+                            attachmentInfo.Type, ...
+                            attachmentInfo.Tag, ...
+                            attachmentInfo.Filename, ...
+                            attachmentInfo.Id, ...
+                            attachmentHash ...
+                        };
+                    end
+
+                case 'edit'
+                    attachmentIdx = varargin{1};
+                    attachmentValue = varargin{2};
+
+                    obj.ReportAttachments.Id(attachmentIdx) = attachmentValue;
+
+                    attachmentInfo = table2struct(obj.ReportAttachments(attachmentIdx, :));
+                    attachmentHash = Hash.sha1(char(string(attachmentInfo.Type) + " - " + string(attachmentInfo.Tag) + " - " + string(attachmentInfo.Filename) + " - " + string(attachmentInfo.Id)));
+
+                    obj.ReportAttachments.Hash{attachmentIdx} = attachmentHash;
+
+                otherwise % 'delete'
+                    attachmentHash = varargin{1};
+                    [~, attachmentsHashIdx] = ismember(attachmentHash, obj.ReportAttachments.Hash);
+                    if attachmentsHashIdx
+                        obj.ReportAttachments(attachmentsHashIdx, :) = [];
+                    end
+            end
+        end
+    end
+
+
+    methods (Access = private)
+        %-----------------------------------------------------------------%
+        function contextInitialization(obj, contextList, operationType, generalSettings)
+            arguments
+                obj
+                contextList
+                operationType {mustBeMember(operationType, {'AppStarted', 'onProjectLoad', 'onProjectRestart'})}
+                generalSettings
+            end
+
+            switch operationType
+                case 'AppStarted'
+                    initialization(obj, contextList, generalSettings)
+
+                case {'onProjectLoad', 'onProjectRestart'}
+                    for ii = 1:numel(contextList)
+                        context = contextList{ii};
+                        uploadedFiles = obj.modules.(context).uploadedFiles;
+                        initialization(obj, {context}, generalSettings)
+                        obj.modules.(context).uploadedFiles = uploadedFiles;
+                    end
+            end
+        end
+    end
+end

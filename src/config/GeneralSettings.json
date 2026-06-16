@@ -1,17 +1,16 @@
 {
-    "version": 1.08,
+    "version": 1.57,
     "operationMode": {
         "Debug": false,
-        "Dock": false,
+        "Dock": true,
         "Simulation": false,
         "DevTools": {
             "login": "admin",
             "password": "admin"
-        },
-        "FreeStorageThreshold": 4
+        }
     },
     "computerName": {
-        "deskopApp": "",
+        "desktopApp": "",
         "webServer": "WIMATLABPDIN01"
     },
     "fileFolder": {
@@ -23,17 +22,159 @@
         "DataHub_POST": "",
         "lastVisited": ""
     },
-    "Plot": {
-        "MinHold": {
-            "Fcn": "area",
+    "context": {
+        "FILE": {
+            "input": "file",
+            "sortMethod": "ARQUIVO",
+            "spectrumConsolidationPolicy": {
+                "maxCoLocationDistanceMeters": 100,
+                "dataTypePolicy": "remove",
+                "antennaPolicy": "keep",
+                "antennaAttributes": [
+                    "Name",
+                    "Azimuth",
+                    "Elevation",
+                    "Polarization",
+                    "Height",
+                    "SwitchPort",
+                    "LNBChannel"
+                ]
+            }
+        },
+        "PLAYBACK": {
+            "clearWriteVisibility": true,
+            "waterfallTimeVisibility": true,
+            "integration": {
+                "traceMode": Infinity,
+                "sampleTimeSeconds": 10
+            },
+            "minSweepTimeSeconds": 0.05,
+            "channel": {
+                "manualMode": false
+            },
+            "detection": {
+                "datatipBandWidthkHz": 0
+            },
+            "defaultPlotDisplayConfig": {
+                "layoutRatio": "1:0:0",
+                "controls": {
+                    "minHold": false,
+                    "average": false,
+                    "maxHold": false,
+                    "persistence": false,
+                    "occupancy": false,
+                    "waterfall": false
+                },
+                "persistence": {
+                    "interpolation": "nearest",
+                    "windowSize": "full",
+                    "colormap": "winter",
+                    "transparency": 1
+                },
+                "waterfall": {
+                    "function": "image",
+                    "decimation": "auto",
+                    "colormap": "winter",
+                    "meshStyle": "row"
+                },
+                "limits": {
+                    "frequency": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "level": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "color": {
+                        "initial": [],
+                        "current": []
+                    },
+                    "persistence": {
+                        "mode": "auto",
+                        "cLim": []
+                    },
+                    "waterfall": {
+                        "initial": [0, 1],
+                        "current": [0, 1]
+                    }
+                },
+                "dataTips": []
+            }
+        },
+        "DRIVETEST": {
+            "dataBinning": {
+                "binLengthMeters": 100,
+                "aggregationFunction": "rms"
+            }
+        },
+        "SIGNALANALYSIS": [],
+        "RFDATAHUB": {
+            "tx": {
+                "defaultHeight": 10
+            },
+            "rx": {
+                "default": {
+                    "latitude": -15.805479,
+                    "longitude": -47.882499,
+                    "height": 2
+                },
+                "last": {
+                    "latitude": -15.805479,
+                    "longitude": -47.882499,
+                    "height": 2
+                }
+            },
+            "filter": {
+                "default": {
+                    "columnLabel": "Distância",
+                    "operation": "≤",
+                    "value": 30
+                },
+                "last": []
+            }
+        },
+        "REPOSFI": {
+            "protocol": "http",
+            "host": "172.16.18.11",
+            "dbPort": 9081,
+            "dbUser": "root",
+            "dbPassword": "changeme",
+            "dbSchemas": {
+              "rfData": "RFDATA",
+              "bpData": "BPDATA",
+              "smData": "RFFUSION_SUMMARY"
+            },
+            "httpPort": 9082,
+            "httpBasePath": "/downloads",
+            "networkPath": "\\\\reposfi\\sfi$\\sensores",
+            "containerPathPrefixToRemove": "/mnt/reposfi"
+          }
+    },
+    "plot": {
+        "cartesianAxes": {
+            "xLabel": true,
+            "yLabel": true,
+            "xTickLabel": true,
+            "yTickLabel": true,
+            "yOccupancyScale": "log",
+            "xGuardBandFactor": 1
+        },
+        "geographicAxes": {
+            "Basemap": "satellite",
+            "Colormap": "turbo",
+            "Colorbar": "on"
+        },
+        "minHold": {
+            "Function": "area",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#4A90E2",
             "EdgeColor": "#4A90E2",
             "FaceColor": "#4A90E2"
         },
-        "ClearWrite": {
-            "Fcn": "line",
+        "clearWrite": {
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#ffff12",
@@ -46,42 +187,31 @@
             "MarkerSize": 14,
             "Visible": "on"
         },
-        "Average": {
-            "Fcn": "line",
+        "average": {
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#00cc66",
             "EdgeColor": "#00cc66",
             "FaceColor": "#00cc66"
         },
-        "MaxHold": {
-            "Fcn": "line",
+        "maxHold": {
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "Color": "#FF5CAD",
             "EdgeColor": "#FF5CAD",
             "FaceColor": "#FF5CAD"
         },
-        "Persistance": {
-            "Interpolation": "nearest",
-            "WindowSize": "full",
-            "Transparency": 1,
-            "Colormap": "winter",
-            "LevelLimits": [0, 1]
+        "persistence": [],
+        "waterfall": {
+            "Colorbar": "eastoutside"
         },
-        "Waterfall": {
-            "Fcn": "image",
-            "Decimation": "auto",
-            "MeshStyle": "both",
-            "Colormap": "winter",
-            "Colorbar": "off",
-            "LevelLimits": [0, 1]
-        },
-        "WaterfallTime": {
-            "Visible": "on",
+        "waterfallTime": {
+            "Color": "#FF0000",
             "ZData": [1000, 1000]
         },
-        "BandLimits": {
+        "bandLimits": {
             "Color": "#808080",
             "LineWidth": 5,
             "PickableParts": "none",
@@ -89,7 +219,7 @@
             "YLimOffset": 1.5,
             "StepEffect": false
         },
-        "Channel": {
+        "channel": {
             "Color": "#b746ff",
             "LineWidth": 5,
             "PickableParts": "none",
@@ -97,7 +227,7 @@
             "YLimOffset": 1,
             "StepEffect": true
         },
-        "ChannelROI": {
+        "channelROI": {
             "Color": "#b746ff",
             "MarkerSize": 5,
             "LineWidth": 1,
@@ -108,13 +238,33 @@
             "LabelColor": "#000000",
             "LabelFontSize": 8
         },
-        "ChannelPower": {
-            "EdgeColor": "#FF5CAD",
-            "FaceColor": "#FF5CAD",
+        "channelPower": {
+            "EdgeColor": "#ffff12",
+            "FaceColor": "#ffff12",
             "EdgeAlpha": 0,
             "FaceAlpha": 0.4
         },
-        "Emission": {
+        "drivetest": {
+            "route": {
+                "LineStyle": ":",
+                "LineWidth": 1,
+                "Colors": {
+                    "InROI": [0.8706, 0.5412, 0.5412],
+                    "OutROI": [0.502, 0.502, 0.502]
+                }
+            },
+            "car": {
+                "Marker": "square",
+                "MarkerSize": 10,
+                "MarkerFaceColor": [1, 0, 0]
+            },
+            "points": {
+                "Marker": "^",
+                "MarkerSize": 12,
+                "MarkerFaceColor": "#ffff12"
+            }
+        },
+        "emission": {
             "Color": "#FF5CAD",
             "LineWidth": 2,
             "Marker": "|",
@@ -124,7 +274,7 @@
             "YLimOffset": 0,
             "StepEffect": false
         },
-        "EmissionROI": {
+        "emissionROI": {
             "Color": "#66bae0",
             "MarkerSize": 5,
             "LineWidth": 1,
@@ -135,20 +285,7 @@
             "LabelColor": "#000000",
             "LabelFontSize": 8
         },
-        "Axes": {
-            "xLabel": true,
-            "yLabel": true,
-            "xTickLabel": true,
-            "yTickLabel": true,
-            "yOccupancyScale": "log",
-            "xGuardBandFactor": 1
-        },
-        "GeographicAxes": {
-            "Basemap": "satellite",
-            "Colormap": "turbo",
-            "Colorbar": "on"
-        },
-        "OccupancyThreshold": {
+        "occupancyThreshold": {
             "Color": "#ff0000",
             "LineStyle": "-",
             "LineWidth": 1,
@@ -158,93 +295,67 @@
             "MarkerEdgeColor": "#000000",
             "PickableParts": "none"
         },
-        "OccupancyPerBin": {
+        "occupancyPerBin": {
             "Color": "#ff0000",
             "LineStyle": "-",
             "LineWidth": 1
         },
         "occMinHold": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#005cd1",
             "FaceColor": "#005cd1"
         },
         "occAverage": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#ffff12",
             "FaceColor": "#ffff12"
         },
         "occMaxHold": {
-            "Fcn": "line",
+            "Function": "line",
             "LineStyle": "-",
             "LineWidth": 0.5,
             "EdgeColor": "#ff12a6",
             "FaceColor": "#ff12a6"
         }
     },
-    "Merge": {
-        "DataType": "remove",
-        "Antenna": "keep",
-        "AntennaAttributes": [
-            "Name",
-            "Azimuth",
-            "Elevation",
-            "Polarization",
-            "Height",
-            "SwitchPort",
-            "LNBChannel"
-        ],
-        "Distance": 100
+    "elevation": {
+        "pointCount": 256,
+        "forceRefresh": false,
+        "provider": "Open-Elevation"
     },
-    "RFDataHub": {
-        "DefaultTX": {
-            "Height": 10
-        },
-        "DefaultRX": {
-            "Latitude": -15.805479,
-            "Longitude": -47.882499,
-            "Height": 30
-        },
-        "DefaultFilter": {
-            "ColumnLabel": "Distância",
-            "Operation": "≤",
-            "Value": 30
-        },
-        "lastSearch": []
-    },
-    "Integration": {
-        "Trace": Infinity,
-        "SampleTime": 10
-    },
-    "Elevation": {
-        "Points": 256,
-        "ForceSearch": false,
-        "Server": "Open-Elevation"
-    },
-    "Channel": {
-        "ManualMode": false
-    },
-    "Detection": {
-        "ManualMode": false,
-        "InitialBW_kHz": 0
-    },
-    "Report": {
+    "reportLib": {
         "system": "eFiscaliza",
         "unit": "",
-        "Document": "Relatório de Atividades",
-        "Basemap": "streets-dark",
-        "Image": {
-            "Format": "jpeg",
-            "Resolution": 120
+        "allowedMacrothemes": [
+            "PM-EC",
+            "PM-EF",
+            "PM-EM (Mobilidade)",
+            "PM-RD",
+            "PM-SAT",
+            "PM-SAT (Banda C e KU)",
+            "PM-SAT (Banda Ka)",
+            "UTE"
+        ],
+        "outputCompressionMode": "Não",
+        "entityType": {
+            "default": "",
+            "options": [
+                "",
+                "Prestadora",
+                "Importador",
+                "Fornecedor",
+                "Usuário"
+            ]
         },
-        "DataBinning": {
-            "length_m": 100,
-            "function": "mean-linear"
-        },
-        "outputCompressionMode": "Sim"
+        "basemap": "streets-dark",
+        "image": {
+            "format": "jpeg",
+            "resolutionDpi": 120
+        }
     },
     "eFiscaliza": {
         "internal": {
@@ -294,33 +405,92 @@
                 "UO113"
             ],
             "unitCityMapping": [
-              {"unit": "GR01", "city": "São Paulo/SP"},
-              {"unit": "GR02", "city": "Rio de Janeiro/RJ"},
-              {"unit": "GR03", "city": "Curitiba/PR"},
-              {"unit": "GR04", "city": "Belo Horizonte/MG"},
-              {"unit": "GR05", "city": "Porto Alegre/RS"},
-              {"unit": "GR06", "city": "Recife/PE"},
-              {"unit": "GR07", "city": "Goiânia/GO"},
-              {"unit": "GR08", "city": "Salvador/BA"},
-              {"unit": "GR09", "city": "Fortaleza/CE"},
-              {"unit": "GR10", "city": "Belém/PA"},
-              {"unit": "GR11", "city": "Manaus/AM"},            
-              {"unit": "UO001", "city": "Brasília/DF"},
-              {"unit": "UO021", "city": "Vitória/ES"},
-              {"unit": "UO031", "city": "Florianópolis/SC"},
-              {"unit": "UO061", "city": "Maceió/AL"},
-              {"unit": "UO062", "city": "João Pessoa/PB"},
-              {"unit": "UO071", "city": "Cuiabá/MT"},
-              {"unit": "UO072", "city": "Campo Grande/MS"},
-              {"unit": "UO073", "city": "Palmas/TO"},
-              {"unit": "UO081", "city": "Aracaju/SE"},
-              {"unit": "UO091", "city": "Natal/RN"},
-              {"unit": "UO092", "city": "Teresina/PI"},
-              {"unit": "UO101", "city": "São Luís/MA"},
-              {"unit": "UO102", "city": "Macapá/AP"},
-              {"unit": "UO111", "city": "Porto Velho/RO"},
-              {"unit": "UO112", "city": "Rio Branco/AC"},
-              {"unit": "UO113", "city": "Boa Vista/RR"}
+                {"unit": "GR01",  "city": "São Paulo/SP"},
+                {"unit": "GR02",  "city": "Rio de Janeiro/RJ"},
+                {"unit": "GR03",  "city": "Curitiba/PR"},
+                {"unit": "GR04",  "city": "Belo Horizonte/MG"},
+                {"unit": "GR05",  "city": "Porto Alegre/RS"},
+                {"unit": "GR06",  "city": "Recife/PE"},
+                {"unit": "GR07",  "city": "Goiânia/GO"},
+                {"unit": "GR08",  "city": "Salvador/BA"},
+                {"unit": "GR09",  "city": "Fortaleza/CE"},
+                {"unit": "GR10",  "city": "Belém/PA"},
+                {"unit": "GR11",  "city": "Manaus/AM"},
+                {"unit": "UO001", "city": "Brasília/DF"},
+                {"unit": "UO021", "city": "Vitória/ES"},
+                {"unit": "UO031", "city": "Florianópolis/SC"},
+                {"unit": "UO062", "city": "João Pessoa/PB"},
+                {"unit": "UO061", "city": "Maceió/AL"},
+                {"unit": "UO071", "city": "Cuiabá/MT"},
+                {"unit": "UO072", "city": "Campo Grande/MS"},
+                {"unit": "UO073", "city": "Palmas/TO"},
+                {"unit": "UO081", "city": "Aracaju/SE"},
+                {"unit": "UO091", "city": "Natal/RN"},
+                {"unit": "UO092", "city": "Teresina/PI"},
+                {"unit": "UO101", "city": "São Luís/MA"},
+                {"unit": "UO102", "city": "Macapá/AP"},
+                {"unit": "UO112", "city": "Rio Branco/AC"},
+                {"unit": "UO111", "city": "Porto Velho/RO"},
+                {"unit": "UO113", "city": "Boa Vista/RR"}
+            ],
+            "unitNameMapping": [
+                {"unit": "AFFO",   "name": "Gerência de Finanças, Orçamento e Arrecadação"},
+                {"unit": "ANATEL", "name": "Agência Nacional de Telecomunicações"},
+                {"unit": "CBC2",   "name": "Comissão de Radiocomunicações"},
+                {"unit": "CODI",   "name": "Gerência de Controle de Obrigações de Direitos dos Consumidores"},
+                {"unit": "COGE",   "name": "Gerência de Controle de Obrigações Gerais"},
+                {"unit": "COQL",   "name": "Gerência de Controle de Obrigações de Qualidade"},
+                {"unit": "COUN",   "name": "Gerência de Controle de Obrigações de Universalização e de Ampliação do Acesso"},
+                {"unit": "CPAE",   "name": "Gerência de Acompanhamento Econômico da Prestação"},
+                {"unit": "CPRP",   "name": "Gerência de Monitoramento das Relações entre Prestadoras"},
+                {"unit": "FIGF",   "name": "Gerência de Fiscalização"},
+                {"unit": "FISF",   "name": "Gerência de Suporte à Fiscalização"},
+                {"unit": "GIDS",   "name": "Gerência de Planejamento, Desenvolvimento e Segurança de Sistemas"},
+                {"unit": "GIIB",   "name": "Gerência de Informações e Biblioteca"},
+                {"unit": "GIMR",   "name": "Gerência de Planejamento, Operação e Manutenção de Redes"},
+                {"unit": "GR01",   "name": "Gerência Regional no Estado de São Paulo"},
+                {"unit": "GR02",   "name": "Gerência Regional nos Estados do Rio de Janeiro e Espírito Santo"},
+                {"unit": "GR03",   "name": "Gerência Regional nos Estados do Paraná e Santa Catarina"},
+                {"unit": "GR04",   "name": "Gerência Regional no Estado de Minas Gerais"},
+                {"unit": "GR05",   "name": "Gerência Regional no Estado do Rio Grande do Sul"},
+                {"unit": "GR06",   "name": "Gerência Regional nos Estados de Pernambuco, Paraíba e Alagoas"},
+                {"unit": "GR07",   "name": "Gerência Regional nos Estados de Goiás, Mato Grosso, Mato Grosso do Sul e Tocantins"},
+                {"unit": "GR08",   "name": "Gerência Regional nos Estados da Bahia e Sergipe"},
+                {"unit": "GR09",   "name": "Gerência Regional nos Estados do Ceará, Rio Grande do Norte e Piauí"},
+                {"unit": "GR10",   "name": "Gerência Regional nos Estados do Pará, Maranhão e Amapá"},
+                {"unit": "GR11",   "name": "Gerência Regional nos Estados do Amazonas, Acre, Rondônia e Roraima"},
+                {"unit": "MCTIC",  "name": "Ministério da Ciência, Tecnologia e Inovação"},
+                {"unit": "ORCN",   "name": "Gerência de Certificação e Numeração"},
+                {"unit": "ORER",   "name": "Gerência de Espectro, Órbita e Radiodifusão"},
+                {"unit": "ORLE",   "name": "Gerência de Outorga e Licenciamento de Estações"},
+                {"unit": "PRRE",   "name": "Gerência de Regulamentação"},
+                {"unit": "PRUV",   "name": "Gerência de Universalização e Ampliação do Acesso"},
+                {"unit": "RCRC",   "name": "Gerência de Canais de Relacionamento com os Consumidores"},
+                {"unit": "RCTS",   "name": "Gerência de Tratamento de Solicitações de Consumidores"},
+                {"unit": "SCO",    "name": "Superintendência de Controle de Obrigações"},
+                {"unit": "SCP",    "name": "Superintendência de Competição"},
+                {"unit": "SECOE",  "name": "Secretaria de Comunicação Social e Eletrônica"},
+                {"unit": "SERAD",  "name": "Secretaria de Radiodifusão"},
+                {"unit": "SETEL",  "name": "Secretaria de Telecomunicações"},
+                {"unit": "SEXEC",  "name": "Secretaria Executiva"},
+                {"unit": "SFI",    "name": "Superintendência de Fiscalização"},
+                {"unit": "SOR",    "name": "Superintendência de Outorga e Recursos à Prestação"},
+                {"unit": "UO001",  "name": "Unidade Operacional do Distrito Federal"},
+                {"unit": "UO021",  "name": "Unidade Operacional no Estado do Espírito Santo"},
+                {"unit": "UO031",  "name": "Unidade Operacional no Estado de Santa Catarina"},
+                {"unit": "UO061",  "name": "Unidade Operacional no Estado de Alagoas"},
+                {"unit": "UO062",  "name": "Unidade Operacional no Estado da Paraíba"},
+                {"unit": "UO071",  "name": "Unidade Operacional no Estado de Mato Grosso"},
+                {"unit": "UO072",  "name": "Unidade Operacional no Estado de Mato Grosso do Sul"},
+                {"unit": "UO073",  "name": "Unidade Operacional no Estado do Tocantins"},
+                {"unit": "UO081",  "name": "Unidade Operacional no Estado de Sergipe"},
+                {"unit": "UO091",  "name": "Unidade Operacional no Estado do Rio Grande do Norte"},
+                {"unit": "UO092",  "name": "Unidade Operacional no Estado do Piauí"},
+                {"unit": "UO101",  "name": "Unidade Operacional no Estado do Maranhão"},
+                {"unit": "UO102",  "name": "Unidade Operacional no Estado do Amapá"},
+                {"unit": "UO111",  "name": "Unidade Operacional no Estado de Rondônia"},
+                {"unit": "UO112",  "name": "Unidade Operacional no Estado do Acre"},
+                {"unit": "UO113",  "name": "Unidade Operacional no Estado de Roraima"}
             ],
             "servicos_da_inspecao": {
                 "value": [

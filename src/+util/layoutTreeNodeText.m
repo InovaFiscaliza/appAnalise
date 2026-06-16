@@ -2,7 +2,7 @@ function editedReceiverName = layoutTreeNodeText(rawIDN, callingFcn)
 
     arguments
         rawIDN
-        callingFcn char {mustBeMember(callingFcn, {'file_TreeBuilding', 'play_TreeBuilding', 'class.Band.update'})}
+        callingFcn char {mustBeMember(callingFcn, {'file_TreeBuilding', 'play_TreeBuilding', 'model.Band.updateSpectrumInfo'})}
     end
 
     IDN = strsplit(rawIDN, ',');
@@ -20,7 +20,7 @@ function editedReceiverName = layoutTreeNodeText(rawIDN, callingFcn)
                     editedReceiverName = rawIDN;
                 end
 
-            case 'class.Band.update'
+            case 'model.Band.updateSpectrumInfo'
                 editedReceiverName = strjoin(IDN(1:2), ' ');
         end
 

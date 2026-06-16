@@ -131,22 +131,50 @@ classdef (Abstract) Interactivity
         end
 
         %-----------------------------------------------------------------%
-        function CustomCallbacks(hAxes, hRelatedAxes, interaction2Customize, varargin)
+        function varargout = setGeoAxesInteraction(interactionMode, axesHandle, plotHandles, varargin)
+            mustBeMember(interactionMode, {'DisableDefaultInteractivity', 'EnableDefaultInteractivity'})
+
+            switch interactionMode
+                case 'DisableDefaultInteractivity'
+                    buttonDownFcn = {};
+                    if ~isempty(plotHandles)
+                        buttonDownFcn = arrayfun(@(x) x.ButtonDownFcn, plotHandles, 'UniformOutput', false);
+                        set(plotHandles, 'ButtonDownFcn', [])
+                    end
+                    varargout{1} = axesHandle.Interactions;
+                    varargout{2} = buttonDownFcn;
+                    axesHandle.Interactions = [];
+                    disableDefaultInteractivity(axesHandle)
+
+                otherwise % 'EnableDefaultInteractivity'
+                    axesInteractions = varargin{1};
+                    buttonDownFcn    = varargin{2};
+
+                    if ~isempty(plotHandles) && ~isempty(buttonDownFcn)
+                        arrayfun(@(x,y) set(x, 'ButtonDownFcn', y), plotHandles, buttonDownFcn)
+                    end
+                    axesHandle.Interactions = axesInteractions;
+                    enableDefaultInteractivity(axesHandle)
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function CustomCallbacks(hAxes, hRelatedAxes, interactionToCustomize, varargin)
             arguments
-                hAxes                 (1,1) matlab.ui.control.UIAxes
-                hRelatedAxes                                         = []
-                interaction2Customize (1,:) cell                     = {'pan', 'restoreview'}
+                hAxes (1,1) matlab.ui.control.UIAxes
+                hRelatedAxes = []
+                interactionToCustomize (1,:) cell = {'pan', 'restoreview'}
             end
 
             arguments (Repeating)
                 varargin
             end
 
-            for jj = 1:numel(interaction2Customize)
-                [~, hInteraction] = plot.axes.Interactivity.FindInteractionObject(hAxes, 'Toolbar', interaction2Customize{jj});
+            for ii = 1:numel(interactionToCustomize)
+                [~, hInteraction] = plot.axes.Interactivity.FindInteractionObject(hAxes, 'Toolbar', interactionToCustomize{ii});
 
                 if ~isempty(hInteraction)
-                    switch interaction2Customize{jj}
+                    switch interactionToCustomize{ii}
                         case 'pan'
                             if isprop(hInteraction, 'ValueChangedFcn')
                                 hInteraction.ValueChangedFcn = @(~, evt)plot.axes.Interactivity.CustomPanFcn(evt, hAxes, hRelatedAxes);
@@ -163,23 +191,56 @@ classdef (Abstract) Interactivity
         end
 
         %-----------------------------------------------------------------%
-        function CustomRestoreViewFcn(hAxes, hRelatedAxes, callingApp)
+        function CustomRestoreViewFcn(hAxes, hRelatedAxes, callingApp, isAxesLinkedX)
+            arguments
+                hAxes 
+                hRelatedAxes 
+                callingApp 
+                isAxesLinkedX = true
+            end
             % Para que essa função customizada funcione, o callingApp precisa 
             % ter uma propriedade chamada "restoreView", que é uma estrutura 
             % com ao menos os campos "xLim" e "yLim".
 
             hMultiAxes = [hAxes, hRelatedAxes];
-            
-            for ii = 1:numel(hMultiAxes)
-                try
-                    set(hMultiAxes(ii), 'XLim', callingApp.restoreView(ii).xLim, 'YLim', callingApp.restoreView(ii).yLim)
-                catch
+
+            try
+                for ii = 1:numel(hMultiAxes)
+                    if ii == 1 || ~isAxesLinkedX
+                        hMultiAxes(ii).XLim = getXLim(callingApp.restoreView(ii).xLim);
+                    end
+
+                    hMultiAxes(ii).YLim = getYLim(callingApp.restoreView(ii).yLim, class(hMultiAxes(ii).YAxis));
+                end
+            catch
+            end
+
+            function xLim = getXLim(xLim)
+                if isempty(xLim)
+                    xLim = [0, 1];
+                end
+            end
+
+            function yLim = getYLim(yLim, yAxisClass)
+                if isempty(yLim)
+                    switch yAxisClass
+                        case 'matlab.graphics.axis.decorator.DatetimeRuler'
+                            yLim = [datetime('now'), datetime('now')+seconds(1)];
+                        otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
+                            yLim = [0, 1];
+                    end
                 end
             end
         end
         
         %-----------------------------------------------------------------%
         function CustomPanFcn(evt, hAxes, hRelatedAxes)
+            arguments
+                evt
+                hAxes
+                hRelatedAxes = []
+            end
+            
             % Para que essa função customizada funcione, os eixos precisam ter
             % sido criados com a diretiva Interactions=0. Se um eixo não for 
             % criado dessa forma, o MATLAB criará automaticamente um objeto 
@@ -217,7 +278,6 @@ classdef (Abstract) Interactivity
                             end
                         end
                     end
-
                 catch
                 end
             end
@@ -253,7 +313,7 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % ROI
         %-----------------------------------------------------------------%
-        function CustomROIInteractionFcn(event, hMultiAxes, CustomFcnHandle)
+        function CustomROIInteractionFcn(event, hMultiAxes, CustomFcnHandle, varargin)
             % Para que essa função customizada funcione, deve ser passado como
             % argumento de entrada um handle para a função externa (pode ser 
             % um método do callingApp, por exemplo) que efetuará as operações 
@@ -264,7 +324,7 @@ classdef (Abstract) Interactivity
                     plot.axes.Interactivity.DefaultDisable(hMultiAxes)
                 case 'ROIMoved'
                     plot.axes.Interactivity.DefaultEnable(hMultiAxes)
-                    CustomFcnHandle()
+                    CustomFcnHandle(varargin{:})
             end
         end
 
@@ -298,9 +358,15 @@ classdef (Abstract) Interactivity
         %-----------------------------------------------------------------%
         % GEOGRAPHICREGIONZOOM
         %-----------------------------------------------------------------%
-        function GeographicRegionZoomInteraction(hAxes, hToolbarButton)
-            disableDefaultInteractivity(hAxes)
+        function GeographicRegionZoomInteraction(hAxes, hToolbarButton, hPlotButtonDown)
+            arguments
+                hAxes
+                hToolbarButton
+                hPlotButtonDown = []
+            end
+
             hToolbarButton.ImageSource = 'ZoomRegion_20Filled.png';
+            [axesInteractions, buttonDownFcn] = plot.axes.Interactivity.setGeoAxesInteraction('DisableDefaultInteractivity', hAxes, hPlotButtonDown);
 
             r = drawrectangle(hAxes, 'FaceSelectable', 0, 'InteractionsAllowed', 'none', 'LineWidth', 1, 'FaceAlpha', 0, 'Tag', 'RegionZoom');
             if ~isempty(r.Position)                           && ...
@@ -318,7 +384,7 @@ classdef (Abstract) Interactivity
             delete(r)
 
             hToolbarButton.ImageSource = 'ZoomRegion_20.png';
-            enableDefaultInteractivity(hAxes)
+            plot.axes.Interactivity.setGeoAxesInteraction('EnableDefaultInteractivity', hAxes, hPlotButtonDown, axesInteractions, buttonDownFcn);
         end
     end
 end

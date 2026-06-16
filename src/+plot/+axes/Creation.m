@@ -16,10 +16,11 @@ function hAxes = Creation(hParent, axesType, varargin)
                                     XGrid='on', XMinorGrid='on', YGrid='on', YMinorGrid='on', TickDir='in',                  ...
                                     GridAlpha=.25, GridColor=[.94,.94,.94], MinorGridAlpha=.2, MinorGridColor=[.94,.94,.94], ...
                                     Interactions=[], Toolbar=[]);
+            
             if nargin == 3
                 othersParameters = varargin{1};
                 set(hAxes, othersParameters{:});
-            end            
+            end
 
         case 'Geographic'
             hAxes = geoaxes(hParent, FontSize=6, Basemap='none', AxisColor='white',      ...

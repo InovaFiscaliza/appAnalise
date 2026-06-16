@@ -1,0 +1,677 @@
+[
+    {
+        "Type": "ItemN1",
+        "Recurrence": 0,
+        "Data": {
+            "Editable": "false",
+            "Text": "OBJETIVO",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Atendimento à demanda de fiscalização cadastrada no eFiscaliza sob a <b>Atividade de Inspeção nº %.0f</b>, relacionada à monitoração realizada na(s) localidade(s) <b>%s</b>.",
+                        "Variable": [
+                            "var_Issue",
+                            "var_RelatedLocations"
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "Type": "ItemN1",
+        "Recurrence": 0,
+        "Data": {
+            "Editable": "false",
+            "Text": "INTRODUÇÃO",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "O Plano de Monitoração do Espectro na Fronteira (PMEF), criado no ano de 2015, tem como objetivo evidenciar interferências relacionadas a estações de telecomunicações (inclusas de radiodifusão) instaladas na fronteira, envolvendo o Brasil e os países vizinhos. Atualmente o foco desse plano são faixas de frequências destinadas ao serviço móvel pessoal (SMP), com destaque para as indicadas a seguir.",
+                        "Variable": []
+                    }
+                },
+                {
+                    "Type": "List",
+                    "Data": [
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 400 MHz: 451.000 a 458.000 e 461.000 a 468.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 700 MHz: 703.000 a 748.000 e 758.000 a 803.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 800 MHz: 824.000 a 849.000, 869.000 a 894.000 e 898.500 a 901.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 900 MHz: 907.500 a 915.000, 943.500 a 946.000 e 952.500 a 960.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 1.7 GHz: 1710.000 a 1785.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 1.8 GHz: 1805.000 a 1850.000, 1850.000 a 1880.000 e 1885.000 a 1900.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 1.9 GHz: 1920.000 a 1980.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 2.1 GHz: 2110.000 a 2170.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 2.3 GHz: 2300.000 a 2390.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 2.5 GHz: 2500.000 a 2690.000 MHz",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Faixa 3.5 GHz: 3300.000 a 3800.000 MHz",
+                            "Variable": []
+                        }
+                    ]
+                },
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "true",
+                        "Text": "Neste ano de 2026, o PMEF foi formalizado por meio do <b>Processo nº 53500.108322/2025-98</b>, o qual contempla o Plano de Trabalho (SEI nº 15118941).",
+                        "Variable": []
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "Type": "ItemN1",
+        "Recurrence": 0,
+        "Data": {
+            "Editable": "false",
+            "Text": "METODOLOGIA",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "A fiscalização realizada no âmbito do PMEF envolve a realização de duas etapas - <i>Drive-test</i> e análise espectral.",
+                        "Variable": []
+                    }
+                },
+                {
+                    "Type": "List",
+                    "Data": [
+                        {
+                            "Editable": "false",
+                            "Text": "Etapa \"<i>Drive-test</i>\" - A captura de dados de monitoração e a demodulação/decodificação é realizada por analisadores de rede sem fio. Os dados são armazenados em arquivos no formato SQC/SQZ, sendo pós-processados no ROMES e no Smart Analytics.",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "false",
+                            "Text": "Etapa \"Análise espectral\" - A Agência captura dados de monitoração por meio de receptores e analisadores de espectro, armazenando-os em arquivos de diferentes formatos, como CRFS BIN, Argus CSV e appColeta BIN. O pós-processamento desses dados engloba a aferição da ocupação por <i>bin</i> ou canal, a detecção de emissões e a geração de representações gráficas.",
+                            "Variable": []
+                        }
+                    ]
+                },
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "External",
+                        "Source": "METODOLOGIA",
+                        "Columns": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações da monitoração realizada no <i>Drive-test</i>.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Ponto",
+                                "Precision": "%.0f",
+                                "Width": "40px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Sensor",
+                                "Precision": "%s",
+                                "Width": "110px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Início da<br>monitoração",
+                                "Precision": "%s",
+                                "Width": "110px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Término da<br>monitoração",
+                                "Precision": "%s",
+                                "Width": "110px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência inicial",
+                                "Precision": "%s",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência final",
+                                "Precision": "%s",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Tecnologia",
+                                "Precision": "%s",
+                                "Width": "130px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Outros parâmetros",
+                                "Precision": "%s",
+                                "Width": "auto"
+                            }
+                        ],
+                        "LineBreak": 0,
+                        "Intro": "{\"Type\":\"ItemN2\",\"Text\":\"Na tabela apresentada a seguir constam informações acerca do <i>Drive-test</i>, com a ressalva de que em cada ponto foram monitoradas todas as faixas de frequências listadas no Item 2.1.\"}",
+                        "Error": ""
+                    }
+                },
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_MonitoringBandsOverview",
+                        "Columns": [
+                            "ID",
+                            "Band",
+                            "Receiver",
+                            "LocationSummary",
+                            "ObservationTime",
+                            "Parameters"
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações da monitoração.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "#",
+                                "Precision": "%.0f",
+                                "Width": "40px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Faixa de frequência",
+                                "Precision": "%s",
+                                "Width": "130px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Sensor",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Local da monitoração",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Observação<br>(Período, Varreduras e Tempo de revisita)",
+                                "Precision": "%s",
+                                "Width": "210px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Outros parâmetros",
+                                "Precision": "%s",
+                                "Width": "auto"
+                            }
+                        ],
+                        "LineBreak": 0,
+                        "Intro": "{\"Type\":\"ItemN2\",\"Text\":\"Na tabela apresentada a seguir constam informações da monitoração sob análise.\"}",
+                        "Error": ""
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "Type": "ItemN1",
+        "Recurrence": 1,
+        "Data": {
+            "Editable": "false",
+            "Text": "RESULTADOS",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "%s",
+                        "Variable": "var_TagFlow"
+                    }
+                },
+                {
+                    "Type": "Image",
+                    "Data": {
+                        "Origin": "External",
+                        "Source": "",
+                        "Context": "",
+                        "Name": "ROMES",
+                        "Layout": "1",
+                        "Caption": "Imagem extraída do ROMES.",
+                        "Settings": {
+                            "Width": "95%",
+                            "Height": "95%"
+                        },
+                        "LineBreak": 0,
+                        "Intro": "{\"Type\":\"Paragraph\",\"Text\":\"A coleta de dados que possibilita a realização do <i>Drive-test</i> é conduzida por sensor fabricado pela Rohde & Schwarz, modelo TSME. Os dados são pós-processados no ROMES e no Smart Analytics, sendo identificados, para cada emissão, os códigos MCC e MNC, os quais identificam o país e a operadora responsável pela estação geradora da emissão.\"}",
+                        "Error": "{\"Type\":\"Paragraph\",\"Text\":\"A coleta de dados que possibilita a realização do <i>Drive-test</i> é conduzida por sensor fabricado pela Rohde & Schwarz, modelo TSME. Os dados são pós-processados no ROMES e no Smart Analytics. Exceção ao caso em que não foi realizada a coleta de dados por impossibilidade ou adequação da fiscalização.\"}"
+                    }
+                },
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "External",
+                        "Source": "ROMES",
+                        "Columns": [
+                            1,
+                            2,
+                            3,
+                            4,
+                            5,
+                            6,
+                            7,
+                            8,
+                            9,
+                            10,
+                            11
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações da monitoração realizada no <i>Drive-test</i>.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência central do canal (MHz)",
+                                "Precision": "%.3f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Canal",
+                                "Precision": "%.0f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Largura ocupada (MHz)",
+                                "Precision": "%.0f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Tecnologia",
+                                "Precision": "%s",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "MCC",
+                                "Precision": "%.0f",
+                                "Width": "50px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "País",
+                                "Precision": "%s",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "MNC",
+                                "Precision": "%.0f",
+                                "Width": "50px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Operadora",
+                                "Precision": "%s",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "true",
+                                "ColumnName": "Sobreposição?",
+                                "Precision": "%s",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível (dBm)",
+                                "Precision": "%.1f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Downlink/uplink?",
+                                "Precision": "%s",
+                                "Width": "75px"
+                            }
+                        ],
+                        "LineBreak": 1,
+                        "Intro": "",
+                        "Error": "{\"Type\":\"Paragraph\",\"Text\":\"Para essa faixa não será apresentada tabela com indicação, para cada emissão, dos códigos MCC e MNC, os quais identificam o país e a operadora responsável pela estação geradora da emissão.\"}"
+                    }
+                },
+                {
+                    "Type": "Image",
+                    "Data": {
+                        "Origin": "FunctionEvaluation",
+                        "Source": "img_Plot",
+                        "Context": "appAnalise:REPORT:BAND",
+                        "Name": "minHold+average+maxHold+emission:waterfall",
+                        "Layout": "1:1",
+                        "Caption": "Representação gráfica da faixa de frequência sob análise.",
+                        "Settings": {
+                            "Width": "100%",
+                            "Height": "auto"
+                        },
+                        "LineBreak": 0,
+                        "Intro": "",
+                        "Error": ""
+                    }
+                },
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandAlgorithms",
+                        "Columns": [
+                            "Algorithm",
+                            "Parameters"
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações acerca do método de aferição da ocupação e dos algoritmos de detecção e classificação de emissões.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Operação",
+                                "Precision": "%s",
+                                "Width": "130px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Parâmetros",
+                                "Precision": "%s",
+                                "Width": "auto"
+                            }
+                        ],
+                        "LineBreak": 1,
+                        "Intro": "",
+                        "Error": ""
+                    }
+                },
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_BandEmissions",
+                        "Columns": [
+                            "ID",
+                            "Frequency",
+                            "Truncated",
+                            "BandWidthkHz",
+                            "Level_FreqCenter_Min",
+                            "Level_FreqCenter_Mean",
+                            "Level_FreqCenter_Max",
+                            "FCO_FreqCenter_Finite_Mean",
+                            "FCO_FreqCenter_Finite_Max",
+                            "MergedDescriptions",
+                            "Distance"
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações acerca da(s) emissão(ões) detectada(s).",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "#",
+                                "Precision": "%s",
+                                "Width": "40px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência<br>(MHz)",
+                                "Precision": "%.3f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência canal (MHz)",
+                                "Precision": "%.3f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Largura<br>(kHz)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível mínimo (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível médio (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível máximo (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Ocupação média (%)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Ocupação máxima (%)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Identificação do provável emissor",
+                                "Precision": "%s",
+                                "Width": "auto"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Distância<br>(km)",
+                                "Precision": "%s",
+                                "Width": "60px"
+                            }
+                        ],
+                        "LineBreak": 0,
+                        "Intro": "{\"Type\":\"Paragraph\",\"Text\":\"A seguir são apresentadas informações acerca da(s) emissão(ões) detectada(s).\"}",
+                        "Error": "{\"Type\":\"Paragraph\",\"Text\":\"Não foi detectado sequer um pico que atendesse às condições estabelecidas no supracitado processo de detecção de emissões.\"}"
+                    }
+                },
+                {
+                    "Type": "Container",
+                    "Data": {
+                        "Source": "Emission",
+                        "Component": [
+                            {
+                                "Type": "Paragraph",
+                                "Data": {
+                                    "Editable": "false",
+                                    "Text": "%s",
+                                    "Variable": "var_EmissionTag"
+                                }
+                            },
+                            {
+                                "Type": "Image",
+                                "Data": {
+                                    "Origin": "FunctionEvaluation",
+                                    "Source": "img_Plot",
+                                    "Context": "appAnalise:REPORT:EMISSION",
+                                    "Name": "minHold+average+maxHold+emission:driveTest",
+                                    "Layout": "1:3",
+                                    "Caption": "Representação gráfica da emissão sob análise.",
+                                    "Settings": {
+                                        "Width": "100%",
+                                        "Height": "auto"
+                                    },
+                                    "LineBreak": 0,
+                                    "Intro": "",
+                                    "Error": ""
+                                }
+                            }
+                        ]
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "Type": "ItemN1",
+        "Recurrence": 0,
+        "Data": {
+            "Editable": "false",
+            "Text": "ANÁLISE",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "External",
+                        "Source": "SUMÁRIO",
+                        "Columns": [
+                            1,
+                            2,
+                            3,
+                            4
+                        ],
+                        "Filter": [],
+                        "Caption": "Sumário da monitoração sob análise em relação à origem das estações.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Faixa de frequência",
+                                "Precision": "%s",
+                                "Width": "140px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Estações nacionais",
+                                "Precision": "%.0f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Estações estrangeiras",
+                                "Precision": "%.0f",
+                                "Width": "75px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Estações<br>não identificadas",
+                                "Precision": "%.0f",
+                                "Width": "auto"
+                            }
+                        ],
+                        "LineBreak": 1,
+                        "Intro": "{\"Type\":\"ItemN2\",\"Text\":\"Alguns dos resultados apresentados no Item 4 podem ser sumarizados em relação à origem das estações.\"}",
+                        "Error": ""
+                    }
+                },
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "true",
+                        "Text": "Por fim, cabe destacar os seguintes pontos acerca da monitoração sob análise:",
+                        "Variable": []
+                    }
+                },
+                {
+                    "Type": "List",
+                    "Data": [
+                        {
+                            "Editable": "true",
+                            "Text": "...",
+                            "Variable": []
+                        },
+                        {
+                            "Editable": "true",
+                            "Text": "...",
+                            "Variable": []
+                        }
+                    ]
+                }
+            ]
+        }
+    },
+    {
+        "Type": "ItemN1",
+        "Recurrence": 0,
+        "Data": {
+            "Editable": "false",
+            "Text": "CONCLUSÃO",
+            "Variable": [],
+            "Component": [
+                {
+                    "Type": "ItemN2",
+                    "Data": {
+                        "Editable": "false",
+                        "Text": "Ante o exposto, conclui-se este relatório de atividades.",
+                        "Variable": []
+                    }
+                }
+            ]
+        }
+    }
+]

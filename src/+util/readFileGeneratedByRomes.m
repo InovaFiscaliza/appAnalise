@@ -26,5 +26,5 @@ function romesTable = readFileGeneratedByRomes(fileName)
     romesTable.BW   = 1000 * romesTable.BW;
     romesTable.Info = string(romesTable.Technology) + ", " + string(romesTable.Band) + ", " + romesTable.Channel + ", " + romesTable.Notes;
 
-    romesTable      = romesTable(:,[3,5,7]);
+    romesTable      = romesTable(:, [3,5,7]);
 end

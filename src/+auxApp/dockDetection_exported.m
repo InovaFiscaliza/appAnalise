@@ -2,142 +2,108 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                 matlab.ui.Figure
-        GridLayout               matlab.ui.container.GridLayout
-        fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel  matlab.ui.control.Label
-        Document                 matlab.ui.container.GridLayout
-        Algorithm                matlab.ui.control.DropDown
-        AlgorithmLabel           matlab.ui.control.Label
-        btnOK                    matlab.ui.control.Button
-        ParametersPanel          matlab.ui.container.Panel
-        ParametersGrid           matlab.ui.container.GridLayout
-        MeanPanel                matlab.ui.container.Panel
-        MeanGrid                 matlab.ui.container.GridLayout
-        Prominence1              matlab.ui.control.Spinner
-        Prominence1Label         matlab.ui.control.Label
-        MaxHoldPanel             matlab.ui.container.Panel
-        MaxHoldGrid              matlab.ui.container.GridLayout
-        maxOCC                   matlab.ui.control.Spinner
-        play_FindPeaks_OCCLabel  matlab.ui.control.Label
-        meanOCC                  matlab.ui.control.Spinner
-        Prominence2              matlab.ui.control.Spinner
-        Prominence2Label         matlab.ui.control.Label
-        BW_kHz                   matlab.ui.control.Spinner
-        BW_kHzLabel              matlab.ui.control.Label
-        Distance                 matlab.ui.control.Spinner
-        DistanceLabel            matlab.ui.control.Label
-        FindPeaksClass           matlab.ui.control.DropDown
-        FindPeaksClassLabel      matlab.ui.control.Label
-        Prominence               matlab.ui.control.Spinner
-        ProminenceLabel          matlab.ui.control.Label
-        THR                      matlab.ui.control.Spinner
-        THRLabel                 matlab.ui.control.Label
-        NPeaks                   matlab.ui.control.Spinner
-        NPeaksLabel              matlab.ui.control.Label
-        Trace                    matlab.ui.control.DropDown
-        TraceLabel               matlab.ui.control.Label
-        btnClose                 matlab.ui.control.Image
+        UIFigure                        matlab.ui.Figure
+        GridLayout                      matlab.ui.container.GridLayout
+        SearchButton                    matlab.ui.control.Button
+        AlgorithmPanel                  matlab.ui.container.Panel
+        AlgorithmGrid                   matlab.ui.container.GridLayout
+        ConnectedRegionsMinOrientation  matlab.ui.control.Spinner
+        ConnectedRegionsMinOrientationLabel  matlab.ui.control.Label
+        ConnectedRegionsMinOccupancy    matlab.ui.control.Spinner
+        ConnectedRegionsMinOccupancyLabel  matlab.ui.control.Label
+        ConnectedRegionsMaxOccupancy    matlab.ui.control.Spinner
+        ConnectedRegionsMaxOccupancyLabel  matlab.ui.control.Label
+        ConnectedRegionsArea            matlab.ui.control.Spinner
+        ConnectedRegionsAreaLabel       matlab.ui.control.Label
+        ConnectedRegionsOffset          matlab.ui.control.Spinner
+        ConnectedRegionsOffsetLabel     matlab.ui.control.Label
+        FindPeaksPlusOCCPanel2          matlab.ui.container.Panel
+        FindPeaksPlusOCCGrid2           matlab.ui.container.GridLayout
+        FindPeaksPlusOCCMaxOccupancy    matlab.ui.control.Spinner
+        FindPeaksPlusOCCMinOccupancy    matlab.ui.control.Spinner
+        FindPeaksPlusOCCOccupancyLabel  matlab.ui.control.Label
+        FindPeaksPlusOCCProminence2     matlab.ui.control.Spinner
+        FindPeaksPlusOCCProminence2Label  matlab.ui.control.Label
+        FindPeaksPlusOCCPanel1          matlab.ui.container.Panel
+        FindPeaksPlusOCCGrid1           matlab.ui.container.GridLayout
+        FindPeaksPlusOCCProminence1     matlab.ui.control.Spinner
+        FindPeaksPlusOCCProminence1Label  matlab.ui.control.Label
+        FindPeaksPlusOCCBandWidth       matlab.ui.control.Spinner
+        FindPeaksPlusOCCBandWidthLabel  matlab.ui.control.Label
+        FindPeaksPlusOCCDistance        matlab.ui.control.Spinner
+        FindPeaksPlusOCCDistanceLabel   matlab.ui.control.Label
+        FindPeaksPlusOCCClass           matlab.ui.control.DropDown
+        FindPeaksPlusOCCClassLabel      matlab.ui.control.Label
+        FindPeaksThreshold              matlab.ui.control.Spinner
+        FindPeaksThresholdLabel         matlab.ui.control.Label
+        FindPeaksNumPeaks               matlab.ui.control.Spinner
+        FindPeaksNumPeaksLabel          matlab.ui.control.Label
+        FindPeaksProminence             matlab.ui.control.Spinner
+        FindPeaksProminenceLabel        matlab.ui.control.Label
+        FindPeaksBandWidth              matlab.ui.control.Spinner
+        FindPeaksBandWidthLabel         matlab.ui.control.Label
+        FindPeaksDistance               matlab.ui.control.Spinner
+        FindPeaksDistanceLabel          matlab.ui.control.Label
+        FindPeaksTrace                  matlab.ui.control.DropDown
+        FindPeaksTraceLabel             matlab.ui.control.Label
+        Algorithm                       matlab.ui.control.DropDown
+        AlgorithmLabel                  matlab.ui.control.Label
+        SearchModePanel                 matlab.ui.container.ButtonGroup
+        OnlySearchEmissions             matlab.ui.control.RadioButton
+        ReplaceEmissions                matlab.ui.control.RadioButton
+        AddEmissions                    matlab.ui.control.RadioButton
+        SearchModeLabel                 matlab.ui.control.Label
     end
 
     
     properties (Access = private)
         %-----------------------------------------------------------------%
-        Container
-        isDocked = true
+        Role = 'secondaryDockApp'
+    end
 
+
+    properties (Access = public)
+        %-----------------------------------------------------------------%
+        Container
+        isDocked = true        
         mainApp
-        specData
-        channelObj
+        callingApp
+    end
+
+
+    properties (Access = private)
+        %-----------------------------------------------------------------%
+        inputArgs
     end
     
     
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initivalValues(app)
-            idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-            
-            app.Algorithm.Value  = app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm;
-            set(app.FindPeaksClass, 'Items', [{''}; app.channelObj.FindPeaks.Name], 'Value', '')
-            Layout(app)
+        function initialValues(app)
+            channelObj = app.mainApp.channelObj;
+            app.FindPeaksPlusOCCClass.Items = [{''}; channelObj.FindPeaks.EmissionClass];
+        end
+
+        %-----------------------------------------------------------------%
+        function updatePanel(app)
+            elHandles = app.AlgorithmGrid.Children;
 
             switch app.Algorithm.Value
-                case 'FindPeaks'
-                    app.Trace.Value          = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn;
-                    app.NPeaks.Value         = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks;
-                    app.THR.Value            = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR;
-                    app.Prominence.Value     = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence;
-                    app.Distance.Value       = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-                    app.BW_kHz.Value         = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
+                case 'Detecção por picos'
+                    relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaks');
+                    app.AlgorithmGrid.RowHeight = {26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
 
-                case 'FindPeaks+OCC'
-                    app.Distance.Value       = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz;
-                    app.BW_kHz.Value         = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz;
-                    app.Prominence1.Value    = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1;
-                    app.Prominence2.Value    = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2;
-                    app.meanOCC.Value        = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC;
-                    app.maxOCC.Value         = app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC;
+                case 'Picos com ocupação'
+                    relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaksPlusOCC');
+                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, '1x', 0, 0, 0, 0};
+
+                otherwise % 'Regiões conectadas'
+                    relatedElHandles = findobj(elHandles, 'Tag', 'ConnectedRegions');
+                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 26, 22, 32, 22};
             end
-        end
 
-        %-----------------------------------------------------------------%
-        function Layout(app)
-            switch app.Algorithm.Value
-                case 'FindPeaks'
-                    app.ParametersGrid.RowHeight([1 2 5]) = {25,22,0};
-                    
-                    app.ProminenceLabel.Visible     = 1;
-                    app.Prominence.Visible          = 1;
-                    app.FindPeaksClassLabel.Visible = 0;
-                    app.FindPeaksClass.Visible      = 0;
-
-                case 'FindPeaks+OCC'
-                    app.ParametersGrid.RowHeight([1 2 5]) = {0,0,87};
-
-                    app.ProminenceLabel.Visible     = 0;
-                    app.Prominence.Visible          = 0;
-                    app.FindPeaksClassLabel.Visible = 1;
-                    app.FindPeaksClass.Visible      = 1;
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function editionFlag = checkEdition(app)
-            editionFlag = false;
-
-            idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-            if ~isequal(app.Algorithm.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm)
-                editionFlag = true;
-
-            else
-                switch app.Algorithm.Value
-                    case 'FindPeaks'
-                        if ~isequal(app.Trace.Value,       app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Fcn)          || ...
-                           ~isequal(app.NPeaks.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.NPeaks)       || ...
-                           ~isequal(app.THR.Value,         app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.THR)          || ...
-                           ~isequal(app.Prominence.Value,  app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence)   || ...
-                           ~isequal(app.Distance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-                           ~isequal(app.BW_kHz.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)
-                            
-                            editionFlag = true;
-                        end
-
-                    case 'FindPeaks+OCC'
-                        if ~isequal(app.Distance.Value,    app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Distance_kHz) || ...
-                           ~isequal(app.BW_kHz.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.BW_kHz)       || ...
-                           ~isequal(app.Prominence1.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence1)  || ...
-                           ~isequal(app.Prominence2.Value, app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.Prominence2)  || ...
-                           ~isequal(app.meanOCC.Value,     app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.meanOCC)      || ...
-                           ~isequal(app.maxOCC.Value,      app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters.maxOCC)
-                            
-                            editionFlag = true;
-                        end
-                end
-            end
-        end
-
-        %-----------------------------------------------------------------%
-        function callingMainApp(app, updateFlag, returnFlag, idxThread)
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'REPORT:DETECTION', updateFlag, returnFlag, idxThread)
+            set(relatedElHandles, 'Visible', true)
+            set(setdiff(elHandles, relatedElHandles), 'Visible', false)
         end
     end
     
@@ -146,13 +112,18 @@ classdef dockDetection_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainapp)
+        function startupFcn(app, mainApp, callingApp, context)
             
-            app.mainApp    = mainapp;
-            app.specData   = mainapp.specData;
-            app.channelObj = mainapp.channelObj;
+            try
+                appEngine.boot(app, app.Role, mainApp, callingApp)
 
-            initivalValues(app)
+                app.inputArgs = struct('context', context);
+                initialValues(app)
+                updatePanel(app)
+                
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
+            end
             
         end
 
@@ -164,96 +135,114 @@ classdef dockDetection_exported < matlab.apps.AppBase
         end
 
         % Value changed function: Algorithm
-        function AlgorithmValueChanged(app, event)
+        function onAlgorithmValueChanged(app, event)
             
-            Layout(app)
-            ParameterValueChanged(app)
+            updatePanel(app)
 
         end
 
-        % Value changed function: FindPeaksClass
-        function FindPeaksClassValueChanged(app, event)
+        % Value changed function: FindPeaksPlusOCCClass
+        function onEmissionClassValueChanged(app, event)
             
-            if ~isempty(app.FindPeaksClass.Value)
-                [~, idxFindPeaks] = ismember(app.FindPeaksClass.Value, app.channelObj.FindPeaks.Name);
+            if ~isempty(app.FindPeaksPlusOCCClass.Value)
+                channelObj = app.mainApp.channelObj;
+                [~, findPeaksIdx] = ismember(app.FindPeaksPlusOCCClass.Value, channelObj.FindPeaks.EmissionClass);
 
-                if idxFindPeaks    
-                    app.Distance.Value    = 1000 * app.channelObj.FindPeaks.Distance(idxFindPeaks);
-                    app.BW_kHz.Value      = 1000 * app.channelObj.FindPeaks.BW(idxFindPeaks);
-                    app.Prominence1.Value = app.channelObj.FindPeaks.Prominence1(idxFindPeaks);
-                    app.Prominence2.Value = app.channelObj.FindPeaks.Prominence2(idxFindPeaks);
-                    app.meanOCC.Value     = app.channelObj.FindPeaks.meanOCC(idxFindPeaks);
-                    app.maxOCC.Value      = app.channelObj.FindPeaks.maxOCC(idxFindPeaks);
-    
-                    ParameterValueChanged(app)
+                if findPeaksIdx
+                    app.FindPeaksPlusOCCDistance.Value     = 1000 * channelObj.FindPeaks.MinDistanceMHz(findPeaksIdx);
+                    app.FindPeaksPlusOCCBandWidth.Value    = 1000 * channelObj.FindPeaks.MinWidthMHz(findPeaksIdx);
+                    app.FindPeaksPlusOCCProminence1.Value  = channelObj.FindPeaks.MinProminenceCenter(findPeaksIdx);
+                    app.FindPeaksPlusOCCProminence2.Value  = channelObj.FindPeaks.MinProminenceMax(findPeaksIdx);
+                    app.FindPeaksPlusOCCMinOccupancy.Value = channelObj.FindPeaks.MinOccupancyMeanOverTime(findPeaksIdx);
+                    app.FindPeaksPlusOCCMaxOccupancy.Value = channelObj.FindPeaks.MinOccupancyMaxOverTime(findPeaksIdx);
                 end
             end
 
         end
 
-        % Value changed function: maxOCC, meanOCC
-        function occValueChanged(app, event)
+        % Value changed function: FindPeaksPlusOCCMaxOccupancy, 
+        % ...and 1 other component
+        function onOccupancyValueChanged(app, event)
             
             switch event.Source
-                case app.meanOCC
-                    if app.meanOCC.Value > app.maxOCC.Value
-                        app.maxOCC.Value = app.meanOCC.Value;
+                case app.FindPeaksPlusOCCMinOccupancy
+                    if app.FindPeaksPlusOCCMinOccupancy.Value > app.FindPeaksPlusOCCMaxOccupancy.Value
+                        app.FindPeaksPlusOCCMaxOccupancy.Value = app.FindPeaksPlusOCCMinOccupancy.Value;
                     end
-                case app.maxOCC
-                    if app.maxOCC.Value < app.meanOCC.Value
-                        app.meanOCC.Value = app.maxOCC.Value;
+
+                case app.FindPeaksPlusOCCMaxOccupancy
+                    if app.FindPeaksPlusOCCMaxOccupancy.Value < app.FindPeaksPlusOCCMinOccupancy.Value
+                        app.FindPeaksPlusOCCMinOccupancy.Value = app.FindPeaksPlusOCCMaxOccupancy.Value;
                     end
-            end
-            ParameterValueChanged(app)
-
-        end
-
-        % Value changed function: BW_kHz, Distance, NPeaks, Prominence, 
-        % ...and 4 other components
-        function ParameterValueChanged(app, event)
-            
-            if checkEdition(app)
-                app.btnOK.Enable = 1;
-            else
-                app.btnOK.Enable = 0;
             end
 
         end
 
-        % Callback function: btnClose, btnOK
-        function ButtonPushed(app, event)
-            
-            idxThread = app.mainApp.play_PlotPanel.UserData.NodeData;
-            
-            pushedButtonTag = event.Source.Tag;
-            switch pushedButtonTag
-                case 'OK'
-                    app.specData(idxThread).UserData.reportAlgorithms.Detection.Algorithm = app.Algorithm.Value;
-                    switch app.Algorithm.Value
-                        case 'FindPeaks'
-                            app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters = struct('Fcn',          app.Trace.Value,       ...
-                                                                                                            'NPeaks',       app.NPeaks.Value,      ...
-                                                                                                            'THR',          app.THR.Value,         ...
-                                                                                                            'Prominence',   app.Prominence.Value,  ...
-                                                                                                            'Distance_kHz', app.Distance.Value,    ...
-                                                                                                            'BW_kHz',       app.BW_kHz.Value);
-                        case 'FindPeaks+OCC'
-                            app.specData(idxThread).UserData.reportAlgorithms.Detection.Parameters = struct('Distance_kHz', app.Distance.Value,    ...
-                                                                                                            'BW_kHz',       app.BW_kHz.Value,      ...
-                                                                                                            'Prominence1',  app.Prominence1.Value, ...
-                                                                                                            'Prominence2',  app.Prominence2.Value, ...
-                                                                                                            'meanOCC',      app.meanOCC.Value,     ...
-                                                                                                            'maxOCC',       app.maxOCC.Value);
-                    end
+        % Button pushed function: SearchButton
+        function onSearchButtonClicked(app, event)
 
-                    updateFlag = true;
+            context = app.inputArgs.context;
+            algorithm = app.Algorithm.Value;
+            specData = app.callingApp.bandObj.SpecData;
 
-                case 'Close'
-                    updateFlag = false;
+            for ii = 1:numel(specData)
+                switch algorithm
+                    case 'Regiões conectadas'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindConnectedRegions', ...
+                            'Offset', app.ConnectedRegionsOffset.Value, ...
+                            'CumulativeAreaThreshold', app.ConnectedRegionsArea.Value, ...
+                            'MaxOccupancyForRegions', app.ConnectedRegionsMaxOccupancy.Value, ...
+                            'MinOccupancy', app.ConnectedRegionsMinOccupancy.Value, ...
+                            'MinAbsOrientation', app.ConnectedRegionsMinOrientation.Value ...
+                        );
+                    
+                    case 'Detecção por picos'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindPeaks', ...
+                            'MinDistanceKHz', app.FindPeaksDistance.Value, ...
+                            'MinWidthKHz', app.FindPeaksBandWidth.Value, ...
+                            'TraceMode', app.FindPeaksTrace.Value, ...
+                            'MinProminence', app.FindPeaksProminence.Value, ...
+                            'NumPeaks', app.FindPeaksNumPeaks.Value, ...
+                            'Threshold', app.FindPeaksThreshold.Value ...
+                        );
+                    
+                    case 'Picos com ocupação'
+                        detectionConfig = struct( ...
+                            'Algorithm', 'FindPeaks+OCC', ...
+                            'MinDistanceKHz', app.FindPeaksPlusOCCDistance.Value, ...
+                            'MinWidthKHz', app.FindPeaksPlusOCCBandWidth.Value, ...
+                            'MinProminenceCenter', app.FindPeaksPlusOCCProminence1.Value, ...
+                            'MinProminenceMax', app.FindPeaksPlusOCCProminence2.Value, ...
+                            'MinOccupancyMeanOverTime', app.FindPeaksPlusOCCMinOccupancy.Value, ...
+                            'MinOccupancyMaxOverTime', app.FindPeaksPlusOCCMaxOccupancy.Value ...
+                        );
+
+                    otherwise
+                        error('auxApp:dockDetection:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
+                end
+                        
+                [idxList, freqList, widthkHzList, methodList] = util.Detection.run(specData, detectionConfig);
+
+                if isempty(idxList)
+                    ui.Dialog(app.UIFigure, 'info', 'Não foi encontrada emissão que atenda aos critérios especificados.');
+                    return
+                end
+
+                switch app.SearchModePanel.SelectedObject
+                    case app.AddEmissions
+                        update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
+                    
+                    case app.ReplaceEmissions
+                        update(specData, 'UserData:Emissions', 'Replace', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
+
+                    otherwise % app.OnlySearchEmissions
+                        util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthkHzList)
+                end
             end
-
-            callingMainApp(app, updateFlag, false, idxThread)
-            closeFcn(app)
 
         end
     end
@@ -271,7 +260,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 412 282];
+                app.UIFigure.Position = [100 100 412 484];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -294,328 +283,515 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 30};
-            app.GridLayout.RowHeight = {30, '1x'};
-            app.GridLayout.ColumnSpacing = 0;
-            app.GridLayout.RowSpacing = 0;
-            app.GridLayout.Padding = [0 0 0 0];
-            app.GridLayout.BackgroundColor = [0.902 0.902 0.902];
+            app.GridLayout.ColumnWidth = {252, 110};
+            app.GridLayout.RowHeight = {17, 166, 22, 22, 168, 24};
+            app.GridLayout.RowSpacing = 5;
+            app.GridLayout.Padding = [20 20 20 20];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create btnClose
-            app.btnClose = uiimage(app.GridLayout);
-            app.btnClose.ScaleMethod = 'none';
-            app.btnClose.ImageClickedFcn = createCallbackFcn(app, @ButtonPushed, true);
-            app.btnClose.Tag = 'Close';
-            app.btnClose.Layout.Row = 1;
-            app.btnClose.Layout.Column = 2;
-            app.btnClose.ImageSource = 'Delete_12SVG.svg';
+            % Create SearchModeLabel
+            app.SearchModeLabel = uilabel(app.GridLayout);
+            app.SearchModeLabel.VerticalAlignment = 'bottom';
+            app.SearchModeLabel.FontSize = 10;
+            app.SearchModeLabel.Layout.Row = 1;
+            app.SearchModeLabel.Layout.Column = 1;
+            app.SearchModeLabel.Text = 'MODO DE PESQUISA';
 
-            % Create Document
-            app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {92, 200, 63, 22};
-            app.Document.RowHeight = {17, 22, 161, 22};
-            app.Document.ColumnSpacing = 5;
-            app.Document.RowSpacing = 5;
-            app.Document.Padding = [10 10 10 5];
-            app.Document.Layout.Row = 2;
-            app.Document.Layout.Column = [1 2];
-            app.Document.BackgroundColor = [0.9804 0.9804 0.9804];
+            % Create SearchModePanel
+            app.SearchModePanel = uibuttongroup(app.GridLayout);
+            app.SearchModePanel.AutoResizeChildren = 'off';
+            app.SearchModePanel.BackgroundColor = [1 1 1];
+            app.SearchModePanel.Layout.Row = 2;
+            app.SearchModePanel.Layout.Column = [1 2];
 
-            % Create ParametersPanel
-            app.ParametersPanel = uipanel(app.Document);
-            app.ParametersPanel.Layout.Row = 3;
-            app.ParametersPanel.Layout.Column = [1 4];
+            % Create AddEmissions
+            app.AddEmissions = uiradiobutton(app.SearchModePanel);
+            app.AddEmissions.Text = {'Adicionar novas emissões (sem duplicar)'; '<font style="font-size: 10px; color: gray;">Realiza a busca e adiciona apenas emissões que não se sobrepõem com as já relacionadas ao fluxo.</font>'};
+            app.AddEmissions.WordWrap = 'on';
+            app.AddEmissions.FontSize = 11;
+            app.AddEmissions.Interpreter = 'html';
+            app.AddEmissions.Position = [11 108 352 51];
+            app.AddEmissions.Value = true;
 
-            % Create ParametersGrid
-            app.ParametersGrid = uigridlayout(app.ParametersPanel);
-            app.ParametersGrid.ColumnWidth = {130, 110, 110};
-            app.ParametersGrid.RowHeight = {0, 0, 25, 22, 87};
-            app.ParametersGrid.RowSpacing = 5;
-            app.ParametersGrid.Padding = [10 10 10 5];
-            app.ParametersGrid.BackgroundColor = [0.9804 0.9804 0.9804];
+            % Create ReplaceEmissions
+            app.ReplaceEmissions = uiradiobutton(app.SearchModePanel);
+            app.ReplaceEmissions.Text = {'Substituir emissões existentes'; '<font style="font-size: 10px; color: gray;">Realiza a busca e substitui todas as emissões já relacionadas ao fluxo espectral.</font>'};
+            app.ReplaceEmissions.WordWrap = 'on';
+            app.ReplaceEmissions.FontSize = 11;
+            app.ReplaceEmissions.Interpreter = 'html';
+            app.ReplaceEmissions.Position = [11 58 348 45];
 
-            % Create TraceLabel
-            app.TraceLabel = uilabel(app.ParametersGrid);
-            app.TraceLabel.VerticalAlignment = 'bottom';
-            app.TraceLabel.FontSize = 10;
-            app.TraceLabel.Layout.Row = 1;
-            app.TraceLabel.Layout.Column = 1;
-            app.TraceLabel.Text = {'Tipo de '; 'traço:'};
-
-            % Create Trace
-            app.Trace = uidropdown(app.ParametersGrid);
-            app.Trace.Items = {'MinHold', 'Média', 'MaxHold'};
-            app.Trace.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.Trace.FontSize = 10;
-            app.Trace.BackgroundColor = [1 1 1];
-            app.Trace.Layout.Row = 2;
-            app.Trace.Layout.Column = 1;
-            app.Trace.Value = 'Média';
-
-            % Create NPeaksLabel
-            app.NPeaksLabel = uilabel(app.ParametersGrid);
-            app.NPeaksLabel.VerticalAlignment = 'bottom';
-            app.NPeaksLabel.FontSize = 10;
-            app.NPeaksLabel.Layout.Row = 1;
-            app.NPeaksLabel.Layout.Column = 2;
-            app.NPeaksLabel.Text = {'Número de '; 'picos:'};
-
-            % Create NPeaks
-            app.NPeaks = uispinner(app.ParametersGrid);
-            app.NPeaks.Limits = [1 100];
-            app.NPeaks.RoundFractionalValues = 'on';
-            app.NPeaks.ValueDisplayFormat = '%.0f';
-            app.NPeaks.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.NPeaks.FontSize = 10;
-            app.NPeaks.Layout.Row = 2;
-            app.NPeaks.Layout.Column = 2;
-            app.NPeaks.Value = 10;
-
-            % Create THRLabel
-            app.THRLabel = uilabel(app.ParametersGrid);
-            app.THRLabel.VerticalAlignment = 'bottom';
-            app.THRLabel.FontSize = 10;
-            app.THRLabel.Layout.Row = 1;
-            app.THRLabel.Layout.Column = 3;
-            app.THRLabel.Text = {'Threshold'; '(dB):'};
-
-            % Create THR
-            app.THR = uispinner(app.ParametersGrid);
-            app.THR.Step = 10;
-            app.THR.RoundFractionalValues = 'on';
-            app.THR.ValueDisplayFormat = '%.0f';
-            app.THR.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.THR.FontSize = 10;
-            app.THR.Layout.Row = 2;
-            app.THR.Layout.Column = 3;
-            app.THR.Value = -Inf;
-
-            % Create ProminenceLabel
-            app.ProminenceLabel = uilabel(app.ParametersGrid);
-            app.ProminenceLabel.VerticalAlignment = 'bottom';
-            app.ProminenceLabel.WordWrap = 'on';
-            app.ProminenceLabel.FontSize = 10;
-            app.ProminenceLabel.Visible = 'off';
-            app.ProminenceLabel.Layout.Row = 3;
-            app.ProminenceLabel.Layout.Column = 1;
-            app.ProminenceLabel.Text = {'Proeminência '; '(dB):'};
-
-            % Create Prominence
-            app.Prominence = uispinner(app.ParametersGrid);
-            app.Prominence.Step = 10;
-            app.Prominence.Limits = [1 Inf];
-            app.Prominence.RoundFractionalValues = 'on';
-            app.Prominence.ValueDisplayFormat = '%.0f';
-            app.Prominence.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.Prominence.FontSize = 10;
-            app.Prominence.Visible = 'off';
-            app.Prominence.Layout.Row = 4;
-            app.Prominence.Layout.Column = 1;
-            app.Prominence.Value = 30;
-
-            % Create FindPeaksClassLabel
-            app.FindPeaksClassLabel = uilabel(app.ParametersGrid);
-            app.FindPeaksClassLabel.VerticalAlignment = 'bottom';
-            app.FindPeaksClassLabel.FontSize = 10;
-            app.FindPeaksClassLabel.Layout.Row = 3;
-            app.FindPeaksClassLabel.Layout.Column = 1;
-            app.FindPeaksClassLabel.Text = {'Classe de '; 'emissão:'};
-
-            % Create FindPeaksClass
-            app.FindPeaksClass = uidropdown(app.ParametersGrid);
-            app.FindPeaksClass.Items = {};
-            app.FindPeaksClass.ValueChangedFcn = createCallbackFcn(app, @FindPeaksClassValueChanged, true);
-            app.FindPeaksClass.FontSize = 10;
-            app.FindPeaksClass.BackgroundColor = [1 1 1];
-            app.FindPeaksClass.Layout.Row = 4;
-            app.FindPeaksClass.Layout.Column = 1;
-            app.FindPeaksClass.Value = {};
-
-            % Create DistanceLabel
-            app.DistanceLabel = uilabel(app.ParametersGrid);
-            app.DistanceLabel.VerticalAlignment = 'bottom';
-            app.DistanceLabel.WordWrap = 'on';
-            app.DistanceLabel.FontSize = 10;
-            app.DistanceLabel.Layout.Row = 3;
-            app.DistanceLabel.Layout.Column = 2;
-            app.DistanceLabel.Text = {'Distância entre'; 'picos (kHz):'};
-
-            % Create Distance
-            app.Distance = uispinner(app.ParametersGrid);
-            app.Distance.Step = 25;
-            app.Distance.Limits = [0 Inf];
-            app.Distance.RoundFractionalValues = 'on';
-            app.Distance.ValueDisplayFormat = '%.0f';
-            app.Distance.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.Distance.FontSize = 10;
-            app.Distance.Layout.Row = 4;
-            app.Distance.Layout.Column = 2;
-            app.Distance.Value = 25;
-
-            % Create BW_kHzLabel
-            app.BW_kHzLabel = uilabel(app.ParametersGrid);
-            app.BW_kHzLabel.VerticalAlignment = 'bottom';
-            app.BW_kHzLabel.WordWrap = 'on';
-            app.BW_kHzLabel.FontSize = 10;
-            app.BW_kHzLabel.Layout.Row = 3;
-            app.BW_kHzLabel.Layout.Column = 3;
-            app.BW_kHzLabel.Text = {'Largura ocupada '; '(kHz):'};
-
-            % Create BW_kHz
-            app.BW_kHz = uispinner(app.ParametersGrid);
-            app.BW_kHz.Step = 10;
-            app.BW_kHz.Limits = [0 Inf];
-            app.BW_kHz.RoundFractionalValues = 'on';
-            app.BW_kHz.ValueDisplayFormat = '%.0f';
-            app.BW_kHz.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.BW_kHz.FontSize = 10;
-            app.BW_kHz.Layout.Row = 4;
-            app.BW_kHz.Layout.Column = 3;
-            app.BW_kHz.Value = 10;
-
-            % Create MaxHoldPanel
-            app.MaxHoldPanel = uipanel(app.ParametersGrid);
-            app.MaxHoldPanel.Title = 'MAXHOLD';
-            app.MaxHoldPanel.Layout.Row = 5;
-            app.MaxHoldPanel.Layout.Column = [2 3];
-            app.MaxHoldPanel.FontSize = 10;
-
-            % Create MaxHoldGrid
-            app.MaxHoldGrid = uigridlayout(app.MaxHoldPanel);
-            app.MaxHoldGrid.ColumnWidth = {60, 10, 68, 5, 67};
-            app.MaxHoldGrid.RowHeight = {27, 22};
-            app.MaxHoldGrid.ColumnSpacing = 0;
-            app.MaxHoldGrid.RowSpacing = 5;
-            app.MaxHoldGrid.Padding = [10 10 8 5];
-            app.MaxHoldGrid.BackgroundColor = [0.9804 0.9804 0.9804];
-
-            % Create Prominence2Label
-            app.Prominence2Label = uilabel(app.MaxHoldGrid);
-            app.Prominence2Label.VerticalAlignment = 'bottom';
-            app.Prominence2Label.WordWrap = 'on';
-            app.Prominence2Label.FontSize = 10;
-            app.Prominence2Label.Layout.Row = 1;
-            app.Prominence2Label.Layout.Column = [1 5];
-            app.Prominence2Label.Text = {'Proeminência'; '(dB):'};
-
-            % Create Prominence2
-            app.Prominence2 = uispinner(app.MaxHoldGrid);
-            app.Prominence2.Step = 10;
-            app.Prominence2.Limits = [1 Inf];
-            app.Prominence2.RoundFractionalValues = 'on';
-            app.Prominence2.ValueDisplayFormat = '%.0f';
-            app.Prominence2.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.Prominence2.FontSize = 10;
-            app.Prominence2.Layout.Row = 2;
-            app.Prominence2.Layout.Column = 1;
-            app.Prominence2.Value = 30;
-
-            % Create meanOCC
-            app.meanOCC = uispinner(app.MaxHoldGrid);
-            app.meanOCC.Step = 10;
-            app.meanOCC.Limits = [0 100];
-            app.meanOCC.RoundFractionalValues = 'on';
-            app.meanOCC.ValueDisplayFormat = '%.0f';
-            app.meanOCC.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
-            app.meanOCC.FontSize = 10;
-            app.meanOCC.Layout.Row = 2;
-            app.meanOCC.Layout.Column = 3;
-            app.meanOCC.Value = 1;
-
-            % Create play_FindPeaks_OCCLabel
-            app.play_FindPeaks_OCCLabel = uilabel(app.MaxHoldGrid);
-            app.play_FindPeaks_OCCLabel.VerticalAlignment = 'bottom';
-            app.play_FindPeaks_OCCLabel.FontSize = 10;
-            app.play_FindPeaks_OCCLabel.Layout.Row = 1;
-            app.play_FindPeaks_OCCLabel.Layout.Column = [3 5];
-            app.play_FindPeaks_OCCLabel.Interpreter = 'html';
-            app.play_FindPeaks_OCCLabel.Text = {'Ocupação (%):'; '<p style="line-height:10px; font-size:9px; color:gray;">(Mínima | Máxima)</p>'};
-
-            % Create maxOCC
-            app.maxOCC = uispinner(app.MaxHoldGrid);
-            app.maxOCC.Step = 10;
-            app.maxOCC.Limits = [0 100];
-            app.maxOCC.RoundFractionalValues = 'on';
-            app.maxOCC.ValueDisplayFormat = '%.0f';
-            app.maxOCC.ValueChangedFcn = createCallbackFcn(app, @occValueChanged, true);
-            app.maxOCC.FontSize = 10;
-            app.maxOCC.Layout.Row = 2;
-            app.maxOCC.Layout.Column = 5;
-            app.maxOCC.Value = 10;
-
-            % Create MeanPanel
-            app.MeanPanel = uipanel(app.ParametersGrid);
-            app.MeanPanel.Title = 'MÉDIA';
-            app.MeanPanel.Layout.Row = 5;
-            app.MeanPanel.Layout.Column = 1;
-            app.MeanPanel.FontSize = 10;
-
-            % Create MeanGrid
-            app.MeanGrid = uigridlayout(app.MeanPanel);
-            app.MeanGrid.ColumnWidth = {108};
-            app.MeanGrid.RowHeight = {27, 22};
-            app.MeanGrid.RowSpacing = 5;
-            app.MeanGrid.Padding = [10 10 10 5];
-            app.MeanGrid.BackgroundColor = [0.9804 0.9804 0.9804];
-
-            % Create Prominence1Label
-            app.Prominence1Label = uilabel(app.MeanGrid);
-            app.Prominence1Label.VerticalAlignment = 'bottom';
-            app.Prominence1Label.WordWrap = 'on';
-            app.Prominence1Label.FontSize = 10;
-            app.Prominence1Label.Layout.Row = 1;
-            app.Prominence1Label.Layout.Column = 1;
-            app.Prominence1Label.Text = {'Proeminência'; '(dB):'};
-
-            % Create Prominence1
-            app.Prominence1 = uispinner(app.MeanGrid);
-            app.Prominence1.Step = 10;
-            app.Prominence1.Limits = [1 Inf];
-            app.Prominence1.RoundFractionalValues = 'on';
-            app.Prominence1.ValueDisplayFormat = '%.0f';
-            app.Prominence1.ValueChangedFcn = createCallbackFcn(app, @ParameterValueChanged, true);
-            app.Prominence1.FontSize = 10;
-            app.Prominence1.Layout.Row = 2;
-            app.Prominence1.Layout.Column = 1;
-            app.Prominence1.Value = 10;
-
-            % Create btnOK
-            app.btnOK = uibutton(app.Document, 'push');
-            app.btnOK.ButtonPushedFcn = createCallbackFcn(app, @ButtonPushed, true);
-            app.btnOK.Tag = 'OK';
-            app.btnOK.IconAlignment = 'right';
-            app.btnOK.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.btnOK.Enable = 'off';
-            app.btnOK.Layout.Row = 4;
-            app.btnOK.Layout.Column = [3 4];
-            app.btnOK.Text = 'OK';
+            % Create OnlySearchEmissions
+            app.OnlySearchEmissions = uiradiobutton(app.SearchModePanel);
+            app.OnlySearchEmissions.Text = {'Apenas consulta'; '<font style="font-size: 10px; color: gray;">Apenas realiza a busca, sem alterar os dados. As emissões encontradas são destacadas em vermelho no plot.</font>'};
+            app.OnlySearchEmissions.WordWrap = 'on';
+            app.OnlySearchEmissions.FontSize = 11;
+            app.OnlySearchEmissions.Interpreter = 'html';
+            app.OnlySearchEmissions.Position = [11 8 348 45];
 
             % Create AlgorithmLabel
-            app.AlgorithmLabel = uilabel(app.Document);
+            app.AlgorithmLabel = uilabel(app.GridLayout);
             app.AlgorithmLabel.VerticalAlignment = 'bottom';
             app.AlgorithmLabel.FontSize = 10;
-            app.AlgorithmLabel.Layout.Row = 1;
+            app.AlgorithmLabel.Layout.Row = 3;
             app.AlgorithmLabel.Layout.Column = 1;
-            app.AlgorithmLabel.Text = 'Algoritmo:';
+            app.AlgorithmLabel.Text = 'TIPO DE DETECÇÃO DE EMISSÕES';
 
             % Create Algorithm
-            app.Algorithm = uidropdown(app.Document);
-            app.Algorithm.Items = {'FindPeaks', 'FindPeaks+OCC'};
-            app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @AlgorithmValueChanged, true);
-            app.Algorithm.FontSize = 10;
+            app.Algorithm = uidropdown(app.GridLayout);
+            app.Algorithm.Items = {'Detecção por picos', 'Picos com ocupação', 'Regiões conectadas'};
+            app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @onAlgorithmValueChanged, true);
+            app.Algorithm.FontSize = 11;
             app.Algorithm.BackgroundColor = [1 1 1];
-            app.Algorithm.Layout.Row = 2;
-            app.Algorithm.Layout.Column = [1 4];
-            app.Algorithm.Value = 'FindPeaks';
+            app.Algorithm.Layout.Row = 4;
+            app.Algorithm.Layout.Column = [1 2];
+            app.Algorithm.Value = 'Detecção por picos';
 
-            % Create fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel = uilabel(app.GridLayout);
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.FontSize = 11;
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.FontWeight = 'bold';
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.Layout.Row = 1;
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.Layout.Column = 1;
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.Interpreter = 'html';
-            app.fontstylepaddingleft5pxDETECONOASSISTIDAfontLabel.Text = '<font style="padding-left: 5px;">DETECÇÃO NÃO ASSISTIDA</font>';
+            % Create AlgorithmPanel
+            app.AlgorithmPanel = uipanel(app.GridLayout);
+            app.AlgorithmPanel.AutoResizeChildren = 'off';
+            app.AlgorithmPanel.Layout.Row = 5;
+            app.AlgorithmPanel.Layout.Column = [1 2];
+
+            % Create AlgorithmGrid
+            app.AlgorithmGrid = uigridlayout(app.AlgorithmPanel);
+            app.AlgorithmGrid.ColumnWidth = {110, 110, 110};
+            app.AlgorithmGrid.RowHeight = {26, 22, 32, 22, 0, 0, 0, 0, 0, 0, 0};
+            app.AlgorithmGrid.RowSpacing = 5;
+            app.AlgorithmGrid.BackgroundColor = [1 1 1];
+
+            % Create FindPeaksTraceLabel
+            app.FindPeaksTraceLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksTraceLabel.Tag = 'FindPeaks';
+            app.FindPeaksTraceLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksTraceLabel.FontSize = 11;
+            app.FindPeaksTraceLabel.Layout.Row = 1;
+            app.FindPeaksTraceLabel.Layout.Column = 1;
+            app.FindPeaksTraceLabel.Text = {'Tipo de traço:'; '(agregação dados)'};
+
+            % Create FindPeaksTrace
+            app.FindPeaksTrace = uidropdown(app.AlgorithmGrid);
+            app.FindPeaksTrace.Items = {'MinHold', 'Mean', 'MaxHold'};
+            app.FindPeaksTrace.Tag = 'FindPeaks';
+            app.FindPeaksTrace.FontSize = 11;
+            app.FindPeaksTrace.BackgroundColor = [1 1 1];
+            app.FindPeaksTrace.Layout.Row = 2;
+            app.FindPeaksTrace.Layout.Column = 1;
+            app.FindPeaksTrace.Value = 'Mean';
+
+            % Create FindPeaksDistanceLabel
+            app.FindPeaksDistanceLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksDistanceLabel.Tag = 'FindPeaks';
+            app.FindPeaksDistanceLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksDistanceLabel.WordWrap = 'on';
+            app.FindPeaksDistanceLabel.FontSize = 11;
+            app.FindPeaksDistanceLabel.Layout.Row = 1;
+            app.FindPeaksDistanceLabel.Layout.Column = 2;
+            app.FindPeaksDistanceLabel.Text = 'Distância entre picos (kHz):';
+
+            % Create FindPeaksDistance
+            app.FindPeaksDistance = uispinner(app.AlgorithmGrid);
+            app.FindPeaksDistance.Step = 25;
+            app.FindPeaksDistance.Limits = [0 Inf];
+            app.FindPeaksDistance.RoundFractionalValues = 'on';
+            app.FindPeaksDistance.ValueDisplayFormat = '%.0f';
+            app.FindPeaksDistance.Tag = 'FindPeaks';
+            app.FindPeaksDistance.FontSize = 11;
+            app.FindPeaksDistance.Layout.Row = 2;
+            app.FindPeaksDistance.Layout.Column = 2;
+            app.FindPeaksDistance.Value = 25;
+
+            % Create FindPeaksBandWidthLabel
+            app.FindPeaksBandWidthLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksBandWidthLabel.Tag = 'FindPeaks';
+            app.FindPeaksBandWidthLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksBandWidthLabel.WordWrap = 'on';
+            app.FindPeaksBandWidthLabel.FontSize = 11;
+            app.FindPeaksBandWidthLabel.Layout.Row = 1;
+            app.FindPeaksBandWidthLabel.Layout.Column = 3;
+            app.FindPeaksBandWidthLabel.Text = {'Largura ocupada'; '(kHz):'};
+
+            % Create FindPeaksBandWidth
+            app.FindPeaksBandWidth = uispinner(app.AlgorithmGrid);
+            app.FindPeaksBandWidth.Step = 10;
+            app.FindPeaksBandWidth.Limits = [0 Inf];
+            app.FindPeaksBandWidth.RoundFractionalValues = 'on';
+            app.FindPeaksBandWidth.ValueDisplayFormat = '%.0f';
+            app.FindPeaksBandWidth.Tag = 'FindPeaks';
+            app.FindPeaksBandWidth.FontSize = 11;
+            app.FindPeaksBandWidth.Layout.Row = 2;
+            app.FindPeaksBandWidth.Layout.Column = 3;
+            app.FindPeaksBandWidth.Value = 10;
+
+            % Create FindPeaksProminenceLabel
+            app.FindPeaksProminenceLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksProminenceLabel.Tag = 'FindPeaks';
+            app.FindPeaksProminenceLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksProminenceLabel.WordWrap = 'on';
+            app.FindPeaksProminenceLabel.FontSize = 11;
+            app.FindPeaksProminenceLabel.Layout.Row = 3;
+            app.FindPeaksProminenceLabel.Layout.Column = 1;
+            app.FindPeaksProminenceLabel.Text = {'Proeminência'; '(dB):'};
+
+            % Create FindPeaksProminence
+            app.FindPeaksProminence = uispinner(app.AlgorithmGrid);
+            app.FindPeaksProminence.Step = 3;
+            app.FindPeaksProminence.Limits = [1 Inf];
+            app.FindPeaksProminence.RoundFractionalValues = 'on';
+            app.FindPeaksProminence.ValueDisplayFormat = '%.0f';
+            app.FindPeaksProminence.Tag = 'FindPeaks';
+            app.FindPeaksProminence.FontSize = 11;
+            app.FindPeaksProminence.Layout.Row = 4;
+            app.FindPeaksProminence.Layout.Column = 1;
+            app.FindPeaksProminence.Value = 12;
+
+            % Create FindPeaksNumPeaksLabel
+            app.FindPeaksNumPeaksLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksNumPeaksLabel.Tag = 'FindPeaks';
+            app.FindPeaksNumPeaksLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksNumPeaksLabel.WordWrap = 'on';
+            app.FindPeaksNumPeaksLabel.FontSize = 11;
+            app.FindPeaksNumPeaksLabel.Layout.Row = 3;
+            app.FindPeaksNumPeaksLabel.Layout.Column = 2;
+            app.FindPeaksNumPeaksLabel.Text = {'Número máximo '; 'de picos:'};
+
+            % Create FindPeaksNumPeaks
+            app.FindPeaksNumPeaks = uispinner(app.AlgorithmGrid);
+            app.FindPeaksNumPeaks.Step = 5;
+            app.FindPeaksNumPeaks.Limits = [1 100];
+            app.FindPeaksNumPeaks.RoundFractionalValues = 'on';
+            app.FindPeaksNumPeaks.ValueDisplayFormat = '%.0f';
+            app.FindPeaksNumPeaks.Tag = 'FindPeaks';
+            app.FindPeaksNumPeaks.FontSize = 11;
+            app.FindPeaksNumPeaks.Layout.Row = 4;
+            app.FindPeaksNumPeaks.Layout.Column = 2;
+            app.FindPeaksNumPeaks.Value = 50;
+
+            % Create FindPeaksThresholdLabel
+            app.FindPeaksThresholdLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksThresholdLabel.Tag = 'FindPeaks';
+            app.FindPeaksThresholdLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksThresholdLabel.FontSize = 11;
+            app.FindPeaksThresholdLabel.Layout.Row = 3;
+            app.FindPeaksThresholdLabel.Layout.Column = 3;
+            app.FindPeaksThresholdLabel.Text = {'Threshold'; '(dB):'};
+
+            % Create FindPeaksThreshold
+            app.FindPeaksThreshold = uispinner(app.AlgorithmGrid);
+            app.FindPeaksThreshold.Step = 10;
+            app.FindPeaksThreshold.RoundFractionalValues = 'on';
+            app.FindPeaksThreshold.ValueDisplayFormat = '%.0f';
+            app.FindPeaksThreshold.Tag = 'FindPeaks';
+            app.FindPeaksThreshold.FontSize = 11;
+            app.FindPeaksThreshold.Layout.Row = 4;
+            app.FindPeaksThreshold.Layout.Column = 3;
+            app.FindPeaksThreshold.Value = -Inf;
+
+            % Create FindPeaksPlusOCCClassLabel
+            app.FindPeaksPlusOCCClassLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCClassLabel.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCClassLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCClassLabel.FontSize = 11;
+            app.FindPeaksPlusOCCClassLabel.Visible = 'off';
+            app.FindPeaksPlusOCCClassLabel.Layout.Row = 5;
+            app.FindPeaksPlusOCCClassLabel.Layout.Column = 1;
+            app.FindPeaksPlusOCCClassLabel.Text = {'Classe de emissão:'; '(tecnologia)'};
+
+            % Create FindPeaksPlusOCCClass
+            app.FindPeaksPlusOCCClass = uidropdown(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCClass.Items = {};
+            app.FindPeaksPlusOCCClass.ValueChangedFcn = createCallbackFcn(app, @onEmissionClassValueChanged, true);
+            app.FindPeaksPlusOCCClass.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCClass.Visible = 'off';
+            app.FindPeaksPlusOCCClass.FontSize = 11;
+            app.FindPeaksPlusOCCClass.BackgroundColor = [1 1 1];
+            app.FindPeaksPlusOCCClass.Layout.Row = 6;
+            app.FindPeaksPlusOCCClass.Layout.Column = 1;
+            app.FindPeaksPlusOCCClass.Value = {};
+
+            % Create FindPeaksPlusOCCDistanceLabel
+            app.FindPeaksPlusOCCDistanceLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCDistanceLabel.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCDistanceLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCDistanceLabel.WordWrap = 'on';
+            app.FindPeaksPlusOCCDistanceLabel.FontSize = 11;
+            app.FindPeaksPlusOCCDistanceLabel.Visible = 'off';
+            app.FindPeaksPlusOCCDistanceLabel.Layout.Row = 5;
+            app.FindPeaksPlusOCCDistanceLabel.Layout.Column = 2;
+            app.FindPeaksPlusOCCDistanceLabel.Text = 'Distância entre picos (kHz):';
+
+            % Create FindPeaksPlusOCCDistance
+            app.FindPeaksPlusOCCDistance = uispinner(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCDistance.Step = 25;
+            app.FindPeaksPlusOCCDistance.Limits = [0 Inf];
+            app.FindPeaksPlusOCCDistance.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCDistance.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCDistance.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCDistance.FontSize = 11;
+            app.FindPeaksPlusOCCDistance.Visible = 'off';
+            app.FindPeaksPlusOCCDistance.Layout.Row = 6;
+            app.FindPeaksPlusOCCDistance.Layout.Column = 2;
+            app.FindPeaksPlusOCCDistance.Value = 25;
+
+            % Create FindPeaksPlusOCCBandWidthLabel
+            app.FindPeaksPlusOCCBandWidthLabel = uilabel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCBandWidthLabel.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCBandWidthLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCBandWidthLabel.WordWrap = 'on';
+            app.FindPeaksPlusOCCBandWidthLabel.FontSize = 11;
+            app.FindPeaksPlusOCCBandWidthLabel.Visible = 'off';
+            app.FindPeaksPlusOCCBandWidthLabel.Layout.Row = 5;
+            app.FindPeaksPlusOCCBandWidthLabel.Layout.Column = 3;
+            app.FindPeaksPlusOCCBandWidthLabel.Text = {'Largura ocupada'; '(kHz):'};
+
+            % Create FindPeaksPlusOCCBandWidth
+            app.FindPeaksPlusOCCBandWidth = uispinner(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCBandWidth.Step = 10;
+            app.FindPeaksPlusOCCBandWidth.Limits = [0 Inf];
+            app.FindPeaksPlusOCCBandWidth.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCBandWidth.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCBandWidth.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCBandWidth.FontSize = 11;
+            app.FindPeaksPlusOCCBandWidth.Visible = 'off';
+            app.FindPeaksPlusOCCBandWidth.Layout.Row = 6;
+            app.FindPeaksPlusOCCBandWidth.Layout.Column = 3;
+            app.FindPeaksPlusOCCBandWidth.Value = 10;
+
+            % Create FindPeaksPlusOCCPanel1
+            app.FindPeaksPlusOCCPanel1 = uipanel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCPanel1.AutoResizeChildren = 'off';
+            app.FindPeaksPlusOCCPanel1.Title = 'MÉDIA';
+            app.FindPeaksPlusOCCPanel1.Visible = 'off';
+            app.FindPeaksPlusOCCPanel1.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCPanel1.Layout.Row = 7;
+            app.FindPeaksPlusOCCPanel1.Layout.Column = 1;
+            app.FindPeaksPlusOCCPanel1.FontSize = 10;
+
+            % Create FindPeaksPlusOCCGrid1
+            app.FindPeaksPlusOCCGrid1 = uigridlayout(app.FindPeaksPlusOCCPanel1);
+            app.FindPeaksPlusOCCGrid1.ColumnWidth = {'1x'};
+            app.FindPeaksPlusOCCGrid1.RowHeight = {27, 22};
+            app.FindPeaksPlusOCCGrid1.RowSpacing = 5;
+            app.FindPeaksPlusOCCGrid1.Padding = [10 10 10 5];
+            app.FindPeaksPlusOCCGrid1.BackgroundColor = [1 1 1];
+
+            % Create FindPeaksPlusOCCProminence1Label
+            app.FindPeaksPlusOCCProminence1Label = uilabel(app.FindPeaksPlusOCCGrid1);
+            app.FindPeaksPlusOCCProminence1Label.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCProminence1Label.WordWrap = 'on';
+            app.FindPeaksPlusOCCProminence1Label.FontSize = 11;
+            app.FindPeaksPlusOCCProminence1Label.Layout.Row = 1;
+            app.FindPeaksPlusOCCProminence1Label.Layout.Column = 1;
+            app.FindPeaksPlusOCCProminence1Label.Text = {'Proeminência'; '(dB):'};
+
+            % Create FindPeaksPlusOCCProminence1
+            app.FindPeaksPlusOCCProminence1 = uispinner(app.FindPeaksPlusOCCGrid1);
+            app.FindPeaksPlusOCCProminence1.Step = 3;
+            app.FindPeaksPlusOCCProminence1.Limits = [1 Inf];
+            app.FindPeaksPlusOCCProminence1.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCProminence1.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCProminence1.FontSize = 11;
+            app.FindPeaksPlusOCCProminence1.Layout.Row = 2;
+            app.FindPeaksPlusOCCProminence1.Layout.Column = 1;
+            app.FindPeaksPlusOCCProminence1.Value = 12;
+
+            % Create FindPeaksPlusOCCPanel2
+            app.FindPeaksPlusOCCPanel2 = uipanel(app.AlgorithmGrid);
+            app.FindPeaksPlusOCCPanel2.AutoResizeChildren = 'off';
+            app.FindPeaksPlusOCCPanel2.Title = 'MAXHOLD';
+            app.FindPeaksPlusOCCPanel2.Visible = 'off';
+            app.FindPeaksPlusOCCPanel2.Tag = 'FindPeaksPlusOCC';
+            app.FindPeaksPlusOCCPanel2.Layout.Row = 7;
+            app.FindPeaksPlusOCCPanel2.Layout.Column = [2 3];
+            app.FindPeaksPlusOCCPanel2.FontSize = 10;
+
+            % Create FindPeaksPlusOCCGrid2
+            app.FindPeaksPlusOCCGrid2 = uigridlayout(app.FindPeaksPlusOCCPanel2);
+            app.FindPeaksPlusOCCGrid2.ColumnWidth = {60, 10, 68, 5, 67};
+            app.FindPeaksPlusOCCGrid2.RowHeight = {27, 22};
+            app.FindPeaksPlusOCCGrid2.ColumnSpacing = 0;
+            app.FindPeaksPlusOCCGrid2.RowSpacing = 5;
+            app.FindPeaksPlusOCCGrid2.Padding = [10 10 8 5];
+            app.FindPeaksPlusOCCGrid2.BackgroundColor = [1 1 1];
+
+            % Create FindPeaksPlusOCCProminence2Label
+            app.FindPeaksPlusOCCProminence2Label = uilabel(app.FindPeaksPlusOCCGrid2);
+            app.FindPeaksPlusOCCProminence2Label.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCProminence2Label.FontSize = 11;
+            app.FindPeaksPlusOCCProminence2Label.Layout.Row = 1;
+            app.FindPeaksPlusOCCProminence2Label.Layout.Column = [1 5];
+            app.FindPeaksPlusOCCProminence2Label.Text = {'Proeminência'; '(dB):'};
+
+            % Create FindPeaksPlusOCCProminence2
+            app.FindPeaksPlusOCCProminence2 = uispinner(app.FindPeaksPlusOCCGrid2);
+            app.FindPeaksPlusOCCProminence2.Step = 3;
+            app.FindPeaksPlusOCCProminence2.Limits = [1 Inf];
+            app.FindPeaksPlusOCCProminence2.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCProminence2.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCProminence2.FontSize = 11;
+            app.FindPeaksPlusOCCProminence2.Layout.Row = 2;
+            app.FindPeaksPlusOCCProminence2.Layout.Column = 1;
+            app.FindPeaksPlusOCCProminence2.Value = 30;
+
+            % Create FindPeaksPlusOCCOccupancyLabel
+            app.FindPeaksPlusOCCOccupancyLabel = uilabel(app.FindPeaksPlusOCCGrid2);
+            app.FindPeaksPlusOCCOccupancyLabel.VerticalAlignment = 'bottom';
+            app.FindPeaksPlusOCCOccupancyLabel.FontSize = 11;
+            app.FindPeaksPlusOCCOccupancyLabel.Layout.Row = 1;
+            app.FindPeaksPlusOCCOccupancyLabel.Layout.Column = [3 5];
+            app.FindPeaksPlusOCCOccupancyLabel.Text = {'Ocupação (%):'; '(Mínima | Máxima)'};
+
+            % Create FindPeaksPlusOCCMinOccupancy
+            app.FindPeaksPlusOCCMinOccupancy = uispinner(app.FindPeaksPlusOCCGrid2);
+            app.FindPeaksPlusOCCMinOccupancy.Step = 10;
+            app.FindPeaksPlusOCCMinOccupancy.Limits = [0 100];
+            app.FindPeaksPlusOCCMinOccupancy.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCMinOccupancy.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCMinOccupancy.ValueChangedFcn = createCallbackFcn(app, @onOccupancyValueChanged, true);
+            app.FindPeaksPlusOCCMinOccupancy.FontSize = 11;
+            app.FindPeaksPlusOCCMinOccupancy.Layout.Row = 2;
+            app.FindPeaksPlusOCCMinOccupancy.Layout.Column = 3;
+            app.FindPeaksPlusOCCMinOccupancy.Value = 1;
+
+            % Create FindPeaksPlusOCCMaxOccupancy
+            app.FindPeaksPlusOCCMaxOccupancy = uispinner(app.FindPeaksPlusOCCGrid2);
+            app.FindPeaksPlusOCCMaxOccupancy.Step = 10;
+            app.FindPeaksPlusOCCMaxOccupancy.Limits = [0 100];
+            app.FindPeaksPlusOCCMaxOccupancy.RoundFractionalValues = 'on';
+            app.FindPeaksPlusOCCMaxOccupancy.ValueDisplayFormat = '%.0f';
+            app.FindPeaksPlusOCCMaxOccupancy.ValueChangedFcn = createCallbackFcn(app, @onOccupancyValueChanged, true);
+            app.FindPeaksPlusOCCMaxOccupancy.FontSize = 11;
+            app.FindPeaksPlusOCCMaxOccupancy.Layout.Row = 2;
+            app.FindPeaksPlusOCCMaxOccupancy.Layout.Column = 5;
+            app.FindPeaksPlusOCCMaxOccupancy.Value = 10;
+
+            % Create ConnectedRegionsOffsetLabel
+            app.ConnectedRegionsOffsetLabel = uilabel(app.AlgorithmGrid);
+            app.ConnectedRegionsOffsetLabel.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsOffsetLabel.VerticalAlignment = 'bottom';
+            app.ConnectedRegionsOffsetLabel.WordWrap = 'on';
+            app.ConnectedRegionsOffsetLabel.FontSize = 11;
+            app.ConnectedRegionsOffsetLabel.Visible = 'off';
+            app.ConnectedRegionsOffsetLabel.Layout.Row = 8;
+            app.ConnectedRegionsOffsetLabel.Layout.Column = 1;
+            app.ConnectedRegionsOffsetLabel.Text = {'Proeminência'; '(dB):'};
+
+            % Create ConnectedRegionsOffset
+            app.ConnectedRegionsOffset = uispinner(app.AlgorithmGrid);
+            app.ConnectedRegionsOffset.Step = 3;
+            app.ConnectedRegionsOffset.Limits = [3 30];
+            app.ConnectedRegionsOffset.RoundFractionalValues = 'on';
+            app.ConnectedRegionsOffset.ValueDisplayFormat = '%.0f';
+            app.ConnectedRegionsOffset.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsOffset.FontSize = 11;
+            app.ConnectedRegionsOffset.Visible = 'off';
+            app.ConnectedRegionsOffset.Layout.Row = 9;
+            app.ConnectedRegionsOffset.Layout.Column = 1;
+            app.ConnectedRegionsOffset.Value = 12;
+
+            % Create ConnectedRegionsAreaLabel
+            app.ConnectedRegionsAreaLabel = uilabel(app.AlgorithmGrid);
+            app.ConnectedRegionsAreaLabel.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsAreaLabel.VerticalAlignment = 'bottom';
+            app.ConnectedRegionsAreaLabel.WordWrap = 'on';
+            app.ConnectedRegionsAreaLabel.FontSize = 11;
+            app.ConnectedRegionsAreaLabel.Visible = 'off';
+            app.ConnectedRegionsAreaLabel.Layout.Row = 8;
+            app.ConnectedRegionsAreaLabel.Layout.Column = 2;
+            app.ConnectedRegionsAreaLabel.Text = 'Área mínima acumulada (%):';
+
+            % Create ConnectedRegionsArea
+            app.ConnectedRegionsArea = uispinner(app.AlgorithmGrid);
+            app.ConnectedRegionsArea.Limits = [50 100];
+            app.ConnectedRegionsArea.RoundFractionalValues = 'on';
+            app.ConnectedRegionsArea.ValueDisplayFormat = '%.0f';
+            app.ConnectedRegionsArea.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsArea.FontSize = 11;
+            app.ConnectedRegionsArea.Visible = 'off';
+            app.ConnectedRegionsArea.Layout.Row = 9;
+            app.ConnectedRegionsArea.Layout.Column = 2;
+            app.ConnectedRegionsArea.Value = 99;
+
+            % Create ConnectedRegionsMaxOccupancyLabel
+            app.ConnectedRegionsMaxOccupancyLabel = uilabel(app.AlgorithmGrid);
+            app.ConnectedRegionsMaxOccupancyLabel.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMaxOccupancyLabel.VerticalAlignment = 'bottom';
+            app.ConnectedRegionsMaxOccupancyLabel.WordWrap = 'on';
+            app.ConnectedRegionsMaxOccupancyLabel.FontSize = 11;
+            app.ConnectedRegionsMaxOccupancyLabel.Visible = 'off';
+            app.ConnectedRegionsMaxOccupancyLabel.Layout.Row = 8;
+            app.ConnectedRegionsMaxOccupancyLabel.Layout.Column = 3;
+            app.ConnectedRegionsMaxOccupancyLabel.Text = 'Ocupação mínima refinamento pico (%)';
+
+            % Create ConnectedRegionsMaxOccupancy
+            app.ConnectedRegionsMaxOccupancy = uispinner(app.AlgorithmGrid);
+            app.ConnectedRegionsMaxOccupancy.Limits = [50 100];
+            app.ConnectedRegionsMaxOccupancy.RoundFractionalValues = 'on';
+            app.ConnectedRegionsMaxOccupancy.ValueDisplayFormat = '%.0f';
+            app.ConnectedRegionsMaxOccupancy.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMaxOccupancy.FontSize = 11;
+            app.ConnectedRegionsMaxOccupancy.Visible = 'off';
+            app.ConnectedRegionsMaxOccupancy.Layout.Row = 9;
+            app.ConnectedRegionsMaxOccupancy.Layout.Column = 3;
+            app.ConnectedRegionsMaxOccupancy.Value = 99;
+
+            % Create ConnectedRegionsMinOccupancyLabel
+            app.ConnectedRegionsMinOccupancyLabel = uilabel(app.AlgorithmGrid);
+            app.ConnectedRegionsMinOccupancyLabel.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMinOccupancyLabel.VerticalAlignment = 'bottom';
+            app.ConnectedRegionsMinOccupancyLabel.WordWrap = 'on';
+            app.ConnectedRegionsMinOccupancyLabel.FontSize = 11;
+            app.ConnectedRegionsMinOccupancyLabel.Visible = 'off';
+            app.ConnectedRegionsMinOccupancyLabel.Layout.Row = 10;
+            app.ConnectedRegionsMinOccupancyLabel.Layout.Column = 1;
+            app.ConnectedRegionsMinOccupancyLabel.Text = {'Ocupação mínima'; '(%):'};
+
+            % Create ConnectedRegionsMinOccupancy
+            app.ConnectedRegionsMinOccupancy = uispinner(app.AlgorithmGrid);
+            app.ConnectedRegionsMinOccupancy.Step = 3;
+            app.ConnectedRegionsMinOccupancy.Limits = [0 90];
+            app.ConnectedRegionsMinOccupancy.RoundFractionalValues = 'on';
+            app.ConnectedRegionsMinOccupancy.ValueDisplayFormat = '%.0f';
+            app.ConnectedRegionsMinOccupancy.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMinOccupancy.FontSize = 11;
+            app.ConnectedRegionsMinOccupancy.Visible = 'off';
+            app.ConnectedRegionsMinOccupancy.Layout.Row = 11;
+            app.ConnectedRegionsMinOccupancy.Layout.Column = 1;
+            app.ConnectedRegionsMinOccupancy.Value = 3;
+
+            % Create ConnectedRegionsMinOrientationLabel
+            app.ConnectedRegionsMinOrientationLabel = uilabel(app.AlgorithmGrid);
+            app.ConnectedRegionsMinOrientationLabel.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMinOrientationLabel.VerticalAlignment = 'bottom';
+            app.ConnectedRegionsMinOrientationLabel.WordWrap = 'on';
+            app.ConnectedRegionsMinOrientationLabel.FontSize = 11;
+            app.ConnectedRegionsMinOrientationLabel.Visible = 'off';
+            app.ConnectedRegionsMinOrientationLabel.Layout.Row = 10;
+            app.ConnectedRegionsMinOrientationLabel.Layout.Column = 2;
+            app.ConnectedRegionsMinOrientationLabel.Text = 'Inclinação absoluta mínima (º):';
+
+            % Create ConnectedRegionsMinOrientation
+            app.ConnectedRegionsMinOrientation = uispinner(app.AlgorithmGrid);
+            app.ConnectedRegionsMinOrientation.Step = 5;
+            app.ConnectedRegionsMinOrientation.Limits = [0 90];
+            app.ConnectedRegionsMinOrientation.RoundFractionalValues = 'on';
+            app.ConnectedRegionsMinOrientation.ValueDisplayFormat = '%.0f';
+            app.ConnectedRegionsMinOrientation.Tag = 'ConnectedRegions';
+            app.ConnectedRegionsMinOrientation.FontSize = 11;
+            app.ConnectedRegionsMinOrientation.Visible = 'off';
+            app.ConnectedRegionsMinOrientation.Layout.Row = 11;
+            app.ConnectedRegionsMinOrientation.Layout.Column = 2;
+            app.ConnectedRegionsMinOrientation.Value = 75;
+
+            % Create SearchButton
+            app.SearchButton = uibutton(app.GridLayout, 'push');
+            app.SearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchButtonClicked, true);
+            app.SearchButton.Icon = 'search-sparkle.svg';
+            app.SearchButton.IconAlignment = 'leftmargin';
+            app.SearchButton.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.SearchButton.Layout.Row = 6;
+            app.SearchButton.Layout.Column = 2;
+            app.SearchButton.Text = 'Pesquisar';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

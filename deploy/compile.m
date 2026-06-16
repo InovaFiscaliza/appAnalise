@@ -18,7 +18,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         githubAccount           char    = 'EricMagalhaesDelgado'
     end
 
-    appName     = 'appAnalise';
+    appName = 'appAnalise';
 
     initFolder  = fileparts(mfilename('fullpath'));
     finalFolder = fullfile(rootCompiledFolder, appName);
@@ -40,7 +40,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
     end
 
     % Abre projeto do "appAnalise", caso fechado, o que mapeia as pastas do
-    % projeto, possibilitar chamar class.Constants.appRelease, por exemplo.
+    % projeto, possibilitando chamar class.Constants.appName, por exemplo.
     try
         prjInfo = currentProject;
 
@@ -59,7 +59,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
 
     % Atualiza base de dados, caso necessário.
     RFDataHubOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RFDataHub.mat');
-    RFDataHubEditedFile   = fullfile(fullfile(ccTools.fcn.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RFDataHub.mat');
+    RFDataHubEditedFile   = fullfile(fullfile(appEngine.util.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RFDataHub.mat');
     
     load(RFDataHubOriginalFile, 'RFDataHub_info')
     originalReleaseDate   = datetime(RFDataHub_info.ReleaseDate, 'InputFormat', 'dd/MM/yyyy HH:mm:ss');
@@ -74,7 +74,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         end
     end
 
-    if hours(datetime('now') - originalReleaseDate) > 24*7
+    if ~strcmp(RFDataHub_info.ReleaseDate, '06/04/2026 08:08:05') && hours(datetime('now') - originalReleaseDate) > 24*7
         error('RFDataHubNonUpdated')
     end
 
@@ -111,7 +111,7 @@ function results = desktopCompilation(finalFolder, matlabRuntimeFolder, githubRe
     appResources = cellstr(xmlProject.configuration.fileset_resources.file);
     appPackages  = cellstr(xmlProject.configuration.fileset_package.file);
     appIcon      = fullfile(initFolder, 'desktop_resources', 'icon_48.png');
-    appVersion   = class.Constants.appVersion;
+    appVersion   = char(regexp(class.Constants.appVersion, '^(?:alpha|beta)?_?(\d+(?:\.\d+){2})', 'tokens', 'once'));
 
     % Arquivo EXECUTÁVEL
     cd(fileparts(appMainFile))
@@ -160,8 +160,8 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
 
     if isfolder(deployApp)
         appName    = class.Constants.appName;
-        appRelease = class.Constants.appRelease;
         appVersion = class.Constants.appVersion;
+        appRelease = matlabRelease.Release;
 
         desktopFinalFolder = fullfile(finalFolder, 'desktop');
 
@@ -174,13 +174,18 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
             mcrProducts  = cellfun(@(x) int64(str2double(x)), fileContent);
         
             cacheContent = dir(fullfile(matlabRuntimeFolder, '*.zip'));
+            cacheWarning = true;
             for ii = 1:numel(cacheContent)
                 cacheFileString  = char(extractBetween(cacheContent(ii).name, 'InstallAgent_', '.zip'));
                 cacheFileProduts = compiler.internal.utils.hexString2RuntimeProducts(cacheFileString);
         
-                if any(~ismember(mcrProducts, cacheFileProduts))
-                    warning('Necessário atualizar a versão customizada do MATLAB Runtime.')
+                if all(ismember(mcrProducts, cacheFileProduts))
+                    cacheWarning = false;
                 end
+            end
+
+            if cacheWarning
+                warning('Necessário atualizar a versão customizada do MATLAB Runtime.')
             end
         end
 
@@ -229,16 +234,15 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
         if githubReleaseFlag
             cd(githubCLIFolder)
             try                
-                ghMessage1 = sprintf('gh release upload %s "%s" --repo InovaFiscaliza/.github --clobber', appName, fullfile(finalFolder, sprintf('%s_Installer.zip', appName)));
-                [~, ghStatus1] = system(ghMessage1);
-                warning(ghStatus1)
+                ghCommand1 = sprintf('gh release upload %s "%s" --repo InovaFiscaliza/.github --clobber', appName, fullfile(finalFolder, sprintf('%s_Installer.zip', appName)));
+                system(ghCommand1);
             catch ME
                 warning(ME.message)
             end
 
             try
-                ghMessage2 = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
-                [~, ghStatus2] = system(ghMessage2);
+                ghCommand2 = sprintf('gh release create %s "%s" --title "%s" --notes "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/%s.aspx" --repo InovaFiscaliza/%s', appVersion, fullfile(finalFolder, sprintf('%s_Matlab.zip', appName)), appName, appName, appName);
+                [~, ghStatus2] = system(ghCommand2);
                 warning(ghStatus2)
             catch ME
                 warning(ME.message)

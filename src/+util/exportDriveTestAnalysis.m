@@ -1,4 +1,4 @@
-function msgWarning = exportDriveTestAnalysis(specRawTable, specFilteredTable, specBinTable, Basename, fileZIP, dataSource, hPlot, channelTag)
+function msgWarning = exportDriveTestAnalysis(emissionPoints, basename, fileZIP, dataSource, hPlot, channelTag)
 
     % TABELAS DO APPANALISE:DRIVE-TEST:
     % - specRawTable.....: "Timestamp", "Latitude", "Longitude", "ChannelPower", "Filtered"
@@ -11,9 +11,13 @@ function msgWarning = exportDriveTestAnalysis(specRawTable, specFilteredTable, s
     msgWarning = {};
     msgError   = {};
 
-    fileSheetName   = [Basename '.xlsx'];
-    fileKMLMeasures = [Basename '_Measures.kml'];
-    fileKMLRoute    = [Basename '_Route.kml'];    
+    fileSheetName   = [basename '.xlsx'];
+    fileKMLMeasures = [basename '_Measures.kml'];
+    fileKMLRoute    = [basename '_Route.kml'];
+
+    specRawTable = emissionPoints.raw;
+    specFilteredTable = emissionPoints.filtered;
+    specBinTable = emissionPoints.binned;
 
     % XLSX
     try
@@ -64,7 +68,7 @@ function msgWarning = exportDriveTestAnalysis(specRawTable, specFilteredTable, s
         error('DriveTest:ExportFiles:FileNotCreated', strjoin(msgError, '\n'))
     end
 
-    fileFolder = fileparts(Basename);
+    fileFolder = fileparts(basename);
     msgWarning = replace(msgWarning, fileFolder, '.');
     msgWarning = sprintf('Lista de arquivos criados na pasta de trabalho:\n%s', strjoin(msgWarning, '\n'));
 end

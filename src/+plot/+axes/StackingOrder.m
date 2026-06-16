@@ -2,11 +2,16 @@ classdef (Abstract) StackingOrder
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        winAppAnalise     = {'mkrLabels', 'occTHR', 'mkrROI', 'ROI', 'Average', 'ClearWrite', 'MaxHold', 'mkrLine', 'Channel', 'BandLimits', 'Persistance', 'MinHold', 'WaterfallTime', 'Waterfall'}        
-        winDriveTest      = {'FilterROI', 'Car', 'Points', 'Distortion', 'Density', 'InRoute', 'OutRoute', ...    % app.UIAxes1   (GeographicAxes)
-                             'ChannelROI', 'ClearWrite', 'Persistance', 'Timeline', 'Waterfall', 'ChannelPower'}  % app.UIAxes2-4 (CartesianAxes)
-        winSignalAnalysis = {'EmissionROI', 'Average', 'MaxHold', 'MinHold'}                                      % app.UIAxes2   (CartesianAxes)
+        winAppAnalise     = {'mkrLabels', 'occupancyThreshold', 'mkrROI', 'ROI', 'average', 'clearWrite', 'maxHold', ...
+                             'mkrLine', 'channel', 'bandLimits', 'persistence', 'minHold', 'waterfallTime', 'waterfall'}        
+        
+        winDriveTest      = {'filterROI', 'car', 'points', 'distortion', 'density', 'estimatedEmissorLocation', 'routePassFilter', 'routeFailFilter', ... % app.UIAxes1   (GeographicAxes)
+                             'channelROI', 'clearWrite', 'persistence', 'channelPower', 'waterfallTime', 'waterfall'}  % app.UIAxes2-4 (CartesianAxes)
+        
+        winSignalAnalysis = {'emissionROI', 'average', 'maxHold', 'minHold'}                                      % app.UIAxes2   (CartesianAxes)
+        
         RFDataHub         = {'FilterROI', 'RFLink', 'TX', 'RX', 'Stations'}                                       % app.UIAxes1   (GeographicAxes)
+        
         RFLink            = {'StationLabel', 'Station', 'Link', 'Fresnel', 'FirstObstruction', 'Footnote', 'Terrain'}
     end
 

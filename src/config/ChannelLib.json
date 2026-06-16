@@ -12,7 +12,7 @@
       "ChannelBW": 6,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "TV"
+      "EmissionClass": "BroadcastTV"
     },
     {
       "Name": "TV Low VHF (2)",
@@ -26,7 +26,7 @@
       "ChannelBW": 6,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "TV"
+      "EmissionClass": "BroadcastTV"
     },
     {
       "Name": "FM",
@@ -40,7 +40,7 @@
       "ChannelBW": 0.256,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "FM"
+      "EmissionClass": "BroadcastFM"
     },
     {
       "Name": "Aircraft_1",
@@ -54,7 +54,7 @@
       "ChannelBW": 0.01,
       "FreqList": [],
       "Reference": "",
-      "FindPeaksName": "Aircraft"
+      "EmissionClass": "Aeronautical"
     },
     {
       "Name": "Aircraft_2",
@@ -68,7 +68,7 @@
       "ChannelBW": 0.01,
       "FreqList": [],
       "Reference": "",
-      "FindPeaksName": "Aircraft"
+      "EmissionClass": "Aeronautical"
     },
     {
       "Name": "TV High VHF",
@@ -82,7 +82,7 @@
       "ChannelBW": 6,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "TV"
+      "EmissionClass": "BroadcastTV"
     },
     {
       "Name": "TV UHF (1)",
@@ -96,7 +96,7 @@
       "ChannelBW": 6,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "TV"
+      "EmissionClass": "BroadcastTV"
     },
     {
       "Name": "TV UHF (2)",
@@ -110,7 +110,7 @@
       "ChannelBW": 6,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-      "FindPeaksName": "TV"
+      "EmissionClass": "BroadcastTV"
     },
     {
       "Name": "Cellular 700MHz",
@@ -124,7 +124,7 @@
       "ChannelBW": 10,
       "FreqList": [],
       "Reference": "",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 800MHz",
@@ -143,7 +143,7 @@
         892.75
       ],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2006/89-resolucao-454",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 900MHz",
@@ -166,7 +166,7 @@
         958.75
       ],
       "Reference": "",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 1.88GHz",
@@ -180,7 +180,7 @@
       "ChannelBW": -1,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2022/1760-resolucao-757",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 2.1GHz",
@@ -194,7 +194,7 @@
       "ChannelBW": -1,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2022/1760-resolucao-757",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 2.5GHz",
@@ -208,7 +208,7 @@
       "ChannelBW": -1,
       "FreqList": [],
       "Reference": "",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     },
     {
       "Name": "Cellular 3.5GHz",
@@ -222,7 +222,7 @@
       "ChannelBW": -1,
       "FreqList": [],
       "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2019/1285-resolucao-711",
-      "FindPeaksName": "Cellular"
+      "EmissionClass": "Cellular"
     }
   ],
   "Exception": [
@@ -263,58 +263,58 @@
   "DefaultMinBandSpan": 10,
   "FindPeaks": [
     {
-      "Name": "Aircraft",
-      "Distance": 0.025,
-      "BW": 0.010,
-      "Prominence1": 10,
-      "Prominence2": 30,
-      "meanOCC": 1,
-      "maxOCC": 10
+      "EmissionClass": "Aeronautical",
+      "MinDistanceMHz": 0.025,
+      "MinWidthMHz": 0.010,
+      "MinProminenceCenter": 12,
+      "MinProminenceMax": 30,
+      "MinOccupancyMeanOverTime": 3,
+      "MinOccupancyMaxOverTime": 10
     },
     {
-      "Name": "Cellular",
-      "Distance": 2.5,
-      "BW": 2.5,
-      "Prominence1": 10,
-      "Prominence2": 30,
-      "meanOCC": 10,
-      "maxOCC": 67
+      "EmissionClass": "BroadcastFM",
+      "MinDistanceMHz": 0.200,
+      "MinWidthMHz": 0.100,
+      "MinProminenceCenter": 12,
+      "MinProminenceMax": 30,
+      "MinOccupancyMeanOverTime": 10,
+      "MinOccupancyMaxOverTime": 67
     },
     {
-      "Name": "FM",
-      "Distance": 0.200,
-      "BW": 0.050,
-      "Prominence1": 10,
-      "Prominence2": 30,
-      "meanOCC": 10,
-      "maxOCC": 67
+      "EmissionClass": "BroadcastTV",
+      "MinDistanceMHz": 4.5,
+      "MinWidthMHz": 0.150,
+      "MinProminenceCenter": 12,
+      "MinProminenceMax": 30,
+      "MinOccupancyMeanOverTime": 10,
+      "MinOccupancyMaxOverTime": 67
     },
     {
-      "Name": "TV",
-      "Distance": 4.5,
-      "BW": 0.150,
-      "Prominence1": 10,
-      "Prominence2": 30,
-      "meanOCC": 10,
-      "maxOCC": 67
+      "EmissionClass": "Cellular",
+      "MinDistanceMHz": 2.5,
+      "MinWidthMHz": 1.4,
+      "MinProminenceCenter": 12,
+      "MinProminenceMax": 30,
+      "MinOccupancyMeanOverTime": 10,
+      "MinOccupancyMaxOverTime": 67
     },
     {
-      "Name": "Satellite",
-      "Distance": 2.5,
-      "BW": 2.5,
-      "Prominence1": 6,
-      "Prominence2": 10,
-      "meanOCC": 10,
-      "maxOCC": 67
+      "EmissionClass": "Satellite",
+      "MinDistanceMHz": 2.5,
+      "MinWidthMHz": 2.0,
+      "MinProminenceCenter": 6,
+      "MinProminenceMax": 12,
+      "MinOccupancyMeanOverTime": 10,
+      "MinOccupancyMaxOverTime": 67
     },
     {
-      "Name": "Unknown",
-      "Distance": 0.025,
-      "BW": 0.010,
-      "Prominence1": 10,
-      "Prominence2": 30,
-      "meanOCC": 10,
-      "maxOCC": 67
+      "EmissionClass": "Generic",
+      "MinDistanceMHz": 0.025,
+      "MinWidthMHz": 0.010,
+      "MinProminenceCenter": 12,
+      "MinProminenceMax": 30,
+      "MinOccupancyMeanOverTime": 10,
+      "MinOccupancyMaxOverTime": 67
     }
   ]
 }

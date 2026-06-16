@@ -35,7 +35,6 @@ classdef winConfig_exported < matlab.apps.AppBase
         configAnalysisLabel2         matlab.ui.control.Label
         analysis_FilePanel           matlab.ui.container.Panel
         analysis_FileGrid            matlab.ui.container.GridLayout
-        detectionManualMode          matlab.ui.control.CheckBox
         channelManualMode            matlab.ui.control.CheckBox
         mergeDistance                matlab.ui.control.Spinner
         mergeLabel2                  matlab.ui.control.Label
@@ -90,6 +89,7 @@ classdef winConfig_exported < matlab.apps.AppBase
     properties (Access = private)
         %-----------------------------------------------------------------%
         Role = 'secondaryApp'
+        Context = 'CONFIG'
     end
 
 
@@ -116,10 +116,10 @@ classdef winConfig_exported < matlab.apps.AppBase
             try
                 switch event.HTMLEventName
                     case 'renderer'
-                        appEngine.activate(app, app.Role)
+                        appEngine.activate(app, app.Role)                        
 
                     otherwise
-                        error('UnexpectedEvent')
+                        ipcMainJSEventsHandler(app.mainApp, event)
                 end
 
             catch ME
@@ -129,61 +129,34 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyJSCustomizations(app, tabIndex)
-            persistent customizationStatus
-            if isempty(customizationStatus)
-                customizationStatus = [false, false, false, false];
+            if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
+                return
             end
+            app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
 
             switch tabIndex
-                case 0 % STARTUP
-                    if app.isDocked
-                        app.progressDialog = app.mainApp.progressDialog;
-                    else
-                        sendEventToHTMLSource(app.jsBackDoor, 'startup', app.mainApp.executionMode);
-                        app.progressDialog = ui.ProgressDialog(app.jsBackDoor);
-                    end
-                    customizationStatus = [false, false, false, false];
-
-                otherwise
-                    if customizationStatus(tabIndex)
-                        return
+                case 1
+                    elToModify = {
+                        app.versionInfo
+                    };
+                    ui.CustomizationBase.getElementsDataTag(elToModify);
+                    
+                    try
+                        ui.TextView.startup(app.jsBackDoor, app.versionInfo, class(app));
+                    catch
                     end
 
-                    customizationStatus(tabIndex) = true;
-                    switch tabIndex
-                        case 1
-                            appName = class(app);
+                case 2
+                    updatePanel_Analysis(app)
 
-                            % Grid botões "dock":
-                            if app.isDocked
-                                elToModify = {app.DockModule};
-                                elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                                if ~isempty(elDataTag)
-                                    sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                                        struct('appName', appName, 'dataTag', elDataTag{1}, 'style', struct('transition', 'opacity 2s ease', 'opacity', '0.5')), ...
-                                    });
-                                end
-                            end
-                            
-                            % Outros elementos:
-                            elToModify = {app.versionInfo};
-                            elDataTag  = ui.CustomizationBase.getElementsDataTag(elToModify);
-                            if ~isempty(elDataTag)
-                                ui.TextView.startup(app.jsBackDoor, app.versionInfo, appName);
-                            end
+                case 3
+                    updatePanel_Report(app)
 
-                        case 2
-                            updatePanel_Analysis(app)
-
-                        case 3
-                            updatePanel_Report(app)
-
-                        case 4
-                            if ~strcmp(app.mainApp.executionMode, 'webApp')
-                                set([app.DataHubPOSTButton, app.userPathButton], 'Enable', 1)
-                            end
-                            updatePanel_Folder(app)
+                case 4
+                    if ~strcmp(app.mainApp.executionMode, 'webApp')
+                        set([app.DataHubPOSTButton, app.userPathButton], 'Enable', 1)
                     end
+                    updatePanel_Folder(app)
             end
         end
 
@@ -191,16 +164,16 @@ classdef winConfig_exported < matlab.apps.AppBase
         function initializeAppProperties(app)
             % Lê a versão de "GeneralSettings.json" que vem junto ao
             % projeto (e não a versão armazenada em "ProgramData").
-            projectFolder     = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
-            projectFilePath   = fullfile(projectFolder, 'GeneralSettings.json');
-            projectGeneral    = jsondecode(fileread(projectFilePath));
+            projectFolder   = appEngine.util.Path(class.Constants.appName, app.mainApp.rootFolder);
+            projectFilePath = fullfile(projectFolder, 'GeneralSettings.json');
+            projectGeneral  = jsondecode(fileread(projectFilePath));
 
-            app.defaultValues = struct('Elevation', projectGeneral.Elevation, ...
-                                       'Merge',     projectGeneral.Merge, ...
-                                       'Channel',   projectGeneral.Channel, ...
-                                       'Detection', projectGeneral.Detection, ...
-                                       'Plot',      projectGeneral.Plot, ...
-                                       'Report',    projectGeneral.Report);
+            app.defaultValues = struct('elevation', projectGeneral.elevation, ...
+                                       'Merge',     projectGeneral.context.FILE.spectrumConsolidationPolicy, ...
+                                       'Channel',   projectGeneral.context.PLAYBACK.channel, ...
+                                       'Detection', projectGeneral.context.PLAYBACK.detection, ...
+                                       'Plot',      projectGeneral.plot, ...
+                                       'reportLib', projectGeneral.reportLib);
         end
 
         %-----------------------------------------------------------------%
@@ -220,7 +193,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
             % Versão:
-            appInfo = util.HtmlTextGenerator.AppInfo( ...
+            appInfo = util.HtmlTextGenerator.getAppInfo( ...
                 app.mainApp.General, ...
                 app.mainApp.rootFolder, ...
                 app.mainApp.executionMode, ...
@@ -240,48 +213,46 @@ classdef winConfig_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updatePanel_Analysis(app)
             % Mesclagem de fluxos espectrais
-            switch app.mainApp.General.Merge.DataType
+            switch app.mainApp.General.context.FILE.spectrumConsolidationPolicy.dataTypePolicy
                 case 'keep';   app.mergeDataType.Value = 0;
                 case 'remove'; app.mergeDataType.Value = 1;
             end
 
-            switch app.mainApp.General.Merge.Antenna
+            switch app.mainApp.General.context.FILE.spectrumConsolidationPolicy.antennaPolicy
                 case 'keep';   app.mergeAntenna.Value = 0;
                 case 'remove'; app.mergeAntenna.Value = 1;
             end
 
-            app.mergeDistance.Value        = app.mainApp.General.Merge.Distance;
+            app.mergeDistance.Value        = app.mainApp.General.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters;
 
             % PLAYBACK AXES
-            app.yOccupancyScale.Value      = app.mainApp.General.Plot.Axes.yOccupancyScale;
+            app.yOccupancyScale.Value      = app.mainApp.General.plot.cartesianAxes.yOccupancyScale;
             
             % DETECTION
-            app.channelManualMode.Value    = app.mainApp.General.Channel.ManualMode;
-            app.detectionManualMode.Value  = app.mainApp.General.Detection.ManualMode;
-            app.InitialBW_kHz.Value        = app.mainApp.General.Detection.InitialBW_kHz;
+            app.channelManualMode.Value    = app.mainApp.General.context.PLAYBACK.channel.manualMode;
+            app.InitialBW_kHz.Value        = app.mainApp.General.context.PLAYBACK.detection.datatipBandWidthkHz;
 
             % ELEVATION
-            app.elevationNPoints.Value     = num2str(app.mainApp.General.Elevation.Points);
-            app.elevationForceSearch.Value = app.mainApp.General.Elevation.ForceSearch;
-            app.elevationAPIServer.Value   = app.mainApp.General.Elevation.Server;
+            app.elevationNPoints.Value     = num2str(app.mainApp.General.elevation.pointCount);
+            app.elevationForceSearch.Value = app.mainApp.General.elevation.forceRefresh;
+            app.elevationAPIServer.Value   = app.mainApp.General.elevation.provider;
 
             app.configAnalysisRefresh.Visible = checkEdition(app, 'ANALYSIS');
         end
 
         %-----------------------------------------------------------------%
         function updatePanel_Report(app)
-            app.reportSystem.Value        = app.mainApp.General.Report.system;
-            set(app.reportUnit, 'Items', app.mainApp.General.eFiscaliza.defaultValues.unit, 'Value', app.mainApp.General.Report.unit)
+            app.reportSystem.Value        = app.mainApp.General.reportLib.system;
+            set(app.reportUnit, 'Items', app.mainApp.General.eFiscaliza.defaultValues.unit, 'Value', app.mainApp.General.reportLib.unit)
             
-            app.reportDocType.Value       = app.mainApp.General.Report.Document;
-            app.reportBasemap.Value       = app.mainApp.General.Report.Basemap;
-            app.reportImgFormat.Value     = app.mainApp.General.Report.Image.Format;
-            app.reportImgDpi.Value        = num2str(app.mainApp.General.Report.Image.Resolution);
-            app.reportBinningLength.Value = app.mainApp.General.Report.DataBinning.length_m;
-            app.reportBinningFcn.Value    = app.mainApp.General.Report.DataBinning.function;
+            app.reportBasemap.Value       = app.mainApp.General.reportLib.basemap;
+            app.reportImgFormat.Value     = app.mainApp.General.reportLib.image.format;
+            app.reportImgDpi.Value        = num2str(app.mainApp.General.reportLib.image.resolutionDpi);
+            app.reportBinningLength.Value = app.mainApp.General.context.DRIVETEST.dataBinning.binLengthMeters;
+            app.reportBinningFcn.Value    = app.mainApp.General.context.DRIVETEST.dataBinning.aggregationFunction;
 
-            if ismember(app.mainApp.General.Report.outputCompressionMode, app.prjFileCompressionMode.Items)
-                app.prjFileCompressionMode.Value = app.mainApp.General.Report.outputCompressionMode;
+            if ismember(app.mainApp.General.reportLib.outputCompressionMode, app.prjFileCompressionMode.Items)
+                app.prjFileCompressionMode.Value = app.mainApp.General.reportLib.outputCompressionMode;
             end
 
             app.eFiscalizaRefresh.Visible = checkEdition(app, 'REPORT');
@@ -300,20 +271,20 @@ classdef winConfig_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function editionFlag = checkEdition(app, tabName)
             editionFlag   = false;
-            currentValues = struct('Elevation', app.mainApp.General.Elevation, ...
-                                   'Merge',     app.mainApp.General.Merge, ...
-                                   'Channel',   app.mainApp.General.Channel, ...
-                                   'Detection', app.mainApp.General.Detection, ...
-                                   'Plot',      app.mainApp.General.Plot, ...
-                                   'Report',    app.mainApp.General.Report);
+            currentValues = struct('elevation', app.mainApp.General.elevation, ...
+                                   'Merge',     app.mainApp.General.context.FILE.spectrumConsolidationPolicy, ...
+                                   'Channel',   app.mainApp.General.context.PLAYBACK.channel, ...
+                                   'Detection', app.mainApp.General.context.PLAYBACK.detection, ...
+                                   'Plot',      app.mainApp.General.plot, ...
+                                   'reportLib', app.mainApp.General.reportLib);
 
             switch tabName
                 case 'ANALYSIS'
-                    if ~isequal(rmfield(currentValues, 'Report'), rmfield(app.defaultValues, 'Report'))
+                    if ~isequal(rmfield(currentValues, 'reportLib'), rmfield(app.defaultValues, 'reportLib'))
                         editionFlag = true;
                     end
                 case 'REPORT'
-                    if ~isequal(currentValues.Report, app.defaultValues.Report)
+                    if ~isequal(currentValues.reportLib, app.defaultValues.reportLib)
                         editionFlag = true;
                     end
             end
@@ -343,7 +314,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         % Close request function: UIFigure
         function closeFcn(app, event)
             
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', 'CONFIG')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'closeFcn', app.Context)
             delete(app)
             
         end
@@ -403,8 +374,7 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
             end
 
-            app.mainApp.General.operationMode.Simulation = true;
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'simulationModeChanged')
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onSimulationMode')
             
         end
 
@@ -475,11 +445,11 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
 
             else
-                app.mainApp.General.Merge     = app.defaultValues.Merge;                    
-                app.mainApp.General.Channel   = app.defaultValues.Channel;
-                app.mainApp.General.Detection = app.defaultValues.Detection;
-                app.mainApp.General.Elevation = app.defaultValues.Elevation;
-                app.mainApp.General.Plot      = app.defaultValues.Plot;
+                app.mainApp.General.context.FILE.spectrumConsolidationPolicy = app.defaultValues.Merge;                    
+                app.mainApp.General.context.PLAYBACK.channel = app.defaultValues.Channel;
+                app.mainApp.General.context.PLAYBACK.detection = app.defaultValues.Detection;
+                app.mainApp.General.elevation = app.defaultValues.elevation;
+                app.mainApp.General.plot = app.defaultValues.Plot;
 
                 updatePanel_Analysis(app)
                 saveGeneralSettings(app)
@@ -488,7 +458,7 @@ classdef winConfig_exported < matlab.apps.AppBase
         end
 
         % Value changed function: InitialBW_kHz, channelManualMode, 
-        % ...and 8 other components
+        % ...and 7 other components
         function Config_AnalysisParameterValueChanged(app, event)
             
             switch event.Source
@@ -503,36 +473,35 @@ classdef winConfig_exported < matlab.apps.AppBase
                         case 1; AntennaStatus  = 'remove';
                     end
                                 
-                    app.mainApp.General.Merge.DataType = DataTypeStatus;
-                    app.mainApp.General.Merge.Antenna  = AntennaStatus;
-                    app.mainApp.General.Merge.Distance = app.mergeDistance.Value;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.dataTypePolicy = DataTypeStatus;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.antennaPolicy = AntennaStatus;
+                    app.mainApp.General.context.FILE.spectrumConsolidationPolicy.maxCoLocationDistanceMeters = app.mergeDistance.Value;
 
-                case {app.channelManualMode, app.detectionManualMode}
-                    app.mainApp.General.Channel.ManualMode   = app.channelManualMode.Value;
-                    app.mainApp.General.Detection.ManualMode = app.detectionManualMode.Value;
+                case app.channelManualMode
+                    app.mainApp.General.context.PLAYBACK.channel.manualMode = app.channelManualMode.Value;
 
                 case app.yOccupancyScale
-                    app.mainApp.General.Plot.Axes.yOccupancyScale = app.yOccupancyScale.Value;
+                    app.mainApp.General.plot.cartesianAxes.yOccupancyScale = app.yOccupancyScale.Value;
                     ipcMainMatlabCallsHandler(app.mainApp, app, 'onYAxesScaleChange')
 
                 case app.InitialBW_kHz
-                    app.mainApp.General.Detection.InitialBW_kHz  = app.InitialBW_kHz.Value;
+                    app.mainApp.General.context.PLAYBACK.detection.datatipBandWidthkHz  = app.InitialBW_kHz.Value;
 
                 case app.elevationNPoints
-                    app.mainApp.General.Elevation.Points = str2double(app.elevationNPoints.Value);
+                    app.mainApp.General.elevation.pointCount = str2double(app.elevationNPoints.Value);
 
                 case app.elevationForceSearch
-                    app.mainApp.General.Elevation.ForceSearch = app.elevationForceSearch.Value;
+                    app.mainApp.General.elevation.forceRefresh = app.elevationForceSearch.Value;
 
                 case app.elevationAPIServer
-                    app.mainApp.General.Elevation.Server = app.elevationAPIServer.Value;
+                    app.mainApp.General.elevation.provider = app.elevationAPIServer.Value;
             end
 
-            app.mainApp.General_I.Merge     = app.mainApp.General.Merge;
-            app.mainApp.General_I.Channel   = app.mainApp.General.Channel;
-            app.mainApp.General_I.Detection = app.mainApp.General.Detection;
-            app.mainApp.General_I.Elevation = app.mainApp.General.Elevation;
-            app.mainApp.General_I.Plot      = app.mainApp.General.Plot;
+            app.mainApp.General_I.context.FILE.spectrumConsolidationPolicy = app.mainApp.General.context.FILE.spectrumConsolidationPolicy;
+            app.mainApp.General_I.context.PLAYBACK.channel = app.mainApp.General.context.PLAYBACK.channel;
+            app.mainApp.General_I.context.PLAYBACK.detection = app.mainApp.General.context.PLAYBACK.detection;
+            app.mainApp.General_I.elevation = app.mainApp.General.elevation;
+            app.mainApp.General_I.plot = app.mainApp.General.plot;
 
             saveGeneralSettings(app)
             updatePanel_Analysis(app)  
@@ -547,8 +516,8 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
             
             else
-                app.mainApp.General.Report   = app.defaultValues.Report;
-                app.mainApp.General_I.Report = app.mainApp.General.Report;
+                app.mainApp.General.reportLib   = app.defaultValues.reportLib;
+                app.mainApp.General_I.reportLib = app.mainApp.General.reportLib;
                 
                 updatePanel_Report(app)
                 saveGeneralSettings(app)
@@ -562,34 +531,31 @@ classdef winConfig_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.reportSystem
-                    app.mainApp.General.Report.system = event.Value;
+                    app.mainApp.General.reportLib.system = event.Value;
 
                 case app.reportUnit
-                    app.mainApp.General.Report.unit = event.Value;
-
-                case app.reportDocType
-                    app.mainApp.General.Report.Document = event.Value;
+                    app.mainApp.General.reportLib.unit = event.Value;
 
                 case app.reportBasemap
-                    app.mainApp.General.Report.Basemap = event.Value;
+                    app.mainApp.General.reportLib.basemap = event.Value;
 
                 case app.reportImgFormat
-                    app.mainApp.General.Report.Image.Format = event.Value;
+                    app.mainApp.General.reportLib.image.format = event.Value;
 
                 case app.reportImgDpi
-                    app.mainApp.General.Report.Image.Resolution = str2double(event.Value);
+                    app.mainApp.General.reportLib.image.resolutionDpi = str2double(event.Value);
 
                 case app.reportBinningLength
-                    app.mainApp.General.Report.DataBinning.length_m = event.Value;
+                    app.mainApp.General.context.DRIVETEST.dataBinning.binLengthMeters = event.Value;
 
                 case app.reportBinningFcn
-                    app.mainApp.General.Report.DataBinning.function = event.Value;
+                    app.mainApp.General.context.DRIVETEST.dataBinning.aggregationFunction = event.Value;
 
                 case app.prjFileCompressionMode
-                    app.mainApp.General.Report.outputCompressionMode = event.Value;
+                    app.mainApp.General.reportLib.outputCompressionMode = event.Value;
             end
 
-            app.mainApp.General_I.Report = app.mainApp.General.Report;
+            app.mainApp.General_I.reportLib = app.mainApp.General.reportLib;
 
             updatePanel_Report(app)
             saveGeneralSettings(app)
@@ -695,7 +661,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
             app.Toolbar.ColumnWidth = {22, '1x', 22};
-            app.Toolbar.RowHeight = {4, 17, 2};
+            app.Toolbar.RowHeight = {3, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
             app.Toolbar.Padding = [10 5 10 5];
@@ -811,7 +777,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create SubGrid2
             app.SubGrid2 = uigridlayout(app.SubTab2);
             app.SubGrid2.ColumnWidth = {'1x', 22};
-            app.SubGrid2.RowHeight = {17, 200, 22, 116, 22, '1x'};
+            app.SubGrid2.RowHeight = {17, 177, 22, 116, 22, '1x'};
             app.SubGrid2.RowSpacing = 5;
             app.SubGrid2.BackgroundColor = [1 1 1];
 
@@ -845,7 +811,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create analysis_FileGrid
             app.analysis_FileGrid = uigridlayout(app.analysis_FilePanel);
             app.analysis_FileGrid.ColumnWidth = {10, 90, '1x'};
-            app.analysis_FileGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22};
+            app.analysis_FileGrid.RowHeight = {17, 22, 22, 22, 22, 1, 22};
             app.analysis_FileGrid.ColumnSpacing = 0;
             app.analysis_FileGrid.RowSpacing = 5;
             app.analysis_FileGrid.BackgroundColor = [1 1 1];
@@ -908,17 +874,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.channelManualMode.Text = 'Não identificar automaticamente canais relacionados aos fluxos espectrais na leitura de arquivos.';
             app.channelManualMode.FontSize = 11;
             app.channelManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.channelManualMode.Layout.Row = 6;
+            app.channelManualMode.Layout.Row = 7;
             app.channelManualMode.Layout.Column = [1 3];
-
-            % Create detectionManualMode
-            app.detectionManualMode = uicheckbox(app.analysis_FileGrid);
-            app.detectionManualMode.ValueChangedFcn = createCallbackFcn(app, @Config_AnalysisParameterValueChanged, true);
-            app.detectionManualMode.Text = 'Não detectar automaticamente emissões na geração preliminar do relatório (editável no modo RELATÓRIO).';
-            app.detectionManualMode.FontSize = 11;
-            app.detectionManualMode.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.detectionManualMode.Layout.Row = 7;
-            app.detectionManualMode.Layout.Column = [1 3];
 
             % Create configAnalysisLabel2
             app.configAnalysisLabel2 = uilabel(app.SubGrid2);
@@ -1062,6 +1019,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create SubTab3
             app.SubTab3 = uitab(app.SubTabGroup);
+            app.SubTab3.AutoResizeChildren = 'off';
             app.SubTab3.Title = 'PROJETO';
 
             % Create SubGrid3
@@ -1283,14 +1241,14 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create reportBinningFcn
             app.reportBinningFcn = uidropdown(app.reportBinningGrid);
-            app.reportBinningFcn.Items = {'min', 'mean-linear', 'median-linear', 'rms-linear', 'max'};
+            app.reportBinningFcn.Items = {'min', 'mean', 'median', 'rms', 'max'};
             app.reportBinningFcn.ValueChangedFcn = createCallbackFcn(app, @Config_ProjectParameterValueChanged, true);
             app.reportBinningFcn.FontSize = 11;
             app.reportBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.reportBinningFcn.BackgroundColor = [1 1 1];
             app.reportBinningFcn.Layout.Row = 2;
             app.reportBinningFcn.Layout.Column = 2;
-            app.reportBinningFcn.Value = 'min';
+            app.reportBinningFcn.Value = 'rms';
 
             % Create prjFileCompressionModeLabel
             app.prjFileCompressionModeLabel = uilabel(app.reportGrid_2);
@@ -1342,12 +1300,13 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create DataHubPOSTButton
             app.DataHubPOSTButton = uiimage(app.SubGrid4);
+            app.DataHubPOSTButton.ScaleMethod = 'none';
             app.DataHubPOSTButton.ImageClickedFcn = createCallbackFcn(app, @Config_FolderButtonPushed, true);
             app.DataHubPOSTButton.Tag = 'DataHub_POST';
             app.DataHubPOSTButton.Enable = 'off';
             app.DataHubPOSTButton.Layout.Row = 2;
             app.DataHubPOSTButton.Layout.Column = 2;
-            app.DataHubPOSTButton.ImageSource = 'OpenFile_36x36.png';
+            app.DataHubPOSTButton.ImageSource = 'folder-opened-16px.svg';
 
             % Create userPathLabel
             app.userPathLabel = uilabel(app.SubGrid4);
@@ -1367,12 +1326,13 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create userPathButton
             app.userPathButton = uiimage(app.SubGrid4);
+            app.userPathButton.ScaleMethod = 'none';
             app.userPathButton.ImageClickedFcn = createCallbackFcn(app, @Config_FolderButtonPushed, true);
             app.userPathButton.Tag = 'userPath';
             app.userPathButton.Enable = 'off';
             app.userPathButton.Layout.Row = 4;
             app.userPathButton.Layout.Column = 2;
-            app.userPathButton.ImageSource = 'OpenFile_36x36.png';
+            app.userPathButton.ImageSource = 'folder-opened-16px.svg';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);

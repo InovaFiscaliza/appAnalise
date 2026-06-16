@@ -1,17 +1,13 @@
-function emissionsTable = createEmissionsTable(specData, idxThreads, operationType)
-
+function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType)
     arguments
         specData
-        idxThreads
+        flowIdxs
         operationType {mustBeMember(operationType, {'SIGNALANALYSIS: GUI', 'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})}
     end
 
-    if isempty(idxThreads)
+    if isempty(flowIdxs)
         % Cria-se um objeto "SpecData" apenas p/ identificar formato base
         % da tabela Emissions. Adiciona-se as colunas requeridas pela GUI.
-        
-        % ToDo: 
-        % Evoluir, estabelecendo estrutura de emissionsTable.
         specTempData = model.SpecData;
         specTempData.UserData(1).LOG = '';
 
@@ -29,18 +25,18 @@ function emissionsTable = createEmissionsTable(specData, idxThreads, operationTy
     else
         emissionsTempTableCellArray = {};
     
-        for ii = idxThreads
-            emissionsTempTable                                = specData(ii).UserData.Emissions;
-    
-            emissionsTempTable.Truncated                      = arrayfun(@(x) x.userModified.Frequency,     emissionsTempTable.ChannelAssigned);
-            if any(~emissionsTempTable.isTruncated)
-                idxUntruncated = find(~emissionsTempTable.isTruncated);
-                emissionsTempTable.Truncated(idxUntruncated)  = emissionsTempTable.Frequency(idxUntruncated);
+        for ii = flowIdxs
+            emissionsTempTable = specData(ii).UserData.Emissions;
+            
+            emissionsTempTable.Truncated = arrayfun(@(x) x.UserModified.Frequency,     emissionsTempTable.ChannelAssigned);
+            if any(~emissionsTempTable.IsTruncated)
+                idxUntruncated = find(~emissionsTempTable.IsTruncated);
+                emissionsTempTable.Truncated(idxUntruncated) = emissionsTempTable.Frequency(idxUntruncated);
             end
     
-            emissionsTempTable.Band(:)                        = {sprintf('%.3f - %.3f MHz', specData(ii).MetaData.FreqStart/1e6, specData(ii).MetaData.FreqStop/1e6)};
-            emissionsTempTable.idxThread(:)                   = ii;
-            emissionsTempTable.idxEmission                    = (1:height(emissionsTempTable))';
+            emissionsTempTable.Band(:) = {sprintf('%.3f - %.3f MHz', specData(ii).MetaData.FreqStart/1e6, specData(ii).MetaData.FreqStop/1e6)};
+            emissionsTempTable.flowIdx(:) = ii;
+            emissionsTempTable.emissionIdx = (1:height(emissionsTempTable))';
     
             emissionsTempTable.Level_FreqCenter_Min           = arrayfun(@(x) x.Level.FreqCenter_Min,       emissionsTempTable.Measures);
             emissionsTempTable.Level_FreqCenter_Mean          = arrayfun(@(x) x.Level.FreqCenter_Mean,      emissionsTempTable.Measures);
@@ -50,26 +46,27 @@ function emissionsTable = createEmissionsTable(specData, idxThreads, operationTy
             emissionsTempTable.FCO_FreqCenter_Finite_Mean     = arrayfun(@(x) x.FCO.FreqCenter_Finite_Mean, emissionsTempTable.Measures);
             emissionsTempTable.FCO_FreqCenter_Finite_Max      = arrayfun(@(x) x.FCO.FreqCenter_Finite_Max,  emissionsTempTable.Measures);
     
-            emissionsTempTable.RFDataHubDescription_auto      = arrayfun(@(x) x.autoSuggested.Description,  emissionsTempTable.Classification, 'UniformOutput', false);
-            emissionsTempTable.RFDataHubDescription           = arrayfun(@(x) x.userModified.Description,   emissionsTempTable.Classification, 'UniformOutput', false);
+            emissionsTempTable.RFDataHubDescription_auto      = arrayfun(@(x) x.AutoSuggested.Description,  emissionsTempTable.Classification, 'UniformOutput', false);
+            emissionsTempTable.RFDataHubDescription           = arrayfun(@(x) x.UserModified.Description,   emissionsTempTable.Classification, 'UniformOutput', false);
     
             if ismember(operationType, {'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})
-                emissionsTempTable.Type                       = arrayfun(@(x) x.userModified.EmissionType,  emissionsTempTable.Classification, 'UniformOutput', false);
-                emissionsTempTable.Regulatory                 = arrayfun(@(x) x.userModified.Regulatory,    emissionsTempTable.Classification, 'UniformOutput', false);
-                emissionsTempTable.Service                    = arrayfun(@(x) x.userModified.Service,       emissionsTempTable.Classification);
-                emissionsTempTable.Station                    = arrayfun(@(x) x.userModified.Station,       emissionsTempTable.Classification);
+                emissionsTempTable.Type                       = arrayfun(@(x) x.UserModified.EmissionType,  emissionsTempTable.Classification, 'UniformOutput', false);
+                emissionsTempTable.Regulatory                 = arrayfun(@(x) x.UserModified.Regulatory,    emissionsTempTable.Classification, 'UniformOutput', false);
+                emissionsTempTable.Service                    = arrayfun(@(x) x.UserModified.Service,       emissionsTempTable.Classification);
+                emissionsTempTable.Station                    = arrayfun(@(x) x.UserModified.Station,       emissionsTempTable.Classification);
                 
-                emissionsTempTable.Distance_auto              = arrayfun(@(x) x.autoSuggested.Distance,     emissionsTempTable.Classification);
-                emissionsTempTable.Distance                   = arrayfun(@(x) x.userModified.Distance,      emissionsTempTable.Classification);
+                emissionsTempTable.Distance_auto              = arrayfun(@(x) x.AutoSuggested.Distance,     emissionsTempTable.Classification);
+                emissionsTempTable.Distance                   = arrayfun(@(x) x.UserModified.Distance,      emissionsTempTable.Classification);
     
-                emissionsTempTable.Irregular                  = arrayfun(@(x) x.userModified.Irregular,     emissionsTempTable.Classification, 'UniformOutput', false);
-                emissionsTempTable.RiskLevel                  = arrayfun(@(x) x.userModified.RiskLevel,     emissionsTempTable.Classification, 'UniformOutput', false);
+                emissionsTempTable.Irregular                  = arrayfun(@(x) x.UserModified.Irregular,     emissionsTempTable.Classification, 'UniformOutput', false);
+                emissionsTempTable.RiskLevel                  = arrayfun(@(x) x.UserModified.RiskLevel,     emissionsTempTable.Classification, 'UniformOutput', false);
         
                 emissionsTempTable.RFDataHubSource            = repmat({''}, height(emissionsTempTable), 1);
                 emissionsTempTable.RFDataHubClass             = repmat({''}, height(emissionsTempTable), 1);    
+                
                 for kk = 1:height(emissionsTempTable)
                     try
-                        stationInfo = jsondecode(emissionsTempTable.Classification(kk).userModified.Details);
+                        stationInfo = jsondecode(emissionsTempTable.Classification(kk).UserModified.Details);
         
                         emissionsTempTable.RFDataHubSource{kk} = stationInfo.Source;
                         emissionsTempTable.RFDataHubClass{kk}  = stationInfo.StationClass(1);
@@ -78,10 +75,10 @@ function emissionsTable = createEmissionsTable(specData, idxThreads, operationTy
                 end
             end
     
-            emissionsTempTableCellArray{end+1}                 = emissionsTempTable;
+            emissionsTempTableCellArray{end+1} = emissionsTempTable;
         end
     
-        emissionsTable = sortrows(vertcat(emissionsTempTableCellArray{:}), {'Frequency', 'BW_kHz'});
+        emissionsTable = sortrows(vertcat(emissionsTempTableCellArray{:}), {'Frequency', 'BandWidthkHz'});
         
         if ismember(operationType, {'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})
             for jj = 1:height(emissionsTable)
@@ -112,26 +109,26 @@ function description = mergeDescriptions(emissionTable, idx, operationType)
     %     • Campo obrigatório, caso classificação automática não identifique como provável emissor estação na base do RFDataHub.
     %
     % (b) Descrição relacionada à classificação automática - DESCRIÇÃO_CLASSIFICAÇÃO_AUTOMÁTICA
-    %     • "emissionsTable.Classification(idx).autoSuggested.Description"
+    %     • "emissionsTable.Classification(idx).AutoSuggested.Description"
     %     • "char" (tipo de dado), '-' (valor inicial) e NÃO editável
     %     • Descrição extraída da base do RFDataHub, caso classificação automática sugira estação que consta na base.
     %
     % (c) Descrição relacionada à classificação manual - DESCRIÇÃO_CLASSIFICAÇÃO_MANUAL
-    %     • "emissionsTable.Classification(idx).userModified.Description"
-    %     • "char" (tipo de dado), "emissionsTable.Classification(idx).autoSuggested.Description" (valor inicial) e editável
+    %     • "emissionsTable.Classification(idx).UserModified.Description"
+    %     • "char" (tipo de dado), "emissionsTable.Classification(idx).AutoSuggested.Description" (valor inicial) e editável
     %     • Descrição extraída da base do RFDataHub, caso classificação manual sugira estação que consta na base; ou '[EXC]', caso outra fonte.
     %     • Outra informação útil, caso preenchida, é a Latitude/Longitude de uma estação que não consta na base.
 
     % O formato de saída muda ligeiramente, a depender se a saída é um documento JSON ou HTML.
 
     % Descrições primárias:
-    autoDescription = emissionTable.Classification(idx).autoSuggested.Description; % Valor: RFDataHub.Description | '-' (char)
-    userDescription = emissionTable.Classification(idx).userModified.Description;  % Valor inicial: autoDescription     (char)
+    autoDescription = emissionTable.Classification(idx).AutoSuggested.Description; % Valor: RFDataHub.Description | '-' (char)
+    userDescription = emissionTable.Classification(idx).UserModified.Description;  % Valor inicial: autoDescription     (char)
     freeDescription = emissionTable.Description(idx);                              % Valor inicial: ""                  (string)
     
     % Descrições secundárias:
-    userLatitude    = emissionTable.Classification(idx).userModified.Latitude;     % Valor inicial: -1
-    userLongitude   = emissionTable.Classification(idx).userModified.Longitude;    % Valor inicial: -1
+    userLatitude    = emissionTable.Classification(idx).UserModified.Latitude;     % Valor inicial: -1
+    userLongitude   = emissionTable.Classification(idx).UserModified.Longitude;    % Valor inicial: -1
 
     userCoords      = '';
     if strcmp(userDescription, '[EXC]') && any([userLatitude, userLongitude] ~= -1)
