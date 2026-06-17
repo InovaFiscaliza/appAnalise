@@ -251,23 +251,28 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             flowIdxs = getReportIncludeIdxs(app.mainApp.specData);
             specData = app.mainApp.specData(flowIdxs);
 
-            invalidCache = false;
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
             for ii = 1:numel(specData)
-                if isempty(specData(ii).Data) || numel(specData(ii).Data{1}) ~= sum(specData(ii).RelatedFiles.NumSweeps)
-                    invalidCache = true;
-                    break
+                if ~isempty(specData(ii)) && (isempty(specData(ii).Data) || (numel(specData(ii).Data{1}) ~= sum(specData(ii).RelatedFiles.NumSweeps)))    
+                    try
+                        populateSpectrum(specData(ii), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        
+                        relatedHases = specData(ii).UserData.OccupancyComputationMode.RelatedHashes;
+                        if ~isempty(relatedHases)
+                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        end
+    
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'warning', ME.message);
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+                        return
+                    end
                 end
             end
 
-            if invalidCache
-                warningMsg = [ ...
-                    'Navegue ao menos uma vez por cada fluxo espectral a ser ' ...
-                    'processado antes de salvar o projeto.' ...
-                ];
-
-                ui.Dialog(app.UIFigure, 'warning', warningMsg);
-                return
-            end
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
             if isempty(specData)
                 warningMsg = [ ...
@@ -314,12 +319,16 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 specData = [specData, app.mainApp.specData(occupancyFlowsIdxs)];
             end
 
-            app.progressDialog.Visible = 'visible';
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
 
-            save(app.projectData, 'ProjectData', context, projectName, projectFile, app.mainApp.General.reportLib.outputCompressionMode, specData)
-            updatePanel(app, context)
+            try
+                save(app.projectData, 'ProjectData', context, projectName, projectFile, app.mainApp.General.reportLib.outputCompressionMode, specData)
+                updatePanel(app, context)
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
 
-            app.progressDialog.Visible = 'hidden';
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
         end
 
@@ -450,9 +459,11 @@ classdef dockReportLib_exported < matlab.apps.AppBase
             details = getEntityDetailsFromCache(app.projectData, app.reportEntityId.Value);
 
             if isempty(details)
-                app.progressDialog.Visible = 'visible';
+                requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
                 details = getOrFetchEntityDetails(app.projectData, app.reportEntityId.Value);
-                app.progressDialog.Visible = 'hidden';
+                
+                requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
             end
 
             if ~isempty(details)                
