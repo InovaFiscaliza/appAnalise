@@ -2183,26 +2183,49 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             elseif app.plotUpdateEvent
                 criticalWarningMsg = 'Interrompa o playback antes de inicializar a análise para gerar o relatório.';
-
-            else
-                invalidCache = false;
-                for ii = flowIdxs
-                    specData = app.mainApp.specData(ii);
-                    if isempty(specData.Data) || numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)
-                        invalidCache = true;
-                        break
-                    end
-                end
-
-                if invalidCache
-                    criticalWarningMsg = 'Navegue ao menos uma vez por cada fluxo espectral a ser processado antes de iniciar a análise para gerar o relatório.';
-                end
             end
 
             if ~isempty(criticalWarningMsg)
                 ui.Dialog(app.UIFigure, 'warning', criticalWarningMsg);
                 return
             end
+
+            % Avalia se todos os dados de níveis de todos os fluxos sob
+            % análise já foram lidos...
+            invalidCache = false;
+            for ii = flowIdxs
+                specData = app.mainApp.specData(ii);
+                if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
+                    if ~invalidCache
+                        invalidCache = true;
+
+                        msgQuestion = 'Ao menos um fluxo espectral sob análise ainda não teve seus dados lidos.<br><br>Deseja que o app carregue automaticamente os dados pendentes?';
+                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                        if userSelection == "Não"
+                            return
+                        end
+                    end
+
+                    requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
+                    try
+                        populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        
+                        relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                        if ~isempty(relatedHases)
+                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        end
+    
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'warning', ME.message);
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+                        return
+                    end
+                end
+            end
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
             nonCriticalWarningMsg = {};
             if ~validateReportRequirements(app.projectData, context, 'issue')
