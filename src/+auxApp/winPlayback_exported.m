@@ -1933,6 +1933,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     case '.json'
                         rawTable = struct2table(jsondecode(fileread(fileFullPath)), 'AsArray', true);
+
+                        % A importação padrão decorre de arquivo com apenas informação básica 
+                        % das emissões - frequência central, largura e descrição. No módulo 
+                        % SIGNALANALYSIS, contudo, pode-se gerar um .JSON mais completo, com 
+                        % informações da classificação. Por fugir da lógica padrão, essa importação 
+                        % é conduzida em util.importSignalAnalysis.
+                        if ~isempty(rawTable) && width(rawTable) > 3
+                            util.importSignalAnalysis(specData, rawTable, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General, app.mainApp.rfDataHub)
+                            ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', app.Context)
+                            
+                            app.progressDialog.Visible = 'hidden';
+                            return
+                        end
                         
                     case '.csv'
                         rawTable = readtable(fileFullPath, "VariableNamingRule", "preserve");

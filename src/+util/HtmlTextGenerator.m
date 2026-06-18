@@ -98,7 +98,7 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlContent = getSelectedFileInfo(metaData, fileIdx, varargin)
+        function htmlContent = getSelectedFileInfo(metaData, fileIdx, generalSettings, varargin)
             if isscalar(fileIdx)
                 flowIdxs = varargin{1};
                 specData = metaData(fileIdx).Data(flowIdxs);
@@ -114,7 +114,7 @@ classdef (Abstract) HtmlTextGenerator
                 );
 
                 if isscalar(specData)
-                    [~, htmlIntro, tempDisplayEntry] = util.HtmlTextGenerator.getSelectedFlowMetadata(specData);
+                    [~, htmlIntro, tempDisplayEntry] = util.HtmlTextGenerator.getSelectedFlowMetadata(specData, '', generalSettings);
                     displayEntry = [displayEntry, tempDisplayEntry];
 
                 else
@@ -172,6 +172,12 @@ classdef (Abstract) HtmlTextGenerator
 
             flowTag = util.HtmlTextGenerator.createTag('Flow', specData);
             observationPeriod = util.HtmlTextGenerator.observationPeriod(specData);
+            
+            durationWarning = '';
+            if max(specData.RelatedFiles.EndTime) - min(specData.RelatedFiles.BeginTime) < minutes(generalSettings.context.FILE.durationWarningThresholdMinutes)
+                durationWarning = sprintf(' <font style="color: red;">(<%dmin)</font>', generalSettings.context.FILE.durationWarningThresholdMinutes);
+            end                
+
             description = sprintf('"%s"', specData.RelatedFiles.Description{1});
 
             % PARÂMETROS DE AQUISIÇÃO
@@ -292,7 +298,7 @@ classdef (Abstract) HtmlTextGenerator
 
             htmlIntro = [ ...
                 util.HtmlTextGenerator.receiverBadge(util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) '<br><br>' ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s<br>%s %s<br><br>', flowTag, description, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s%s<br>%s %s<br><br>', flowTag, description, observationPeriod, durationWarning, monitoringTypeIcon, specData.GPS.Location) ...
             ];
 
             htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro);

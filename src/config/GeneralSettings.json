@@ -1,5 +1,5 @@
 {
-    "version": 1.57,
+    "version": 1.60,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -26,6 +26,7 @@
         "FILE": {
             "input": "file",
             "sortMethod": "ARQUIVO",
+            "durationWarningThresholdMinutes": 10,
             "spectrumConsolidationPolicy": {
                 "maxCoLocationDistanceMeters": 100,
                 "dataTypePolicy": "remove",

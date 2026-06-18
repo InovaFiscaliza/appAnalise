@@ -646,7 +646,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             [flowIdx, emissionIdx] = getEmissionIndexes(app);
             specData = app.mainApp.specData(flowIdx);
 
-            app.progressDialog.Visible = 'visible';
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
 
             switch triggeredComponent
                 case app.ClassificationRefresh
@@ -717,7 +717,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
             onToolbarCheckBoxValueChanged(app)
 
-            app.progressDialog.Visible = 'hidden';
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
         end
 
         %-----------------------------------------------------------------%
@@ -1069,27 +1069,23 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 %---------------------------------------------------------%
                 case app.tool_ExportJSONFile
-                    nameFormatMap = {'*.xlsx';'*.json'};
-                    defaultName = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, [class.Constants.appName '_Emissions'], -1);
-                    [fileFullPath, ~, fileExt] = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
+                    nameFormatMap = {'*.json', '(*.json)'};
+                    defaultName   = appEngine.util.DefaultFileName(app.mainApp.General.fileFolder.userPath, [class.Constants.appName '_Emissions'], -1);
+                    fileFullPath  = ui.Dialog(app.UIFigure, 'uiputfile', '', nameFormatMap, defaultName);
                     if isempty(fileFullPath)
                         return
                     end
 
-                    emissions = app.UITable.Data(:, {'Frequency', 'BandWidthkHz', 'RFDataHubDescription'});
-                    emissions = renamevars(emissions, {'RFDataHubDescription'}, {'Description'});
-                    emissions.Frequency = round(emissions.Frequency, 3);
-                    emissions.BandWidthkHz = round(emissions.BandWidthkHz, 1);
+                    if app.tool_EmissionReportListLimit.Value
+                        flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+                    else
+                        flowIdxs = 1:numel(app.mainApp.specData);
+                    end
 
                     try
-                        switch fileExt
-                            case '.xlsx'
-                                writetable(emissions, fileFullPath)
-                            case '.json'
-                                writematrix(jsonencode(emissions, "PrettyPrint", true),  fileFullPath,  "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
-                            otherwise 
-                                error('auxApp:winSignalAnalysis:UnexpectedFileFormat', 'Unexpected file format "%s"', fileExt)
-                        end
+                        specData = app.mainApp.specData(flowIdxs);
+                        jsonFileContent = util.exportSignalAnalysis(specData);
+                        writematrix(jsonFileContent,  fileFullPath,  "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
 
                     catch ME
                         ui.Dialog(app.UIFigure, 'error', ME.message);

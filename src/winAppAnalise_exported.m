@@ -25,6 +25,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         SubTabGroup              matlab.ui.container.TabGroup
         SubTab1                  matlab.ui.container.Tab
         SubGrid1                 matlab.ui.container.GridLayout
+        FileTreeCollapse         matlab.ui.control.Image
+        FileTreeExpand           matlab.ui.control.Image
         FileSortMethod           matlab.ui.control.DropDown
         FileSortMethodIcon       matlab.ui.control.Image
         FileModuleInfo           matlab.ui.control.Label
@@ -648,6 +650,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         app.Tab6Button;
                         app.Tab7Button;
                         app.FileModuleInfo;
+                        app.FileTreeExpand;
+                        app.FileTreeCollapse;
                         app.FileTree;
                         app.FileMetadata;
                         app.tool_ReadFiles
@@ -662,7 +666,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                             struct('appName', appName, 'dataTag', app.FileModuleInfo.UserData.id, 'selector', '[class="mwTextNode"]', 'style', struct('textAlign', 'justify')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ReadFiles.UserData.id,  'tooltip', struct('defaultPosition', 'top', 'textContent', 'Seleciona arquivos')), ...
+                            struct('appName', appName, 'dataTag', app.tool_ReadFiles.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Seleciona arquivos')), ...
+                            struct('appName', appName, 'dataTag', app.FileTreeExpand.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Expandir tudo')), ...
+                            struct('appName', appName, 'dataTag', app.FileTreeCollapse.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Recolher tudo')), ...
                             struct('appName', appName, 'dataTag', app.Tab1Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab2Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
                             struct('appName', appName, 'dataTag', app.Tab3Button.UserData.id, 'generation', 1, 'class', 'tab-navigator-button'), ...
@@ -951,13 +957,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         occupancyFlag = ' (Ocupação)';
                                     end
 
-                                    gpsStatusIcon = '';
-                                    if referenceTable.GpsStatus(kk) == 0
-                                        gpsStatusIcon = ' ❗';
-                                    end
+                                    warningMsg = computeWarningMessage(referenceTable.GpsStatus(kk), referenceTable.Duration(kk));
 
                                     dataNode = uitreenode(receiverNode, ...
-                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, warningMsg), ...
                                         'NodeData', struct('sortType', 'ARQUIVO', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1026,13 +1029,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         occupancyFlag = ' (Ocupação)';
                                     end
 
-                                    gpsStatusIcon = '';
-                                    if referenceTable.GpsStatus(kk) == 0
-                                        gpsStatusIcon = ' ❗';
-                                    end
+                                    warningMsg = computeWarningMessage(referenceTable.GpsStatus(kk), referenceTable.Duration(kk));
 
                                     dataNode = uitreenode(fileNode, ...
-                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', referenceTable.Band{kk}, occupancyFlag, warningMsg), ...
                                         'NodeData', struct('sortType', 'SENSOR', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(kk)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1114,13 +1114,10 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                         occupancyFlag = ' (Ocupação)';
                                     end
 
-                                    gpsStatusIcon = '';
-                                    if referenceTable.GpsStatus(jj) == 0
-                                        gpsStatusIcon = ' ❗';
-                                    end
+                                    warningMsg = computeWarningMessage(referenceTable.GpsStatus(jj), referenceTable.Duration(jj));
 
                                     dataNode = uitreenode(receiverNode, ...
-                                        'Text', sprintf('%s%s%s', [fileName fileExt], occupancyFlag, gpsStatusIcon), ...
+                                        'Text', sprintf('%s%s%s', [fileName fileExt], occupancyFlag, warningMsg), ...
                                         'NodeData', struct('sortType', 'FLUXO ESPECTRAL', 'level', 3, 'fileIdx', fileIdx, 'flowIdx', referenceTable.FlowIdx(jj)), ...
                                         'ContextMenu', app.ContextMenu, 'Tag', 'fileTreeContext' ...
                                     );
@@ -1154,6 +1151,23 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 ui.TextView.update(app.FileMetadata, '');
                 app.FileFilterValueList.Items = {};
                 app.FileFilterValueText.Value = '';           
+            end
+
+            set([app.FileTreeExpand, app.FileTreeCollapse], 'Enable', ~isempty(app.metaData))
+
+            function warningMsg = computeWarningMessage(gpsStatus, taskDuration)
+                warningMsg = '';
+                if gpsStatus <= 0
+                    warningMsg = ' ❗📍';
+                end
+
+                if taskDuration < minutes(app.General.context.FILE.durationWarningThresholdMinutes)
+                    if isempty(warningMsg)
+                        warningMsg = ' ❗⌛';
+                    else
+                        warningMsg = [warningMsg '⌛'];
+                    end
+                end
             end
         end
 
@@ -1684,6 +1698,18 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         end
 
+        % Image clicked function: FileTreeCollapse, FileTreeExpand
+        function onFileTreeExpansionToggleRequest(app, event)
+            
+            switch event.Source
+                case app.FileTreeCollapse
+                    collapse(app.FileTree, 'all')
+                otherwise % app.FileTreeExpand
+                    expand(app.FileTree, 'all')
+            end
+
+        end
+
         % Image clicked function: tool_ReadFiles
         function onFilteTreeAddRequested(app, event)
 
@@ -1797,13 +1823,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             if ~isempty(currentSelectedIdxs)
                 app.FileTree.UserData.previousSelection = currentSelectedIdxs;
-                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, flowIdxs));
+                ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, app.General, flowIdxs));
             else
                 initializeFileTreeSelectionIdx(app)
 
                 if ~isempty(app.FileTree.SelectedNodes)
                     nodeData = [app.FileTree.SelectedNodes.NodeData];
-                    ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, nodeData))
+                    ui.TextView.update(app.FileMetadata, util.HtmlTextGenerator.getSelectedFileInfo(app.metaData, fileIdxs, app.General, nodeData))
                 else
                     ui.TextView.update(app.FileMetadata, '');
                 end
@@ -1994,7 +2020,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create SubGrid1
             app.SubGrid1 = uigridlayout(app.SubTab1);
-            app.SubGrid1.ColumnWidth = {22, 150, '1x'};
+            app.SubGrid1.ColumnWidth = {22, 150, 22, 22, '1x'};
             app.SubGrid1.RowHeight = {22, 22};
             app.SubGrid1.ColumnSpacing = 5;
             app.SubGrid1.RowSpacing = 5;
@@ -2007,7 +2033,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileModuleInfo.FontSize = 11;
             app.FileModuleInfo.FontColor = [0.149 0.149 0.149];
             app.FileModuleInfo.Layout.Row = 1;
-            app.FileModuleInfo.Layout.Column = [1 3];
+            app.FileModuleInfo.Layout.Column = [1 5];
             app.FileModuleInfo.Text = 'Este aplicativo permite a leitura de arquivos gerados em monitorações do espectro de radiofrequências e a sua análise.';
 
             % Create FileSortMethodIcon
@@ -2026,6 +2052,24 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileSortMethod.Layout.Row = 2;
             app.FileSortMethod.Layout.Column = 2;
             app.FileSortMethod.Value = 'FLUXO ESPECTRAL';
+
+            % Create FileTreeExpand
+            app.FileTreeExpand = uiimage(app.SubGrid1);
+            app.FileTreeExpand.ScaleMethod = 'none';
+            app.FileTreeExpand.ImageClickedFcn = createCallbackFcn(app, @onFileTreeExpansionToggleRequest, true);
+            app.FileTreeExpand.Enable = 'off';
+            app.FileTreeExpand.Layout.Row = 2;
+            app.FileTreeExpand.Layout.Column = 3;
+            app.FileTreeExpand.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'expand-all.svg');
+
+            % Create FileTreeCollapse
+            app.FileTreeCollapse = uiimage(app.SubGrid1);
+            app.FileTreeCollapse.ScaleMethod = 'none';
+            app.FileTreeCollapse.ImageClickedFcn = createCallbackFcn(app, @onFileTreeExpansionToggleRequest, true);
+            app.FileTreeCollapse.Enable = 'off';
+            app.FileTreeCollapse.Layout.Row = 2;
+            app.FileTreeCollapse.Layout.Column = 4;
+            app.FileTreeCollapse.ImageSource = fullfile(pathToMLAPP, 'resources', 'Icons', 'collapse-all.svg');
 
             % Create SubTab2
             app.SubTab2 = uitab(app.SubTabGroup);
