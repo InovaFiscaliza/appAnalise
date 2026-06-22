@@ -1511,9 +1511,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             panelBtnStatus = [false true; true true; true true; true false];
             columnWidths = {
                 {'1x',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-                {0,10,'1x',22,5,20,10,0,0,0,0,0,0,0,0,0,0,0,0};
+                {0,10,'1x',22,5,18,10,0,0,0,0,0,0,0,0,0,0,0,0};
                 {0,0,0,0,0,0,10,'1x',22,10,22,10,22,5,22,10,0,0,0};
-                {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,'1x',20,10}
+                {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,'1x',18,10}
             };
 
             currentIndex = app.FlowAttributesPanelVisibleIdx.UserData.index;

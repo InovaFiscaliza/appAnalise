@@ -566,6 +566,14 @@ classdef (Abstract) Table
                         emissionDescription = sprintf('%s (%s)', emissionDescription, emissionFreeDescription);
                     end
 
+                    % Inclusão de trecho para lidar com algum problema de compatibilidade com 
+                    % versões anteriores, que surgiu com a inclusão desse campo na estrutura 
+                    % de FCO. No futuro, excluir esse trecho.
+                    if ~isfield(specData(ii).UserData.Emissions.Measures(jj).FCO, 'IntegrationPeriod')
+                        cacheIndex = specData(ii).UserData.OccupancyComputationMode.CacheIndex;
+                        specData(ii).UserData.Emissions.Measures(jj).FCO.IntegrationPeriod = specData(ii).UserData.OccupancyFiniteIntegrationCache(cacheIndex).Parameters.IntegrationTime;
+                    end
+
                     emissions(end+1, :) = { ...
                         correlationKey, ...
                         ii, ...
