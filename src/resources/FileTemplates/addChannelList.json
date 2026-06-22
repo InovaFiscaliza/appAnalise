@@ -11,7 +11,7 @@
         "ChannelBW": 0.256,
         "FreqList": [],
         "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-        "FindPeaksName": "FM"
+        "EmissionClass": "BroadcastFM"
     },
     {
         "Name": "TV UHF",
@@ -25,7 +25,7 @@
         "ChannelBW": 6,
         "FreqList": [],
         "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2020/1383-resolucao-721",
-        "FindPeaksName": "TV"
+        "EmissionClass": "BroadcastTV"
     },
     {
         "Name": "Cellular 700MHz",
@@ -39,7 +39,7 @@
         "ChannelBW": 10,
         "FreqList": [],
         "Reference": "",
-        "FindPeaksName": "Cellular"
+        "EmissionClass": "Cellular"
     },
     {
         "Name": "Cellular 800MHz",
@@ -58,6 +58,6 @@
             892.75
         ],
         "Reference": "https://informacoes.anatel.gov.br/legislacao/resolucoes/2006/89-resolucao-454",
-        "FindPeaksName": "Cellular"
+        "EmissionClass": "Cellular"
     }
 ]

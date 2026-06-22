@@ -2,54 +2,33 @@ classdef dockChannels_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        GridLayout                    matlab.ui.container.GridLayout
-        AddChannelButton              matlab.ui.control.Button
-        ParametersPanel               matlab.ui.container.Panel
-        GridLayout3                   matlab.ui.container.GridLayout
-        SatelliteIDGrid               matlab.ui.container.GridLayout
-        FeixeDownList                 matlab.ui.control.ListBox
-        FeixeDownListLabel            matlab.ui.control.Label
-        PolarizationList              matlab.ui.control.ListBox
-        PolarizationListLabel         matlab.ui.control.Label
-        SatelliteID                   matlab.ui.control.DropDown
-        SatelliteIDLabel              matlab.ui.control.Label
-        GridLayout_2                  matlab.ui.container.GridLayout
-        Location                      matlab.ui.control.ListBox
-        LocationLabel                 matlab.ui.control.Label
-        Delete                        matlab.ui.control.Image
-        Add                           matlab.ui.control.Image
-        RefLocation                   matlab.ui.control.ListBox
-        RefLocationLabel              matlab.ui.control.Label
-        GridLayout2                   matlab.ui.container.GridLayout
-        DataHubPOSTButton             matlab.ui.control.Image
-        ExternalFileTemplateDownload  matlab.ui.control.Hyperlink
-        ExternalFileSource            matlab.ui.control.DropDown
-        ExternalFileSourceLabel       matlab.ui.control.Label
-        ParametersGrid                matlab.ui.container.GridLayout
-        ChannelSample                 matlab.ui.control.Label
-        BandWidth                     matlab.ui.control.NumericEditField
-        BandWidthLabel                matlab.ui.control.Label
-        StepWidth                     matlab.ui.control.NumericEditField
-        StepWidthLabel                matlab.ui.control.Label
-        EmissionClass                 matlab.ui.control.DropDown
-        EmissionClassLabel            matlab.ui.control.Label
-        LastChannel                   matlab.ui.control.NumericEditField
-        LastChannelLabel              matlab.ui.control.Label
-        FirstChannel                  matlab.ui.control.NumericEditField
-        FirstChannelLabel             matlab.ui.control.Label
-        NumChannels                   matlab.ui.control.NumericEditField
-        NumChannelsLabel              matlab.ui.control.Label
-        ChannelReferenceName          matlab.ui.control.EditField
-        ChannelReferenceList          matlab.ui.control.DropDown
-        ChannelListUpdateButton       matlab.ui.control.Image
-        ChannelListLabel              matlab.ui.control.Label
-        RadioButtonPanel              matlab.ui.container.ButtonGroup
-        FileImport                    matlab.ui.control.RadioButton
-        SingleChannel                 matlab.ui.control.RadioButton
-        FrequencyRange                matlab.ui.control.RadioButton
-        ReferenceChannel              matlab.ui.control.RadioButton
-        RadioButtonPanelLabel         matlab.ui.control.Label
+        UIFigure                 matlab.ui.Figure
+        GridLayout               matlab.ui.container.GridLayout
+        AddChannelButton         matlab.ui.control.Button
+        ParametersPanel          matlab.ui.container.Panel
+        ParametersGrid           matlab.ui.container.GridLayout
+        ChannelReferenceList     matlab.ui.control.DropDown
+        ChannelListLabel         matlab.ui.control.Label
+        ChannelSample            matlab.ui.control.Label
+        BandWidth                matlab.ui.control.NumericEditField
+        BandWidthLabel           matlab.ui.control.Label
+        StepWidth                matlab.ui.control.NumericEditField
+        StepWidthLabel           matlab.ui.control.Label
+        EmissionClass            matlab.ui.control.DropDown
+        EmissionClassLabel       matlab.ui.control.Label
+        LastChannel              matlab.ui.control.NumericEditField
+        LastChannelLabel         matlab.ui.control.Label
+        FirstChannel             matlab.ui.control.NumericEditField
+        FirstChannelLabel        matlab.ui.control.Label
+        NumChannels              matlab.ui.control.NumericEditField
+        NumChannelsLabel         matlab.ui.control.Label
+        ChannelReferenceName     matlab.ui.control.EditField
+        ChannelListUpdateButton  matlab.ui.control.Image
+        RadioButtonPanel         matlab.ui.container.ButtonGroup
+        SingleChannel            matlab.ui.control.RadioButton
+        FrequencyRange           matlab.ui.control.RadioButton
+        ReferenceChannel         matlab.ui.control.RadioButton
+        RadioButtonPanelLabel    matlab.ui.control.Label
     end
 
     
@@ -233,45 +212,18 @@ classdef dockChannels_exported < matlab.apps.AppBase
             app.SingleChannel.Interpreter = 'html';
             app.SingleChannel.Position = [11 46 348 29];
 
-            % Create FileImport
-            app.FileImport = uiradiobutton(app.RadioButtonPanel);
-            app.FileImport.Text = {'Arquivo'; '<font style="font-size: 10px; color: gray;">Inclui canais listados em arquivo (ex: plano de frequência de transponder).</font>'};
-            app.FileImport.WordWrap = 'on';
-            app.FileImport.FontSize = 11;
-            app.FileImport.Interpreter = 'html';
-            app.FileImport.Position = [11 14 360 29];
-
             % Create ParametersPanel
             app.ParametersPanel = uipanel(app.GridLayout);
             app.ParametersPanel.AutoResizeChildren = 'off';
             app.ParametersPanel.Layout.Row = 3;
             app.ParametersPanel.Layout.Column = [1 2];
 
-            % Create GridLayout3
-            app.GridLayout3 = uigridlayout(app.ParametersPanel);
-            app.GridLayout3.ColumnWidth = {'1x'};
-            app.GridLayout3.RowHeight = {0, 80, '1x', 0};
-            app.GridLayout3.RowSpacing = 5;
-            app.GridLayout3.BackgroundColor = [1 1 1];
-
             % Create ParametersGrid
-            app.ParametersGrid = uigridlayout(app.GridLayout3);
+            app.ParametersGrid = uigridlayout(app.ParametersPanel);
             app.ParametersGrid.ColumnWidth = {110, 110, 84, 16};
             app.ParametersGrid.RowHeight = {26, 22, 0, 32, 22, 32, 22, '1x'};
             app.ParametersGrid.RowSpacing = 5;
-            app.ParametersGrid.Padding = [0 0 0 0];
-            app.ParametersGrid.Layout.Row = 1;
-            app.ParametersGrid.Layout.Column = 1;
             app.ParametersGrid.BackgroundColor = [1 1 1];
-
-            % Create ChannelListLabel
-            app.ChannelListLabel = uilabel(app.ParametersGrid);
-            app.ChannelListLabel.Tag = 'ReferenceChannel+FrequencyRange+SingleChannel';
-            app.ChannelListLabel.VerticalAlignment = 'bottom';
-            app.ChannelListLabel.FontSize = 11;
-            app.ChannelListLabel.Layout.Row = 1;
-            app.ChannelListLabel.Layout.Column = [1 3];
-            app.ChannelListLabel.Text = {'Referência da canalização:'; '(tecnologia, serviço etc)'};
 
             % Create ChannelListUpdateButton
             app.ChannelListUpdateButton = uiimage(app.ParametersGrid);
@@ -283,16 +235,6 @@ classdef dockChannels_exported < matlab.apps.AppBase
             app.ChannelListUpdateButton.Layout.Column = 4;
             app.ChannelListUpdateButton.VerticalAlignment = 'bottom';
             app.ChannelListUpdateButton.ImageSource = 'Refresh_18.png';
-
-            % Create ChannelReferenceList
-            app.ChannelReferenceList = uidropdown(app.ParametersGrid);
-            app.ChannelReferenceList.Items = {};
-            app.ChannelReferenceList.Tag = 'ReferenceChannel';
-            app.ChannelReferenceList.FontSize = 11;
-            app.ChannelReferenceList.BackgroundColor = [1 1 1];
-            app.ChannelReferenceList.Layout.Row = 2;
-            app.ChannelReferenceList.Layout.Column = [1 4];
-            app.ChannelReferenceList.Value = {};
 
             % Create ChannelReferenceName
             app.ChannelReferenceName = uieditfield(app.ParametersGrid, 'text');
@@ -432,185 +374,24 @@ classdef dockChannels_exported < matlab.apps.AppBase
             app.ChannelSample.Interpreter = 'html';
             app.ChannelSample.Text = '<p style="text-align: justify;">Amostra:<br>101.700 MHz, 101.900 MHz, 102.100 MHz, 102.300 MHz, 102.500 MHz, 102.700 MHz...</font>';
 
-            % Create GridLayout2
-            app.GridLayout2 = uigridlayout(app.GridLayout3);
-            app.GridLayout2.ColumnWidth = {'1x', 20};
-            app.GridLayout2.RowHeight = {26, 22, 22};
-            app.GridLayout2.ColumnSpacing = 5;
-            app.GridLayout2.RowSpacing = 5;
-            app.GridLayout2.Padding = [0 0 0 0];
-            app.GridLayout2.Layout.Row = 2;
-            app.GridLayout2.Layout.Column = 1;
-            app.GridLayout2.BackgroundColor = [1 1 1];
+            % Create ChannelListLabel
+            app.ChannelListLabel = uilabel(app.ParametersGrid);
+            app.ChannelListLabel.Tag = 'ReferenceChannel+FrequencyRange+SingleChannel';
+            app.ChannelListLabel.VerticalAlignment = 'bottom';
+            app.ChannelListLabel.FontSize = 11;
+            app.ChannelListLabel.Layout.Row = 1;
+            app.ChannelListLabel.Layout.Column = [1 3];
+            app.ChannelListLabel.Text = {'Referência da canalização:'; '(tecnologia, serviço etc)'};
 
-            % Create ExternalFileSourceLabel
-            app.ExternalFileSourceLabel = uilabel(app.GridLayout2);
-            app.ExternalFileSourceLabel.Tag = 'ExternalFile';
-            app.ExternalFileSourceLabel.VerticalAlignment = 'bottom';
-            app.ExternalFileSourceLabel.FontSize = 11;
-            app.ExternalFileSourceLabel.Visible = 'off';
-            app.ExternalFileSourceLabel.Layout.Row = 1;
-            app.ExternalFileSourceLabel.Layout.Column = 1;
-            app.ExternalFileSourceLabel.Text = {'Formato do arquivo a ser importado:'; '(origem dos dados)'};
-
-            % Create ExternalFileSource
-            app.ExternalFileSource = uidropdown(app.GridLayout2);
-            app.ExternalFileSource.Items = {'Genérico (.json)', 'Satélite (.csv)'};
-            app.ExternalFileSource.Tag = 'ExternalFile';
-            app.ExternalFileSource.Visible = 'off';
-            app.ExternalFileSource.FontSize = 11;
-            app.ExternalFileSource.BackgroundColor = [1 1 1];
-            app.ExternalFileSource.Layout.Row = 2;
-            app.ExternalFileSource.Layout.Column = 1;
-            app.ExternalFileSource.Value = 'Genérico (.json)';
-
-            % Create ExternalFileTemplateDownload
-            app.ExternalFileTemplateDownload = uihyperlink(app.GridLayout2);
-            app.ExternalFileTemplateDownload.Tag = 'ExternalFile';
-            app.ExternalFileTemplateDownload.VerticalAlignment = 'top';
-            app.ExternalFileTemplateDownload.FontSize = 10;
-            app.ExternalFileTemplateDownload.Visible = 'off';
-            app.ExternalFileTemplateDownload.Layout.Row = 3;
-            app.ExternalFileTemplateDownload.Layout.Column = 1;
-            app.ExternalFileTemplateDownload.Text = 'Download modelo do arquivo';
-
-            % Create DataHubPOSTButton
-            app.DataHubPOSTButton = uiimage(app.GridLayout2);
-            app.DataHubPOSTButton.ScaleMethod = 'none';
-            app.DataHubPOSTButton.Tag = 'DataHub_POST';
-            app.DataHubPOSTButton.Enable = 'off';
-            app.DataHubPOSTButton.Layout.Row = 2;
-            app.DataHubPOSTButton.Layout.Column = 2;
-            app.DataHubPOSTButton.ImageSource = 'folder-opened-16px.svg';
-
-            % Create GridLayout_2
-            app.GridLayout_2 = uigridlayout(app.GridLayout3);
-            app.GridLayout_2.ColumnWidth = {'1x', 16, '1x'};
-            app.GridLayout_2.RowHeight = {32, 22, 22, '1x'};
-            app.GridLayout_2.ColumnSpacing = 5;
-            app.GridLayout_2.RowSpacing = 5;
-            app.GridLayout_2.Padding = [0 0 0 0];
-            app.GridLayout_2.Layout.Row = 3;
-            app.GridLayout_2.Layout.Column = 1;
-            app.GridLayout_2.BackgroundColor = [1 1 1];
-
-            % Create RefLocationLabel
-            app.RefLocationLabel = uilabel(app.GridLayout_2);
-            app.RefLocationLabel.VerticalAlignment = 'bottom';
-            app.RefLocationLabel.FontSize = 10;
-            app.RefLocationLabel.Layout.Row = 1;
-            app.RefLocationLabel.Layout.Column = 1;
-            app.RefLocationLabel.Interpreter = 'html';
-            app.RefLocationLabel.Text = {'CANAIS LIDOS:'; '<font style="color: gray; font-size: 9px;">(relacionadas às estações previstas no PM-RNI)</font>'};
-
-            % Create RefLocation
-            app.RefLocation = uilistbox(app.GridLayout_2);
-            app.RefLocation.Items = {};
-            app.RefLocation.Multiselect = 'on';
-            app.RefLocation.FontSize = 11;
-            app.RefLocation.Layout.Row = [2 4];
-            app.RefLocation.Layout.Column = 1;
-            app.RefLocation.Value = {};
-
-            % Create Add
-            app.Add = uiimage(app.GridLayout_2);
-            app.Add.ScaleMethod = 'none';
-            app.Add.Enable = 'off';
-            app.Add.Tooltip = {'Adiciona localidades selecionadas'};
-            app.Add.Layout.Row = 2;
-            app.Add.Layout.Column = 2;
-            app.Add.ImageSource = 'Continue_16.png';
-
-            % Create Delete
-            app.Delete = uiimage(app.GridLayout_2);
-            app.Delete.ScaleMethod = 'none';
-            app.Delete.Enable = 'off';
-            app.Delete.Tooltip = {'Exclui localidades selecionadas'};
-            app.Delete.Layout.Row = 3;
-            app.Delete.Layout.Column = 2;
-            app.Delete.ImageSource = 'delete-12px-red.svg';
-
-            % Create LocationLabel
-            app.LocationLabel = uilabel(app.GridLayout_2);
-            app.LocationLabel.VerticalAlignment = 'bottom';
-            app.LocationLabel.FontSize = 10;
-            app.LocationLabel.Layout.Row = 1;
-            app.LocationLabel.Layout.Column = 3;
-            app.LocationLabel.Interpreter = 'html';
-            app.LocationLabel.Text = {'CANAIS A INCLUIR:'; '<font style="color: gray; font-size: 9px;">(relacionadas às estações previstas no PM-RNI)</font>'};
-
-            % Create Location
-            app.Location = uilistbox(app.GridLayout_2);
-            app.Location.Items = {};
-            app.Location.Multiselect = 'on';
-            app.Location.FontSize = 11;
-            app.Location.Layout.Row = [2 4];
-            app.Location.Layout.Column = 3;
-            app.Location.Value = {};
-
-            % Create SatelliteIDGrid
-            app.SatelliteIDGrid = uigridlayout(app.GridLayout3);
-            app.SatelliteIDGrid.ColumnWidth = {110, '1x', 150};
-            app.SatelliteIDGrid.RowHeight = {34, 22, 34, '1x'};
-            app.SatelliteIDGrid.RowSpacing = 5;
-            app.SatelliteIDGrid.Padding = [0 0 0 0];
-            app.SatelliteIDGrid.Layout.Row = 4;
-            app.SatelliteIDGrid.Layout.Column = 1;
-            app.SatelliteIDGrid.BackgroundColor = [1 1 1];
-
-            % Create SatelliteIDLabel
-            app.SatelliteIDLabel = uilabel(app.SatelliteIDGrid);
-            app.SatelliteIDLabel.VerticalAlignment = 'bottom';
-            app.SatelliteIDLabel.FontSize = 11;
-            app.SatelliteIDLabel.Layout.Row = 1;
-            app.SatelliteIDLabel.Layout.Column = 1;
-            app.SatelliteIDLabel.Interpreter = 'html';
-            app.SatelliteIDLabel.Text = {'Satélite:'; '<font style="color: gray; font-size: 9px;">(DESIG_INT)</font>'};
-
-            % Create SatelliteID
-            app.SatelliteID = uidropdown(app.SatelliteIDGrid);
-            app.SatelliteID.Items = {};
-            app.SatelliteID.FontSize = 11;
-            app.SatelliteID.BackgroundColor = [1 1 1];
-            app.SatelliteID.Layout.Row = 2;
-            app.SatelliteID.Layout.Column = 1;
-            app.SatelliteID.Value = {};
-
-            % Create PolarizationListLabel
-            app.PolarizationListLabel = uilabel(app.SatelliteIDGrid);
-            app.PolarizationListLabel.VerticalAlignment = 'bottom';
-            app.PolarizationListLabel.FontSize = 11;
-            app.PolarizationListLabel.Layout.Row = 3;
-            app.PolarizationListLabel.Layout.Column = 1;
-            app.PolarizationListLabel.Interpreter = 'html';
-            app.PolarizationListLabel.Text = {'Polarização:'; '<font style="color: gray; font-size: 9px;">(FEIXE_POLARIZ_DOWN)</font>'};
-
-            % Create PolarizationList
-            app.PolarizationList = uilistbox(app.SatelliteIDGrid);
-            app.PolarizationList.Items = {};
-            app.PolarizationList.Multiselect = 'on';
-            app.PolarizationList.FontSize = 11;
-            app.PolarizationList.Layout.Row = 4;
-            app.PolarizationList.Layout.Column = 1;
-            app.PolarizationList.Value = {};
-
-            % Create FeixeDownListLabel
-            app.FeixeDownListLabel = uilabel(app.SatelliteIDGrid);
-            app.FeixeDownListLabel.VerticalAlignment = 'bottom';
-            app.FeixeDownListLabel.FontSize = 11;
-            app.FeixeDownListLabel.Layout.Row = 3;
-            app.FeixeDownListLabel.Layout.Column = [2 3];
-            app.FeixeDownListLabel.Interpreter = 'html';
-            app.FeixeDownListLabel.Text = {'Identificação do feixe de descida:'; '<font style="color: gray; font-size: 9px;">(FEIXE_DOWN)</font>'};
-
-            % Create FeixeDownList
-            app.FeixeDownList = uilistbox(app.SatelliteIDGrid);
-            app.FeixeDownList.Items = {};
-            app.FeixeDownList.Multiselect = 'on';
-            app.FeixeDownList.FontSize = 11;
-            app.FeixeDownList.Layout.Row = 4;
-            app.FeixeDownList.Layout.Column = [2 3];
-            app.FeixeDownList.Value = {};
+            % Create ChannelReferenceList
+            app.ChannelReferenceList = uidropdown(app.ParametersGrid);
+            app.ChannelReferenceList.Items = {};
+            app.ChannelReferenceList.Tag = 'ReferenceChannel';
+            app.ChannelReferenceList.FontSize = 11;
+            app.ChannelReferenceList.BackgroundColor = [1 1 1];
+            app.ChannelReferenceList.Layout.Row = 2;
+            app.ChannelReferenceList.Layout.Column = [1 3];
+            app.ChannelReferenceList.Value = {};
 
             % Create AddChannelButton
             app.AddChannelButton = uibutton(app.GridLayout, 'push');

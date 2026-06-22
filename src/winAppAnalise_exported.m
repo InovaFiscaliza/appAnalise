@@ -549,7 +549,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'ChannelsFileImport', 'ChannelsSatellite', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -570,21 +570,23 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     'VariableTypes', {'string', 'double', 'double', 'logical'}, ...
                     'VariableNames', {'AuxAppName', 'Width', 'Height', 'IsFluid'} ...
                 );
-                popupSpecifications( 1, :) = {"Calibration",     452, 170, false};
-                popupSpecifications( 2, :) = {"Channels",        412, 516, false}; % Em andamento
-                popupSpecifications( 3, :) = {"Detection",       412, 484, false}; % Em andamento
-                popupSpecifications( 4, :) = {"DetectionLimits", 292, 360, false}; % Em andamento
-                popupSpecifications( 5, :) = {"DriveTestFilter", 412, 338, false};
-                popupSpecifications( 6, :) = {"DriveTestPoints", 412, 408, false};
-                popupSpecifications( 7, :) = {"EmissionChannel", 412, 138, false};
-                popupSpecifications( 8, :) = {"ExternalFiles",   880, 480, true};
-                popupSpecifications( 9, :) = {"FilterByLevel",   550, 308, false};
-                popupSpecifications(10, :) = {"FilterByTime",    452, 208, false};
-                popupSpecifications(11, :) = {"FlowMerge",       880, 480, true};
-                popupSpecifications(12, :) = {"Location",        412, 190, false};                
-                popupSpecifications(13, :) = {"Occupancy",       412, 516, false}; % Não iniciada revisão
-                popupSpecifications(14, :) = {"ReportLib",       784, 594, false};
-                popupSpecifications(15, :) = {"RepoFiles",      1244, 660, false};
+                popupSpecifications( 1, :) = {"Calibration",        452, 170, false};
+                popupSpecifications( 2, :) = {"Channels",           412, 516, false}; % Em andamento
+                popupSpecifications( 3, :) = {"ChannelsFileImport", 620, 480, false}; % Em andamento
+                popupSpecifications( 4, :) = {"ChannelsSatellite",  620, 480, false}; % Em andamento
+                popupSpecifications( 5, :) = {"Detection",          412, 484, false};
+                popupSpecifications( 6, :) = {"DetectionLimits",    292, 360, false};
+                popupSpecifications( 7, :) = {"DriveTestFilter",    412, 338, false};
+                popupSpecifications( 8, :) = {"DriveTestPoints",    412, 408, false};
+                popupSpecifications( 9, :) = {"EmissionChannel",    412, 138, false};
+                popupSpecifications(10, :) = {"ExternalFiles",      880, 480, true};
+                popupSpecifications(11, :) = {"FilterByLevel",      550, 308, false};
+                popupSpecifications(12, :) = {"FilterByTime",       452, 208, false};
+                popupSpecifications(13, :) = {"FlowMerge",          880, 480, true};
+                popupSpecifications(14, :) = {"Location",           412, 190, false};                
+                popupSpecifications(15, :) = {"Occupancy",          412, 516, false}; % Não iniciada revisão
+                popupSpecifications(16, :) = {"ReportLib",          784, 594, false};
+                popupSpecifications(17, :) = {"RepoFiles",         1244, 660, false};
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -1767,12 +1769,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 d.Message = sprintf('Em andamento a leitura de metadados do arquivo:\n•&thinsp;%s\n\n%d de %d', fileName{ii}, ii, numel(fileName));
 
-                fileFullPath = fullfile(filePath, fileName{ii});
-                if any(strcmpi(fileFullPath, {app.metaData.File}))
+                if any(contains({app.metaData.File}, fileName{ii}))
                     repeteadFiles{end+1} = fileName{ii};                      
                     continue
                 end
 
+                fileFullPath = fullfile(filePath, fileName{ii});
                 [app.metaData, msg] = importFile(app.metaData, fileFullPath, app.projectData, app.General, app.specData);
                 
                 if isempty(msg)

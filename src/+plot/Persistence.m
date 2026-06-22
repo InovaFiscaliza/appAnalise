@@ -59,7 +59,7 @@ function [persistenceObj, windowSize] = Persistence(operationType, persistenceOb
     
                 case 'Update'
                     if isempty(persistenceObj)
-                        persistenceObj = plot.Persistance('Creation', persistenceObj, axesHandle, bandObj);
+                        persistenceObj = plot.Persistence('Creation', persistenceObj, axesHandle, bandObj);
                         return
                     end
 

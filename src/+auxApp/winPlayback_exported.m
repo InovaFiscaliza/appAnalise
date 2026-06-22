@@ -91,6 +91,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowDetectionLabel             matlab.ui.control.Label
         FlowChannel                    matlab.ui.control.ListBox
         FlowChannelEdit                matlab.ui.control.Image
+        FlowChannelFileImport          matlab.ui.control.Image
         FlowChannelLabel               matlab.ui.control.Label
         FlowMetadata                   matlab.ui.control.Label
         FlowAttributesPanelRightBtn    matlab.ui.control.Image
@@ -357,6 +358,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowEmissionsDataTips;
                         app.FlowEmissionsDrawRoi;
                         app.FlowEmissionsAdd;
+                        app.FlowChannelFileImport;
                         app.FlowChannelEdit;
                         app.FlowOccupancyEdit;
                         app.tool_LayoutLeft;
@@ -393,6 +395,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.FlowEmissionsDataTips.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Converter datatips em emissões')), ...
                             struct('appName', appName, 'dataTag', app.FlowEmissionsDrawRoi.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Desenhar contorno de emissão')), ...
                             struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Detectar emissões automaticamente')), ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelFileImport.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Importar canais')), ...
                             struct('appName', appName, 'dataTag', app.FlowChannelEdit.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os canais')), ...
                             struct('appName', appName, 'dataTag', app.FlowOccupancyEdit.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Afere ocupação por outro método')) ...
                         });
@@ -705,6 +708,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowEmissionsDataTips;
                 app.FlowEmissionsDrawRoi;
                 app.FlowEmissionsAdd;
+                app.FlowChannelFileImport;
                 app.FlowChannelEdit
             ], 'Enable', nonEmptySpecData && ~isOccupancyFlow)
 
@@ -712,6 +716,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowOccupancyEdit;
                 app.axesTool_occupancy
             ], 'Enable', hasMoreThanTwoSamples && ~isOccupancyFlow)
+
+            % Pendente finalizar módulos dock antes de liberar o seu uso...
+            set([app.FlowChannelEdit, app.FlowOccupancyEdit], 'Enable', 'off')
 
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
@@ -1290,12 +1297,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % 
             %         switch srcChannel
             %             case 'channelLib'
-            %                 srcRawTable = app.channelObj.Channel(idxChannel);
+            %                 srcRawTable = app.mainApp.channelObj.Channel(idxChannel);
             %             case 'manual'
             %                 srcRawTable = app.mainApp.specData(idx).UserData.ChannelUserDefined(idxChannel);
             %         end
             % 
-            %         chTable = PreparingData2Plot(app.channelObj, chTable, srcRawTable);
+            %         chTable = PreparingData2Plot(app.mainApp.channelObj, chTable, srcRawTable);
             %     end
             % 
             %     if ~isempty(chTable)
@@ -1503,10 +1510,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             panelSubtitles = {'Metadados', 'Canais', 'Emissões', 'Ocupação'};
             panelBtnStatus = [false true; true true; true true; true false];
             columnWidths = {
-                {'1x',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-                {0,10,'1x',18,10,0,0,0,0,0,0,0,0,0,0,0,0};
-                {0,0,0,0,10,'1x',22,10,22,10,22,5,22,10,0,0,0};
-                {0,0,0,0,0,0,0,0,0,0,0,0,0,10,'1x',18,10}
+                {'1x',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+                {0,10,'1x',22,5,20,10,0,0,0,0,0,0,0,0,0,0,0,0};
+                {0,0,0,0,0,0,10,'1x',22,10,22,10,22,5,22,10,0,0,0};
+                {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,'1x',20,10}
             };
 
             currentIndex = app.FlowAttributesPanelVisibleIdx.UserData.index;
@@ -1879,6 +1886,51 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     app.plotHandles.waterfall.MeshStyle = event.Value;
             end
             
+        end
+
+        % Image clicked function: FlowChannelFileImport
+        function onChannelFileImportButtonlicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+
+            if numel(app.mainApp.specData) > 1
+                questionMsg = 'Você deseja importar uma lista de canais apenas para o fluxo espectral selecionado ou para todos os fluxos espectrais?';
+                userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Apenas selecionado', 'Todos', 'Cancelar'}, 1, 3);
+
+                switch userSelection
+                    case 'Todos'
+                        specData = app.mainApp.specData;
+                    case 'Cancelar'
+                        return
+                end
+            end
+
+            fileFormats = { ...
+                '*.json', '(*.json)'; ...
+                '*.csv', 'Plano frequência satélite (*.csv)' ...
+            };
+
+            [fileFullPath, fileFolder, fileExt] = ui.Dialog(app.UIFigure, 'uigetfile', '', fileFormats, app.mainApp.General.fileFolder.lastVisited);
+            if isempty(fileFullPath)
+                return
+            end
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onUpdateLastVisitedFolder', fileFolder)
+
+            try
+                switch fileExt
+                    case '.json'
+                        channels = readFileWithChannel2Add(app.mainApp.channelObj, fileFullPath);
+                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ChannelsFileImport', app.Context, fileFullPath, specData, channels)
+
+                    case '.csv'
+                        channels = class.EMSatDataHubLib.importRawCSVFile(fileFullPath);
+                        ipcMainMatlabOpenPopupApp(app.mainApp, app, 'ChannelsSatellite', app.Context, fileFullPath, specData, channels)
+                end
+
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+
         end
 
         % Image clicked function: FlowEmissionsFileImport
@@ -2622,7 +2674,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create FlowPanelGrid
             app.FlowPanelGrid = uigridlayout(app.FlowPanel);
-            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+            app.FlowPanelGrid.ColumnWidth = {'1x', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             app.FlowPanelGrid.RowHeight = {5, 22, 5, '1x', 5, 22, 5, '1x', 10};
             app.FlowPanelGrid.ColumnSpacing = 0;
             app.FlowPanelGrid.RowSpacing = 0;
@@ -2647,12 +2699,21 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannelLabel.Layout.Column = 3;
             app.FlowChannelLabel.Text = 'CANAIS';
 
+            % Create FlowChannelFileImport
+            app.FlowChannelFileImport = uiimage(app.FlowPanelGrid);
+            app.FlowChannelFileImport.ScaleMethod = 'none';
+            app.FlowChannelFileImport.ImageClickedFcn = createCallbackFcn(app, @onChannelFileImportButtonlicked, true);
+            app.FlowChannelFileImport.Enable = 'off';
+            app.FlowChannelFileImport.Layout.Row = 2;
+            app.FlowChannelFileImport.Layout.Column = 4;
+            app.FlowChannelFileImport.ImageSource = 'Import_16.png';
+
             % Create FlowChannelEdit
             app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
             app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowChannelEdit.Enable = 'off';
             app.FlowChannelEdit.Layout.Row = 2;
-            app.FlowChannelEdit.Layout.Column = 4;
+            app.FlowChannelEdit.Layout.Column = 6;
             app.FlowChannelEdit.VerticalAlignment = 'bottom';
             app.FlowChannelEdit.ImageSource = 'Edit_32.png';
 
@@ -2661,7 +2722,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannel.Items = {};
             app.FlowChannel.FontSize = 11;
             app.FlowChannel.Layout.Row = 4;
-            app.FlowChannel.Layout.Column = [3 4];
+            app.FlowChannel.Layout.Column = [3 6];
             app.FlowChannel.Value = {};
 
             % Create FlowDetectionLabel
@@ -2677,7 +2738,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetectionLimitsEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowDetectionLimitsEdit.Enable = 'off';
             app.FlowDetectionLimitsEdit.Layout.Row = 6;
-            app.FlowDetectionLimitsEdit.Layout.Column = 4;
+            app.FlowDetectionLimitsEdit.Layout.Column = 6;
             app.FlowDetectionLimitsEdit.VerticalAlignment = 'bottom';
             app.FlowDetectionLimitsEdit.ImageSource = 'Edit_32.png';
 
@@ -2686,7 +2747,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowDetectionLimits.Items = {};
             app.FlowDetectionLimits.FontSize = 11;
             app.FlowDetectionLimits.Layout.Row = 8;
-            app.FlowDetectionLimits.Layout.Column = [3 4];
+            app.FlowDetectionLimits.Layout.Column = [3 6];
             app.FlowDetectionLimits.Value = {};
 
             % Create FlowEmissionsLabel
@@ -2694,7 +2755,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsLabel.VerticalAlignment = 'bottom';
             app.FlowEmissionsLabel.FontSize = 10;
             app.FlowEmissionsLabel.Layout.Row = 2;
-            app.FlowEmissionsLabel.Layout.Column = 6;
+            app.FlowEmissionsLabel.Layout.Column = 8;
             app.FlowEmissionsLabel.Text = 'EMISSÕES';
 
             % Create FlowEmissionsFileImport
@@ -2703,7 +2764,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsFileImport.ImageClickedFcn = createCallbackFcn(app, @onEmissionsFileImportButtonClicked, true);
             app.FlowEmissionsFileImport.Enable = 'off';
             app.FlowEmissionsFileImport.Layout.Row = 2;
-            app.FlowEmissionsFileImport.Layout.Column = 7;
+            app.FlowEmissionsFileImport.Layout.Column = 9;
             app.FlowEmissionsFileImport.ImageSource = 'Import_16.png';
 
             % Create FlowEmissionsDataTips
@@ -2712,7 +2773,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsDataTips.ImageClickedFcn = createCallbackFcn(app, @onEmissionsDataTipsOrRoiButtonClicked, true);
             app.FlowEmissionsDataTips.Enable = 'off';
             app.FlowEmissionsDataTips.Layout.Row = 2;
-            app.FlowEmissionsDataTips.Layout.Column = 9;
+            app.FlowEmissionsDataTips.Layout.Column = 11;
             app.FlowEmissionsDataTips.ImageSource = 'wave-datatip-22px.svg';
 
             % Create FlowEmissionsDrawRoi
@@ -2721,7 +2782,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsDrawRoi.ImageClickedFcn = createCallbackFcn(app, @onEmissionsDataTipsOrRoiButtonClicked, true);
             app.FlowEmissionsDrawRoi.Enable = 'off';
             app.FlowEmissionsDrawRoi.Layout.Row = 2;
-            app.FlowEmissionsDrawRoi.Layout.Column = 11;
+            app.FlowEmissionsDrawRoi.Layout.Column = 13;
             app.FlowEmissionsDrawRoi.ImageSource = 'wave-roi-22px.svg';
 
             % Create FlowEmissionsAdd
@@ -2730,7 +2791,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissionsAdd.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowEmissionsAdd.Enable = 'off';
             app.FlowEmissionsAdd.Layout.Row = 2;
-            app.FlowEmissionsAdd.Layout.Column = 13;
+            app.FlowEmissionsAdd.Layout.Column = 15;
             app.FlowEmissionsAdd.ImageSource = 'search-sparkle.svg';
 
             % Create FlowEmissions
@@ -2744,7 +2805,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsTableSelectionChanged, true);
             app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
-            app.FlowEmissions.Layout.Column = [6 13];
+            app.FlowEmissions.Layout.Column = [8 15];
             app.FlowEmissions.FontSize = 11;
 
             % Create FlowOccupancyLabel
@@ -2752,7 +2813,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancyLabel.VerticalAlignment = 'bottom';
             app.FlowOccupancyLabel.FontSize = 10;
             app.FlowOccupancyLabel.Layout.Row = 2;
-            app.FlowOccupancyLabel.Layout.Column = 15;
+            app.FlowOccupancyLabel.Layout.Column = 17;
             app.FlowOccupancyLabel.Text = 'OCUPAÇÃO';
 
             % Create FlowOccupancyEdit
@@ -2760,7 +2821,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancyEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.FlowOccupancyEdit.Enable = 'off';
             app.FlowOccupancyEdit.Layout.Row = 2;
-            app.FlowOccupancyEdit.Layout.Column = 16;
+            app.FlowOccupancyEdit.Layout.Column = 18;
             app.FlowOccupancyEdit.VerticalAlignment = 'bottom';
             app.FlowOccupancyEdit.ImageSource = 'Edit_32.png';
 
@@ -2769,7 +2830,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowOccupancy.Items = {};
             app.FlowOccupancy.FontSize = 11;
             app.FlowOccupancy.Layout.Row = [4 8];
-            app.FlowOccupancy.Layout.Column = [15 16];
+            app.FlowOccupancy.Layout.Column = [17 18];
             app.FlowOccupancy.Value = {};
 
             % Create RightPanel
