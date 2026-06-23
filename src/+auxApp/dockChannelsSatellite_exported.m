@@ -127,13 +127,13 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
 
             else
                 channels = app.inputArgs.channels;
-                channelIdxs = ...
+                channelMatch = ...
                     strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value) & ...
                     ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value) & ...
                     ismember(cellstr(channels.FEIXE_DOWN), app.FeixeDownList.Value);
 
-                if any(channelIdxs)
-                    channels = channels(channelIdxs, :);
+                if any(channelMatch)
+                    channels = channels(channelMatch, :);
                     channelList = arrayfun(@(x, y) util.HtmlTextGenerator.createTag('Channel', x, y), channels.FREQ_CENTRAL_DOWN, channels.BW, 'UniformOutput', false);
                 else
                     channelList = {};
@@ -150,42 +150,26 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
         function onAddButtonClicked(app, event)
             
             specData = app.inputArgs.specData;
+            channels = app.inputArgs.channels;
+            channelMatch = ...
+                strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value)      & ...
+                ismember(cellstr(channels.FEIXE_DOWN), app.FeixeDownList.Value) & ...
+                ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
 
-            pushedButtonTag = event.Source.Tag;
-            switch pushedButtonTag
-                case 'OK'
-                    channels = app.inputArgs.channels;
-                    channelIdx = strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value)      & ...
-                                 ismember(cellstr(channels.FEIXE_DOWN), app.FeixeDownList.Value) & ...
-                                 ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
-                    channelList = class.EMSatDataHubLib.importSatelliteChannels(channels(channelIdx, :));
+            if any(channelMatch)
+                channelList = class.EMSatDataHubLib.importSatelliteChannels(channels(channelMatch, :));
 
-                    questionMsg = sprintf([ ...
-                        'Foram extraídos os registros %s, os quais serão incluídos na lista de canais manuais do ' ...
-                        'fluxo espectral selecionado, caso se sobreponham à faixa de frequência, substituindo '    ...
-                        'eventuais canalizações inseridas manualmente que tenham um dos supracitados nomes.\n\n'   ...
-                        'Deseja analisar a inclusão desses registros para os outros fluxos?' ...
-                    ], strjoin({channelList.Name}, ', '));
-                    userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 2, 2);
-
-                    switch userSelection
-                        case 'Não'
-                            idxThreads = app.idxThread;
-                        case 'Sim'
-                            specData = app.mainApp.specData;
+                try
+                    for ii = 1:numel(channelList)
+                        channelCell2Add = struct2cell(channelList(ii));
+                        checkIfNewChannelIsValid(app.mainApp.channelObj, channelCell2Add{:})                    
                     end
-                    typeOfChannel  = 'manual';    
+                    addChannel(app.mainApp.channelObj, 'manual', specData, 1:numel(specData), channelList)
 
-                    inputArguments = {channelList, typeOfChannel, idxThreads};
-                    updateFlag = true;                    
-
-                case 'Close'
-                    inputArguments = {};
-                    updateFlag = false;
+                catch ME
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
+                end
             end
-
-            callingMainApp(app, updateFlag, false, inputArguments{:})
-            closeFcn(app)
 
         end
     end
@@ -227,7 +211,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
             app.GridLayout.ColumnWidth = {110, '1x', 100, '1x', 110};
-            app.GridLayout.RowHeight = {17, 22, 34, 22, 34, '1x', 22};
+            app.GridLayout.RowHeight = {17, 22, 34, 22, 34, '1x', 1, 24};
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [0.9804 0.9804 0.9804];
@@ -253,7 +237,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.AddChannelButton.Icon = 'Add_16.png';
             app.AddChannelButton.BackgroundColor = [0.9804 0.9804 0.9804];
             app.AddChannelButton.Enable = 'off';
-            app.AddChannelButton.Layout.Row = 7;
+            app.AddChannelButton.Layout.Row = 8;
             app.AddChannelButton.Layout.Column = 5;
             app.AddChannelButton.Text = 'Incluir';
 

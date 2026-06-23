@@ -161,41 +161,41 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function addChannel(obj, typeOfChannel, specData, idxThreads, channels2Add)
-            for ii = idxThreads
-                FreqStart = specData(ii).MetaData.FreqStart / 1e+6;
-                FreqStop  = specData(ii).MetaData.FreqStop  / 1e+6;
+        function addChannel(obj, typeOfChannel, specData, flowIdxs, channels2Add)
+            for ii = flowIdxs
+                freqStart = specData(ii).MetaData.FreqStart / 1e+6;
+                freqStop  = specData(ii).MetaData.FreqStop  / 1e+6;
 
                 for jj = 1:numel(channels2Add)
-                    BandLimits = channels2Add(jj).Band;
+                    bandLimits = channels2Add(jj).Band;
 
-                    if ((FreqStart >= BandLimits(1)) && (FreqStart < BandLimits(2))) || ...
-                       ((FreqStart <= BandLimits(1)) && (FreqStop > BandLimits(1)))
+                    if ((freqStart >= bandLimits(1)) && (freqStart < bandLimits(2))) || ...
+                       ((freqStart <= bandLimits(1)) && (freqStop > bandLimits(1)))
                         switch typeOfChannel
                             case 'channelLib'
-                                idxChannel = find(strcmp({obj.Channel.Name}, channels2Add(jj).Name), 1);
-                                if ismember(idxChannel, specData(ii).UserData.ChannelLibraryRelatedIndexes)
+                                channelIdx = find(strcmp({obj.Channel.Name}, channels2Add(jj).Name), 1);
+                                if ismember(channelIdx, specData(ii).UserData.ChannelLibraryRelatedIndexes)
                                     error('ChannelLib:addChannel', 'Canalização já relacionada ao fluxo espectral selecionado.')
                                 end
-                                specData(ii).UserData.ChannelLibraryRelatedIndexes = unique([specData(ii).UserData.ChannelLibraryRelatedIndexes; idxChannel]);
+                                specData(ii).UserData.ChannelLibraryRelatedIndexes = unique([specData(ii).UserData.ChannelLibraryRelatedIndexes; channelIdx]);
         
                             case 'manual'
                                 % As canalizações incluídas manualmente podem ser editadas - 
                                 % tanto por edição direta no registro, em GUI, quanto pela
                                 % inclusão de arquivo externo.
-                                idxChannel = find(strcmp({specData(ii).UserData.ChannelUserDefined.Name}, channels2Add(jj).Name), 1);
-                                if isempty(idxChannel)
+                                channelIdx = find(strcmp({specData(ii).UserData.ChannelUserDefined.Name}, channels2Add(jj).Name), 1);
+                                if isempty(channelIdx)
                                     specData(ii).UserData.ChannelUserDefined(end+1)      = channels2Add(jj);
                                 else
-                                    specData(ii).UserData.ChannelUserDefined(idxChannel) = channels2Add(jj);
+                                    specData(ii).UserData.ChannelUserDefined(channelIdx) = channels2Add(jj);
                                 end
                         end
                     end
                 end
 
                 if ~isempty(specData(ii).UserData.ChannelUserDefined)
-                    [~, idxSort] = sort([specData(ii).UserData.ChannelUserDefined.FirstChannel]);
-                    specData(ii).UserData.ChannelUserDefined = specData(ii).UserData.ChannelUserDefined(idxSort);
+                    [~, sortIdxs] = sort([specData(ii).UserData.ChannelUserDefined.FirstChannel]);
+                    specData(ii).UserData.ChannelUserDefined = specData(ii).UserData.ChannelUserDefined(sortIdxs);
                 end
             end
         end

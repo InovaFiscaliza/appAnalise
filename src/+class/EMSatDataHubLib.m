@@ -2,35 +2,37 @@ classdef (Abstract) EMSatDataHubLib
     
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function chList = importSatelliteChannels(chTable)
-            chList  = struct('Name',          {}, ...
-                             'Band',          [], ...
-                             'FirstChannel',  [], ...
-                             'LastChannel',   [], ...
-                             'StepWidth',     [], ...
-                             'ChannelBW',     [], ...
-                             'FreqList',      [], ...
-                             'Reference',     '', ...
-                             'FindPeaksName', '');
+        function channelList = importSatelliteChannels(channels)
+            channelList = struct( ...
+                'Name', {}, ...
+                'Band', [], ...
+                'FirstChannel', [], ...
+                'LastChannel', [], ...
+                'StepWidth', [], ...
+                'ChannelBW', [], ...
+                'FreqList', [], ...
+                'Reference', '', ...
+                'EmissionClass', '' ...
+            );
 
-            for ii = 1:height(chTable)
-                CF = chTable.FREQ_CENTRAL_DOWN(ii);
-                BW = chTable.BW(ii);
+            for ii = 1:height(channels)
+                channelFreqCenter = channels.FREQ_CENTRAL_DOWN(ii);
+                channelBandWidth = channels.BW(ii);
 
-                chList(ii).Name          = sprintf('%s %s %s @ %.1f MHz', chTable.DESIG_INT(ii), chTable.CODE(ii), chTable.FEIXE_POLARIZ_DOWN(ii), CF);
-                chList(ii).Band          = [CF-BW/2, CF+BW/2];
-                chList(ii).FirstChannel  = CF;
-                chList(ii).LastChannel   = CF;
-                chList(ii).StepWidth     = -1;
-                chList(ii).ChannelBW     = BW;
-                chList(ii).FreqList      = [];
-                chList(ii).Reference     = jsonencode(chTable(ii, {'SNAPSHOT_DT', 'SAT_ANATEL_ID', 'LICENCIADO_BRASIL', 'TECNOLOGIA', 'SENTIDO_GATEWAY', 'FEIXE_UP', 'FEIXE_DOWN', 'FREQ_CENTRAL_UP', 'OCUPACAO_TOTAL', 'METRICA_OCUPACAO', 'OBS'}));
-                chList(ii).FindPeaksName = 'Satellite';
-            end    
+                channelList(ii).Name = sprintf('%s %s %s @ %.1f MHz', channels.DESIG_INT(ii), channels.CODE(ii), channels.FEIXE_POLARIZ_DOWN(ii), channelFreqCenter);
+                channelList(ii).Band = [channelFreqCenter-channelBandWidth/2, channelFreqCenter+channelBandWidth/2];
+                channelList(ii).FirstChannel = channelFreqCenter;
+                channelList(ii).LastChannel = channelFreqCenter;
+                channelList(ii).StepWidth = -1;
+                channelList(ii).ChannelBW = channelBandWidth;
+                channelList(ii).FreqList = [];
+                channelList(ii).Reference = jsonencode(channels(ii, {'SNAPSHOT_DT', 'SAT_ANATEL_ID', 'LICENCIADO_BRASIL', 'TECNOLOGIA', 'SENTIDO_GATEWAY', 'FEIXE_UP', 'FEIXE_DOWN', 'FREQ_CENTRAL_UP', 'OCUPACAO_TOTAL', 'METRICA_OCUPACAO', 'OBS'}));
+                channelList(ii).EmissionClass = 'Satellite';
+            end
         end
 
         %-----------------------------------------------------------------%
-        function chTable = importRawCSVFile(fileFullName)
+        function channels = importRawCSVFile(fileFullName)
             [~, ~, fileExt] = fileparts(fileFullName);
             if ~strcmpi(fileExt, '.csv')
                 error('FileMustBeCSV')
@@ -59,7 +61,7 @@ classdef (Abstract) EMSatDataHubLib
             opts = setvaropts(opts, ["LICENCIADO_BRASIL", "TECNOLOGIA", "SENTIDO_GATEWAY", "BW", "FREQ_CENTRAL_UP", "FREQ_CENTRAL_DOWN", "OCUPACAO_TOTAL", "OCUPACAO_BR", "METRICA_OCUPACAO", "RESTRICAO_DADO"], "ThousandsSeparator", ".");
             
             % Import the data
-            chTable = readtable(fileFullName, opts);
+            channels = readtable(fileFullName, opts);
         end
     end
 end
