@@ -789,7 +789,7 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         function tag = createTag(type, varargin)
             arguments
-                type {mustBeMember(type, {'Flow', 'Emission'})}
+                type {mustBeMember(type, {'Flow', 'Emission', 'Channel'})}
             end
 
             arguments (Repeating)
@@ -807,10 +807,15 @@ classdef (Abstract) HtmlTextGenerator
                         tag = strjoin(unique(arrayfun(@(x) sprintf('%.3f – %.3f MHz', x.MetaData.FreqStart/1e+6, x.MetaData.FreqStop/1e+6), specData, "UniformOutput", false), 'stable'), '<br>');
                     end
 
-                otherwise % 'Emission'
+                case 'Emission'
                     frequencyMHz = varargin{1};
                     bandWidthkHz = varargin{2};
                     tag = sprintf('%.3f MHz ⌂ %.1f kHz', frequencyMHz, bandWidthkHz);
+
+                otherwise % 'Channel'
+                    frequencyMHz = varargin{1};
+                    bandWidthMHz = varargin{2};
+                    tag = sprintf('%.3f MHz @ %.3f MHz', bandWidthMHz, frequencyMHz);
             end
         end
 

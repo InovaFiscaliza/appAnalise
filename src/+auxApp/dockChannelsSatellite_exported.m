@@ -4,6 +4,8 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure                   matlab.ui.Figure
         GridLayout                 matlab.ui.container.GridLayout
+        FeixeDownListLabel_2       matlab.ui.control.Label
+        RefLocation                matlab.ui.control.ListBox
         FeixeDownList              matlab.ui.control.ListBox
         PolarizationList           matlab.ui.control.ListBox
         FeixeDownListLabel         matlab.ui.control.Label
@@ -84,8 +86,9 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
         function onSatelliteIDValueChanged(app, event)
 
             if ~isempty(app.SatelliteID.Value)
-                idxSatellite = strcmp(cellstr(app.channelTable.DESIG_INT), app.SatelliteID.Value);
-                app.PolarizationList.Items = cellstr(unique(app.channelTable.FEIXE_POLARIZ_DOWN(idxSatellite)));
+                channels = app.inputArgs.channels;
+                satelliteIdx = strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value);
+                app.PolarizationList.Items = cellstr(unique(channels.FEIXE_POLARIZ_DOWN(satelliteIdx)));
                 app.PolarizationList.Value = app.PolarizationList.Items(1);
                 
             else
@@ -101,10 +104,11 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
         function onPolarizationValueChanged(app, event)
             
             if ~isempty(app.PolarizationList.Value)
-                idxFeixe = strcmp(cellstr(app.channelTable.DESIG_INT), app.SatelliteID.Value) & ...
-                           ismember(cellstr(app.channelTable.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
+                channels = app.inputArgs.channels;
+                feixeIdx = strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value) & ...
+                           ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
 
-                app.FeixeDownList.Items = cellstr(unique(app.channelTable.FEIXE_DOWN(idxFeixe)));
+                app.FeixeDownList.Items = cellstr(unique(channels.FEIXE_DOWN(feixeIdx)));
                 app.FeixeDownList.Value = app.FeixeDownList.Items(1);
 
             else
@@ -115,32 +119,64 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             
         end
 
+        % Value changed function: FeixeDownList
+        function onFeixeListValueChanged(app, event)
+            
+            if isempty(app.FeixeDownList.Value)
+                app.RefLocation.Items = {};
+
+            else
+                channels = app.inputArgs.channels;
+                channelIdxs = ...
+                    strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value) & ...
+                    ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value) & ...
+                    ismember(cellstr(channels.FEIXE_DOWN), app.FeixeDownList.Value);
+
+                if any(channelIdxs)
+                    channels = channels(channelIdxs, :);
+                    channelList = arrayfun(@(x, y) util.HtmlTextGenerator.createTag('Channel', x, y), channels.FREQ_CENTRAL_DOWN, channels.BW, 'UniformOutput', false);
+                else
+                    channelList = {};
+                end
+
+                app.RefLocation.Items = channelList;
+            end
+
+            app.AddChannelButton.Enable = ~isempty(app.RefLocation.Items);
+            
+        end
+
         % Button pushed function: AddChannelButton
         function onAddButtonClicked(app, event)
             
+            specData = app.inputArgs.specData;
+
             pushedButtonTag = event.Source.Tag;
             switch pushedButtonTag
                 case 'OK'
-                    idxChannels    = strcmp(cellstr(app.channelTable.DESIG_INT), app.SatelliteID.Value)      & ...
-                                     ismember(cellstr(app.channelTable.FEIXE_DOWN), app.FeixeDownList.Value) & ...
-                                     ismember(cellstr(app.channelTable.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
-                    chList         = class.EMSatDataHubLib.importSatelliteChannels(app.channelTable(idxChannels, :));
+                    channels = app.inputArgs.channels;
+                    channelIdx = strcmp(cellstr(channels.DESIG_INT), app.SatelliteID.Value)      & ...
+                                 ismember(cellstr(channels.FEIXE_DOWN), app.FeixeDownList.Value) & ...
+                                 ismember(cellstr(channels.FEIXE_POLARIZ_DOWN), app.PolarizationList.Value);
+                    channelList = class.EMSatDataHubLib.importSatelliteChannels(channels(channelIdx, :));
 
-                    msgQuestion    = sprintf(['Foram extraídos os registros %s, os quais serão incluídos na lista de canais manuais do ' ...
-                                              'fluxo espectral selecionado, caso se sobreponham à faixa de frequência, substituindo '    ...
-                                              'eventuais canalizações inseridas manualmente que tenham um dos supracitados nomes.\n\n'   ...
-                                              'Deseja analisar a inclusão desses registros para os outros fluxos?'], strjoin({chList.Name}, ', '));
-                    userSelection  = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 2, 2);
+                    questionMsg = sprintf([ ...
+                        'Foram extraídos os registros %s, os quais serão incluídos na lista de canais manuais do ' ...
+                        'fluxo espectral selecionado, caso se sobreponham à faixa de frequência, substituindo '    ...
+                        'eventuais canalizações inseridas manualmente que tenham um dos supracitados nomes.\n\n'   ...
+                        'Deseja analisar a inclusão desses registros para os outros fluxos?' ...
+                    ], strjoin({channelList.Name}, ', '));
+                    userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 2, 2);
 
                     switch userSelection
                         case 'Não'
                             idxThreads = app.idxThread;
                         case 'Sim'
-                            idxThreads = 1:numel(app.specData);
+                            specData = app.mainApp.specData;
                     end
                     typeOfChannel  = 'manual';    
 
-                    inputArguments = {chList, typeOfChannel, idxThreads};
+                    inputArguments = {channelList, typeOfChannel, idxThreads};
                     updateFlag = true;                    
 
                 case 'Close'
@@ -190,7 +226,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {110, '1x', 110};
+            app.GridLayout.ColumnWidth = {110, '1x', 100, '1x', 110};
             app.GridLayout.RowHeight = {17, 22, 34, 22, 34, '1x', 22};
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
@@ -201,7 +237,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.ARQUIVOLIDOEditFieldLabel.VerticalAlignment = 'bottom';
             app.ARQUIVOLIDOEditFieldLabel.FontSize = 10;
             app.ARQUIVOLIDOEditFieldLabel.Layout.Row = 1;
-            app.ARQUIVOLIDOEditFieldLabel.Layout.Column = [1 3];
+            app.ARQUIVOLIDOEditFieldLabel.Layout.Column = [1 5];
             app.ARQUIVOLIDOEditFieldLabel.Text = 'ARQUIVO LIDO:';
 
             % Create ARQUIVOLIDOEditField
@@ -209,15 +245,16 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.ARQUIVOLIDOEditField.Editable = 'off';
             app.ARQUIVOLIDOEditField.FontSize = 11;
             app.ARQUIVOLIDOEditField.Layout.Row = 2;
-            app.ARQUIVOLIDOEditField.Layout.Column = [1 3];
+            app.ARQUIVOLIDOEditField.Layout.Column = [1 5];
 
             % Create AddChannelButton
             app.AddChannelButton = uibutton(app.GridLayout, 'push');
             app.AddChannelButton.ButtonPushedFcn = createCallbackFcn(app, @onAddButtonClicked, true);
             app.AddChannelButton.Icon = 'Add_16.png';
             app.AddChannelButton.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.AddChannelButton.Enable = 'off';
             app.AddChannelButton.Layout.Row = 7;
-            app.AddChannelButton.Layout.Column = 3;
+            app.AddChannelButton.Layout.Column = 5;
             app.AddChannelButton.Text = 'Incluir';
 
             % Create SatelliteIDLabel
@@ -271,10 +308,29 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.FeixeDownList = uilistbox(app.GridLayout);
             app.FeixeDownList.Items = {};
             app.FeixeDownList.Multiselect = 'on';
+            app.FeixeDownList.ValueChangedFcn = createCallbackFcn(app, @onFeixeListValueChanged, true);
             app.FeixeDownList.FontSize = 11;
             app.FeixeDownList.Layout.Row = 6;
             app.FeixeDownList.Layout.Column = [2 3];
             app.FeixeDownList.Value = {};
+
+            % Create RefLocation
+            app.RefLocation = uilistbox(app.GridLayout);
+            app.RefLocation.Items = {};
+            app.RefLocation.Multiselect = 'on';
+            app.RefLocation.FontSize = 11;
+            app.RefLocation.Layout.Row = 6;
+            app.RefLocation.Layout.Column = [4 5];
+            app.RefLocation.Value = {};
+
+            % Create FeixeDownListLabel_2
+            app.FeixeDownListLabel_2 = uilabel(app.GridLayout);
+            app.FeixeDownListLabel_2.VerticalAlignment = 'bottom';
+            app.FeixeDownListLabel_2.FontSize = 11;
+            app.FeixeDownListLabel_2.Layout.Row = 5;
+            app.FeixeDownListLabel_2.Layout.Column = [4 5];
+            app.FeixeDownListLabel_2.Interpreter = 'html';
+            app.FeixeDownListLabel_2.Text = {'Identificação dos canais:'; '<font style="color: gray; font-size: 9px;">(FREQUÊNCIA E LARGURA)</font>'};
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
