@@ -296,6 +296,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 if strcmp(eventName, 'onDetectionSubBandsChanged')
                                     updateDetectionLimitsPlot(app)
                                 end
+
+                            case 'onChannelAdded'
+                                updateUIPanelContent(app)
+                                updateChannelsPlot(app)
             
                             case {'onTabNavigatorButtonPushed', ...
                                   'onPlaybackStarted'}
@@ -783,12 +787,20 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             if isSpectralData
+                channels = {};
+                
                 channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
-                if isempty(channelLibIndex)
-                    app.FlowChannel.Items = {};
-                else
-                    app.FlowChannel.Items = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
+                if ~isempty(channelLibIndex)
+                    channels = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
                 end
+
+                channelUserDefined = specData.UserData.ChannelUserDefined;
+                if ~isempty(channelUserDefined)
+                    channels = [channels, arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), channelUserDefined, 'UniformOutput', false)'];
+                end
+
+                app.FlowChannel.Items = channels;
+
 
                 if specData.UserData.DetectionSubBandsEnabled && ~isempty(specData.UserData.DetectionSubBands)
                     app.FlowDetectionLimits.Items = cellstr(string(specData.UserData.DetectionSubBands.FreqStart) + " – " + string(specData.UserData.DetectionSubBands.FreqStop) + " MHz");
@@ -1018,7 +1030,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                 % BandLimits & Channels
                 updateDetectionLimitsPlot(app)
-                % plot_Draw_Channels(app, idx)
+                updateChannelsPlot(app)
         
                 % Occupancy
                 if app.axesTool_occupancy.UserData.status
@@ -1198,6 +1210,34 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updateDetectionLimitsPlot(app)
             plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'bandLimits')
+        end
+
+        %-----------------------------------------------------------------%
+        function updateChannelsPlot(app)
+            delete(findobj(app.UIAxes1, 'Tag', 'channel'))
+
+            specData = app.bandObj.SpecData;
+            if isempty(specData)
+                return
+            end
+
+            channels = [];
+
+            channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
+            if ~isempty(channelLibIndex)
+                for ii = channelLibIndex
+                    channels = PreparingData2Plot(app.mainApp.channelObj, channels, app.mainApp.channelObj.Channel(ii));
+                end
+            end
+
+            channelUserDefined = specData.UserData.ChannelUserDefined;
+            for ii = 1:numel(channelUserDefined)
+                channels = PreparingData2Plot(app.mainApp.channelObj, channels, channelUserDefined(ii));
+            end
+
+            if ~isempty(channels)
+                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'channel', channels)
+            end
         end
 
         %-----------------------------------------------------------------%

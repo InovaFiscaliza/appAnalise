@@ -378,22 +378,23 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             % ...
 
                             % DOCKS:OTHERS
-                            case {'auxApp.dockCalibration',     'auxApp.dockCalibration_exported',     ... % ?
-                                  'auxApp.dockChannels',        'auxApp.dockChannels_exported',        ... % ?
-                                  'auxApp.dockClassification',  'auxApp.dockClassification_exported',  ... % ?
-                                  'auxApp.dockDetection',       'auxApp.dockDetection_exported',       ... % PLAYBACK
-                                  'auxApp.dockDetectionLimits', 'auxApp.dockDetectionLimits_exported', ... % PLAYBACK
-                                  'auxApp.dockDriveTestFilter', 'auxApp.dockDriveTestFilter_exported', ... % DRIVETEST
-                                  'auxApp.dockDriveTestPoints', 'auxApp.dockDriveTestPoints_exported', ... % DRIVETEST
-                                  'auxApp.dockEmissionChannel', 'auxApp.dockEmissionChannel_exported', ... % DRIVETEST | SIGNALANALYSIS
-                                  'auxApp.dockExternalFiles',   'auxApp.dockExternalFiles_exported',   ... % ?
-                                  'auxApp.dockFilterByLevel',   'auxApp.dockFilterByLevel_exported',   ... % PLAYBACK
-                                  'auxApp.dockFilterByTime',    'auxApp.dockFilterByTime_exported',    ... % PLAYBACK
-                                  'auxApp.dockLocation',        'auxApp.dockLocation_exported',        ... % PLAYBACK
-                                  'auxApp.dockFlowMerge',       'auxApp.dockFlowMerge_exported',       ... % PLAYBACK (toolbar)
-                                  'auxApp.dockOccupancy',       'auxApp.dockOccupancy_exported',       ... % ?
-                                  'auxApp.dockReportLib',       'auxApp.dockReportLib_exported',       ... % PLAYBACK (toolbar)
-                                  'auxApp.dockRepoFiles',       'auxApp.dockRepoFiles_exported'}           % REPOSFI
+                            case {'auxApp.dockCalibration',        'auxApp.dockCalibration_exported',        ... % PLAYBACK
+                                  'auxApp.dockChannels',           'auxApp.dockChannels_exported',           ... % PLAYBACK
+                                  'auxApp.dockChannelsFileImport', 'auxApp.dockChannelsFileImport_exported', ... % PLAYBACK
+                                  'auxApp.dockChannelsSatellite',  'auxApp.dockChannelsSatellite_exported',  ... % PLAYBACK
+                                  'auxApp.dockDetection',          'auxApp.dockDetection_exported',          ... % PLAYBACK
+                                  'auxApp.dockDetectionLimits',    'auxApp.dockDetectionLimits_exported',    ... % PLAYBACK
+                                  'auxApp.dockDriveTestFilter',    'auxApp.dockDriveTestFilter_exported',    ... % DRIVETEST
+                                  'auxApp.dockDriveTestPoints',    'auxApp.dockDriveTestPoints_exported',    ... % DRIVETEST
+                                  'auxApp.dockEmissionChannel',    'auxApp.dockEmissionChannel_exported',    ... % DRIVETEST | SIGNALANALYSIS
+                                  'auxApp.dockExternalFiles',      'auxApp.dockExternalFiles_exported',      ... % PLAYBACK
+                                  'auxApp.dockFilterByLevel',      'auxApp.dockFilterByLevel_exported',      ... % PLAYBACK
+                                  'auxApp.dockFilterByTime',       'auxApp.dockFilterByTime_exported',       ... % PLAYBACK
+                                  'auxApp.dockFlowMerge',          'auxApp.dockFlowMerge_exported',          ... % PLAYBACK (toolbar)
+                                  'auxApp.dockLocation',           'auxApp.dockLocation_exported',           ... % PLAYBACK
+                                  'auxApp.dockOccupancy',          'auxApp.dockOccupancy_exported',          ... % PLAYBACK
+                                  'auxApp.dockReportLib',          'auxApp.dockReportLib_exported',          ... % PLAYBACK (toolbar)
+                                  'auxApp.dockRepoFiles',          'auxApp.dockRepoFiles_exported'}              % REPOSFI
 
                                 switch eventName
                                     % auxApp.dockReportLib
@@ -426,6 +427,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                     % Outros...
                                     case {'onEmissionAdded', 'onLocationChanged'}
                                         notifySecondaryApps(app, eventName)
+
+                                    case 'onChannelAdded'
+                                        ipcMainMatlabCallAuxiliarApp(app, 'PLAYBACK', 'MATLAB', eventName)
 
                                     case 'onDetectionSubBandsChanged'
                                         emissionsDeleted = varargin{1};
@@ -2161,7 +2165,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create NavBar
             app.NavBar = uigridlayout(app.GridLayout);
-            app.NavBar.ColumnWidth = {106, '1x', 34, 5, 34, 34, 34, 5, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
+            app.NavBar.ColumnWidth = {101, '1x', 34, 5, 34, 34, 34, 5, 34, 34, 34, '1x', 20, 20, 1, 20, 20};
             app.NavBar.RowHeight = {5, 7, 20, 7, 5};
             app.NavBar.ColumnSpacing = 5;
             app.NavBar.RowSpacing = 0;

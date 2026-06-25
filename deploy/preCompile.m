@@ -38,7 +38,7 @@ function preCompile()
                     newTags = {sprintf('classdef %s < matlab.apps.AppBase', newClassName), ...
                                sprintf('function app = %s',                 newClassName)};
 
-                    matlabCode   = replace(matlabCode, oldTags, newTags);
+                    matlabCode = replace(matlabCode, oldTags, newTags);
 
                 otherwise
                     % Salva a versão original do .M em pasta temporária, de

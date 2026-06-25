@@ -238,7 +238,7 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function chPlotTable = PreparingData2Plot(obj, chPlotTable, chRawInfo)
+        function chPlotTable = PreparingData2Plot(~, chPlotTable, chRawInfo)
             if ~isempty(chRawInfo)
                 channelBW = chRawInfo.ChannelBW; % MHz
                 if channelBW <= 0
@@ -246,15 +246,15 @@ classdef ChannelLib < handle
                 end
     
                 if ~isempty(chRawInfo.FreqList)
-                    FreqList = chRawInfo.FreqList;
+                    freqList = chRawInfo.FreqList;
                 else
-                    FreqList = (chRawInfo.FirstChannel:chRawInfo.StepWidth:chRawInfo.LastChannel)';
+                    freqList = (chRawInfo.FirstChannel:chRawInfo.StepWidth:chRawInfo.LastChannel)';
                 end
 
-                chName      = repmat({chRawInfo.Name},      numel(FreqList), 1);
-                chBW        = repmat(channelBW,             numel(FreqList), 1);
-                chReference = repmat({chRawInfo.Reference}, numel(FreqList), 1);
-                chPlotTable = [chPlotTable; table(chName, FreqList, chBW, chReference, FreqList-channelBW/2, FreqList+channelBW/2, 'VariableNames', {'Name', 'FirstChannel', 'ChannelBW', 'Reference', 'FreqStart', 'FreqStop'})];
+                chName      = repmat({chRawInfo.Name},      numel(freqList), 1);
+                chBandWidth = repmat(channelBW,             numel(freqList), 1);
+                chReference = repmat({chRawInfo.Reference}, numel(freqList), 1);
+                chPlotTable = [chPlotTable; table(chName, freqList, chBandWidth, chReference, freqList-channelBW/2, freqList+channelBW/2, 'VariableNames', {'Name', 'FirstChannel', 'ChannelBW', 'Reference', 'FreqStart', 'FreqStop'})];
             end
         end
     end

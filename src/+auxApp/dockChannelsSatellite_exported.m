@@ -165,6 +165,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
                         checkIfNewChannelIsValid(app.mainApp.channelObj, channelCell2Add{:})                    
                     end
                     addChannel(app.mainApp.channelObj, 'manual', specData, 1:numel(specData), channelList)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onChannelAdded')
 
                 catch ME
                     ui.Dialog(app.UIFigure, 'error', ME.message);
