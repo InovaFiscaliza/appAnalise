@@ -113,10 +113,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_Play                      matlab.ui.control.Image
         tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
-        ContextMenu                    matlab.ui.container.ContextMenu
-        ContextMenuClassification      matlab.ui.container.Menu
-        ContextMenuDelete              matlab.ui.container.Menu
-        ContextMenuDeleteAll           matlab.ui.container.Menu
+        ContextMenuChannels            matlab.ui.container.ContextMenu
+        ContextMenuDeleteChannels      matlab.ui.container.Menu
+        ContextMenuDeleteChannel       matlab.ui.container.Menu
+        ContextMenuAddChannelAsEmission  matlab.ui.container.Menu
+        ContextMenuAddDetectionLimits  matlab.ui.container.Menu
+        ContextMenuEmissions           matlab.ui.container.ContextMenu
+        ContextMenuWhoIsEmission       matlab.ui.container.Menu
+        ContextMenuDeleteEmission      matlab.ui.container.Menu
+        ContextMenuDeleteEmissions     matlab.ui.container.Menu
     end
 
     
@@ -307,7 +312,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                             case {'onReportGenerate', 'onFinalReportFileChanged'}
                                 specData = app.bandObj.SpecData;
-                                updateToolbar(app, specData)
+                                updateToolbarState(app, specData)
 
                             case 'onFetchIssueDetails'
                                 system   = varargin{2};
@@ -721,9 +726,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.axesTool_occupancy
             ], 'Enable', hasMoreThanTwoSamples && ~isOccupancyFlow)
 
-            % Pendente finalizar módulos dock antes de liberar o seu uso...
-            set([app.FlowChannelEdit, app.FlowOccupancyEdit], 'Enable', 'off')
-
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
 
@@ -745,11 +747,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.LimitsYLimLabel.Text = 'dB  ';
             end
 
-            updateToolbar(app, specData)
+            updateToolbarState(app, specData)
         end
 
         %-----------------------------------------------------------------%
-        function updateToolbar(app, specData)
+        function updateToolbarState(app, specData)
             nonEmptySpecData = ~isempty(specData);
 
             set([
@@ -761,6 +763,30 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             app.tool_GenerateReport.Enable  = nonEmptySpecData && any(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
             app.tool_UploadFinalFile.Enable = ~isempty(app.projectData.modules.(app.Context).generatedFiles.lastHTMLDocFullPath);
+        end
+
+        %-----------------------------------------------------------------%
+        function updateContextMenuState(app, tag)
+            arguments
+                app 
+                tag {mustBeMember(tag, {'channels', 'emissions'})}
+            end
+
+            switch tag
+                case 'channels'
+                    hasChannel = ~isempty(app.FlowChannel.Items);
+                    hasChannelSelected = ~isempty(app.FlowChannel.Value);
+        
+                    set(app.ContextMenuDeleteChannels, 'Enable', hasChannel)
+        
+                    set([app.ContextMenuAddDetectionLimits, ...
+                         app.ContextMenuAddChannelAsEmission, ...
+                         app.ContextMenuDeleteChannel], 'Enable', hasChannelSelected)
+
+                otherwise % 'emissions'
+                    hasEmissions = ~isempty(app.FlowEmissions.Data);
+                    set(app.ContextMenuEmissions.Children, 'Enable', hasEmissions)
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -858,6 +884,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowOccupancy.Items = {};
             end
 
+            % Subtab "CANAIS"
+            updateContextMenuState(app, 'channels')
+
+            % Subtab "EMISSÕES"
             if hasEmissions
                 [~, emissionSelectedIdx] = ismember(app.emissionSelectedHash, specData.UserData.Emissions.Uuid);
                 if ~emissionSelectedIdx
@@ -870,7 +900,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             else
                 app.FlowEmissions.Data = [];
             end
-            set(app.ContextMenu.Children, 'Enable', hasEmissions)
+            updateContextMenuState(app, 'emissions')
         end
 
         %-----------------------------------------------------------------%
@@ -1217,26 +1247,25 @@ classdef winPlayback_exported < matlab.apps.AppBase
             delete(findobj(app.UIAxes1, 'Tag', 'channel'))
 
             specData = app.bandObj.SpecData;
-            if isempty(specData)
+            if isempty(specData) || isempty(app.FlowChannel.Value)
                 return
             end
 
             channels = [];
-
             channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
             if ~isempty(channelLibIndex)
-                for ii = channelLibIndex
-                    channels = PreparingData2Plot(app.mainApp.channelObj, channels, app.mainApp.channelObj.Channel(ii));
-                end
+                channels = app.mainApp.channelObj.Channel(channelLibIndex);
             end
 
             channelUserDefined = specData.UserData.ChannelUserDefined;
-            for ii = 1:numel(channelUserDefined)
-                channels = PreparingData2Plot(app.mainApp.channelObj, channels, channelUserDefined(ii));
+            if ~isempty(channelUserDefined)
+                channels = [channels; channelUserDefined'];
             end
 
             if ~isempty(channels)
-                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'channel', channels)
+                channels = channels(app.FlowChannel.ValueIndex, :);
+                channelsTable = PreparingData2Plot(app.mainApp.channelObj, [], channels);
+                plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'channel', channelsTable)
             end
         end
 
@@ -1318,42 +1347,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 case 'Delete'
                     plot.Occupancy('Delete', app.UIAxes1, app.UIAxes2)
             end
-        end
-
-        %-----------------------------------------------------------------%
-        % ## CHANNELS & EMISSIONS ##
-        %-----------------------------------------------------------------%
-        function updateChannelPlot(app, idx)
-            delete(findobj(app.UIAxes1, 'Tag', 'Channel'))
-
-            % if ~isempty(app.play_Channel_Tree.SelectedNodes) && app.play_Channel_ShowPlot.UserData
-            %     chTable = table('Size',          [0, 6],                                                                      ...
-            %                     'VariableNames', {'Name', 'FirstChannel', 'ChannelBW', 'Reference', 'FreqStart', 'FreqStop'}, ...
-            %                     'VariableTypes', {'cell', 'double', 'double', 'cell', 'double', 'double'});
-            % 
-            %     for ii = 1:numel(app.play_Channel_Tree.SelectedNodes)
-            %         srcChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.src;
-            %         idxChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.idx;
-            % 
-            %         switch srcChannel
-            %             case 'channelLib'
-            %                 srcRawTable = app.mainApp.channelObj.Channel(idxChannel);
-            %             case 'manual'
-            %                 srcRawTable = app.mainApp.specData(idx).UserData.ChannelUserDefined(idxChannel);
-            %         end
-            % 
-            %         chTable = PreparingData2Plot(app.mainApp.channelObj, chTable, srcRawTable);
-            %     end
-            % 
-            %     if ~isempty(chTable)
-            %         plot.draw2D.horizontalSetOfLines(app.UIAxes1, app.bandObj, 'channel', chTable) 
-            %     end
-            % end
-        end
-
-        %-----------------------------------------------------------------%
-        function updateEmissionPlot(app)
-            % ...
         end
 
         %-----------------------------------------------------------------%
@@ -1699,99 +1692,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: tool_LayoutLeft, tool_LayoutRight
-        function onToolbarPanelVisibilityChanged(app, event)
-            
-            event.Source.UserData.status = ~event.Source.UserData.status;
-
-            switch event.Source
-                case app.tool_LayoutLeft
-                    if event.Source.UserData.status
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
-                        app.AxesContainer.Layout.Column(1) = 4;
-                        app.AxesToolbar.Layout.Column      = 5;
-                        app.LeftPanel.Visible              = 'on';
-                    else
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
-                        app.AxesContainer.Layout.Column(1) = 1;
-                        app.AxesToolbar.Layout.Column      = 2;
-                        app.LeftPanel.Visible              = 'off';
-                    end
-
-                case app.tool_LayoutRight
-                    if event.Source.UserData.status
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
-                        app.AxesContainer.Layout.Column(2) = 6;
-                        app.AxesAnnotation.Layout.Column   = 6;
-                        app.RightPanel.Visible             = 'on';
-                    else
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
-                        app.AxesContainer.Layout.Column(2) = 8;
-                        app.AxesAnnotation.Layout.Column   = [6 8];
-                        app.RightPanel.Visible             = 'off';
-                    end
-            end
-
-        end
-
-        % Image clicked function: tool_LoopControl, tool_Play
-        function onToolbarPlaybackControlChanged(app, event)
-            
-            switch event.Source
-                case app.tool_Play
-                    flowIdx = findSpecDataIndex(app);
-
-                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        runPlaybackLoop(app, flowIdx, numel(app.mainApp.specData(flowIdx).Data{1}))        
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
-
-                %---------------------------------------------------------%
-                case app.tool_LoopControl
-                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
-
-                     if app.tool_LoopControl.UserData.loopMode
-                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
-                     else
-                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
-                    end
-            end
-
-        end
-
-        % Callback function: tool_TimestampSlider, tool_TimestampSlider
-        function onToolbarTimelineSliderChanging(app, event)
-            
-            nSweeps = app.bandObj.NumSweeps;            
-            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
-            
-            if app.sweepTimeIdx < 1
-                app.sweepTimeIdx = 1;
-            elseif app.sweepTimeIdx > nSweeps
-                app.sweepTimeIdx = nSweeps;
-            end
-
-            if ~app.plotUpdateEvent
-                if ~app.plotHandles.clearWrite.Visible
-                    app.plotHandles.clearWrite.Visible = true;
-                end
-                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
-                
-                updatePersistencePlot(app, 'Update')
-
-                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
-                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                end
-
-                app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
-            end
-            
-        end
-
         % Callback function: LimitsRefresh, LimitsXLim1, LimitsXLim2, 
         % ...and 8 other components
         function onAxesLimitsConfigChanged(app, event)
@@ -1945,11 +1845,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 end
             end
 
-            fileFormats = { ...
-                '*.json', '(*.json)'; ...
-                '*.csv', 'Plano frequência satélite (*.csv)' ...
-            };
-
+            fileFormats = {'*.json;*.csv', '(*.json,*.csv)'};
             [fileFullPath, fileFolder, fileExt] = ui.Dialog(app.UIFigure, 'uigetfile', '', fileFormats, app.mainApp.General.fileFolder.lastVisited);
             if isempty(fileFullPath)
                 return
@@ -1971,6 +1867,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 ui.Dialog(app.UIFigure, 'error', ME.message);
             end
 
+        end
+
+        % Value changed function: FlowChannel
+        function onChannelSelectionChanged(app, event)
+            
+            updateChannelsPlot(app)
+            updateContextMenuState(app, 'channels')
+            
         end
 
         % Image clicked function: FlowEmissionsFileImport
@@ -2231,30 +2135,97 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
         end
 
-        % Menu selected function: ContextMenuClassification, 
-        % ...and 2 other components
-        function onContextMenuOptionClicked(app, event)
+        % Image clicked function: tool_LayoutLeft, tool_LayoutRight
+        function onToolbarPanelVisibilityChanged(app, event)
             
-            specData = app.bandObj.SpecData;
-            [~, emissionIdx] = findSpecDataIndex(app);
+            event.Source.UserData.status = ~event.Source.UserData.status;
 
             switch event.Source
-                case app.ContextMenuClassification
-                    emissionDetails = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context, [], app.mainApp.General);
-                    ui.Dialog(app.UIFigure, 'none', emissionDetails);
-                    return
+                case app.tool_LayoutLeft
+                    if event.Source.UserData.status
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.AxesContainer.Layout.Column(1) = 4;
+                        app.AxesToolbar.Layout.Column      = 5;
+                        app.LeftPanel.Visible              = 'on';
+                    else
+                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.AxesContainer.Layout.Column(1) = 1;
+                        app.AxesToolbar.Layout.Column      = 2;
+                        app.LeftPanel.Visible              = 'off';
+                    end
 
-                case app.ContextMenuDelete
-                    updateEmissionTable(app, specData, 'Delete', emissionIdx)
-
-                case app.ContextMenuDeleteAll
-                    emissionIdxs = 1:height(specData.UserData.Emissions);
-                    updateEmissionTable(app, specData, 'Delete', emissionIdxs)
+                case app.tool_LayoutRight
+                    if event.Source.UserData.status
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.AxesContainer.Layout.Column(2) = 6;
+                        app.AxesAnnotation.Layout.Column   = 6;
+                        app.RightPanel.Visible             = 'on';
+                    else
+                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.AxesContainer.Layout.Column(2) = 8;
+                        app.AxesAnnotation.Layout.Column   = [6 8];
+                        app.RightPanel.Visible             = 'off';
+                    end
             end
 
-            emissions = specData.UserData.Emissions;
-            app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
+        end
 
+        % Image clicked function: tool_LoopControl, tool_Play
+        function onToolbarPlaybackControlChanged(app, event)
+            
+            switch event.Source
+                case app.tool_Play
+                    flowIdx = findSpecDataIndex(app);
+
+                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+
+                        app.plotUpdateEvent = 1;
+                        runPlaybackLoop(app, flowIdx, numel(app.mainApp.specData(flowIdx).Data{1}))        
+                    else
+                        app.plotUpdateEvent = 0;
+                    end
+
+                %---------------------------------------------------------%
+                case app.tool_LoopControl
+                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
+
+                     if app.tool_LoopControl.UserData.loopMode
+                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
+                     else
+                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
+                    end
+            end
+
+        end
+
+        % Callback function: tool_TimestampSlider, tool_TimestampSlider
+        function onToolbarTimelineSliderChanging(app, event)
+            
+            nSweeps = app.bandObj.NumSweeps;            
+            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
+            
+            if app.sweepTimeIdx < 1
+                app.sweepTimeIdx = 1;
+            elseif app.sweepTimeIdx > nSweeps
+                app.sweepTimeIdx = nSweeps;
+            end
+
+            if ~app.plotUpdateEvent
+                if ~app.plotHandles.clearWrite.Visible
+                    app.plotHandles.clearWrite.Visible = true;
+                end
+                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
+                
+                updatePersistencePlot(app, 'Update')
+
+                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
+                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                end
+
+                app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
+            end
+            
         end
 
         % Image clicked function: tool_GenerateReport
@@ -2470,6 +2441,128 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % <PROCESSO>
             reportDispatchOperation(app, 'onUploadArtifacts')
             % </PROCESSO>
+
+        end
+
+        % Menu selected function: ContextMenuAddChannelAsEmission, 
+        % ...and 3 other components
+        function onContextMenuChannelsOptionClicked(app, event)
+            
+            if isempty(app.FlowChannel.Items)
+                return
+            end
+
+            specData = app.bandObj.SpecData;
+            channels = [];
+
+            channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
+            channelUserDefined = specData.UserData.ChannelUserDefined;
+
+            if ~isempty(channelLibIndex)
+                channels = app.mainApp.channelObj.Channel(channelLibIndex);
+            end
+            channels = [channels, channelUserDefined];
+
+            switch event.Source
+                case app.ContextMenuAddDetectionLimits
+                        xLim1 = arrayfun(@(x) x.Band(1), channels);
+                        xLim2 = arrayfun(@(x) x.Band(2), channels);
+
+                        app.play_BandLimits_xLim1.Value = max([min(xLim1), app.play_BandLimits_xLim1.Limits(1)]);
+                        app.play_BandLimits_xLim2.Value = min([max(xLim2), app.play_BandLimits_xLim1.Limits(2)]);
+
+                        if ~app.play_BandLimits_Status.Value
+                            app.play_BandLimits_Status.Value = 1;
+                            play_BandLimits_StatusValueChanged(app)
+                        end
+                        play_BandLimits_addImageClicked(app)
+
+                case app.ContextMenuAddChannelAsEmission
+                    % if ~isempty(app.play_Channel_Tree.SelectedNodes)
+                    %     idxThread  = app.play_PlotPanel.UserData.NodeData;
+                    % 
+                    %     for ii = 1:numel(app.play_Channel_Tree.SelectedNodes)
+                    %         srcChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.src;
+                    %         idxChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.idx;
+                    % 
+                    %         switch srcChannel
+                    %             case 'channelLib'
+                    %                 specChannel = app.channelObj.Channel(idxChannel);
+                    %             case 'manual'
+                    %                 specChannel = app.specData(idxThread).UserData.channelManual(idxChannel);
+                    %         end
+                    % 
+                    %         newFreq  = specChannel.FreqList;
+                    %         if isempty(newFreq)
+                    %             newFreq = (specChannel.FirstChannel:specChannel.StepWidth:specChannel.LastChannel)';
+                    %         end
+                    %         [newIndex, invalidIndex] = freq2idx(app.bandObj, newFreq .* 1e+6, 'OnlyCheck');
+                    % 
+                    %         newFreq(invalidIndex)  = [];
+                    %         newIndex(invalidIndex) = [];
+                    % 
+                    %         if ~isempty(newIndex)
+                    %             newBW = specChannel.ChannelBW;
+                    %             if newBW < 0
+                    %                 newBW = 0;
+                    %             end
+                    %             newBW = newBW * 1000; % Em kHz
+                    % 
+                    %             NN = numel(newIndex);
+                    %             play_AddEmission2List(app, idxThread, newIndex, newFreq, repmat(newBW, NN, 1), repmat({jsonencode(struct('Algorithm', 'Manual'))}, NN, 1))
+                    %         end
+                    %     end
+                    % end
+
+                case app.ContextMenuDeleteChannel
+                    % if ~isempty(app.play_Channel_Tree.SelectedNodes)
+                    %     idx = app.play_PlotPanel.UserData.NodeData;
+                    % 
+                    %     for ii = numel(app.play_Channel_Tree.SelectedNodes):-1:1
+                    %         srcChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.src;
+                    %         idxChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.idx;
+                    % 
+                    %         switch srcChannel
+                    %             case 'channelLib'
+                    %                 update(app.specData(idx), 'UserData:Channel', 'ChannelLibIndex:Edit', idxChannel)
+                    %             case 'manual'
+                    %                 update(app.specData(idx), 'UserData:Channel', 'ChannelManual:Refresh')
+                    %         end
+                    %     end
+                    % end
+                    % 
+                    % play_Channel_TreeBuilding(app, idx, 'play_Channel_ContextMenu_delChannel')
+
+                case app.ContextMenuDeleteChannels
+                    % ...
+            end
+
+
+        end
+
+        % Menu selected function: ContextMenuDeleteEmission, 
+        % ...and 2 other components
+        function onContextMenuEmissionOptionClicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+            [~, emissionIdx] = findSpecDataIndex(app);
+
+            switch event.Source
+                case app.ContextMenuWhoIsEmission
+                    emissionDetails = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context, [], app.mainApp.General);
+                    ui.Dialog(app.UIFigure, 'none', emissionDetails);
+                    return
+
+                case app.ContextMenuDeleteEmission
+                    updateEmissionTable(app, specData, 'Delete', emissionIdx)
+
+                case app.ContextMenuDeleteEmissions
+                    emissionIdxs = 1:height(specData.UserData.Emissions);
+                    updateEmissionTable(app, specData, 'Delete', emissionIdxs)
+            end
+
+            emissions = specData.UserData.Emissions;
+            app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
 
         end
     end
@@ -2760,6 +2853,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create FlowChannel
             app.FlowChannel = uilistbox(app.FlowPanelGrid);
             app.FlowChannel.Items = {};
+            app.FlowChannel.Multiselect = 'on';
+            app.FlowChannel.ValueChangedFcn = createCallbackFcn(app, @onChannelSelectionChanged, true);
             app.FlowChannel.FontSize = 11;
             app.FlowChannel.Layout.Row = 4;
             app.FlowChannel.Layout.Column = [3 6];
@@ -3508,30 +3603,61 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.dockModule_Close.Layout.Column = 2;
             app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
-            % Create ContextMenu
-            app.ContextMenu = uicontextmenu(app.UIFigure);
+            % Create ContextMenuChannels
+            app.ContextMenuChannels = uicontextmenu(app.UIFigure);
 
-            % Create ContextMenuClassification
-            app.ContextMenuClassification = uimenu(app.ContextMenu);
-            app.ContextMenuClassification.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
-            app.ContextMenuClassification.Enable = 'off';
-            app.ContextMenuClassification.Text = '🏷️ Classificação';
+            % Create ContextMenuAddDetectionLimits
+            app.ContextMenuAddDetectionLimits = uimenu(app.ContextMenuChannels);
+            app.ContextMenuAddDetectionLimits.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuAddDetectionLimits.Enable = 'off';
+            app.ContextMenuAddDetectionLimits.Text = '📏 Adiciona limites à detecção';
 
-            % Create ContextMenuDelete
-            app.ContextMenuDelete = uimenu(app.ContextMenu);
-            app.ContextMenuDelete.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
-            app.ContextMenuDelete.Enable = 'off';
-            app.ContextMenuDelete.Separator = 'on';
-            app.ContextMenuDelete.Text = '❌ Excluir';
+            % Create ContextMenuAddChannelAsEmission
+            app.ContextMenuAddChannelAsEmission = uimenu(app.ContextMenuChannels);
+            app.ContextMenuAddChannelAsEmission.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuAddChannelAsEmission.Enable = 'off';
+            app.ContextMenuAddChannelAsEmission.Text = '📶 Adiciona canais como emissões';
 
-            % Create ContextMenuDeleteAll
-            app.ContextMenuDeleteAll = uimenu(app.ContextMenu);
-            app.ContextMenuDeleteAll.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuOptionClicked, true);
-            app.ContextMenuDeleteAll.Enable = 'off';
-            app.ContextMenuDeleteAll.Text = '🚫 Excluir tudo';
+            % Create ContextMenuDeleteChannel
+            app.ContextMenuDeleteChannel = uimenu(app.ContextMenuChannels);
+            app.ContextMenuDeleteChannel.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuDeleteChannel.Enable = 'off';
+            app.ContextMenuDeleteChannel.Separator = 'on';
+            app.ContextMenuDeleteChannel.Text = '❌ Excluir';
+
+            % Create ContextMenuDeleteChannels
+            app.ContextMenuDeleteChannels = uimenu(app.ContextMenuChannels);
+            app.ContextMenuDeleteChannels.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuDeleteChannels.Enable = 'off';
+            app.ContextMenuDeleteChannels.Text = '🚫 Excluir tudo';
             
-            % Assign app.ContextMenu
-            app.FlowEmissions.ContextMenu = app.ContextMenu;
+            % Assign app.ContextMenuChannels
+            app.FlowChannel.ContextMenu = app.ContextMenuChannels;
+
+            % Create ContextMenuEmissions
+            app.ContextMenuEmissions = uicontextmenu(app.UIFigure);
+
+            % Create ContextMenuWhoIsEmission
+            app.ContextMenuWhoIsEmission = uimenu(app.ContextMenuEmissions);
+            app.ContextMenuWhoIsEmission.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuEmissionOptionClicked, true);
+            app.ContextMenuWhoIsEmission.Enable = 'off';
+            app.ContextMenuWhoIsEmission.Text = '🏷️ Classificação';
+
+            % Create ContextMenuDeleteEmission
+            app.ContextMenuDeleteEmission = uimenu(app.ContextMenuEmissions);
+            app.ContextMenuDeleteEmission.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuEmissionOptionClicked, true);
+            app.ContextMenuDeleteEmission.Enable = 'off';
+            app.ContextMenuDeleteEmission.Separator = 'on';
+            app.ContextMenuDeleteEmission.Text = '❌ Excluir';
+
+            % Create ContextMenuDeleteEmissions
+            app.ContextMenuDeleteEmissions = uimenu(app.ContextMenuEmissions);
+            app.ContextMenuDeleteEmissions.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuEmissionOptionClicked, true);
+            app.ContextMenuDeleteEmissions.Enable = 'off';
+            app.ContextMenuDeleteEmissions.Text = '🚫 Excluir tudo';
+            
+            % Assign app.ContextMenuEmissions
+            app.FlowEmissions.ContextMenu = app.ContextMenuEmissions;
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
