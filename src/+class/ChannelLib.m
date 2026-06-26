@@ -169,7 +169,7 @@ classdef ChannelLib < handle
                 for jj = 1:numel(channels2Add)
                     channelLibIndex = specData(ii).UserData.ChannelLibraryRelatedIndexes;
                     channelUserDefined = specData(ii).UserData.ChannelUserDefined;
-                    channels = [obj.Channel(channelLibIndex); channelUserDefined];
+                    channels = [obj.Channel(channelLibIndex); channelUserDefined'];
                     channelsHash = arrayfun(@(x) Hash.sha1(jsonencode(rmfield(x, {'Name', 'Reference', 'EmissionClass'}))), channels, 'UniformOutput', false);
 
                     newChannelLimits = channels2Add(jj).Band;
@@ -192,9 +192,9 @@ classdef ChannelLib < handle
                                 % inclusão de arquivo externo.
                                 channelIdx = find(strcmp({specData(ii).UserData.ChannelUserDefined.Name}, channels2Add(jj).Name), 1);
                                 if isempty(channelIdx)
-                                    specData(ii).UserData.ChannelUserDefined(end+1)      = channels2Add(jj);
+                                    update(specData(ii), 'UserData:Channel', 'ChannelUserDefined:Add', channels2Add(jj))
                                 else
-                                    specData(ii).UserData.ChannelUserDefined(channelIdx) = channels2Add(jj);
+                                    update(specData(ii), 'UserData:Channel', 'ChannelUserDefined:Edit', channelIdx, channels2Add(jj))
                                 end
                         end
                     end

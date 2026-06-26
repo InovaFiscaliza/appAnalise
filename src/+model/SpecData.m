@@ -258,7 +258,7 @@ classdef SpecData < model.SpecDataBase
 
                 if isempty(obj(ii).UserData.ChannelLibraryRelatedIndexes)                    
                     if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
-                        obj(ii).UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj(ii));
+                        update(obj(ii), 'UserData:Channel', 'InitialValue', channelObj)
                     end
                 end
             end
@@ -740,20 +740,31 @@ classdef SpecData < model.SpecDataBase
                     checkIfScalar(obj)
 
                     switch updateType
-                        case 'ChannelLibIndex:Add'
+                        case 'InitialValue'
                             channelObj = varargin{1};
-                            obj.UserData.ChannelLibraryRelatedIndexes = FindRelatedBands(channelObj, obj);
+                            obj.UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj);
+                            obj.UserData.ChannelUserDefined(:) = [];
 
-                        case 'ChannelLibIndex:Edit'
-                            idxChannel = varargin{1};
-                            obj.UserData.ChannelLibraryRelatedIndexes = setdiff(obj.UserData.ChannelLibraryRelatedIndexes, idxChannel);
+                        case 'DeleteAll'
+                            obj.UserData.ChannelLibraryRelatedIndexes = [];
+                            obj.UserData.ChannelUserDefined(:) = [];
 
-                        case 'ChannelManual:Refresh'
-                            idxChannel = varargin{1};
-                            obj.UserData.ChannelUserDefined(idxChannel) = [];
+                        case 'ChannelLibIndex:Delete'
+                            channelIdxs = varargin{1};
+                            obj.UserData.ChannelLibraryRelatedIndexes = setdiff(obj.UserData.ChannelLibraryRelatedIndexes, channelIdxs);
 
-                        case 'ChannelManual:Edit'
-                            % Pendente
+                        case 'ChannelUserDefined:Add'
+                            channelSpec = varargin{1};
+                            obj.UserData.ChannelUserDefined(end+1) = channelSpec;
+
+                        case 'ChannelUserDefined:Edit'
+                            channelIdx = varargin{1};
+                            channelSpec = varargin{2};
+                            obj.UserData.ChannelUserDefined(channelIdx) = channelSpec;
+
+                        case 'ChannelUserDefined:Delete'
+                            channelIdxs = varargin{1};
+                            obj.UserData.ChannelUserDefined(channelIdxs) = [];
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)

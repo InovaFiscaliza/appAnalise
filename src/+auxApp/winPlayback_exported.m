@@ -90,7 +90,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowDetectionLimitsEdit        matlab.ui.control.Image
         FlowDetectionLabel             matlab.ui.control.Label
         FlowChannel                    matlab.ui.control.ListBox
-        FlowChannelEdit                matlab.ui.control.Image
+        FlowChannelRefresh             matlab.ui.control.Image
         FlowChannelFileImport          matlab.ui.control.Image
         FlowChannelLabel               matlab.ui.control.Label
         FlowMetadata                   matlab.ui.control.Label
@@ -114,10 +114,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
         ContextMenuChannels            matlab.ui.container.ContextMenu
-        ContextMenuDeleteChannels      matlab.ui.container.Menu
-        ContextMenuDeleteChannel       matlab.ui.container.Menu
-        ContextMenuAddChannelAsEmission  matlab.ui.container.Menu
         ContextMenuAddDetectionLimits  matlab.ui.container.Menu
+        ContextMenuAddChannelAsEmission  matlab.ui.container.Menu
+        ContextMenuDeleteChannel       matlab.ui.container.Menu
+        ContextMenuDeleteChannels      matlab.ui.container.Menu
         ContextMenuEmissions           matlab.ui.container.ContextMenu
         ContextMenuWhoIsEmission       matlab.ui.container.Menu
         ContextMenuDeleteEmission      matlab.ui.container.Menu
@@ -368,7 +368,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowEmissionsDrawRoi;
                         app.FlowEmissionsAdd;
                         app.FlowChannelFileImport;
-                        app.FlowChannelEdit;
+                        app.FlowChannelRefresh;
                         app.FlowOccupancyEdit;
                         app.tool_LayoutLeft;
                         app.tool_Play;
@@ -405,7 +405,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.FlowEmissionsDrawRoi.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Desenhar contorno de emissão')), ...
                             struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Detectar emissões automaticamente')), ...
                             struct('appName', appName, 'dataTag', app.FlowChannelFileImport.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Importar canais')), ...
-                            struct('appName', appName, 'dataTag', app.FlowChannelEdit.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os canais')), ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelRefresh.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Volta às configurações iniciais')), ...
                             struct('appName', appName, 'dataTag', app.FlowOccupancyEdit.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Afere ocupação por outro método')) ...
                         });
                     catch
@@ -718,7 +718,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowEmissionsDrawRoi;
                 app.FlowEmissionsAdd;
                 app.FlowChannelFileImport;
-                app.FlowChannelEdit
+                app.FlowChannelRefresh
             ], 'Enable', nonEmptySpecData && ~isOccupancyFlow)
 
             set([
@@ -1492,13 +1492,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: FlowChannelEdit, 
-        % ...and 5 other components
+        % Image clicked function: FlowDetectionLimitsEdit, 
+        % ...and 4 other components
         function onOpenPopupApp(app, event)
             
             switch event.Source
-                case app.FlowChannelEdit
-                    dockAppTag = 'Channels';
                 case app.FlowDetectionLimitsEdit
                     dockAppTag = 'DetectionLimits';
                 case app.FlowEmissionsAdd
@@ -1865,6 +1863,26 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+
+        end
+
+        % Image clicked function: FlowChannelRefresh
+        function onChannelRefreshButtonClicked(app, event)
+            
+            specData = app.bandObj.SpecData;
+
+            initialChannelLibIdxs = specData.UserData.ChannelLibraryRelatedIndexes;
+            initialChannelUserDefined = specData.UserData.ChannelUserDefined;
+
+            update(specData, 'UserData:Channel', 'InitialValue', app.mainApp.channelObj)
+
+            isChange = ~isequal(initialChannelLibIdxs,     specData.UserData.ChannelLibraryRelatedIndexes) || ...
+                       ~isequal(initialChannelUserDefined, specData.UserData.ChannelUserDefined);
+isChange
+            if isChange
+                updateUIPanelContent(app)
+                updateChannelsPlot(app)
             end
 
         end
@@ -2461,7 +2479,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             if ~isempty(channelLibIndex)
                 channels = app.mainApp.channelObj.Channel(channelLibIndex);
             end
-            channels = [channels, channelUserDefined];
+            channels = [channels; channelUserDefined'];
 
             switch event.Source
                 case app.ContextMenuAddDetectionLimits
@@ -2515,28 +2533,28 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     % end
 
                 case app.ContextMenuDeleteChannel
-                    % if ~isempty(app.play_Channel_Tree.SelectedNodes)
-                    %     idx = app.play_PlotPanel.UserData.NodeData;
-                    % 
-                    %     for ii = numel(app.play_Channel_Tree.SelectedNodes):-1:1
-                    %         srcChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.src;
-                    %         idxChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.idx;
-                    % 
-                    %         switch srcChannel
-                    %             case 'channelLib'
-                    %                 update(app.specData(idx), 'UserData:Channel', 'ChannelLibIndex:Edit', idxChannel)
-                    %             case 'manual'
-                    %                 update(app.specData(idx), 'UserData:Channel', 'ChannelManual:Refresh')
-                    %         end
-                    %     end
-                    % end
-                    % 
-                    % play_Channel_TreeBuilding(app, idx, 'play_Channel_ContextMenu_delChannel')
+                    channelIdxs = app.FlowChannel.ValueIndex;
+                    
+                    channelLibCount = numel(channelLibIndex);
+                    channelLibMask = channelIdxs <= channelLibCount;
+
+                    channelLibIdxsToDelete = channelLibIndex(channelIdxs(channelLibMask));
+                    userDefinedIdxsToDelete = mod(channelIdxs(~channelLibMask), channelLibCount);
+
+                    if ~isempty(channelLibIdxsToDelete)
+                        update(specData, 'UserData:Channel', 'ChannelLibIndex:Delete', channelLibIdxsToDelete)
+                    end
+
+                    if ~isempty(userDefinedIdxsToDelete)
+                        update(specData, 'UserData:Channel', 'ChannelUserDefined:Delete', userDefinedIdxsToDelete)
+                    end
 
                 case app.ContextMenuDeleteChannels
-                    % ...
+                    update(specData, 'UserData:Channel', 'DeleteAll')
             end
 
+            updateUIPanelContent(app)
+            updateChannelsPlot(app)
 
         end
 
@@ -2841,14 +2859,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannelFileImport.Layout.Column = 4;
             app.FlowChannelFileImport.ImageSource = 'Import_16.png';
 
-            % Create FlowChannelEdit
-            app.FlowChannelEdit = uiimage(app.FlowPanelGrid);
-            app.FlowChannelEdit.ImageClickedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
-            app.FlowChannelEdit.Enable = 'off';
-            app.FlowChannelEdit.Layout.Row = 2;
-            app.FlowChannelEdit.Layout.Column = 6;
-            app.FlowChannelEdit.VerticalAlignment = 'bottom';
-            app.FlowChannelEdit.ImageSource = 'Edit_32.png';
+            % Create FlowChannelRefresh
+            app.FlowChannelRefresh = uiimage(app.FlowPanelGrid);
+            app.FlowChannelRefresh.ScaleMethod = 'none';
+            app.FlowChannelRefresh.ImageClickedFcn = createCallbackFcn(app, @onChannelRefreshButtonClicked, true);
+            app.FlowChannelRefresh.Enable = 'off';
+            app.FlowChannelRefresh.Layout.Row = 2;
+            app.FlowChannelRefresh.Layout.Column = 6;
+            app.FlowChannelRefresh.VerticalAlignment = 'bottom';
+            app.FlowChannelRefresh.ImageSource = 'Refresh_18.png';
 
             % Create FlowChannel
             app.FlowChannel = uilistbox(app.FlowPanelGrid);

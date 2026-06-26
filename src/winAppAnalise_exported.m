@@ -379,7 +379,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                             % DOCKS:OTHERS
                             case {'auxApp.dockCalibration',        'auxApp.dockCalibration_exported',        ... % PLAYBACK
-                                  'auxApp.dockChannels',           'auxApp.dockChannels_exported',           ... % PLAYBACK
                                   'auxApp.dockChannelsFileImport', 'auxApp.dockChannelsFileImport_exported', ... % PLAYBACK
                                   'auxApp.dockChannelsSatellite',  'auxApp.dockChannelsSatellite_exported',  ... % PLAYBACK
                                   'auxApp.dockDetection',          'auxApp.dockDetection_exported',          ... % PLAYBACK
@@ -553,7 +552,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'Channels', 'ChannelsFileImport', 'ChannelsSatellite', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'ChannelsFileImport', 'ChannelsSatellite', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
