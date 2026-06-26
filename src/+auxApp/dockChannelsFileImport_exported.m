@@ -2,16 +2,13 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                   matlab.ui.Figure
-        GridLayout                 matlab.ui.container.GridLayout
-        ARQUIVOLIDOEditField       matlab.ui.control.EditField
-        ARQUIVOLIDOEditFieldLabel  matlab.ui.control.Label
-        Location                   matlab.ui.control.ListBox
-        LocationLabel              matlab.ui.control.Label
-        Delete                     matlab.ui.control.Image
-        Add                        matlab.ui.control.Image
-        RefLocation                matlab.ui.control.ListBox
-        RefLocationLabel           matlab.ui.control.Label
+        UIFigure           matlab.ui.Figure
+        GridLayout         matlab.ui.container.GridLayout
+        OkButton           matlab.ui.control.Button
+        ChannelsTree       matlab.ui.container.CheckBoxTree
+        ChannelsTreeLabel  matlab.ui.control.Label
+        FileName           matlab.ui.control.EditField
+        FileNameLabel      matlab.ui.control.Label
     end
 
     
@@ -39,9 +36,29 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
     
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initialValues(app, fileFullPath)
-            app.ARQUIVOLIDOEditField.Value = fileFullPath;
-            % ...
+        function initialValues(app, fileFullPath, channels)
+            app.FileName.Value = fileFullPath;
+            addStyle(app.ChannelsTree, uistyle('Interpreter', 'html'))
+
+            for ii = 1:numel(channels)
+                frequencyMHz = sum(channels(ii).Band)/2;
+                bandWidthMHz = diff(channels(ii).Band);
+
+                channelText = sprintf([ ...
+                    '<font style="color: black; font-size: 12px;">%s • %s • %s</font><br>' ...
+                    'Frequência do primeiro canal: %.3f MHz • Último: %.3f MHz<br>' ...
+                    'Espaçamento entre canais: %.1f kHz • Largura do canal: %.1f kHz<br>%s' ...
+                ], channels(ii).Name, ...
+                   channels(ii).EmissionClass, ...
+                   util.HtmlTextGenerator.createTag('Channel', frequencyMHz, bandWidthMHz), ...
+                   channels(ii).FirstChannel, ...
+                   channels(ii).LastChannel, ...
+                   channels(ii).StepWidth * 1000, ...
+                   channels(ii).ChannelBW * 1000, ...
+                   channels(ii).Reference);
+
+                uitreenode(app.ChannelsTree, 'Text', channelText, 'NodeData', ii);
+            end
         end
     end
     
@@ -56,7 +73,7 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
                 appEngine.boot(app, app.Role, mainApp, callingApp)
 
                 app.inputArgs = struct('context', context, 'specData', specData, 'channels', channels);
-                initialValues(app, fileFullPath)
+                initialValues(app, fileFullPath, channels)
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -71,19 +88,31 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
             
         end
 
-        % Callback function
-        function ButtonPushed(app, event)
-
-            specData = app.callingApp.bandObj.SpecData;
-            % ...
-
+        % Callback function: ChannelsTree
+        function onTreeCheckedNodesChanged(app, event)
+            
+            app.OkButton.Enable = ~isempty(app.ChannelsTree.CheckedNodes);
+            
         end
 
-        % Callback function
-        function RadioButtonPanelSelectionChanged(app, event)
+        % Button pushed function: OkButton
+        function onAddButtonClicked(app, event)
             
-            updatePanel(app)
+            checkedNodes = app.ChannelsTree.CheckedNodes;
             
+            if ~isempty(checkedNodes)
+                specData = app.inputArgs.specData;
+                channels = app.inputArgs.channels([checkedNodes.NodeData]);
+                
+                try
+                    addChannel(app.mainApp.channelObj, 'manual', specData, 1:numel(specData), channels)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onChannelAdded')
+
+                catch ME
+                    ui.Dialog(app.UIFigure, 'error', ME.message);
+                end
+            end
+
         end
     end
 
@@ -100,7 +129,7 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 620 480];
+                app.UIFigure.Position = [100 100 620 440];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -123,81 +152,55 @@ classdef dockChannelsFileImport_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {'1x', 16, '1x'};
-            app.GridLayout.RowHeight = {17, 22, 22, 22, 22, '1x'};
+            app.GridLayout.ColumnWidth = {'1x', 110};
+            app.GridLayout.RowHeight = {17, 22, 22, '1x', 1, 24};
             app.GridLayout.ColumnSpacing = 5;
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create RefLocationLabel
-            app.RefLocationLabel = uilabel(app.GridLayout);
-            app.RefLocationLabel.VerticalAlignment = 'bottom';
-            app.RefLocationLabel.FontSize = 10;
-            app.RefLocationLabel.Layout.Row = 3;
-            app.RefLocationLabel.Layout.Column = 1;
-            app.RefLocationLabel.Interpreter = 'html';
-            app.RefLocationLabel.Text = 'CANAIS LIDOS:';
+            % Create FileNameLabel
+            app.FileNameLabel = uilabel(app.GridLayout);
+            app.FileNameLabel.VerticalAlignment = 'bottom';
+            app.FileNameLabel.FontSize = 10;
+            app.FileNameLabel.Layout.Row = 1;
+            app.FileNameLabel.Layout.Column = 1;
+            app.FileNameLabel.Text = 'ARQUIVO LIDO:';
 
-            % Create RefLocation
-            app.RefLocation = uilistbox(app.GridLayout);
-            app.RefLocation.Items = {};
-            app.RefLocation.Multiselect = 'on';
-            app.RefLocation.FontSize = 11;
-            app.RefLocation.Layout.Row = [4 6];
-            app.RefLocation.Layout.Column = 1;
-            app.RefLocation.Value = {};
+            % Create FileName
+            app.FileName = uieditfield(app.GridLayout, 'text');
+            app.FileName.Editable = 'off';
+            app.FileName.FontSize = 11;
+            app.FileName.Layout.Row = 2;
+            app.FileName.Layout.Column = [1 2];
 
-            % Create Add
-            app.Add = uiimage(app.GridLayout);
-            app.Add.ScaleMethod = 'none';
-            app.Add.Enable = 'off';
-            app.Add.Tooltip = {'Adiciona localidades selecionadas'};
-            app.Add.Layout.Row = 4;
-            app.Add.Layout.Column = 2;
-            app.Add.ImageSource = 'Continue_16.png';
+            % Create ChannelsTreeLabel
+            app.ChannelsTreeLabel = uilabel(app.GridLayout);
+            app.ChannelsTreeLabel.VerticalAlignment = 'bottom';
+            app.ChannelsTreeLabel.FontSize = 10;
+            app.ChannelsTreeLabel.Layout.Row = 3;
+            app.ChannelsTreeLabel.Layout.Column = 1;
+            app.ChannelsTreeLabel.Text = 'CANALIZAÇÕES:';
 
-            % Create Delete
-            app.Delete = uiimage(app.GridLayout);
-            app.Delete.ScaleMethod = 'none';
-            app.Delete.Enable = 'off';
-            app.Delete.Tooltip = {'Exclui localidades selecionadas'};
-            app.Delete.Layout.Row = 5;
-            app.Delete.Layout.Column = 2;
-            app.Delete.ImageSource = 'delete-12px-red.svg';
+            % Create ChannelsTree
+            app.ChannelsTree = uitree(app.GridLayout, 'checkbox');
+            app.ChannelsTree.FontSize = 11;
+            app.ChannelsTree.FontColor = [0.651 0.651 0.651];
+            app.ChannelsTree.Layout.Row = 4;
+            app.ChannelsTree.Layout.Column = [1 2];
 
-            % Create LocationLabel
-            app.LocationLabel = uilabel(app.GridLayout);
-            app.LocationLabel.VerticalAlignment = 'bottom';
-            app.LocationLabel.FontSize = 10;
-            app.LocationLabel.Layout.Row = 3;
-            app.LocationLabel.Layout.Column = 3;
-            app.LocationLabel.Interpreter = 'html';
-            app.LocationLabel.Text = 'CANAIS A INCLUIR:';
+            % Assign Checked Nodes
+            app.ChannelsTree.CheckedNodesChangedFcn = createCallbackFcn(app, @onTreeCheckedNodesChanged, true);
 
-            % Create Location
-            app.Location = uilistbox(app.GridLayout);
-            app.Location.Items = {};
-            app.Location.Multiselect = 'on';
-            app.Location.FontSize = 11;
-            app.Location.Layout.Row = [4 6];
-            app.Location.Layout.Column = 3;
-            app.Location.Value = {};
-
-            % Create ARQUIVOLIDOEditFieldLabel
-            app.ARQUIVOLIDOEditFieldLabel = uilabel(app.GridLayout);
-            app.ARQUIVOLIDOEditFieldLabel.VerticalAlignment = 'bottom';
-            app.ARQUIVOLIDOEditFieldLabel.FontSize = 10;
-            app.ARQUIVOLIDOEditFieldLabel.Layout.Row = 1;
-            app.ARQUIVOLIDOEditFieldLabel.Layout.Column = 1;
-            app.ARQUIVOLIDOEditFieldLabel.Text = 'ARQUIVO LIDO:';
-
-            % Create ARQUIVOLIDOEditField
-            app.ARQUIVOLIDOEditField = uieditfield(app.GridLayout, 'text');
-            app.ARQUIVOLIDOEditField.Editable = 'off';
-            app.ARQUIVOLIDOEditField.FontSize = 11;
-            app.ARQUIVOLIDOEditField.Layout.Row = 2;
-            app.ARQUIVOLIDOEditField.Layout.Column = [1 3];
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onAddButtonClicked, true);
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.OkButton.Enable = 'off';
+            app.OkButton.Layout.Row = 6;
+            app.OkButton.Layout.Column = 2;
+            app.OkButton.Text = 'Incluir';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

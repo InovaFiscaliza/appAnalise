@@ -2,19 +2,19 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                   matlab.ui.Figure
-        GridLayout                 matlab.ui.container.GridLayout
-        FeixeDownListLabel_2       matlab.ui.control.Label
-        RefLocation                matlab.ui.control.ListBox
-        FeixeDownList              matlab.ui.control.ListBox
-        PolarizationList           matlab.ui.control.ListBox
-        FeixeDownListLabel         matlab.ui.control.Label
-        PolarizationListLabel      matlab.ui.control.Label
-        SatelliteID                matlab.ui.control.DropDown
-        SatelliteIDLabel           matlab.ui.control.Label
-        AddChannelButton           matlab.ui.control.Button
-        ARQUIVOLIDOEditField       matlab.ui.control.EditField
-        ARQUIVOLIDOEditFieldLabel  matlab.ui.control.Label
+        UIFigure               matlab.ui.Figure
+        GridLayout             matlab.ui.container.GridLayout
+        OkButton               matlab.ui.control.Button
+        ChannelIdList          matlab.ui.control.ListBox
+        ChannelIdListLabel     matlab.ui.control.Label
+        FeixeDownList          matlab.ui.control.ListBox
+        FeixeDownListLabel     matlab.ui.control.Label
+        PolarizationList       matlab.ui.control.ListBox
+        PolarizationListLabel  matlab.ui.control.Label
+        SatelliteID            matlab.ui.control.DropDown
+        SatelliteIDLabel       matlab.ui.control.Label
+        FileName               matlab.ui.control.EditField
+        FileNameLabel          matlab.ui.control.Label
     end
 
     
@@ -43,7 +43,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
     methods (Access = private)
         %-----------------------------------------------------------------%
         function initialValues(app, fileFullPath, channels)
-            app.ARQUIVOLIDOEditField.Value = fileFullPath;
+            app.FileName.Value = fileFullPath;
 
             satelliteList = cellstr(unique(channels.DESIG_INT));
             if isscalar(satelliteList)
@@ -123,7 +123,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
         function onFeixeListValueChanged(app, event)
             
             if isempty(app.FeixeDownList.Value)
-                app.RefLocation.Items = {};
+                app.ChannelIdList.Items = {};
 
             else
                 channels = app.inputArgs.channels;
@@ -139,14 +139,14 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
                     channelList = {};
                 end
 
-                app.RefLocation.Items = channelList;
+                app.ChannelIdList.Items = channelList;
             end
 
-            app.AddChannelButton.Enable = ~isempty(app.RefLocation.Items);
+            app.OkButton.Enable = ~isempty(app.ChannelIdList.Items);
             
         end
 
-        % Button pushed function: AddChannelButton
+        % Button pushed function: OkButton
         function onAddButtonClicked(app, event)
             
             specData = app.inputArgs.specData;
@@ -188,7 +188,7 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 620 480];
+                app.UIFigure.Position = [100 100 620 440];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
@@ -215,32 +215,22 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.GridLayout.RowHeight = {17, 22, 34, 22, 34, '1x', 1, 24};
             app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
-            app.GridLayout.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create ARQUIVOLIDOEditFieldLabel
-            app.ARQUIVOLIDOEditFieldLabel = uilabel(app.GridLayout);
-            app.ARQUIVOLIDOEditFieldLabel.VerticalAlignment = 'bottom';
-            app.ARQUIVOLIDOEditFieldLabel.FontSize = 10;
-            app.ARQUIVOLIDOEditFieldLabel.Layout.Row = 1;
-            app.ARQUIVOLIDOEditFieldLabel.Layout.Column = [1 5];
-            app.ARQUIVOLIDOEditFieldLabel.Text = 'ARQUIVO LIDO:';
+            % Create FileNameLabel
+            app.FileNameLabel = uilabel(app.GridLayout);
+            app.FileNameLabel.VerticalAlignment = 'bottom';
+            app.FileNameLabel.FontSize = 10;
+            app.FileNameLabel.Layout.Row = 1;
+            app.FileNameLabel.Layout.Column = [1 5];
+            app.FileNameLabel.Text = 'ARQUIVO LIDO:';
 
-            % Create ARQUIVOLIDOEditField
-            app.ARQUIVOLIDOEditField = uieditfield(app.GridLayout, 'text');
-            app.ARQUIVOLIDOEditField.Editable = 'off';
-            app.ARQUIVOLIDOEditField.FontSize = 11;
-            app.ARQUIVOLIDOEditField.Layout.Row = 2;
-            app.ARQUIVOLIDOEditField.Layout.Column = [1 5];
-
-            % Create AddChannelButton
-            app.AddChannelButton = uibutton(app.GridLayout, 'push');
-            app.AddChannelButton.ButtonPushedFcn = createCallbackFcn(app, @onAddButtonClicked, true);
-            app.AddChannelButton.Icon = 'Add_16.png';
-            app.AddChannelButton.BackgroundColor = [0.9804 0.9804 0.9804];
-            app.AddChannelButton.Enable = 'off';
-            app.AddChannelButton.Layout.Row = 8;
-            app.AddChannelButton.Layout.Column = 5;
-            app.AddChannelButton.Text = 'Incluir';
+            % Create FileName
+            app.FileName = uieditfield(app.GridLayout, 'text');
+            app.FileName.Editable = 'off';
+            app.FileName.FontSize = 11;
+            app.FileName.Layout.Row = 2;
+            app.FileName.Layout.Column = [1 5];
 
             % Create SatelliteIDLabel
             app.SatelliteIDLabel = uilabel(app.GridLayout);
@@ -270,15 +260,6 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.PolarizationListLabel.Interpreter = 'html';
             app.PolarizationListLabel.Text = {'Polarização:'; '<font style="color: gray; font-size: 9px;">(FEIXE_POLARIZ_DOWN)</font>'};
 
-            % Create FeixeDownListLabel
-            app.FeixeDownListLabel = uilabel(app.GridLayout);
-            app.FeixeDownListLabel.VerticalAlignment = 'bottom';
-            app.FeixeDownListLabel.FontSize = 11;
-            app.FeixeDownListLabel.Layout.Row = 5;
-            app.FeixeDownListLabel.Layout.Column = [2 3];
-            app.FeixeDownListLabel.Interpreter = 'html';
-            app.FeixeDownListLabel.Text = {'Identificação do feixe de descida:'; '<font style="color: gray; font-size: 9px;">(FEIXE_DOWN)</font>'};
-
             % Create PolarizationList
             app.PolarizationList = uilistbox(app.GridLayout);
             app.PolarizationList.Items = {};
@@ -288,6 +269,15 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.PolarizationList.Layout.Row = 6;
             app.PolarizationList.Layout.Column = 1;
             app.PolarizationList.Value = {};
+
+            % Create FeixeDownListLabel
+            app.FeixeDownListLabel = uilabel(app.GridLayout);
+            app.FeixeDownListLabel.VerticalAlignment = 'bottom';
+            app.FeixeDownListLabel.FontSize = 11;
+            app.FeixeDownListLabel.Layout.Row = 5;
+            app.FeixeDownListLabel.Layout.Column = [2 3];
+            app.FeixeDownListLabel.Interpreter = 'html';
+            app.FeixeDownListLabel.Text = {'Identificação do feixe de descida:'; '<font style="color: gray; font-size: 9px;">(FEIXE_DOWN)</font>'};
 
             % Create FeixeDownList
             app.FeixeDownList = uilistbox(app.GridLayout);
@@ -299,23 +289,33 @@ classdef dockChannelsSatellite_exported < matlab.apps.AppBase
             app.FeixeDownList.Layout.Column = [2 3];
             app.FeixeDownList.Value = {};
 
-            % Create RefLocation
-            app.RefLocation = uilistbox(app.GridLayout);
-            app.RefLocation.Items = {};
-            app.RefLocation.Multiselect = 'on';
-            app.RefLocation.FontSize = 11;
-            app.RefLocation.Layout.Row = 6;
-            app.RefLocation.Layout.Column = [4 5];
-            app.RefLocation.Value = {};
+            % Create ChannelIdListLabel
+            app.ChannelIdListLabel = uilabel(app.GridLayout);
+            app.ChannelIdListLabel.VerticalAlignment = 'bottom';
+            app.ChannelIdListLabel.FontSize = 11;
+            app.ChannelIdListLabel.Layout.Row = 5;
+            app.ChannelIdListLabel.Layout.Column = [4 5];
+            app.ChannelIdListLabel.Interpreter = 'html';
+            app.ChannelIdListLabel.Text = {'Identificação dos canais:'; '<font style="color: gray; font-size: 9px;">(FREQUÊNCIA E LARGURA)</font>'};
 
-            % Create FeixeDownListLabel_2
-            app.FeixeDownListLabel_2 = uilabel(app.GridLayout);
-            app.FeixeDownListLabel_2.VerticalAlignment = 'bottom';
-            app.FeixeDownListLabel_2.FontSize = 11;
-            app.FeixeDownListLabel_2.Layout.Row = 5;
-            app.FeixeDownListLabel_2.Layout.Column = [4 5];
-            app.FeixeDownListLabel_2.Interpreter = 'html';
-            app.FeixeDownListLabel_2.Text = {'Identificação dos canais:'; '<font style="color: gray; font-size: 9px;">(FREQUÊNCIA E LARGURA)</font>'};
+            % Create ChannelIdList
+            app.ChannelIdList = uilistbox(app.GridLayout);
+            app.ChannelIdList.Items = {};
+            app.ChannelIdList.Multiselect = 'on';
+            app.ChannelIdList.FontSize = 11;
+            app.ChannelIdList.Layout.Row = 6;
+            app.ChannelIdList.Layout.Column = [4 5];
+            app.ChannelIdList.Value = {};
+
+            % Create OkButton
+            app.OkButton = uibutton(app.GridLayout, 'push');
+            app.OkButton.ButtonPushedFcn = createCallbackFcn(app, @onAddButtonClicked, true);
+            app.OkButton.Icon = 'Add_16.png';
+            app.OkButton.BackgroundColor = [0.9804 0.9804 0.9804];
+            app.OkButton.Enable = 'off';
+            app.OkButton.Layout.Row = 8;
+            app.OkButton.Layout.Column = 5;
+            app.OkButton.Text = 'Incluir';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

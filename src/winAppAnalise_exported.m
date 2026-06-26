@@ -576,8 +576,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 );
                 popupSpecifications( 1, :) = {"Calibration",        452, 170, false};
                 popupSpecifications( 2, :) = {"Channels",           412, 516, false}; % Em andamento
-                popupSpecifications( 3, :) = {"ChannelsFileImport", 620, 480, false}; % Em andamento
-                popupSpecifications( 4, :) = {"ChannelsSatellite",  620, 480, false}; % Em andamento
+                popupSpecifications( 3, :) = {"ChannelsFileImport", 620, 440, false}; % Em andamento
+                popupSpecifications( 4, :) = {"ChannelsSatellite",  620, 440, false}; % Em andamento
                 popupSpecifications( 5, :) = {"Detection",          412, 484, false};
                 popupSpecifications( 6, :) = {"DetectionLimits",    292, 360, false};
                 popupSpecifications( 7, :) = {"DriveTestFilter",    412, 338, false};

@@ -167,16 +167,23 @@ classdef ChannelLib < handle
                 freqStop  = specData(ii).MetaData.FreqStop  / 1e+6;
 
                 for jj = 1:numel(channels2Add)
-                    bandLimits = channels2Add(jj).Band;
+                    channelLibIndex = specData(ii).UserData.ChannelLibraryRelatedIndexes;
+                    channelUserDefined = specData(ii).UserData.ChannelUserDefined;
+                    channels = [obj.Channel(channelLibIndex); channelUserDefined];
+                    channelsHash = arrayfun(@(x) Hash.sha1(jsonencode(rmfield(x, {'Name', 'Reference', 'EmissionClass'}))), channels, 'UniformOutput', false);
 
-                    if ((freqStart >= bandLimits(1)) && (freqStart < bandLimits(2))) || ...
-                       ((freqStart <= bandLimits(1)) && (freqStop > bandLimits(1)))
+                    newChannelLimits = channels2Add(jj).Band;
+
+                    if ((freqStart >= newChannelLimits(1)) && (freqStart < newChannelLimits(2))) || ...
+                       ((freqStart <= newChannelLimits(1)) && (freqStop > newChannelLimits(1)))
+
+                        newChannelHash = Hash.sha1(jsonencode(rmfield(channels2Add(jj), {'Name', 'Reference', 'EmissionClass'})));
+                        if ismember(newChannelHash, channelsHash)
+                            continue
+                        end                        
+
                         switch typeOfChannel
                             case 'channelLib'
-                                channelIdx = find(strcmp({obj.Channel.Name}, channels2Add(jj).Name), 1);
-                                if ismember(channelIdx, specData(ii).UserData.ChannelLibraryRelatedIndexes)
-                                    error('ChannelLib:addChannel', 'Canalização já relacionada ao fluxo espectral selecionado.')
-                                end
                                 specData(ii).UserData.ChannelLibraryRelatedIndexes = unique([specData(ii).UserData.ChannelLibraryRelatedIndexes; channelIdx]);
         
                             case 'manual'

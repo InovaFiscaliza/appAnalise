@@ -817,12 +817,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 
                 channelLibIndex = specData.UserData.ChannelLibraryRelatedIndexes;
                 if ~isempty(channelLibIndex)
-                    channels = arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
+                    channels = arrayfun(@(x) sprintf('%.3f – %.3f MHz  •  %s', x.Band(1), x.Band(2), x.Name), app.mainApp.channelObj.Channel(channelLibIndex), 'UniformOutput', false);
                 end
 
                 channelUserDefined = specData.UserData.ChannelUserDefined;
                 if ~isempty(channelUserDefined)
-                    channels = [channels, arrayfun(@(x) sprintf('%.3f – %.3f MHz (%s)', x.Band(1), x.Band(2), x.Name), channelUserDefined, 'UniformOutput', false)'];
+                    channels = [channels; arrayfun(@(x) sprintf('%.3f – %.3f MHz  •  %s', x.Band(1), x.Band(2), x.Name), channelUserDefined, 'UniformOutput', false)'];
                 end
 
                 app.FlowChannel.Items = channels;
