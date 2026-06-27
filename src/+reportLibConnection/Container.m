@@ -117,6 +117,10 @@ classdef (Abstract) Container
             htmlReport = '';
             for ii = 1:height(channels)
                 reportInfo.Function.var_IndexChannel = ii;
+                
+                if ~specData.UserData.ReportChannelAnalysisResult.("Qtd. emissões")(ii)
+                    continue
+                end
 
                 updateSpectrumInfo(bandObj, specData, ii);
                 htmlReport = [htmlReport, reportLib.sourceCode.Separator];

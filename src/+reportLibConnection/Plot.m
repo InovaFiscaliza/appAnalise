@@ -12,19 +12,25 @@ classdef (Abstract) Plot
             generalSettings = reportInfo.Settings;
             specData = analyzedData.InfoSet;
             emissionIdx = reportInfo.Function.var_IndexEmission;
+            channelIdx = reportInfo.Function.var_IndexChannel;
 
             context = 'appAnalise:REPORT:BAND';
             if isfield(imgSettings, 'Context')
                 context = imgSettings.Context;
             end
 
-            guardBand = {};
-            if strcmp(context, 'appAnalise:DRIVETEST')
-                guardBand = {struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6))};
-            end
-
             bandObj = model.Band(context, reportInfo.App);
-            updateSpectrumInfo(bandObj, specData, emissionIdx, guardBand{:})
+            switch context
+                case 'appAnalise:DRIVETEST'
+                    guardBand = {struct('Mode', 'manual', 'Parameters', struct('Type', 'BWRelated', 'Value', 6))};
+                    updateSpectrumInfo(bandObj, specData, emissionIdx, guardBand{:})
+                
+                case 'appAnalise:REPORT:CHANNEL'
+                    updateSpectrumInfo(bandObj, specData, channelIdx)
+
+                otherwise % 'appAnalise:PLAYBACK', 'appAnalise:SIGNALANALYSIS' | 'appAnalise:REPORT:BAND' | 'appAnalise:REPORT:EMISSION'
+                    updateSpectrumInfo(bandObj, specData, emissionIdx)
+            end
 
             % Container
             hFigure = reportInfo.App.UIFigure;
@@ -98,19 +104,18 @@ classdef (Abstract) Plot
                             end
 
                             if ~isempty(channelTable)
-                                plot.draw2D.horizontalSetOfLines(axesHandle, bandObj, 'Channel', channelTable)
+                                plot.draw2D.horizontalSetOfLines(axesHandle, bandObj, 'channel', channelTable)
                             end
 
                         case 'emission'
-                            % plot.draw2D.horizontalSetOfLines(axesHandle, bandObj, 'emission')
                             plot.Emissions.TStyle(axesHandle, bandObj, 'emission')
 
                         % <PENDENTE MIGRAR PARA NOVAS FUNÇÕES>
                         case 'occupancyThreshold'
-                            reportLibConnection.Plot.ThresholdPlot(axesHandle, bandObj, idxThread, reportInfo)
+                            reportLibConnection.Plot.ThresholdPlot(axesHandle, bandObj, specData, reportInfo)
 
                         case 'occupancyPerBin'
-                            reportLibConnection.Plot.OccupancyPerBin(axesHandle, bandObj, idxThread, reportInfo)
+                            reportLibConnection.Plot.OccupancyPerBin(axesHandle, bandObj, specData, reportInfo)
                             axesHandle.YLim = [0,100];
 
                         case 'emissionROI'
@@ -213,46 +218,44 @@ classdef (Abstract) Plot
         end
 
         %-----------------------------------------------------------------%
-        function OccupancyPerBin(hAxes, bandObj, idx, reportInfo)
+        function OccupancyPerBin(hAxes, bandObj, specData, reportInfo)
             defaultProperties = reportInfo.App.General_I;
-
-            specData  = reportInfo.App.specData(idx);
-            xArray    = bandObj.xArray;
+            xArray = bandObj.XArray;
             
             switch bandObj.Context
                 case 'appAnalise:REPORT:CHANNEL'
-                    idxChannel = reportInfo.General.Parameters.Plot.idxChannel;
+                    channelIdx = reportInfo.Function.var_IndexChannel;
                     
-                    occTHR    = [specData.UserData.reportChannelAnalysis.("Threshold mínimo")(idxChannel), ...
-                                 specData.UserData.reportChannelAnalysis.("Threshold máximo")(idxChannel)];
-                    occOffset =  specData.UserData.reportChannelAnalysis.Offset(idxChannel);
-                    xIndexLim = [specData.UserData.reportChannelAnalysis.("FCO per bin (%)"){idxChannel}.idx1, ...
-                                 specData.UserData.reportChannelAnalysis.("FCO per bin (%)"){idxChannel}.idx2];
-                    occData   =  specData.UserData.reportChannelAnalysis.("FCO per bin (%)"){idxChannel}.binFCO';
+                    occTHR    = [specData.UserData.ReportChannelAnalysisResult.("Threshold mínimo")(channelIdx), ...
+                                 specData.UserData.ReportChannelAnalysisResult.("Threshold máximo")(channelIdx)];
+                    occOffset =  specData.UserData.ReportChannelAnalysisResult.Offset(channelIdx);
+                    xIndexLim = [specData.UserData.ReportChannelAnalysisResult.("FCO per bin (%)"){channelIdx}.idx1, ...
+                                 specData.UserData.ReportChannelAnalysisResult.("FCO per bin (%)"){channelIdx}.idx2];
+                    occData   =  specData.UserData.ReportChannelAnalysisResult.("FCO per bin (%)"){channelIdx}.binFCO';
 
-                    Occupancy  = defaultProperties.Plot.OccupancyPerBin;
+                    Occupancy  = defaultProperties.plot.occupancyPerBin;
                     plot(hAxes, xArray(xIndexLim(1):xIndexLim(2)), occData, 'Color',     Occupancy.Color,     ...
                                                                             'LineStyle', Occupancy.LineStyle, ...
                                                                             'LineWidth', Occupancy.LineWidth, ...
-                                                                            'Tag', 'OccupancyPerBin');
+                                                                            'Tag', 'occupancyPerBin');
                     ysecondarylabel(hAxes, sprintf('Threshold: [%.1f, %.1f] (Offset em relação ao piso de ruído: %d dB)', occTHR(1), occTHR(2), occOffset))
 
                 otherwise
-                    occMinHold = defaultProperties.Plot.occMinHold;
-                    occAverage = defaultProperties.Plot.occAverage;
-                    occMaxHold = defaultProperties.Plot.occMaxHold;
+                    occMinHold = defaultProperties.plot.occMinHold;
+                    occAverage = defaultProperties.plot.occAverage;
+                    occMaxHold = defaultProperties.plot.occMaxHold;
 
                     xIndexLim = bandObj.XLimitsIdxs;
                 
-                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData(idx), xIndexLim, xArray, 'occMinHold', occMinHold)
-                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData(idx), xIndexLim, xArray, 'occAverage', occAverage)
-                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData(idx), xIndexLim, xArray, 'occMaxHold', occMaxHold)
+                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData, xIndexLim, xArray, 'occMinHold', occMinHold)
+                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData, xIndexLim, xArray, 'occAverage', occAverage)
+                    reportLibConnection.Plot.OccupancyPerBinPlot(hAxes, specData, xIndexLim, xArray, 'occMaxHold', occMaxHold)
             end
         end
 
         %-----------------------------------------------------------------%
-        function OccupancyPerBinPlot(hAxes, SpecInfo, xIndexLim, xArray, plotMode, Occupancy)
-            occIndex = SpecInfo.UserData.occMethod.CacheIndex;
+        function OccupancyPerBinPlot(hAxes, specData, xIndexLim, xArray, plotMode, Occupancy)
+            occIndex = specData.UserData.OccupancyComputationMode.CacheIndex;
             if isempty(occIndex)
                 return
             end
@@ -263,7 +266,7 @@ classdef (Abstract) Plot
                 case 'occMaxHold'; idx = 3;
             end
 
-            occData = SpecInfo.UserData.occCache(occIndex).Data{3}(:,idx);
+            occData = specData.UserData.OccupancyFiniteIntegrationCache(occIndex).Data{3}(:,idx);
 
             switch Occupancy.Fcn
                 case 'line'
@@ -276,14 +279,14 @@ classdef (Abstract) Plot
 
 
         %-----------------------------------------------------------------%
-        function EmissionPlot(hAxes, SpecInfo, yLim, ROI)
-            pks = SpecInfo.UserData.Emissions;
+        function EmissionPlot(hAxes, specData, yLim, ROI)
+            pks = specData.UserData.Emissions;
             if ~isempty(pks)
                 for ii = 1:height(pks)
                     if ischar(ROI.Color)
                         ROI.Color = hex2rgb(ROI.Color);
                     end
-                    drawrectangle(hAxes, 'Position', [pks.Frequency(ii)-pks.BW_kHz(ii)/2000, yLim(1)+1, pks.BW_kHz(ii)/1000, diff(yLim)-2],                   ...
+                    drawrectangle(hAxes, 'Position', [pks.Frequency(ii)-pks.BandWidthkHz(ii)/2000, yLim(1)+1, pks.BandWidthkHz(ii)/1000, diff(yLim)-2],                   ...
                                          'Color', ROI.Color, 'EdgeAlpha', ROI.EdgeAlpha, 'FaceAlpha', ROI.FaceAlpha, 'MarkerSize', 5, 'LineWidth', 1, ...
                                          'Deletable', 0, 'InteractionsAllowed', 'none', 'Tag', 'mkrROI');
                 end
@@ -299,29 +302,26 @@ classdef (Abstract) Plot
 
 
         %-----------------------------------------------------------------%
-        function ThresholdPlot(hAxes, bandObj, idx, reportInfo)
-            defaultProperties = bandObj.callingApp.General_I;
-            plotConfig = structUtil.struct2cellWithFields(defaultProperties.Plot.OccupancyThreshold);
-
-            specData = bandObj.callingApp.specData(idx);
-            xArray   = bandObj.xArray;
+        function ThresholdPlot(hAxes, bandObj, specData, reportInfo)
+            defaultProperties = reportInfo.App.General_I;
+            plotConfig = structUtil.struct2cellWithFields(defaultProperties.plot.occupancyThreshold);
+            xArray = bandObj.XArray;
 
             switch bandObj.Context
                 case 'appAnalise:REPORT:CHANNEL'
-                    idxChannel = reportInfo.General.Parameters.Plot.idxChannel;
-                    
-                    occMethod = 'Linear adaptativo';
-                    occTHR    = [specData.UserData.reportChannelAnalysis.("Threshold mínimo")(idxChannel), ...
-                                 specData.UserData.reportChannelAnalysis.("Threshold máximo")(idxChannel)];
+                    channelIdx = reportInfo.Function.var_IndexChannel;
+                    occMethod  = 'Linear adaptativo';
+                    occTHR     = [specData.UserData.ReportChannelAnalysisResult.("Threshold mínimo")(channelIdx), ...
+                                  specData.UserData.ReportChannelAnalysisResult.("Threshold máximo")(channelIdx)];
 
                 otherwise
-                    occIndex  = specData.UserData.occMethod.CacheIndex;
+                    occIndex  = specData.UserData.OccupancyComputationMode.CacheIndex;
                     if isempty(occIndex)
                         return
                     end
         
-                    occMethod = specData.UserData.occCache(occIndex).Info.Method;
-                    occTHR    = specData.UserData.occCache(occIndex).THR;
+                    occMethod = specData.UserData.OccupancyFiniteIntegrationCache(occIndex).Method;
+                    occTHR    = specData.UserData.OccupancyFiniteIntegrationCache(occIndex).Threshold;
             end
 
             switch occMethod
@@ -334,7 +334,8 @@ classdef (Abstract) Plot
                 case 'Envoltória do ruído'
                     p    = plot(hAxes, xArray, occTHR);
             end
-            arrayfun(@(x) set(x, 'MarkerIndices', [1, numel(x.XData)], 'Tag', 'OccupancyThreshold', plotConfig{:}), p)
+
+            arrayfun(@(x) set(x, 'MarkerIndices', [1, numel(x.XData)], 'Tag', 'occupancyThreshold', plotConfig{:}), p)
         end
 
         %-----------------------------------------------------------------%
