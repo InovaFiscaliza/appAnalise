@@ -257,8 +257,8 @@ classdef SpecData < model.SpecDataBase
                 end
 
                 if isempty(obj(ii).UserData.ChannelLibraryRelatedIndexes)                    
-                    if ~generalSettings.context.PLAYBACK.channel.manualMode && ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
-                        update(obj(ii), 'UserData:Channel', 'InitialValue', channelObj)
+                    if ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
+                        update(obj(ii), 'UserData:Channel', 'InitialValue', channelObj, generalSettings)
                     end
                 end
             end
@@ -742,7 +742,9 @@ classdef SpecData < model.SpecDataBase
                     switch updateType
                         case 'InitialValue'
                             channelObj = varargin{1};
-                            obj.UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj);
+                            generalSettings = varargin{2};
+                            
+                            obj.UserData.ChannelLibraryRelatedIndexes = getRelatedChannelIndexes(channelObj, obj, generalSettings);
                             obj.UserData.ChannelUserDefined(:) = [];
 
                         case 'DeleteAll'

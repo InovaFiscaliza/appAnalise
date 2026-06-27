@@ -110,7 +110,7 @@ classdef (Abstract) Container
             specData = analyzedData.InfoSet;
             channels = specData.UserData.ReportChannels;
             if isempty(channels)
-                channels = ChannelTable2Plot(bandObj.mainApp.channelObj, specData);
+                channels = ChannelTable2Plot(reportInfo.App.channelObj, specData);
                 specData.UserData.ReportChannels = channels;
             end
 

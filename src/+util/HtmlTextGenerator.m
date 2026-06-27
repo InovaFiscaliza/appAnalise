@@ -7,6 +7,7 @@ classdef (Abstract) HtmlTextGenerator
     %   ├── getSelectedFlowMetadata       ⇐ auxApp.winPlayback
     %   ├── computeFlowAnalysis           ⇐ auxApp.winPlayback
     %   ├── getSelectedEmissionMetaData   ⇐ auxApp.winPlayback | auxApp.winSignalAnalysis | auxApp.winDriveTest
+    %   ├── getSelectedChannelMetaData    ⇐ auxApp.winPlayback
     %   ├── checkEmissionEditConfirmation ⇐ auxApp.winPlayback
     %   ├── checkAvailableUpdate          ⇐ auxApp.winConfig
     %   ├── getStationInfo                ⇐ auxApp.winRFDataHub
@@ -578,6 +579,31 @@ classdef (Abstract) HtmlTextGenerator
                     case 'ChannelBW'; str = sprintf('%.1f kHz', value);
                 end
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function htmlContent = getSelectedChannelMetaData(channel)
+            if channel.ChannelBW > 0
+                channelBwText = sprintf('%.1f kHz', channel.ChannelBW * 1000);
+            else
+                channelBwText = 'não definida';
+            end
+
+            referenceText = '';
+            if ~isempty(channel.Reference)
+                referenceText = sprintf('<br>•&thinsp;Referência: %s', channel.Reference);
+            end
+
+            htmlContent = sprintf([ ...
+                '<b>%s</b> (%s)<br>' ...
+                '•&thinsp;Faixa de frequências: %.3f – %.3f MHz<br>' ...
+                '•&thinsp;Canalização: canais de %.3f a %.3f MHz, com espaçamento de %.3f MHz<br>' ...
+                '•&thinsp;Largura do canal: %s%s' ...
+                ], ...
+                channel.Name, channel.EmissionClass, ...
+                channel.Band(1), channel.Band(2), ...
+                channel.FirstChannel, channel.LastChannel, ...
+                channel.StepWidth, channelBwText, referenceText);
         end
 
         %-----------------------------------------------------------------%

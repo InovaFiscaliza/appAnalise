@@ -90,8 +90,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
         FlowDetectionLimitsEdit        matlab.ui.control.Image
         FlowDetectionLabel             matlab.ui.control.Label
         FlowChannel                    matlab.ui.control.ListBox
-        FlowChannelRefresh             matlab.ui.control.Image
         FlowChannelFileImport          matlab.ui.control.Image
+        FlowChannelRefresh             matlab.ui.control.Image
         FlowChannelLabel               matlab.ui.control.Label
         FlowMetadata                   matlab.ui.control.Label
         FlowAttributesPanelRightBtn    matlab.ui.control.Image
@@ -114,10 +114,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         tool_Separator1                matlab.ui.control.Image
         tool_LayoutLeft                matlab.ui.control.Image
         ContextMenuChannels            matlab.ui.container.ContextMenu
-        ContextMenuAddDetectionLimits  matlab.ui.container.Menu
-        ContextMenuAddChannelAsEmission  matlab.ui.container.Menu
+        ContextMenuChannelInfo         matlab.ui.container.Menu
         ContextMenuDeleteChannel       matlab.ui.container.Menu
         ContextMenuDeleteChannels      matlab.ui.container.Menu
+        ContextMenuAddDetectionLimits  matlab.ui.container.Menu
+        ContextMenuAddChannelAsEmission  matlab.ui.container.Menu
         ContextMenuEmissions           matlab.ui.container.ContextMenu
         ContextMenuWhoIsEmission       matlab.ui.container.Menu
         ContextMenuDeleteEmission      matlab.ui.container.Menu
@@ -303,6 +304,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 end
 
                             case 'onChannelAdded'
+                                specData = app.bandObj.SpecData;
+
+                                updateUIControlsState(app, specData)
                                 updateUIPanelContent(app)
                                 updateChannelsPlot(app)
             
@@ -702,6 +706,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             hasMoreThanTwoSamples = nonEmptySpecData && sum(specData.RelatedFiles.NumSweeps) > 2;
             isWaterfallRenderedAsImage = hasMoreThanTwoSamples && strcmp(specData.UserData.PlotDisplayConfig.waterfall.function, 'image');
             isOccupancyFlow = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
+            unchangedFlowChannels = nonEmptySpecData && isempty(specData.UserData.ChannelUserDefined) && isequal(specData.UserData.ChannelLibraryRelatedIndexes, getRelatedChannelIndexes(app.mainApp.channelObj, specData, app.mainApp.General));
 
             set([
                 app.axesTool_crearWrite;
@@ -717,9 +722,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.FlowEmissionsDataTips;
                 app.FlowEmissionsDrawRoi;
                 app.FlowEmissionsAdd;
-                app.FlowChannelFileImport;
-                app.FlowChannelRefresh
+                app.FlowChannelFileImport
             ], 'Enable', nonEmptySpecData && ~isOccupancyFlow)
+
+            app.FlowChannelRefresh.Visible = ~unchangedFlowChannels;
 
             set([
                 app.FlowOccupancyEdit;
@@ -775,9 +781,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             switch tag
                 case 'channels'
                     hasChannel = ~isempty(app.FlowChannel.Items);
+                    hasScalarChannel = isscalar(app.FlowChannel.Value);
                     hasChannelSelected = ~isempty(app.FlowChannel.Value);
-        
+                    
                     set(app.ContextMenuDeleteChannels, 'Enable', hasChannel)
+                    set(app.ContextMenuChannelInfo, 'Enable', hasScalarChannel)
         
                     set([app.ContextMenuAddDetectionLimits, ...
                          app.ContextMenuAddChannelAsEmission, ...
@@ -1879,12 +1887,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             initialChannelLibIdxs = specData.UserData.ChannelLibraryRelatedIndexes;
             initialChannelUserDefined = specData.UserData.ChannelUserDefined;
 
-            update(specData, 'UserData:Channel', 'InitialValue', app.mainApp.channelObj)
+            update(specData, 'UserData:Channel', 'InitialValue', app.mainApp.channelObj, app.mainApp.General)
 
             isChange = ~isequal(initialChannelLibIdxs,     specData.UserData.ChannelLibraryRelatedIndexes) || ...
                        ~isequal(initialChannelUserDefined, specData.UserData.ChannelUserDefined);
             
             if isChange
+                updateUIControlsState(app, specData)
                 updateUIPanelContent(app)
                 updateChannelsPlot(app)
             end
@@ -2467,7 +2476,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Menu selected function: ContextMenuAddChannelAsEmission, 
-        % ...and 3 other components
+        % ...and 4 other components
         function onContextMenuChannelsOptionClicked(app, event)
             
             if isempty(app.FlowChannel.Items)
@@ -2498,6 +2507,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     );
 
                     ipcMainMatlabOpenPopupApp(app.mainApp, app, 'DetectionLimits', app.Context, requestedBandLimits)
+                    return
 
                 case app.ContextMenuAddChannelAsEmission
                     channels = channels(app.FlowChannel.ValueIndex, :);
@@ -2532,6 +2542,31 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     end
                     return
 
+                case app.ContextMenuChannelInfo
+                    channelIdxs = app.FlowChannel.ValueIndex;
+                    if ~isscalar(channelIdxs)
+                        return
+                    end
+                    
+                    channelLibCount = numel(channelLibIndex);
+                    channelLibMask = channelIdxs <= channelLibCount;
+
+                    channelLibIdxsToView = channelLibIndex(channelIdxs(channelLibMask));
+                    userDefinedIdxsToView = mod(channelIdxs(~channelLibMask), channelLibCount);
+                    
+                    channelSpec = [];
+                    if ~isempty(channelLibIdxsToView)
+                        channelSpec = app.mainApp.channelObj.Channel(channelLibIdxsToView);
+                    elseif ~isempty(userDefinedIdxsToView)
+                        channelSpec = channelUserDefined(userDefinedIdxsToView);
+                    end
+
+                    if ~isempty(channelSpec)
+                        channelDetails = util.HtmlTextGenerator.getSelectedChannelMetaData(channelSpec);
+                        ui.Dialog(app.UIFigure, 'none', channelDetails);
+                    end
+                    return
+
                 case app.ContextMenuDeleteChannel
                     channelIdxs = app.FlowChannel.ValueIndex;
                     if isempty(channelIdxs)
@@ -2556,6 +2591,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     update(specData, 'UserData:Channel', 'DeleteAll')
             end
 
+            updateUIControlsState(app, specData)
             updateUIPanelContent(app)
             updateChannelsPlot(app)
 
@@ -2853,24 +2889,24 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowChannelLabel.Layout.Column = 3;
             app.FlowChannelLabel.Text = 'CANAIS';
 
+            % Create FlowChannelRefresh
+            app.FlowChannelRefresh = uiimage(app.FlowPanelGrid);
+            app.FlowChannelRefresh.ScaleMethod = 'none';
+            app.FlowChannelRefresh.ImageClickedFcn = createCallbackFcn(app, @onChannelRefreshButtonClicked, true);
+            app.FlowChannelRefresh.Visible = 'off';
+            app.FlowChannelRefresh.Layout.Row = 2;
+            app.FlowChannelRefresh.Layout.Column = 4;
+            app.FlowChannelRefresh.VerticalAlignment = 'bottom';
+            app.FlowChannelRefresh.ImageSource = 'Refresh_18.png';
+
             % Create FlowChannelFileImport
             app.FlowChannelFileImport = uiimage(app.FlowPanelGrid);
             app.FlowChannelFileImport.ScaleMethod = 'none';
             app.FlowChannelFileImport.ImageClickedFcn = createCallbackFcn(app, @onChannelFileImportButtonlicked, true);
             app.FlowChannelFileImport.Enable = 'off';
             app.FlowChannelFileImport.Layout.Row = 2;
-            app.FlowChannelFileImport.Layout.Column = 4;
+            app.FlowChannelFileImport.Layout.Column = 6;
             app.FlowChannelFileImport.ImageSource = 'Import_16.png';
-
-            % Create FlowChannelRefresh
-            app.FlowChannelRefresh = uiimage(app.FlowPanelGrid);
-            app.FlowChannelRefresh.ScaleMethod = 'none';
-            app.FlowChannelRefresh.ImageClickedFcn = createCallbackFcn(app, @onChannelRefreshButtonClicked, true);
-            app.FlowChannelRefresh.Enable = 'off';
-            app.FlowChannelRefresh.Layout.Row = 2;
-            app.FlowChannelRefresh.Layout.Column = 6;
-            app.FlowChannelRefresh.VerticalAlignment = 'bottom';
-            app.FlowChannelRefresh.ImageSource = 'Refresh_18.png';
 
             % Create FlowChannel
             app.FlowChannel = uilistbox(app.FlowPanelGrid);
@@ -3628,17 +3664,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create ContextMenuChannels
             app.ContextMenuChannels = uicontextmenu(app.UIFigure);
 
-            % Create ContextMenuAddDetectionLimits
-            app.ContextMenuAddDetectionLimits = uimenu(app.ContextMenuChannels);
-            app.ContextMenuAddDetectionLimits.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
-            app.ContextMenuAddDetectionLimits.Enable = 'off';
-            app.ContextMenuAddDetectionLimits.Text = '📏 Adiciona limites à detecção';
-
-            % Create ContextMenuAddChannelAsEmission
-            app.ContextMenuAddChannelAsEmission = uimenu(app.ContextMenuChannels);
-            app.ContextMenuAddChannelAsEmission.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
-            app.ContextMenuAddChannelAsEmission.Enable = 'off';
-            app.ContextMenuAddChannelAsEmission.Text = '📶 Adiciona canais como emissões';
+            % Create ContextMenuChannelInfo
+            app.ContextMenuChannelInfo = uimenu(app.ContextMenuChannels);
+            app.ContextMenuChannelInfo.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuChannelInfo.Enable = 'off';
+            app.ContextMenuChannelInfo.Text = '❓ Informações adicionais';
 
             % Create ContextMenuDeleteChannel
             app.ContextMenuDeleteChannel = uimenu(app.ContextMenuChannels);
@@ -3652,6 +3682,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.ContextMenuDeleteChannels.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
             app.ContextMenuDeleteChannels.Enable = 'off';
             app.ContextMenuDeleteChannels.Text = '🚫 Excluir tudo';
+
+            % Create ContextMenuAddDetectionLimits
+            app.ContextMenuAddDetectionLimits = uimenu(app.ContextMenuChannels);
+            app.ContextMenuAddDetectionLimits.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuAddDetectionLimits.Enable = 'off';
+            app.ContextMenuAddDetectionLimits.Separator = 'on';
+            app.ContextMenuAddDetectionLimits.Text = '📏 Adiciona limites à detecção';
+
+            % Create ContextMenuAddChannelAsEmission
+            app.ContextMenuAddChannelAsEmission = uimenu(app.ContextMenuChannels);
+            app.ContextMenuAddChannelAsEmission.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuChannelsOptionClicked, true);
+            app.ContextMenuAddChannelAsEmission.Enable = 'off';
+            app.ContextMenuAddChannelAsEmission.Text = '📶 Adiciona canais como emissões';
             
             % Assign app.ContextMenuChannels
             app.FlowChannel.ContextMenu = app.ContextMenuChannels;

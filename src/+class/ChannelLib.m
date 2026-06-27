@@ -47,13 +47,17 @@ classdef ChannelLib < handle
         end
 
         %-----------------------------------------------------------------%
-        function bandsIdxs = getRelatedChannelIndexes(obj, specData)        
-            freqStart  = specData.MetaData.FreqStart/1e+6;
-            freqStop   = specData.MetaData.FreqStop /1e+6;
-
-            bandLimits = [obj.Channel.Band]';        
-            bandsIdxs  = find(((freqStart >= bandLimits(:,1)) & (freqStart < bandLimits(:,2))) | ...
-                              ((freqStart <= bandLimits(:,1)) & (freqStop  > bandLimits(:,1))));
+        function bandsIdxs = getRelatedChannelIndexes(obj, specData, generalSettings)
+            if generalSettings.context.PLAYBACK.channel.manualMode
+                bandsIdxs  = [];
+            else
+                freqStart  = specData.MetaData.FreqStart/1e+6;
+                freqStop   = specData.MetaData.FreqStop /1e+6;
+    
+                bandLimits = [obj.Channel.Band]';        
+                bandsIdxs  = find(((freqStart >= bandLimits(:,1)) & (freqStart < bandLimits(:,2))) | ...
+                                  ((freqStart <= bandLimits(:,1)) & (freqStop  > bandLimits(:,1))));
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -275,19 +279,21 @@ classdef ChannelLib < handle
 
             switch truncatedType
                 case 'Lib'
-                    for ii = specData.UserData.ChannelLibraryRelatedIndexes'
-                        if emissionFreqStart > obj.Channel(ii).Band(2) || emissionFreqStop < obj.Channel(ii).Band(1)
-                            continue
-                        end
-
-                        if ~isempty(obj.Channel(ii).FreqList)
-                            channels  = [channels, obj.Channel(ii).FreqList];
+                    if ~isempty(specData.UserData.ChannelLibraryRelatedIndexes)
+                        for ii = specData.UserData.ChannelLibraryRelatedIndexes'
+                            if emissionFreqStart > obj.Channel(ii).Band(2) || emissionFreqStop < obj.Channel(ii).Band(1)
+                                continue
+                            end
     
-                        else    
-                            freqStart = obj.Channel(ii).FirstChannel;
-                            freqStop  = obj.Channel(ii).LastChannel;
-                            stepWidth = obj.Channel(ii).StepWidth;
-                            channels  = [channels, freqStart:stepWidth:freqStop];
+                            if ~isempty(obj.Channel(ii).FreqList)
+                                channels  = [channels, obj.Channel(ii).FreqList];
+        
+                            else    
+                                freqStart = obj.Channel(ii).FirstChannel;
+                                freqStop  = obj.Channel(ii).LastChannel;
+                                stepWidth = obj.Channel(ii).StepWidth;
+                                channels  = [channels, freqStart:stepWidth:freqStop];
+                            end
                         end
                     end
 
