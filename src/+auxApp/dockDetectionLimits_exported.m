@@ -86,6 +86,17 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
                 app.SubBandsList.Enable = 'off';
             end
         end
+
+        %-----------------------------------------------------------------%
+        function applyBandLimits(app, requestedBandLimits)
+            if ~app.SubBandsMode.Value
+                app.SubBandsMode.Value = true;
+                onSubBandsModeChanged(app)
+            end
+
+            app.EntryXLim1.Value = max(requestedBandLimits.XLim1, app.EntryXLim1.Limits(1));
+            app.EntryXLim2.Value = min(requestedBandLimits.XLim2, app.EntryXLim2.Limits(2));
+        end
     end
     
 
@@ -93,13 +104,17 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
     methods (Access = private)
 
         % Code that executes after component creation
-        function startupFcn(app, mainApp, callingApp, context)
+        function startupFcn(app, mainApp, callingApp, context, requestedBandLimits)
             
             try
                 appEngine.boot(app, app.Role, mainApp, callingApp)
 
                 app.inputArgs = struct('context', context);
                 initialValues(app)
+
+                if exist('requestedBandLimits', 'var')
+                    applyBandLimits(app, requestedBandLimits)
+                end
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -119,7 +134,7 @@ classdef dockDetectionLimits_exported < matlab.apps.AppBase
             
             specData = app.callingApp.bandObj.SpecData;
 
-            if app.SubBandsMode.Value && ~isempty(specData.UserData.DetectionSubBands) && ~isempty(specData.UserData.Emissions)
+            if exist('event', 'var') && app.SubBandsMode.Value && ~isempty(specData.UserData.DetectionSubBands) && ~isempty(specData.UserData.Emissions)
                 questionMsg = 'Confirma a reanálise das emissões, eventualmente eliminando aquelas que não estão em uma das subfaixas sob análise?';
                 userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', questionMsg, {'Sim', 'Não'}, 1, 2);
                 

@@ -1167,6 +1167,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             emissions = specData.UserData.Emissions;
             if isempty(emissions)
+                if ~isempty(app.plotHandles.clearWrite) && isvalid(app.plotHandles.clearWrite)
+                    app.plotHandles.clearWrite.MarkerIndices = [];
+                end
+
                 return
             end
 
@@ -1879,7 +1883,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             isChange = ~isequal(initialChannelLibIdxs,     specData.UserData.ChannelLibraryRelatedIndexes) || ...
                        ~isequal(initialChannelUserDefined, specData.UserData.ChannelUserDefined);
-isChange
+            
             if isChange
                 updateUIPanelContent(app)
                 updateChannelsPlot(app)
@@ -2483,57 +2487,56 @@ isChange
 
             switch event.Source
                 case app.ContextMenuAddDetectionLimits
-                        xLim1 = arrayfun(@(x) x.Band(1), channels);
-                        xLim2 = arrayfun(@(x) x.Band(2), channels);
+                    channels = channels(app.FlowChannel.ValueIndex, :);
+                    if isempty(channels)
+                        return
+                    end
 
-                        app.play_BandLimits_xLim1.Value = max([min(xLim1), app.play_BandLimits_xLim1.Limits(1)]);
-                        app.play_BandLimits_xLim2.Value = min([max(xLim2), app.play_BandLimits_xLim1.Limits(2)]);
+                    requestedBandLimits = struct( ...
+                        'XLim1', min(arrayfun(@(x) x.Band(1), channels)), ...
+                        'XLim2', max(arrayfun(@(x) x.Band(2), channels)) ...
+                    );
 
-                        if ~app.play_BandLimits_Status.Value
-                            app.play_BandLimits_Status.Value = 1;
-                            play_BandLimits_StatusValueChanged(app)
-                        end
-                        play_BandLimits_addImageClicked(app)
+                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'DetectionLimits', app.Context, requestedBandLimits)
 
                 case app.ContextMenuAddChannelAsEmission
-                    % if ~isempty(app.play_Channel_Tree.SelectedNodes)
-                    %     idxThread  = app.play_PlotPanel.UserData.NodeData;
-                    % 
-                    %     for ii = 1:numel(app.play_Channel_Tree.SelectedNodes)
-                    %         srcChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.src;
-                    %         idxChannel = app.play_Channel_Tree.SelectedNodes(ii).NodeData.idx;
-                    % 
-                    %         switch srcChannel
-                    %             case 'channelLib'
-                    %                 specChannel = app.channelObj.Channel(idxChannel);
-                    %             case 'manual'
-                    %                 specChannel = app.specData(idxThread).UserData.channelManual(idxChannel);
-                    %         end
-                    % 
-                    %         newFreq  = specChannel.FreqList;
-                    %         if isempty(newFreq)
-                    %             newFreq = (specChannel.FirstChannel:specChannel.StepWidth:specChannel.LastChannel)';
-                    %         end
-                    %         [newIndex, invalidIndex] = freq2idx(app.bandObj, newFreq .* 1e+6, 'OnlyCheck');
-                    % 
-                    %         newFreq(invalidIndex)  = [];
-                    %         newIndex(invalidIndex) = [];
-                    % 
-                    %         if ~isempty(newIndex)
-                    %             newBW = specChannel.ChannelBW;
-                    %             if newBW < 0
-                    %                 newBW = 0;
-                    %             end
-                    %             newBW = newBW * 1000; % Em kHz
-                    % 
-                    %             NN = numel(newIndex);
-                    %             play_AddEmission2List(app, idxThread, newIndex, newFreq, repmat(newBW, NN, 1), repmat({jsonencode(struct('Algorithm', 'Manual'))}, NN, 1))
-                    %         end
-                    %     end
-                    % end
+                    channels = channels(app.FlowChannel.ValueIndex, :);
+                    if isempty(channels)
+                        return
+                    end
+
+                    for ii = 1:numel(channels)
+                        freqList = channels(ii).FreqList;
+                        if isempty(freqList)
+                            freqList = (channels(ii).FirstChannel:channels(ii).StepWidth:channels(ii).LastChannel)';
+                        end
+                        [idxList, invalidIndex] = freq2idx(app.bandObj, freqList .* 1e+6, 'OnlyCheck');
+
+                        freqList(invalidIndex)  = [];
+                        idxList(invalidIndex) = [];
+
+                        if ~isempty(idxList)
+                            numEmissions = numel(idxList);
+
+                            widthMHz = channels(ii).ChannelBW;
+                            if widthMHz < 0
+                                widthMHz = 0;
+                            end
+                            widthkHzList = widthMHz * 1000 * ones(numEmissions, 1); % Em kHz
+
+                            methodList = repmat({jsonencode(struct('Algorithm', 'Manual'))}, numEmissions, 1);
+
+                            update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                            ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded')
+                        end
+                    end
+                    return
 
                 case app.ContextMenuDeleteChannel
                     channelIdxs = app.FlowChannel.ValueIndex;
+                    if isempty(channelIdxs)
+                        return
+                    end
                     
                     channelLibCount = numel(channelLibIndex);
                     channelLibMask = channelIdxs <= channelLibCount;
