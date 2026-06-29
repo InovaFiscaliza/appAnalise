@@ -1694,7 +1694,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         if ~isempty(app.FlowEmissions.Data)
                             freqList = app.FlowEmissions.Data.Frequency;
                             widthkHzList = app.FlowEmissions.Data.BandWidthkHz;
-                            util.Detection.drawEmission('Creation', app.UIAxes1, app.restoreView, freqList, widthkHzList)
+                            util.Detection.drawEmission(app.UIAxes1, freqList, widthkHzList, app.restoreView(1).yLim)
                         end
                     end
             end

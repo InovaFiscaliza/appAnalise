@@ -108,6 +108,9 @@ classdef (Abstract) Plot
                             end
 
                         case 'emission'
+                            freqList = specData.UserData.Emissions.Frequency;
+                            widthkHzList = specData.UserData.Emissions.BandWidthkHz;
+                            util.Detection.drawEmission(axesHandle, freqList, widthkHzList, bandObj.YLimitsLevel, [1,1,0.0706], 0)
                             plot.Emissions.TStyle(axesHandle, bandObj, 'emission')
 
                         % <PENDENTE MIGRAR PARA NOVAS FUNÇÕES>

@@ -240,7 +240,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
 
                     otherwise % app.OnlySearchEmissions
-                        util.Detection.drawEmission('Creation', app.callingApp.UIAxes1, app.callingApp.restoreView, freqList, widthkHzList)
+                        util.Detection.drawEmission(app.callingApp.UIAxes1, freqList, widthkHzList, app.callingApp.restoreView(1).yLim)
                 end
             end
 
