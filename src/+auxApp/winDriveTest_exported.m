@@ -480,6 +480,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
 
+            
+            app.Basemap.Value = app.defaultValues.basemap;
+            app.Colormap.Value = app.defaultValues.colormap;
+            
             initializeAxes(app)
 
             % Preenche valores que atualmente não são customizados:
@@ -508,7 +512,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             hParent = tiledlayout(app.AxesContainer, 24, 16, "Padding", "none", "TileSpacing", "none", "Position", [0, 0, 1, 1]);
 
             % Eixo geográfico: MAPA
-            app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.defaultValues.basemap,                ...
+            app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.Basemap.Value,                        ...
                                                                      'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
                                                                      'UserData', struct('CLimMode', 'auto', 'Colormap', '', 'PlotMode', 'distortion')});
             app.UIAxes1.Layout.Tile = 1;
@@ -518,7 +522,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             set(app.UIAxes1.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
             
             geolimits(app.UIAxes1, 'auto')
-            plot.axes.Colormap(app.UIAxes1, app.defaultValues.colormap)
+            plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
 
             if ismember(app.defaultValues.basemap, {'darkwater', 'none'})
                 app.UIAxes1.Grid = 'on';

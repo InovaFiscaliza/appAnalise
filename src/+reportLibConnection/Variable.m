@@ -169,8 +169,8 @@ classdef (Abstract) Variable
                     bandIdx = reportInfo.Function.var_Index;
                     channelIdx = reportInfo.Function.var_IndexChannel;
                     
-                    channelTable = specData.UserData.reportChannelTable;
-                    channelName  = extractBefore(channelTable.Name{channelIdx}, ' @');
+                    channelTable = specData.UserData.ReportChannels;
+                    channelName = extractBefore(channelTable.Name{channelIdx}, ' @');
                     if isempty(channelName)
                         channelName = channelTable.Name{channelIdx};
                     end

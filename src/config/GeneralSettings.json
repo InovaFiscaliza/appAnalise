@@ -1,5 +1,5 @@
 {
-    "version": 1.60,
+    "version": 1.61,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -54,7 +54,8 @@
                 "manualMode": false
             },
             "detection": {
-                "datatipBandWidthkHz": 0
+                "datatipBandWidthkHz": 0,
+                "enableEmissionClassification": true
             },
             "defaultPlotDisplayConfig": {
                 "layoutRatio": "1:0:0",

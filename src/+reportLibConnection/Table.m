@@ -359,7 +359,9 @@ classdef (Abstract) Table
 
         %-----------------------------------------------------------------%
         function tbl = ChannelEmissions(reportInfo, analyzedData)
-            % ...
+            specData = analyzedData.InfoSet;
+            channelIdx = reportInfo.Function.var_IndexChannel;
+            tbl = specData.UserData.ReportChannelAnalysisResult.("Emissões"){channelIdx};
         end
 
 
@@ -418,11 +420,13 @@ classdef (Abstract) Table
                     N5_ClasseA         = sum(tagIdx & (emissionsTable.RFDataHubSource == "MOSAICO-SRD") & ismember(emissionsTable.RFDataHubClass, ["A", "A1", "A2", "A3", "A4"]));
                     N5_ClasseE         = sum(tagIdx & (emissionsTable.RFDataHubSource == "MOSAICO-SRD") & ismember(emissionsTable.RFDataHubClass, ["E", "E1", "E2", "E3"]));
                     
-                    globalTable(end+1, :) = {band, N1_Licenciada, N1_NaoLicenciada, N1_NaoLicenciavel,                                                       ...
-                                                         N2_Fundamental, N2_Harmonico, N2_Produto, N2_Espuria, N2_NaoIdentificada, N2_NaoManifestada, N2_Pendente, ...
-                                                         N3_Licenciada, N3_NaoLicenciada, N3_NaoLicenciavel,                                                       ...
-                                                         N4_Baixo, N4_Medio, N4_Alto,                                                                              ...
-                                                         N5_Radcom, N5_ClasseC, N5_ClasseB, N5_ClasseA, N5_ClasseE};
+                    globalTable(end+1, :) = { ...
+                        band, N1_Licenciada, N1_NaoLicenciada, N1_NaoLicenciavel, ...
+                        N2_Fundamental, N2_Harmonico, N2_Produto, N2_Espuria, N2_NaoIdentificada, N2_NaoManifestada, N2_Pendente, ...
+                        N3_Licenciada, N3_NaoLicenciada, N3_NaoLicenciavel, ...
+                        N4_Baixo, N4_Medio, N4_Alto, ...
+                        N5_Radcom, N5_ClasseC, N5_ClasseB, N5_ClasseA, N5_ClasseE ...
+                    };
                 end
             end
         
@@ -519,16 +523,18 @@ classdef (Abstract) Table
                     'entityGroupId', projectData.modules.(context).ui.entity.id ...
                 ), ...
                 'tasks', [], ...
+                'channels', [], ...
                 'emissions', [] ...
             );
 
-            % TASKS / EMISSIONS
+            % TASKS / CHANNELS / EMISSIONS
             tasks = table( ...
                 'Size', [numel(specData), 13], ...
                 'VariableNames', {'correlationKey', 'bandId', 'sensor', 'latitude', 'longitude', 'freqStart', 'freqStop', 'measurementStartTime', 'measurementEndTime', 'measurementCount', 'taskType', 'taskDescription', 'relatedFiles'}, ...
                 'VariableTypes', {'cell', 'double', 'cell', 'double', 'double', 'double', 'double', 'cell', 'cell', 'double', 'cell', 'cell', 'cell'} ...
             );
 
+            globalChannels = [];
             globalEmissions = [];
 
             for ii = 1:numel(specData)
@@ -547,6 +553,10 @@ classdef (Abstract) Table
                     specData(ii).RelatedFiles.Description{1}, ...
                     strjoin(unique(specData(ii).RelatedFiles.File), ', ') ...
                 };
+
+                if ~isempty(specData(ii).UserData.ReportChannelAnalysisResult)
+                    globalChannels = [globalChannels; specData(ii).UserData.ReportChannelAnalysisResult];
+                end
 
                 emissions = table( ...
                     'Size', [0, 23], ...
@@ -611,13 +621,26 @@ classdef (Abstract) Table
                 globalEmissions = [globalEmissions; emissions];
             end
 
+            jsonFileContent.tasks = tasks;
+
             % Força arredondamento de valores numéricos, evitando que no
             % JSON apareça algo como "79.4000015258789", por exemplo.
-            globalEmissions(:, {'freqCenter', 'channelFrequency'}) = round(globalEmissions(:, {'freqCenter', 'channelFrequency'}), 3);
-            globalEmissions(:, {'bandWidthkHz', 'levelMin', 'levelAvg', 'levelMax', 'fcoIntegrationPeriod', 'fcoMin', 'fcoAvg', 'fcoMax', 'fboMin', 'fboAvg', 'fboMax'}) = round(globalEmissions(:, {'bandWidthkHz', 'levelMin', 'levelAvg', 'levelMax', 'fcoIntegrationPeriod', 'fcoMin', 'fcoAvg', 'fcoMax', 'fboMin', 'fboAvg', 'fboMax'}), 1);
+            if ~isempty(globalChannels)
+                globalChannels = removevars(globalChannels, {'ID', 'FCO per bin (%)', 'EmissionIdx', 'Emissões'});
+                globalChannels = renamevars(globalChannels, ...
+                    {'Transponder', 'Frequência central (MHz)', 'Largura (kHz)', 'Referência', 'FBO estimada (%)', 'Threshold mínimo', 'Threshold máximo', 'Offset', 'FBO mínima (%)', 'FBO média (%)', 'FBO máxima (%)', 'FCO (%)', 'Qtd. emissões'}, ...
+                    {'transponder', 'freqCenter', 'bandWidthkHz', 'reference', 'fboEstimated', 'thresholdMin', 'thresholdMax', 'thresholdNoiseOffset', 'fboMin', 'fboAvg', 'fboMax', 'fco', 'emissionCount'} ...
+                );
+                globalChannels(:, {'freqCenter'}) = round(globalChannels(:, {'freqCenter'}), 3);
+                globalChannels(:, {'bandWidthkHz', 'fboEstimated', 'thresholdMin', 'thresholdMax', 'thresholdNoiseOffset', 'fboMin', 'fboAvg', 'fboMax', 'fco'}) = round(globalChannels(:, {'bandWidthkHz', 'fboEstimated', 'thresholdMin', 'thresholdMax', 'thresholdNoiseOffset', 'fboMin', 'fboAvg', 'fboMax', 'fco'}), 1);
+                jsonFileContent.channels = globalChannels;
+            end
 
-            jsonFileContent.tasks = tasks;
-            jsonFileContent.emissions = globalEmissions;
+            if ~isempty(globalEmissions)
+                globalEmissions(:, {'freqCenter', 'channelFrequency'}) = round(globalEmissions(:, {'freqCenter', 'channelFrequency'}), 3);
+                globalEmissions(:, {'bandWidthkHz', 'levelMin', 'levelAvg', 'levelMax', 'fcoIntegrationPeriod', 'fcoMin', 'fcoAvg', 'fcoMax', 'fboMin', 'fboAvg', 'fboMax'}) = round(globalEmissions(:, {'bandWidthkHz', 'levelMin', 'levelAvg', 'levelMax', 'fcoIntegrationPeriod', 'fcoMin', 'fcoAvg', 'fcoMax', 'fboMin', 'fboAvg', 'fboMax'}), 1);
+                jsonFileContent.emissions = globalEmissions;
+            end
 
             jsonFileContent = jsonencode(jsonFileContent, 'PrettyPrint', true, 'ConvertInfAndNaN', false);
         end

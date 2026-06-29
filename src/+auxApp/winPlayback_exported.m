@@ -2330,17 +2330,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 nonCriticalWarningMsg{end+1} = '• Unidade geradora do documento precisa ser selecionada.';
             end
 
-            invalidClassification = false;
-            for ii = flowIdxs
-                specData = app.mainApp.specData(ii);
-                if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, specData.UserData.Emissions.Classification, 'UniformOutput', false))
-                    invalidClassification = true;
-                    break
+            if app.mainApp.General.context.PLAYBACK.detection.enableEmissionClassification
+                invalidClassification = false;
+                for ii = flowIdxs
+                    specData = app.mainApp.specData(ii);
+                    if ismember('Pendente identificação', arrayfun(@(x) x.UserModified.EmissionType, specData.UserData.Emissions.Classification, 'UniformOutput', false))
+                        invalidClassification = true;
+                        break
+                    end
                 end
-            end
-
-            if invalidClassification
-                nonCriticalWarningMsg{end+1} = '• Há ao menos uma emissão ainda <font style="color: red;">Pendente identificação</font>, o que inviabiliza a geração da versão definitiva do relatório.';
+    
+                if invalidClassification
+                    nonCriticalWarningMsg{end+1} = '• Há ao menos uma emissão ainda <font style="color: red;">Pendente identificação</font>, o que inviabiliza a geração da versão definitiva do relatório.';
+                end
             end
 
             if isempty(nonCriticalWarningMsg)
