@@ -706,7 +706,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             hasMoreThanTwoSamples = nonEmptySpecData && sum(specData.RelatedFiles.NumSweeps) > 2;
             isWaterfallRenderedAsImage = hasMoreThanTwoSamples && strcmp(specData.UserData.PlotDisplayConfig.waterfall.function, 'image');
             isOccupancyFlow = nonEmptySpecData && ismember(specData.MetaData.DataType, class.Constants.occDataTypes);
-            unchangedFlowChannels = nonEmptySpecData && isempty(specData.UserData.ChannelUserDefined) && isequal(specData.UserData.ChannelLibraryRelatedIndexes, getRelatedChannelIndexes(app.mainApp.channelObj, specData, app.mainApp.General));
+            unchangedFlowChannels = ~nonEmptySpecData || (isempty(specData.UserData.ChannelUserDefined) && isequal(specData.UserData.ChannelLibraryRelatedIndexes, getRelatedChannelIndexes(app.mainApp.channelObj, specData, app.mainApp.General)));
 
             set([
                 app.axesTool_crearWrite;
