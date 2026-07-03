@@ -196,7 +196,7 @@ classdef (Abstract) Plot
                 imgFileName = replace(imgFileName, 'Image', '~Image');
             end
             
-            exportgraphics(hContainer, imgFileName, 'ContentType', 'image', 'Resolution', generalSettings.reportLib.image.resolutionDpi)
+            exportgraphics(hContainer, imgFileName, 'ContentType', 'image', 'Resolution', generalSettings.reportLib.image.resolutionDpi, 'BackgroundColor', [1,1,1])
             
             while true
                 pause(1)
