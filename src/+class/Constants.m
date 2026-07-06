@@ -3,7 +3,7 @@ classdef (Abstract) Constants
     properties (Constant)
         %-----------------------------------------------------------------%
         appName       = 'appAnalise'
-        appVersion    = '2.00.3'
+        appVersion    = '2.00.4'
 
         windowSize    = [1244, 660]
         windowMinSize = [ 950, 660]

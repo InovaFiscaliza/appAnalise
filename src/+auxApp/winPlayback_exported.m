@@ -646,31 +646,35 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 specData = app.mainApp.specData(flowIdx);
             end
 
-            if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
-                requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
-
-                try
-                    populateSpectrum(specData, app.mainApp.metaData, app.projectData, app.mainApp.channelObj, app.mainApp.General)
-                    
-                    relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
-                    if ~isempty(relatedHases)
-                        relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
-                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.projectData, app.mainApp.channelObj, app.mainApp.General)
+            if ~isempty(specData) 
+                if isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps))
+                    requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+    
+                    try
+                        populateSpectrum(specData, app.mainApp.metaData, app.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        
+                        relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                        if ~isempty(relatedHases)
+                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        end
+    
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'error', ME.message);
+    
+                        delete(app.mainApp.specData(flowIdx))
+                        app.mainApp.specData(flowIdx) = [];
+                        refreshFlowDropDown(app)
+    
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                        return
                     end
-
-                catch ME
-                    ui.Dialog(app.UIFigure, 'error', ME.message);
-
-                    delete(app.mainApp.specData(flowIdx))
-                    app.mainApp.specData(flowIdx) = [];
-                    refreshFlowDropDown(app)
-
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
+    
                     requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
-                    return
                 end
 
-                requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                initializeUnsetProperties(specData, app.mainApp.channelObj, app.mainApp.General)
             end
 
             % Atualiza app.bandObj, instância de model.Band, que guarda
@@ -2289,37 +2293,41 @@ classdef winPlayback_exported < matlab.apps.AppBase
             invalidCache = false;
             for ii = flowIdxs
                 specData = app.mainApp.specData(ii);
-                if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
-                    if ~invalidCache
-                        invalidCache = true;
-
-                        msgQuestion = 'Ao menos um fluxo espectral sob análise ainda não teve seus dados lidos.<br><br>Deseja que o app carregue automaticamente os dados pendentes?';
-                        userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
-                        if userSelection == "Não"
-                            return
-                        end
-                    end
-
-                    requestVisibilityChange(app.progressDialog, 'visible', 'locked')
-
-                    try
-                        populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
-                        
-                        relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
-                        if ~isempty(relatedHases)
-                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
-                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                if ~isempty(specData) 
+                    if isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps))
+                        if ~invalidCache
+                            invalidCache = true;
+    
+                            msgQuestion = 'Ao menos um fluxo espectral sob análise ainda não teve seus dados lidos.<br><br>Deseja que o app carregue automaticamente os dados pendentes?';
+                            userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                            if userSelection == "Não"
+                                return
+                            end
                         end
     
-                    catch ME
-                        ui.Dialog(app.UIFigure, 'warning', ME.message);
+                        requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+    
+                        try
+                            populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                            
+                            relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                            if ~isempty(relatedHases)
+                                relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                                populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                            end
+        
+                        catch ME
+                            ui.Dialog(app.UIFigure, 'warning', ME.message);
+                            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+                            return
+                        end
+
                         requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
-                        return
                     end
+
+                    initializeUnsetProperties(specData, app.mainApp.channelObj, app.mainApp.General)
                 end
             end
-
-            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
 
             nonCriticalWarningMsg = {};
             if ~validateReportRequirements(app.projectData, context, 'issue')

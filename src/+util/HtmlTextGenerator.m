@@ -800,9 +800,15 @@ classdef (Abstract) HtmlTextGenerator
 
         %-----------------------------------------------------------------%
         function htmlContent = issueDetails(system, issue, details)
-            displayEntry = util.HtmlTextGenerator.makeDisplayEntry('CADASTRO', details);
-            htmlIntro = sprintf('<font style="font-size: 16px;"><b>Atividade de Inspeção #%d</b></font> %s<br><br>', issue, system);
-            htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'print -1', htmlIntro, 'popup');
+            dataStruct = [ ...
+                struct('group', 'ATIVIDADE DE INSPEÇÃO',   'value', details.issueContext.atividade), ...
+                struct('group', 'AÇÃO DE INSPEÇÃO',        'value', details.issueContext.acao), ...
+                struct('group', 'SOLICITAÇÃO DE INSPEÇÃO', 'value', details.issueContext.solicitacao), ...
+                struct('group', 'USUÁRIO',                 'value', details.usuario) ...
+            ];
+
+            freeInitialText = sprintf('<font style="font-size: 16px;"><b>Atividade de Inspeção #%d</b></font> %s<br><br>', issue, system);
+            htmlContent     = textFormatGUI.struct2PrettyPrintList(dataStruct, 'print -1', freeInitialText, 'popup');
         end
     
         %-----------------------------------------------------------------%

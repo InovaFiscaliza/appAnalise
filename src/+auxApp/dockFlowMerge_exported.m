@@ -158,9 +158,10 @@ classdef dockFlowMerge_exported < matlab.apps.AppBase
                     end
                 end
             end
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onFlowMergeRequested', flowIdxs)
-
+            
             requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onFlowMergeRequested', flowIdxs)
 
         end
     end

@@ -248,22 +248,29 @@ classdef SpecData < model.SpecDataBase
                 % - "OccupancyComputationMode",
                 % - "OccupancyFiniteIntegrationCache"
                 % - "OccupancyCumulativeIntegration"
-                if isempty(obj(ii).UserData.PlotDisplayConfig)
-                    obj(ii).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
-                end
-
-                if isempty(obj(ii).UserData.AntennaHeightMeters)
-                    update(obj(ii), 'UserData:AntennaHeight', 'InitialValue')
-                end
-
-                if isempty(obj(ii).UserData.ChannelLibraryRelatedIndexes)                    
-                    if ismember(obj(ii).MetaData.DataType, class.Constants.specDataTypes)
-                        update(obj(ii), 'UserData:Channel', 'InitialValue', channelObj, generalSettings)
-                    end
-                end
+                initializeUnsetProperties(obj(ii), channelObj, generalSettings)
             end
 
             basicStats(obj)
+            computeOccupancyPerBin(obj)
+        end
+
+        %-----------------------------------------------------------------%
+        function initializeUnsetProperties(obj, channelObj, generalSettings)
+            if isempty(obj.UserData.PlotDisplayConfig)
+                obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
+            end
+
+            if isempty(obj.UserData.AntennaHeightMeters)
+                update(obj, 'UserData:AntennaHeight', 'InitialValue')
+            end
+
+            if isempty(obj.UserData.ChannelLibraryRelatedIndexes)                    
+                if ismember(obj.MetaData.DataType, class.Constants.specDataTypes)
+                    update(obj, 'UserData:Channel', 'InitialValue', channelObj, generalSettings)
+                end
+            end
+
             computeOccupancyPerBin(obj)
         end
 

@@ -154,6 +154,99 @@
                     }
                 },
                 {
+                    "Type": "Table",
+                    "Data": {
+                        "Origin": "FunctionEvaluation",
+                        "Source": "tbl_GlobalEmissions",
+                        "Columns": [
+                            "ID",
+                            "Frequency",
+                            "Truncated",
+                            "BandWidthkHz",
+                            "Level_FreqCenter_Min",
+                            "Level_FreqCenter_Mean",
+                            "Level_FreqCenter_Max",
+                            "FCO_FreqCenter_Finite_Mean",
+                            "FCO_FreqCenter_Finite_Max",
+                            "MergedDescriptions",
+                            "Distance"
+                        ],
+                        "Filter": [],
+                        "Caption": "Informações acerca das emissões detectadas.",
+                        "Settings": [
+                            {
+                                "Editable": "false",
+                                "ColumnName": "#",
+                                "Precision": "%s",
+                                "Width": "40px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência<br>(MHz)",
+                                "Precision": "%.3f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Frequência canal (MHz)",
+                                "Precision": "%.3f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Largura<br>(kHz)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível mínimo (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível médio (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Nível máximo (dB)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Ocupação média (%)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Ocupação máxima (%)",
+                                "Precision": "%.1f",
+                                "Width": "70px"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Identificação do provável emissor",
+                                "Precision": "%s",
+                                "Width": "auto"
+                            },
+                            {
+                                "Editable": "false",
+                                "ColumnName": "Distância<br>(km)",
+                                "Precision": "%s",
+                                "Width": "60px"
+                            }
+                        ],
+                        "LineBreak": 0,
+                        "Intro": "{\"Type\":\"ItemN2\",\"Text\":\"Na tabela apresentada a seguir constam informações das emissões detectadas.\"}",
+                        "Error": ""
+                    }
+                },
+                {
                     "Type": "ItemN2",
                     "Data": {
                         "Editable": "false",

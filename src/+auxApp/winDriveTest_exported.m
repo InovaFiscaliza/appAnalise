@@ -651,31 +651,35 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 specData = app.mainApp.specData(flowIdx);
             end
 
-            if ~isempty(specData) && (isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps)))
-                requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
-
-                try
-                    populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
-                    
-                    relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
-                    if ~isempty(relatedHases)
-                        relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
-                        populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+            if ~isempty(specData) 
+                if isempty(specData.Data) || (numel(specData.Data{1}) ~= sum(specData.RelatedFiles.NumSweeps))
+                    requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+    
+                    try
+                        populateSpectrum(specData, app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        
+                        relatedHases = specData.UserData.OccupancyComputationMode.RelatedHashes;
+                        if ~isempty(relatedHases)
+                            relatedHashIdxs = find(ismember({app.mainApp.specData.Hash}, relatedHases));
+                            populateSpectrum(app.mainApp.specData(relatedHashIdxs), app.mainApp.metaData, app.mainApp.projectData, app.mainApp.channelObj, app.mainApp.General)
+                        end
+    
+                    catch ME
+                        ui.Dialog(app.UIFigure, 'error', ME.message);
+    
+                        delete(app.mainApp.specData(flowIdx))
+                        app.mainApp.specData(flowIdx) = [];
+                        refreshFlowDropDown(app)
+    
+                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                        return
                     end
-
-                catch ME
-                    ui.Dialog(app.UIFigure, 'error', ME.message);
-
-                    delete(app.mainApp.specData(flowIdx))
-                    app.mainApp.specData(flowIdx) = [];
-                    refreshFlowDropDown(app)
-
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onSpectralDataReadError', app.Context)
+    
                     requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
-                    return
                 end
 
-                requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                initializeUnsetProperties(specData, app.mainApp.channelObj, app.mainApp.General)
             end
 
             % Reinicializa handles dos plots WATERFALL e PERSISTÊNCIA. Os
