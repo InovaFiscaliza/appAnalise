@@ -492,6 +492,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             addlistener(app.UIAxes1, 'XLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
             addlistener(app.UIAxes1, 'YLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
             addlistener(app.UIAxes1, 'CLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
+            addlistener(app.UIAxes2, 'YLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
+            addlistener(app.UIAxes3, 'YLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
             addlistener(app.UIAxes3, 'CLim', 'PostSet', @syncUIAxesLimitsWithSpinners);
 
             plot.axes.Interactivity.DefaultCreation([app.UIAxes1, app.UIAxes2], [dataTipInteraction, regionZoomInteraction, rulerPanInteraction])
@@ -538,8 +540,16 @@ classdef winPlayback_exported < matlab.apps.AppBase
                                 return
                         end
 
+                    case app.UIAxes2
+                        checkAxesLimitsCustomizations(app)
+                        return
+
                     case app.UIAxes3
                         switch src.Name
+                            case 'YLim'
+                                checkAxesLimitsCustomizations(app)
+                                return
+
                             case 'CLim'
                                 evtName  = app.WaterfallCLim1.Tag;
                                 evtValue = round(evt.AffectedObject.CLim);
@@ -972,8 +982,19 @@ classdef winPlayback_exported < matlab.apps.AppBase
             specData = app.bandObj.SpecData;
             
             if ~isempty(specData)
-                limits = specData.UserData.PlotDisplayConfig.limits;                
-                app.LimitsRefresh.Visible = ~isequal(limits.frequency.initial, limits.frequency.current) || ~isequal(limits.level.initial, limits.level.current);
+                switch class(app.UIAxes3.YAxis)
+                    case 'matlab.graphics.axis.decorator.DatetimeRuler'
+                        uiAxes3DefaultYLimits = [specData.Data{1}(1), specData.Data{1}(end)];
+                    otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
+                        uiAxes3DefaultYLimits = [1, numel(specData.Data{1})];
+                end       
+
+                app.LimitsRefresh.Visible = ...
+                    ~isequal(specData.UserData.PlotDisplayConfig.limits.frequency.initial, specData.UserData.PlotDisplayConfig.limits.frequency.current) || ...
+                    ~isequal(specData.UserData.PlotDisplayConfig.limits.level.initial, specData.UserData.PlotDisplayConfig.limits.level.current) || ...
+                    (specData.UserData.PlotDisplayConfig.controls.occupancy && ~isequal(app.UIAxes2.YLim, [0, 100])) || ...
+                    (specData.UserData.PlotDisplayConfig.controls.waterfall && ~isequal(app.UIAxes3.YLim, uiAxes3DefaultYLimits));
+                
                 app.PersistenceCLimRefresh.Visible = ~strcmp(app.UIAxes1.UserData.CLimMode, 'auto') && strcmp(app.PersistenceWindowSize.Value, 'full');
                 app.WaterfallCLimRefresh.Visible = ~strcmp(app.UIAxes3.UserData.CLimMode, 'auto');
                 
@@ -1723,6 +1744,14 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         yLimits = [0, 1];
                     end
                     set(app.UIAxes1, 'XLim', xLimits, 'YLim', yLimits)
+                    set(app.UIAxes2, 'YLim', [0, 100])
+
+                    switch class(app.UIAxes3.YAxis)
+                        case 'matlab.graphics.axis.decorator.DatetimeRuler'
+                            set(app.UIAxes3, 'YLim', [specData.Data{1}(1), specData.Data{1}(end)])
+                        otherwise % 'matlab.graphics.axis.decorator.NumericRuler'
+                            set(app.UIAxes3, 'YLim', [1, numel(specData.Data{1})])
+                    end                    
 
                 case { app.LimitsXLim1, app.LimitsXLim2 }
                     evtValue = [app.LimitsXLim1.Value, app.LimitsXLim2.Value];                    
