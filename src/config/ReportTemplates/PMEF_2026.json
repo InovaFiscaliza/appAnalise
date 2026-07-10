@@ -298,8 +298,8 @@
                         "Layout": "1",
                         "Caption": "Imagem extraída do ROMES.",
                         "Settings": {
-                            "Width": "95%",
-                            "Height": "95%"
+                            "Width": "100%",
+                            "Height": "auto"
                         },
                         "LineBreak": 0,
                         "Intro": "{\"Type\":\"Paragraph\",\"Text\":\"A coleta de dados que possibilita a realização do <i>Drive-test</i> é conduzida por sensor fabricado pela Rohde & Schwarz, modelo TSME. Os dados são pós-processados no ROMES e no Smart Analytics, sendo identificados, para cada emissão, os códigos MCC e MNC, os quais identificam o país e a operadora responsável pela estação geradora da emissão.\"}",
