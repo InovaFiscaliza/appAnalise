@@ -74,7 +74,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         end
     end
 
-    if ~strcmp(RFDataHub_info.ReleaseDate, '06/04/2026 08:08:05') && hours(datetime('now') - originalReleaseDate) > 24*7
+    if hours(datetime('now') - originalReleaseDate) > 24*7
         error('RFDataHubNonUpdated')
     end
 

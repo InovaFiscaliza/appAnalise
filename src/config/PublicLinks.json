@@ -5,8 +5,8 @@
   },
   "RFDataHub": {
       "Sharepoint": "https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/RFDataHub.aspx",
-      "Table": "https://github.com/InovaFiscaliza/.github/releases/download/rfdatahub/estacoes.parquet.gzip",
-      "Log": "https://github.com/InovaFiscaliza/.github/releases/download/rfdatahub/log.parquet.gzip",
+      "Table": "https://github.com/InovaFiscaliza/.github/releases/download/rfdatahub/estacoes.parquet",
+      "Log": "https://github.com/InovaFiscaliza/.github/releases/download/rfdatahub/log.parquet",
       "Release": "https://github.com/InovaFiscaliza/.github/releases/download/rfdatahub/Release.json"
   }
 }
