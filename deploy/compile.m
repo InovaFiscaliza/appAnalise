@@ -212,7 +212,7 @@ function desktopPostCompilation(finalFolder, matlabRuntimeFolder, githubReleaseF
                               'fileHash',    fileExeHash,       ...
                               'fileSize',    fileExeSize);
         
-        writematrix(jsonencode(appIntegrity, 'PrettyPrint', true), fullfile(deployApp, 'config', 'appIntegrity.json'), 'FileType', 'text', 'QuoteStrings', 'none')
+        writematrix(jsonencode(appIntegrity, 'PrettyPrint', true), fullfile(deployApp, 'config', 'appIntegrity.json'), 'FileType', 'text', 'QuoteStrings', 'none', 'Encoding', 'UTF-8')
     
         % Cria arquivos .ZIP e organiza pasta final.
         zipProcess(deployApp, sprintf('%s_Matlab.zip', appName))

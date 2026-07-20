@@ -2,10 +2,10 @@ classdef (Abstract) Constants
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        appName       = 'appAnalise'
-        appVersion    = '2.00.6'
+        appName = 'appAnalise'
+        appVersion = '2.00.6'
 
-        windowSize    = [1244, 660]
+        windowSize = [1244, 660]
         windowMinSize = [ 950, 660]
 
         Interactions  = {'datacursor', 'zoomin', 'restoreview'}

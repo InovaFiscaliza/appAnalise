@@ -45,7 +45,7 @@ function preCompile()
                     % forma que possa ser possível visualizar as diferenças
                     % linha a linha no Matlab, caso desejável (argumento de
                     % entrada "showDiffApp").
-                    writematrix(matlabCode, fullfile(tempdir, [oldClassName '.m']), 'FileType', 'text', 'WriteMode', 'overwrite', 'QuoteStrings', 'none')
+                    writematrix(matlabCode, fullfile(tempdir, [oldClassName '.m']), 'FileType', 'text', 'WriteMode', 'overwrite', 'QuoteStrings', 'none', 'Encoding', 'UTF-8')
 
                     oldTag1 = sprintf('classdef %s < matlab.apps.AppBase', oldClassName);
                     oldTag2 = 'function createComponents(app)';
@@ -72,7 +72,7 @@ function preCompile()
             end
 
             matlabCode = strjoin(splitlines(matlabCode), '\r\n');
-            writematrix(matlabCode, [fileBaseName '_exported.m'], 'FileType', 'text', 'WriteMode', 'overwrite', 'QuoteStrings', 'none')
+            writematrix(matlabCode, [fileBaseName '_exported.m'], 'FileType', 'text', 'WriteMode', 'overwrite', 'QuoteStrings', 'none', 'Encoding', 'UTF-8')
             fprintf('Criado o arquivo %s\n', [fileBaseName '_exported.m'])
 
         catch ME

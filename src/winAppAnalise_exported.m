@@ -574,9 +574,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     'VariableNames', {'AuxAppName', 'Width', 'Height', 'IsFluid'} ...
                 );
                 popupSpecifications( 1, :) = {"Calibration",        452, 170, false};
-                popupSpecifications( 2, :) = {"Channels",           412, 516, false}; % Em andamento
-                popupSpecifications( 3, :) = {"ChannelsFileImport", 620, 440, false}; % Em andamento
-                popupSpecifications( 4, :) = {"ChannelsSatellite",  620, 440, false}; % Em andamento
+                popupSpecifications( 2, :) = {"Channels",           412, 516, false};
+                popupSpecifications( 3, :) = {"ChannelsFileImport", 620, 440, false};
+                popupSpecifications( 4, :) = {"ChannelsSatellite",  620, 440, false};
                 popupSpecifications( 5, :) = {"Detection",          412, 484, false};
                 popupSpecifications( 6, :) = {"DetectionLimits",    292, 360, false};
                 popupSpecifications( 7, :) = {"DriveTestFilter",    412, 338, false};
@@ -799,7 +799,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeUIComponents(app)
-            app.tabGroupController = ui.TabNavigator(app.NavBar, app.TabGroup, app.progressDialog);
+            app.tabGroupController = ui.TabNavigator(app.NavBar, app.TabGroup, app.progressDialog, app.jsBackDoor);
             addComponent(app.tabGroupController, "Built-in", "",                         app.Tab1Button, "AlwaysOn", struct('On', '', 'Off', ''), matlab.graphics.GraphicsPlaceholder, 1)
             addComponent(app.tabGroupController, "External", "auxApp.winPlayback",       app.Tab2Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      2)
             addComponent(app.tabGroupController, "External", "auxApp.winDriveTest",      app.Tab3Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      3)

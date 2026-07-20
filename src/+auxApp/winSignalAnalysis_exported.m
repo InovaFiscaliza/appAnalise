@@ -1085,7 +1085,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     try
                         specData = app.mainApp.specData(flowIdxs);
                         jsonFileContent = util.exportSignalAnalysis(specData);
-                        writematrix(jsonFileContent,  fileFullPath,  "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite", "Encoding", "UTF-8")
+                        writematrix(jsonFileContent,  fileFullPath, 'FileType', 'text', 'QuoteStrings', 'none', 'WriteMode', 'overwrite', 'Encoding', 'UTF-8')
 
                     catch ME
                         ui.Dialog(app.UIFigure, 'error', ME.message);

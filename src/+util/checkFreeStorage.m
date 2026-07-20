@@ -12,7 +12,7 @@ function [status, message] = checkFreeStorage(fileName, sessionTempFolder, freeS
     try
         [~,diskInfo]  = system('wmic volume get DriveLetter,FreeSpace');
         diskInfoTemp  = fullfile(sessionTempFolder, 'freeStorage.csv');
-        writematrix(diskInfo, diskInfoTemp, 'WriteMode', 'overwrite', 'FileType', 'text', 'QuoteStrings', 'none');
+        writematrix(diskInfo, diskInfoTemp, 'WriteMode', 'overwrite', 'FileType', 'text', 'QuoteStrings', 'none', 'Encoding', 'UTF-8')
 
         diskInfoTable = readtable(diskInfoTemp, "FileType", "text", "Delimiter", " ", "MultipleDelimsAsOne", true, "MissingRule", "omitrow");
         diskInfoTable.FreeSpace_GB = diskInfoTable.FreeSpace / (1024^3);

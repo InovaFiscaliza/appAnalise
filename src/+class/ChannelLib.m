@@ -41,7 +41,7 @@ classdef ChannelLib < handle
 
             try
                 channelTempLib = struct(obj);
-                writematrix(jsonencode(channelTempLib, 'PrettyPrint', true), programDataFilePath, "FileType", "text", "QuoteStrings", "none", "WriteMode", "overwrite")
+                writematrix(jsonencode(channelTempLib, 'PrettyPrint', true), programDataFilePath, 'FileType', 'text', 'QuoteStrings', 'none', 'WriteMode', 'overwrite', 'Encoding', 'UTF-8')
             catch
             end
         end
