@@ -1,5 +1,5 @@
 {
-    "version": 1.63,
+    "version": 1.64,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -58,14 +58,14 @@
                 "enableEmissionClassification": true
             },
             "defaultPlotDisplayConfig": {
-                "layoutRatio": "1:0:0",
+                "layoutRatio": "1:0:3",
                 "controls": {
                     "minHold": false,
-                    "average": false,
+                    "average": true,
                     "maxHold": false,
                     "persistence": false,
                     "occupancy": false,
-                    "waterfall": false
+                    "waterfall": true
                 },
                 "persistence": {
                     "interpolation": "nearest",
@@ -76,7 +76,7 @@
                 "waterfall": {
                     "function": "image",
                     "decimation": "auto",
-                    "colormap": "winter",
+                    "colormap": "jet",
                     "meshStyle": "row"
                 },
                 "limits": {

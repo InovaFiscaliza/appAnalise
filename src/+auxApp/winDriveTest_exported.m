@@ -146,6 +146,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Handles dos objetos gráficos do plot.
         plotHandles = struct( ...
             'car', [], ...
+            'azimuth', [], ...
             'clearWrite', [], ...
             'persistence', [], ...
             'waterfallTime', [] ...
@@ -1198,6 +1199,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                     % A inicialização de plots mais pesados como WATERFALL e PERSISTÊNCIA 
                     % ocorre apenas quando alterado o fluxo espectral.
                     app.plotHandles.car = [];
+                    app.plotHandles.azimuth = [];
                     app.plotHandles.clearWrite = [];
                     app.plotHandles.waterfallTime = [];
             
@@ -1274,7 +1276,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 % (a) Route+Distortion+Density+Car
                 plotMeasurementRoute(app)
                 plotDistortionAndDensity(app)
+
                 plotOrUpdateVehicleMarker(app, 'Creation')
+                plotOrUpdateAzimuthMeasure(app, 'Creation')
                 
                 % (b) ClearWrite+Persistance
                 app.plotHandles.clearWrite = plot.draw2D.OrdinaryLine(app.UIAxes2, 'clearWrite', app.bandObj, app.sweepTimeIdx);
@@ -1302,7 +1306,9 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             else
                 plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
                 plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                
                 plotOrUpdateVehicleMarker(app, 'Update')
+                plotOrUpdateAzimuthMeasure(app, 'Update')
             end
             drawnow
         end
@@ -1365,6 +1371,27 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 plot.DriveTest.Points(app.UIAxes1, app.pointsTable, markerStyle, markerColor, markerSize)
                 plot.axes.StackingOrder.execute(app.UIAxes1, 'appAnalise:DRIVETEST')
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function plotOrUpdateAzimuthMeasure(app, operationType)
+            if ~ismember('Azimuth', app.emissionPoints.raw.Properties.VariableNames)
+                return
+            end
+
+            lat1 = app.emissionPoints.raw.Latitude(app.sweepTimeIdx);
+            lng1 = app.emissionPoints.raw.Longitude(app.sweepTimeIdx);
+            azimuth = app.emissionPoints.raw.Azimuth(app.sweepTimeIdx);
+
+            [lat2, lng2] = reckon(lat1, lng1, km2deg(1), azimuth);
+
+            switch operationType
+                case 'Creation'
+                    app.plotHandles.azimuth = geoplot(app.UIAxes1, [lat1, lat2], [lng1, lng2], 'Color', app.CarColor.Value, 'DisplayName', 'Azimute', 'Tag', 'azimuth');
+
+                case 'Update'
+                    set(app.plotHandles.azimuth, 'LatitudeData', [lat1, lat2], 'LongitudeData', [lng1, lng2])
             end
         end
 
@@ -1938,7 +1965,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             if ~app.plotUpdateEvent
                 plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
                 plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+                
                 plotOrUpdateVehicleMarker(app, 'Update')
+                plotOrUpdateAzimuthMeasure(app, 'Update')
+
                 refreshTimestampLabel(app)
             end
 

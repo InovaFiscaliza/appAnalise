@@ -77,7 +77,7 @@ classdef (Abstract) Variable
                         case 'mobile'
                             monitoringTypeNote = 'Monitoração móvel<br>';
                         otherwise
-                            monitoringTypeIcon = '';
+                            monitoringTypeNote = '';
                     end
                     fieldValue = sprintf('%sLatitude: %.6f ± %.6f (1σ)<br>Longitude: %.6f ± %.6f (1σ)<br>%s', monitoringTypeNote, specData.GPS.Latitude, specData.GPS.Latitude_std, specData.GPS.Longitude, specData.GPS.Longitude_std, specData.GPS.Location);
 
