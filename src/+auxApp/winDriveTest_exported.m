@@ -1388,7 +1388,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             switch operationType
                 case 'Creation'
-                    app.plotHandles.azimuth = geoplot(app.UIAxes1, [lat1, lat2], [lng1, lng2], 'Color', app.CarColor.Value, 'DisplayName', 'Azimute', 'Tag', 'azimuth');
+                    app.plotHandles.azimuth = geoplot(app.UIAxes1, [lat1, lat2], [lng1, lng2], 'Color', app.CarColor.Value, 'DisplayName', 'Azimute', 'Tag', 'azimuth', 'PickableParts', 'none');
 
                 case 'Update'
                     set(app.plotHandles.azimuth, 'LatitudeData', [lat1, lat2], 'LongitudeData', [lng1, lng2])
