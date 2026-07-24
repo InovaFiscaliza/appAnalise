@@ -1,0 +1,7 @@
+include:
+  - project: 'selfservice-bi-data-science/sfi/ci-templates'
+    ref: main          # idealmente uma tag fixa, ex: v1.0.0
+    file: '/github-mirror-sync.yml'
+
+variables:
+  GITHUB_REPO: "InovaFiscaliza/appAnalise"
