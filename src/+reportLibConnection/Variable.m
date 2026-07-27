@@ -79,7 +79,7 @@ classdef (Abstract) Variable
                         otherwise
                             monitoringTypeNote = '';
                     end
-                    fieldValue = sprintf('%sLatitude: %.6f ± %.6f (1σ)<br>Longitude: %.6f ± %.6f (1σ)<br>%s', monitoringTypeNote, specData.GPS.Latitude, specData.GPS.Latitude_std, specData.GPS.Longitude, specData.GPS.Longitude_std, specData.GPS.Location);
+                    fieldValue = sprintf('%sLatitude: %.6f ± %.6f (1&sigma;)<br>Longitude: %.6f ± %.6f (1&sigma;)<br>%s', monitoringTypeNote, specData.GPS.Latitude, specData.GPS.Latitude_std, specData.GPS.Longitude, specData.GPS.Longitude_std, specData.GPS.Location);
 
                 case 'GPS'
                     fieldValue = sprintf('%.6f, %.6f (%s)', specData.GPS.Latitude,  specData.GPS.Longitude, specData.GPS.Location);
