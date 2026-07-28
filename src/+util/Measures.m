@@ -1,5 +1,4 @@
 function Measures(specData, flowIdx, emissionIdx, orientation, varargin)
-
     arguments
         specData    model.SpecData
         flowIdx     {mustBeInteger, mustBeNonnegative, mustBeFinite} =  1
@@ -12,53 +11,25 @@ function Measures(specData, flowIdx, emissionIdx, orientation, varargin)
     end
 
     switch orientation
-        case 'Band'
-            % BAND
-            % (a) "Level"
-            %      Mínimo, médio e máximo por bin, armazenando a informação em 
-            %      specData(idxThread).Data{3}.
-            % (b) "Occupancy"
-            %     FCO por bin, armazenando a informaçãoem specData(idxThread).UserData.occCache 
-            %     e specData(idxThread).UserData.occoccMethod.CacheIndex.
-            %     FBO da banda.
-            % (c) "BandWidth"
-            %     Não aplicável.
-
-        case 'Channel'
-            channelObj = varargin{1};
-
-            % CHANNEL: itera em todos os canais
-            % (a) "Level"
-            %      Potência do canal.         reportChannelTable    = []
-                reportChannelAnalysis = []
-            % (b) "Occupancy"
-            %     Aferida ocupação por ponto de frequência, armazenando a informação
-            %     em specData(idxThread).UserData.occCache e
-            %     specData(idxThread).UserData.occoccMethod.CacheIndex
-            % (c) "BandWidth"
-            %     Não aplicável.
-            chTable  = specData(flowIdx).UserData.reportChannelTable;
-            if isempty(chTable)
-                chTable = ChannelTable2Plot(channelObj, specData(flowIdx));
-                specData(flowIdx).UserData.reportChannelTable = chTable;
-            end
-
         case 'Emission'
-            bandFreqStart     = specData(flowIdx).MetaData.FreqStart;
-            bandFreqStop      = specData(flowIdx).MetaData.FreqStop;
-            bandDataPoints    = specData(flowIdx).MetaData.DataPoints;
+            bandFreqStart = specData(flowIdx).MetaData.FreqStart;
+            bandFreqStop = specData(flowIdx).MetaData.FreqStop;
+            bandDataPoints = specData(flowIdx).MetaData.DataPoints;
 
             % Inicialmente, identifica os índices que delimitam a emissão:
             emissionFreqStart = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx) * 1e+6 - (specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx)/2) * 1e+3;
-            emissionFreqStop  = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx) * 1e+6 + (specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx)/2) * 1e+3;
+            emissionFreqStop = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx) * 1e+6 + (specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx)/2) * 1e+3;
 
-            idxMatrixStart    = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStart);
-            idxMatrixStop     = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStop);
+            idxMatrixStart = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStart);
+            idxMatrixStop = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStop);
 
             % E agora afere as medidas...
-            Level(    specData, flowIdx, emissionIdx, emissionFreqStart, emissionFreqStop)
+            Level(specData, flowIdx, emissionIdx, emissionFreqStart, emissionFreqStop)
             Occupancy(specData, flowIdx, emissionIdx, idxMatrixStart, idxMatrixStop)
             BandWidth()
+
+        otherwise % 'Band' | 'Channel'
+            % ...
     end
 end
 
@@ -121,6 +92,5 @@ end
 
 %-------------------------------------------------------------------------%
 function BandWidth()
-    % PENDENTE
     % ...
 end

@@ -259,13 +259,8 @@ classdef SpecData < model.SpecDataBase
         function initializeUnsetProperties(obj, channelObj, generalSettings)
             if isempty(obj.UserData.PlotDisplayConfig)
                 obj.UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
-            end
-
-            if isempty(obj.UserData.AntennaHeightMeters)
                 update(obj, 'UserData:AntennaHeight', 'InitialValue')
-            end
-
-            if isempty(obj.UserData.ChannelLibraryRelatedIndexes)                    
+                
                 if ismember(obj.MetaData.DataType, class.Constants.specDataTypes)
                     update(obj, 'UserData:Channel', 'InitialValue', channelObj, generalSettings)
                 end
