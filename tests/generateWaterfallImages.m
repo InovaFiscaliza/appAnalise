@@ -48,9 +48,17 @@ function generateWaterfallImages(inputDir, outputDir)
             continue;
         end
 
+        specData = [];
+
         try
-            specData = model.SpecData.empty;
-            specData = read(specData, fileName, 'SingleFile');
+            switch fileExt
+                case '.mat'
+                    prjData = load(fileName, '-mat', 'variables');
+                    specData = prjData.variables.specDataObj;
+                otherwise
+                    specData = model.SpecData.empty;
+                    specData = read(specData, fileName, 'SingleFile');
+            end
 
             for jj = 1:numel(specData)
                 specData(jj).UserData.PlotDisplayConfig = model.UserData.getFieldTemplate('DefaultPlotDisplayConfig', generalSettings);
@@ -59,6 +67,10 @@ function generateWaterfallImages(inputDir, outputDir)
                 
                 minValue = min(specData(jj).Data{3}(:, 1));
                 maxValue = max(specData(jj).Data{3}(:, 3));
+                if maxValue == minValue
+                    maxValue = minValue + 1;
+                end
+                
                 minBlueScreen = min(minValue+30, maxValue-30);
     
                 cLimits = { ...
@@ -67,7 +79,7 @@ function generateWaterfallImages(inputDir, outputDir)
                     [minBlueScreen, minBlueScreen+30] ... % Critério: "Tela azul"
                 };
     
-                for kk = 1:numel(cLimits)
+                for kk = 1:1%numel(cLimits)
                     if kk == 1
                         plot.Waterfall('Creation', [], axesHandle, bandObj);
                         ysecondarylabel(axesHandle, '')
@@ -99,6 +111,18 @@ function generateWaterfallImages(inputDir, outputDir)
                         end
                     end
                 end
+
+                imgFileNameRaw = fullfile(outputDir, replace(d(ii).name, fileExt, sprintf('_RAW_Flow%d (%s).png', jj, bandTag)));
+
+                % Imagem RAW única por fluxo (fora dos critérios de cLimit),
+                % com dimensões exatas DataPoints x NumSweeps.
+                writeRawMatrixPng(specData(jj).Data{2}, minValue, maxValue, imgFileNameRaw)
+                while true
+                    pause(1)
+                    if isfile(imgFileNameRaw)
+                        break
+                    end
+                end
             end
         catch
         end
@@ -108,4 +132,11 @@ function generateWaterfallImages(inputDir, outputDir)
     end
 
     delete(figureHandle)
+end
+
+%-----------------------------------------------------------------%
+function writeRawMatrixPng(dataMatrix, minValue, maxValue, outputFileName)
+    normalizedData = (dataMatrix - minValue) / (maxValue - minValue);
+    grayImage = uint8(rot90(normalizedData * 255));
+    imwrite(grayImage, outputFileName, 'png')
 end
