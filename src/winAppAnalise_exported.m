@@ -1403,13 +1403,13 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             callingApp.progressDialog.Visible = 'visible';
 
             createEFiscalizaObject(app, credentials)
-            [status1, icon1, msg1] = reportUploadToSEI(app, context, operation);
+            [status1, icon1, msg1, seiReport] = reportUploadToSEI(app, context, operation, true);
             ui.Dialog(callingApp.UIFigure, icon1, msg1);
 
             callingApp.progressDialog.Visible = 'hidden';
             
             if status1 && strcmp(app.projectData.modules.(context).ui.system, 'eFiscaliza')
-                [status2, msg2] = reportUploadFilesToSharepoint(app, context);
+                [status2, msg2] = reportUploadFilesToSharepoint(app, context, seiReport);
 
                 if ~status2
                     ui.Dialog(callingApp.UIFigure, 'error', msg2);
@@ -1418,7 +1418,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         end
 
         %-------------------------------------------------------------------------%
-        function [status, icon, msg] = reportUploadToSEI(app, context, operation)
+        function [status, icon, msg, seiReport] = reportUploadToSEI(app, context, operation, updateUploadedFileList)
             try
                 env = strsplit(app.projectData.modules.(context).ui.system);
                 if isscalar(env)
@@ -1438,6 +1438,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 switch operation
                     case 'uploadDocument'
                         HTMLFile = getGeneratedDocumentFileName(app.projectData, '.html', context);
+                        correlationKey = model.ProjectCommon.extractCorrelationKey(HTMLFile);
 
                         [~, modelIdx]   = ismember(app.projectData.modules.(context).ui.reportModel, {app.projectData.report.templates.Name});
                         docType         = app.projectData.report.templates(modelIdx).DocumentType;
@@ -1447,6 +1448,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                         docSpec.originId = docSpec.internal.originId;
                         docSpec.typeId = app.General.eFiscaliza.internal.typeIdMapping(docTypeIdx).id;
                         docSpec.nomeArvore = ['[' class.Constants.appName ']'];
+                        docSpec.note = sprintf('%s\ncorrelationKey="%s"', docSpec.note, correlationKey);
 
                         if app.projectData.modules.(context).ui.entity.status
                             docSpec.interessados = {struct( ...
@@ -1455,7 +1457,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                             )};
                         end
 
-                        response = run(app.eFiscalizaObj, env, operation, issueInfo, unit, docSpec, HTMLFile);
+                        [response, seiReport] = run(app.eFiscalizaObj, env, operation, issueInfo, unit, docSpec, HTMLFile);
 
                     otherwise
                         error('Unexpected call')
@@ -1465,27 +1467,31 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     error(response)
                 end
 
-                updateUploadedFiles(app.projectData, context, system, issue, response)
+                if updateUploadedFileList
+                    updateUploadedFiles(app.projectData, context, system, issue, response)
+                end
 
                 status = true;
-                icon   = 'success';
-                msg    = response;
+                icon = 'success';
+                msg = response;
 
             catch ME
                 app.eFiscalizaObj = [];
                 
                 status = false;
-                icon   = 'error';
-                msg    = ME.message;
+                icon = 'error';
+                msg = ME.message;
+                seiReport = '';
             end
         end
 
         %------------------------------------------------------------------------%
-        function [status, msg] = reportUploadFilesToSharepoint(app, context)
+        function [status, msg] = reportUploadFilesToSharepoint(app, context, seiReport)
             sharepointFileList = { ...
-                getGeneratedDocumentFileName(app.projectData, '.teams', context), ...
-                getGeneratedDocumentFileName(app.projectData, '.json',  context) ...
+                getGeneratedDocumentFileName(app.projectData, '.json',  context), ...
+                getGeneratedDocumentFileName(app.projectData, '.teams', context)  ...
             };
+            model.ProjectCommon.updateSeiReport(sharepointFileList{1}, seiReport)
 
             statusList = false(1, numel(sharepointFileList));
             msgList = {};
