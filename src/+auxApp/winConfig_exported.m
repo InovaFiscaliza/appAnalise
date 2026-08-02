@@ -65,6 +65,9 @@ classdef winConfig_exported < matlab.apps.AppBase
         reportLabel                  matlab.ui.control.Label
         eFiscalizaPanel              matlab.ui.container.Panel
         eFiscalizaGrid               matlab.ui.container.GridLayout
+        MacrothemesList              matlab.ui.control.EditField
+        MacrothemesButton            matlab.ui.control.Image
+        MacrothemesLabel             matlab.ui.control.Label
         reportUnit                   matlab.ui.control.DropDown
         reportUnitLabel              matlab.ui.control.Label
         reportSystem                 matlab.ui.control.DropDown
@@ -149,6 +152,15 @@ classdef winConfig_exported < matlab.apps.AppBase
                     updatePanel_Analysis(app)
 
                 case 3
+                    ui.CustomizationBase.getElementsDataTag({app.MacrothemesButton});
+
+                    try
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                            struct('appName', class(app), 'dataTag', app.MacrothemesButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita ou desabilita a edição da lista de macrotemas<br>Ex: "PM-EC", "UTE", ""')) ...
+                        });
+                    catch
+                    end
+
                     updatePanel_Report(app)
 
                 case 4
@@ -242,8 +254,12 @@ classdef winConfig_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updatePanel_Report(app)
-            app.reportSystem.Value        = app.mainApp.General.reportLib.system;
+            app.reportSystem.Value = app.mainApp.General.reportLib.system;
             set(app.reportUnit, 'Items', app.mainApp.General.eFiscaliza.defaultValues.unit, 'Value', app.mainApp.General.reportLib.unit)
+            
+            app.MacrothemesButton.UserData.status = false;
+            app.MacrothemesButton.ImageSource = 'Edit_32.png';
+            set(app.MacrothemesList, 'Editable', 'off', 'FontColor', [0.65,0.65,0.65], 'Value', textFormatGUI.cellstr2ListWithQuotes(app.mainApp.General.reportLib.allowedMacrothemes, 'none'))
             
             app.reportBasemap.Value       = app.mainApp.General.reportLib.basemap;
             app.reportImgFormat.Value     = app.mainApp.General.reportLib.image.format;
@@ -613,6 +629,56 @@ classdef winConfig_exported < matlab.apps.AppBase
                 app.mainApp.General_I.fileFolder = app.mainApp.General.fileFolder;
                 saveGeneralSettings(app)
                 updatePanel_Folder(app)
+            end
+
+        end
+
+        % Callback function: MacrothemesButton, MacrothemesList
+        function Config_MacrothemesEdition(app, event)
+            
+            switch event.Source
+                case app.MacrothemesButton
+                    app.MacrothemesButton.UserData.status = ~app.MacrothemesButton.UserData.status;
+                    if app.MacrothemesButton.UserData.status
+                        app.MacrothemesButton.ImageSource = 'Edit_32Filled.png';
+                        set(app.MacrothemesList, 'Editable', 'on', 'FontColor', [0,0,0])
+                    else
+                        app.MacrothemesButton.ImageSource = 'Edit_32.png';
+                        set(app.MacrothemesList, 'Editable', 'off', 'FontColor', [0.65,0.65,0.65])
+                    end
+
+                case app.MacrothemesList
+                    parts = strsplit(event.Value, ',');
+                    try
+                        requiredMacrothemes = unique(strtrim(extractBetween(parts, '"', '"')));
+                    catch
+                        app.MacrothemesList.Value = event.PreviousValue;
+                        return
+                    end
+
+                    currentMacrothemes = sort(app.mainApp.General.reportLib.allowedMacrothemes);
+
+                    if numel(requiredMacrothemes) ~= numel(parts) || isequal(currentMacrothemes, requiredMacrothemes)
+                        app.MacrothemesList.Value = event.PreviousValue;
+                        return
+                    end
+
+                    msgQuestion = sprintf([ ...
+                        'LISTA ATUAL:\n%s\n\nLISTA PROPOSTA:\n%s\n\n' ...
+                        'Confirma a troca da lista de macrotemas?' ...
+                    ], textFormatGUI.cellstr2ListWithQuotes(currentMacrothemes, 'none'), textFormatGUI.cellstr2ListWithQuotes(requiredMacrothemes, 'none'));
+
+                    userSelection = ui.Dialog(app.UIFigure, 'uiconfirm', msgQuestion, {'Sim', 'Não'}, 1, 2);
+                    if userSelection == "Não"
+                        app.MacrothemesList.Value = event.PreviousValue;
+                        return
+                    end
+
+                    app.mainApp.General.reportLib.allowedMacrothemes = requiredMacrothemes;
+                    app.mainApp.General_I.reportLib = app.mainApp.General.reportLib;
+
+                    updatePanel_Report(app)
+                    saveGeneralSettings(app)
             end
 
         end
@@ -1069,18 +1135,17 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create eFiscalizaGrid
             app.eFiscalizaGrid = uigridlayout(app.eFiscalizaPanel);
-            app.eFiscalizaGrid.ColumnWidth = {220, 110};
+            app.eFiscalizaGrid.ColumnWidth = {230, 110, '1x', 18};
             app.eFiscalizaGrid.RowHeight = {27, 22};
             app.eFiscalizaGrid.RowSpacing = 5;
             app.eFiscalizaGrid.BackgroundColor = [1 1 1];
 
             % Create reportSystemLabel
             app.reportSystemLabel = uilabel(app.eFiscalizaGrid);
-            app.reportSystemLabel.WordWrap = 'on';
             app.reportSystemLabel.FontSize = 11;
             app.reportSystemLabel.Layout.Row = 1;
             app.reportSystemLabel.Layout.Column = 1;
-            app.reportSystemLabel.Text = 'Ambiente do sistema de gestão à fiscalização:';
+            app.reportSystemLabel.Text = {'Ambiente do sistema de gestão à '; 'fiscalização:'};
 
             % Create reportSystem
             app.reportSystem = uidropdown(app.eFiscalizaGrid);
@@ -1094,11 +1159,10 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create reportUnitLabel
             app.reportUnitLabel = uilabel(app.eFiscalizaGrid);
-            app.reportUnitLabel.WordWrap = 'on';
             app.reportUnitLabel.FontSize = 11;
             app.reportUnitLabel.Layout.Row = 1;
             app.reportUnitLabel.Layout.Column = 2;
-            app.reportUnitLabel.Text = 'Unidade responsável pela fiscalização:';
+            app.reportUnitLabel.Text = {'Unidade responsável '; 'pela fiscalização:'};
 
             % Create reportUnit
             app.reportUnit = uidropdown(app.eFiscalizaGrid);
@@ -1109,6 +1173,30 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.reportUnit.Layout.Row = 2;
             app.reportUnit.Layout.Column = 2;
             app.reportUnit.Value = {};
+
+            % Create MacrothemesLabel
+            app.MacrothemesLabel = uilabel(app.eFiscalizaGrid);
+            app.MacrothemesLabel.FontSize = 11;
+            app.MacrothemesLabel.Layout.Row = 1;
+            app.MacrothemesLabel.Layout.Column = 3;
+            app.MacrothemesLabel.Text = {'Macrotemas aceitos para fins de'; 'elaboração do relato:'};
+
+            % Create MacrothemesButton
+            app.MacrothemesButton = uiimage(app.eFiscalizaGrid);
+            app.MacrothemesButton.ImageClickedFcn = createCallbackFcn(app, @Config_MacrothemesEdition, true);
+            app.MacrothemesButton.Layout.Row = 1;
+            app.MacrothemesButton.Layout.Column = 4;
+            app.MacrothemesButton.VerticalAlignment = 'bottom';
+            app.MacrothemesButton.ImageSource = 'Edit_32.png';
+
+            % Create MacrothemesList
+            app.MacrothemesList = uieditfield(app.eFiscalizaGrid, 'text');
+            app.MacrothemesList.ValueChangedFcn = createCallbackFcn(app, @Config_MacrothemesEdition, true);
+            app.MacrothemesList.Editable = 'off';
+            app.MacrothemesList.FontSize = 11;
+            app.MacrothemesList.FontColor = [0.651 0.651 0.651];
+            app.MacrothemesList.Layout.Row = 2;
+            app.MacrothemesList.Layout.Column = [3 4];
 
             % Create reportLabel
             app.reportLabel = uilabel(app.SubGrid3);

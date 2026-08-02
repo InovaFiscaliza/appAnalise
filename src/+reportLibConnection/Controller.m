@@ -246,10 +246,6 @@ classdef (Abstract) Controller
                             error('reportLibConnection:Controller', msgError)
                         end
 
-                        if ~isdeployed() && ~ismember(issueDetails.issueContext.solicitacao.classificacao.macrotema, generalSettings.reportLib.allowedMacrothemes)
-                            issueDetails.issueContext.solicitacao.classificacao.macrotema = generalSettings.reportLib.allowedMacrothemes{1};
-                        end
-
                     catch ME
                         if ~isdeployed()
                             issueDetails = struct( ...
