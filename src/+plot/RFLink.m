@@ -1,12 +1,16 @@
-function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, footnoteFlag)
+function RFLink(hAxes, txSite, rxSite, wayPoints3D, preditionData, plotMode, rotateViewFlag, footnoteFlag, clutterCategories, clutterHeights, fieldStrengthData)
     arguments
         hAxes
         txSite
         rxSite
         wayPoints3D
-        plotMode   char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
-        rotateViewFlag logical = false
-        footnoteFlag   logical = false
+        preditionData     struct  = struct.empty
+        plotMode          char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
+        rotateViewFlag    logical = false
+        footnoteFlag      logical = false
+        clutterCategories double  = []
+        clutterHeights    double  = []
+        fieldStrengthData struct  = struct.empty
     end
 
     % ## prePlot
@@ -36,13 +40,33 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
     colorStation       = Color(plotMode, 'Station');
     colorLink          = Color(plotMode, 'Link');
     colorFresnel       = Color(plotMode, 'Fresnel');
+    colorClutter       = Color(plotMode, 'Clutter');
 
     % ## Plot
     cla(hAxes)
+    if ~isempty(fieldStrengthData)
+        yyaxis(hAxes, 'right'); cla(hAxes);
+        yyaxis(hAxes, 'left');
+    end
     hAxes.XLimMode = 'auto';
     hAxes.YLimMode = 'auto';
 
-    % (a) Perfil de terreno e primeira obstrução (caso aplicável)
+    % (a) Clutter colorido por categoria (caso disponível) — plotado antes do terreno
+    if ~isempty(clutterCategories) && ~isempty(clutterHeights) && numel(clutterCategories) == height(wayPoints3D)
+        for n = 1:(numel(d1) - 1)
+            cor = ceil(clutterCategories(n));
+            if isnan(cor) || cor < 1; cor = 1; end
+            if cor > size(colorClutter, 1); cor = size(colorClutter, 1); end
+            if clutterHeights(n) > 0
+                fill(hAxes, [d1(n)/1000, d1(n)/1000, d1(n+1)/1000, d1(n+1)/1000], ...
+                    [wayPoints3D(n,3), wayPoints3D(n,3)+clutterHeights(n), ...
+                     wayPoints3D(n,3)+clutterHeights(n), wayPoints3D(n,3)], ...
+                    colorClutter(cor,:), 'EdgeColor', 'none', 'PickableParts', 'none', 'Tag', 'Clutter');
+            end
+        end
+    end
+
+    % (b) Perfil de terreno e primeira obstrução (caso aplicável)
     hTerrain = area(hAxes, d1/1000, wayPoints3D(:,3), BaseValue=0, FaceColor=faceColorTerrain, EdgeColor=edgeColorTerrain, Tag='Terrain');
     hTerrainTable = table(wayPoints3D(:,1), wayPoints3D(:,2), wayPoints3D(:,3), 'VariableNames', {'Latitude', 'Longitude', 'Elevation'});
     plot.datatip.Template(hTerrain, 'RFLink.Terrain', hTerrainTable)
@@ -56,26 +80,20 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
     stem(hAxes, distM/1000, rxAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation, 'Marker', '^', 'PickableParts', 'none', 'Tag', 'Station');
         
     % (c) Linha de visada entre TX e RX
-    hLOS = plot(hAxes, d1/1000, vq, 'Color', colorLink, 'LineStyle', '-.', 'LineWidth', .5,  'Tag', 'Link');
+    hLOS = plot(hAxes, d1/1000, vq, 'Color', colorLink, 'LineStyle', ':',  'LineWidth', .5, 'Tag', 'Link');
     hLOSTable = table(d1/1000, vq, PL, 'VariableNames', {'Distance', 'Height', 'PathLoss'});
     plot.datatip.Template(hLOS, 'RFLink.LOS', hLOSTable)
 
     % (d) 1ª Zona de Fresnel
-    images.roi.Polygon(hAxes, Position=[d1/1000, vq+Rn; flip(d1/1000), flip(vq-Rn)], ...
-                              Color=colorFresnel, ...
-                              Deletable=0, ...
-                              EdgeAlpha=.25, ...
-                              FaceAlpha=.05, ...
-                              FaceSelectable=0, ...
-                              InteractionsAllowed='none', ...
-                              LineWidth=.5, ...
-                              Tag='Fresnel');
+    plot(hAxes, d1/1000, vq+Rn, 'LineStyle', '-.', 'LineWidth', 1, 'Color', colorFresnel, 'PickableParts', 'none', 'Tag', 'Fresnel');
+    plot(hAxes, d1/1000, vq-Rn, 'LineStyle', '-.', 'LineWidth', 1, 'Color', colorFresnel, 'PickableParts', 'none', 'Tag', 'Fresnel');
 
     yLim1 = max(hAxes.YLim(1), min(wayPoints3D(:,3))-10);
     if ~wayPoints3D(1,3) || ~wayPoints3D(end,3)
         yLim1 = -10;
     end
 
+    if ~isempty(fieldStrengthData); yyaxis(hAxes, 'left'); end
     hAxes.YLim(1) = yLim1;
     hTerrain.BaseValue = hAxes.YLim(1);
 
@@ -119,36 +137,68 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
         text(hAxes, footNotePosition, 1, Footnote, Units='normalized', FontSize=10, Interpreter='tex', HorizontalAlignment=footNoteAlign, VerticalAlignment='top', PickableParts='none', Tag='Footnote');
     end
 
+    % (g) Campo elétrico / potência recebida no eixo direito (OPCIONAL)
+    if ~isempty(fieldStrengthData)
+        yyaxis(hAxes, 'right')
+        plot(hAxes, fieldStrengthData.distances, fieldStrengthData.values, ...
+            'Color', [0.8510, 0.3255, 0.0980], 'LineWidth', 1, ...
+            'PickableParts', 'none', 'Tag', 'FieldStrength');
+        hAxes.YLim(1) = 0;
+        hAxes.YLim(2) = 1.5 * max(fieldStrengthData.values);
+        ylabel(hAxes, fieldStrengthData.label);
+        yyaxis(hAxes, 'left')
+    end
+
     % ## post-Plot
+
+    % % Predição de propagação (OPCIONAL) — suporta P.526 e P.1812
+    % if ~isempty(preditionData) && preditionData.Base.Potencia > 0
+    %     [Lb_pred, E_pred] = utils.calcPredicaoEnlace(preditionData, rxSite, txAntenna, rxAntenna, distM, Azimuth, d1, wayPoints3D);
+    %     fprintf('%s  Lb = %.2f dB | E = %.2f dBuV/m\n', preditionData.modeloPredicao, Lb_pred, E_pred);
+    % end
+
     hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', distM/1000, 'Azimuth', Azimuth, 'TXAntennaElevation', txAntenna, 'RXAntennaElevation', rxAntenna);
     plot.axes.StackingOrder.execute(hAxes, 'RFLink')
 end
 
 %-------------------------------------------------------------------------%
 function varargout = Color(plotMode, plotTag)
+    % Clutter: cores independentes de tema (5 categorias ITU-R P.1812)
+    if strcmp(plotTag, 'Clutter')
+        varargout = {[   0,      0.4863,      1; ...  % 1 - Água
+                      0.0431,   0.8627, 0.0431; ...  % 2 - Rural
+                         1,      0.4980, 0.4980; ...  % 3 - Suburbano
+                      0.3098,   0.6824,      0; ...  % 4 - Urbano
+                      0.7020,   0.1490, 0.2431]}; ... % 5 - Denso
+        return
+    end
+
     switch plotMode
         case 'light'
             switch plotTag
                 case 'Terrain'
-                    FaceColor = [0.94,.94,.94];
-                    EdgeColor = [0.80,0.80,0.80];
+                    FaceColor = '#90a2b5';
+                    EdgeColor = '#101010';
                     varargout = {FaceColor, EdgeColor};
                 case 'FirstObstruction'
                     Color     = [0,0,0];
                     varargout = {Color};
-                case {'Station', 'Link'}
+                case 'Station'
                     Color     = '#c94756';
                     varargout = {Color};
+                case 'Link'
+                    Color     = '#00f9ff';
+                    varargout = {Color};
                 case 'Fresnel'
-                    Color     = 'red';
+                    Color     = '#007cff';
                     varargout = {Color};
             end
 
         case 'dark'
             switch plotTag
                 case 'Terrain'
-                    FaceColor = '#333333';
-                    EdgeColor = '#777777';
+                    FaceColor = '#1e3a4f';
+                    EdgeColor = '#2a5a7a';
                     varargout = {FaceColor, EdgeColor};
                 case 'FirstObstruction'
                     Color     = [.94,.94,.94];
@@ -156,8 +206,11 @@ function varargout = Color(plotMode, plotTag)
                 case 'Station'
                     Color     = 'cyan';
                     varargout = {Color};
-                case {'Link', 'Fresnel'}
+                case 'Link'
                     Color     = 'cyan';
+                    varargout = {Color};
+                case 'Fresnel'
+                    Color     = '#007cff';
                     varargout = {Color};
             end
     end
