@@ -91,7 +91,7 @@ classdef Project < model.ProjectCommon
                 compressionMode = {'-nocompression'};
             end
 
-            save(prjFile, 'source', 'type', 'version', 'variables', 'userData', '-mat', '-v7.3', compressionMode{:})
+            appEngine.util.safeSaveMAT(prjFile, {'source', 'type', 'version', 'variables', 'userData'}, {source, type, version, variables, userData}, compressionMode)
 
             obj.name = prjName;
             obj.file = prjFile;

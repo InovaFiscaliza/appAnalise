@@ -305,7 +305,7 @@ classdef (Abstract) Detection
                     (groupOccupancy >= detectionConfig.MinOccupancy && abs(groupOrientation) >= detectionConfig.MinAbsOrientation) || ...
                     (~isscalar(groupIdxs) && groupOccorrences > 10*groupCount))
                     % Emissões constantes no tempo, caso cercadas por outras
-                    % com a mesma características, tendem a criar rais laterais
+                    % com a mesma características, tendem a criar raias laterais
                     % que impedem a sua individualização via o processo de
                     % busca de regiões conectadas. Neste caso, aplica-se o
                     % FINDPEAKS tradicional na curva de média, validando a 

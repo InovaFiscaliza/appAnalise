@@ -74,7 +74,6 @@ function Fcn = filterFcn(filterOperation, filterValue, fTolerance)
         end
 
     elseif ischar(filterValue)
-        %filterValue = strtrim(filterValue);
         filterValue = textAnalysis.normalizeWords(filterValue);
         
         switch filterOperation
