@@ -14,6 +14,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         axesTool_DensityPlot            matlab.ui.control.Image
         axesTool_DistortionPlot         matlab.ui.control.Image
         axesTool_DataSourceDropDown     matlab.ui.control.DropDown
+        axesTool_ExportGraphics         matlab.ui.control.Image
         axesTool_RegionZoom             matlab.ui.control.Image
         axesTool_RestoreView            matlab.ui.control.Image
         AxesContainer                   matlab.ui.container.Panel
@@ -405,10 +406,21 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         app.EmissionMetadata;
                         app.FilterTree;
                         app.PointsTree;
+                        ...
                         app.tool_LayoutLeft;
                         app.tool_LayoutRight;
                         app.tool_Play;
                         app.tool_LoopControl;
+                        ...
+                        app.axesTool_RestoreView;
+                        app.axesTool_RegionZoom;
+                        app.axesTool_ExportGraphics;
+                        app.axesTool_DataSourceDropDown;
+                        app.axesTool_DistortionPlot;
+                        app.axesTool_DensityPlot;
+                        app.axesTool_PlotSize;
+                        app.axesTool_Target;
+                        ...
                         app.dockModule_Undock;
                         app.dockModule_Close
                     };
@@ -416,16 +428,27 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,        'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,   'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
-                            struct('appName', appName, 'dataTag', app.EmissionList.UserData.id,       'dropDownBackgroundColor', struct('items', 'rgba(51, 51, 51, 0.75)', 'selectedItem', 'rgb(20, 20, 20)')), ...
+                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id, 'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                            struct('appName', appName, 'dataTag', app.EmissionList.UserData.id, 'dropDownBackgroundColor', struct('items', 'rgba(51, 51, 51, 0.75)', 'selectedItem', 'rgb(20, 20, 20)')), ...
                             struct('appName', appName, 'dataTag', app.EmissionPanelLabel.UserData.id, 'styleImportant', struct('borderLeft', '3px solid #333333', 'paddingLeft', '8px')), ...
-                            struct('appName', appName, 'dataTag', app.FilterTree.UserData.id,         'listener', struct('componentName', 'auxApp.winDriveTest.FilterTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
-                            struct('appName', appName, 'dataTag', app.PointsTree.UserData.id,         'listener', struct('componentName', 'auxApp.winDriveTest.PointsTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.FilterTree.UserData.id, 'listener', struct('componentName', 'auxApp.winDriveTest.FilterTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
+                            struct('appName', appName, 'dataTag', app.PointsTree.UserData.id, 'listener', struct('componentName', 'auxApp.winDriveTest.PointsTree', 'keyEvents', {{'Delete', 'Backspace'}})), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à esquerda')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla loop da execução do playback')), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.axesTool_RestoreView.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Restaura limites iniciais dos eixos')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_RegionZoom.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita zoom de região')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_ExportGraphics.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exporta plot')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DataSourceDropDown.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Define fonte de dados')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DistortionPlot.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe plot de distorção')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DensityPlot.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe plot de densidade')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_PlotSize.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Define raio de cada medida')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_Target.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Geolocalização (AoA ou PoA)')), ...
+                            ...
                             struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,  'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,   'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
@@ -1690,6 +1713,27 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
         end
 
+        % Image clicked function: axesTool_ExportGraphics
+        function onAxesToolbarExportGraphicsClicked(app, event)
+            
+            fileFormats = {'*.jpeg', '(*.jpeg)'};
+            fileFullPath = ui.Dialog(app.UIFigure, 'uiputfile', '', fileFormats, app.mainApp.General.fileFolder.userPath);
+            if isempty(fileFullPath)
+                return
+            end
+
+            app.progressDialog.Visible = 'visible';
+
+            try
+                exportgraphics(app.AxesContainer, fileFullPath, 'ContentType', 'image', 'Resolution', app.mainApp.General.reportLib.image.resolutionDpi, 'BackgroundColor', [0,0,0])
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+
+            app.progressDialog.Visible = 'hidden';
+
+        end
+
         % Value changed function: DataBinningFcn, DataBinningLength, 
         % ...and 1 other component
         function onAxesToolbarDataSourceChanged(app, event)
@@ -1893,26 +1937,26 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             switch event.Source
                 case app.tool_LayoutLeft
                     if event.Source.UserData.status
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
                         app.AxesContainer.Layout.Column(1) = 4;
-                        app.AxesToolbar.Layout.Column      = 5;
-                        app.LeftPanel.Visible              = 'on';
+                        app.AxesToolbar.Layout.Column = 5;
+                        app.LeftPanel.Visible = 'on';
                     else
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
                         app.AxesContainer.Layout.Column(1) = 1;
-                        app.AxesToolbar.Layout.Column      = 2;
-                        app.LeftPanel.Visible              = 'off';
+                        app.AxesToolbar.Layout.Column = [2, 4];
+                        app.LeftPanel.Visible = 'off';
                     end
 
                 case app.tool_LayoutRight
                     if event.Source.UserData.status
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
                         app.AxesContainer.Layout.Column(2) = 6;
-                        app.RightPanel.Visible             = 'on';
+                        app.RightPanel.Visible = 'on';
                     else
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
                         app.AxesContainer.Layout.Column(2) = 8;
-                        app.RightPanel.Visible             = 'off';
+                        app.RightPanel.Visible = 'off';
                     end
             end
 
@@ -2355,7 +2399,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 315, 10, 5, 315, '1x', 10, 232};
+            app.Document.ColumnWidth = {5, 315, 10, 5, 335, '1x', 10, 232};
             app.Document.RowHeight = {24, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -2538,7 +2582,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create FilterTree
             app.FilterTree = uitree(app.EmissionPanelGrid);
             app.FilterTree.SelectionChangedFcn = createCallbackFcn(app, @onFilterTreeSelectionChanged, true);
-            app.FilterTree.FontSize = 10.5;
+            app.FilterTree.FontSize = 11;
             app.FilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FilterTree.Layout.Row = 10;
             app.FilterTree.Layout.Column = [3 4];
@@ -2565,7 +2609,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create PointsTree
             app.PointsTree = uitree(app.EmissionPanelGrid, 'checkbox');
-            app.PointsTree.FontSize = 10.5;
+            app.PointsTree.FontSize = 11;
             app.PointsTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.PointsTree.Layout.Row = [5 10];
             app.PointsTree.Layout.Column = [6 7];
@@ -3022,7 +3066,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, '1x', 5, 25, 25, 5, 54, 25, 10};
+            app.AxesToolbar.ColumnWidth = {8, 25, 25, 25, 5, '1x', 5, 25, 25, 5, 54, 25, 8};
             app.AxesToolbar.RowHeight = {22};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -3047,6 +3091,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_RegionZoom.Layout.Column = 3;
             app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
 
+            % Create axesTool_ExportGraphics
+            app.axesTool_ExportGraphics = uiimage(app.AxesToolbar);
+            app.axesTool_ExportGraphics.ScaleMethod = 'none';
+            app.axesTool_ExportGraphics.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarExportGraphicsClicked, true);
+            app.axesTool_ExportGraphics.Layout.Row = 1;
+            app.axesTool_ExportGraphics.Layout.Column = 4;
+            app.axesTool_ExportGraphics.ImageSource = 'screen-cut.svg';
+
             % Create axesTool_DataSourceDropDown
             app.axesTool_DataSourceDropDown = uidropdown(app.AxesToolbar);
             app.axesTool_DataSourceDropDown.Items = {'Dados brutos', 'Processados'};
@@ -3055,14 +3107,14 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DataSourceDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_DataSourceDropDown.BackgroundColor = [1 1 1];
             app.axesTool_DataSourceDropDown.Layout.Row = 1;
-            app.axesTool_DataSourceDropDown.Layout.Column = 5;
+            app.axesTool_DataSourceDropDown.Layout.Column = 6;
             app.axesTool_DataSourceDropDown.Value = 'Dados brutos';
 
             % Create axesTool_DistortionPlot
             app.axesTool_DistortionPlot = uiimage(app.AxesToolbar);
             app.axesTool_DistortionPlot.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarPlotTypeChanged, true);
             app.axesTool_DistortionPlot.Layout.Row = 1;
-            app.axesTool_DistortionPlot.Layout.Column = 7;
+            app.axesTool_DistortionPlot.Layout.Column = 8;
             app.axesTool_DistortionPlot.ImageSource = 'DriveTestDistortion_32.png';
 
             % Create axesTool_DensityPlot
@@ -3070,7 +3122,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DensityPlot.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarPlotTypeChanged, true);
             app.axesTool_DensityPlot.Enable = 'off';
             app.axesTool_DensityPlot.Layout.Row = 1;
-            app.axesTool_DensityPlot.Layout.Column = 8;
+            app.axesTool_DensityPlot.Layout.Column = 9;
             app.axesTool_DensityPlot.ImageSource = 'DriveTestDensity_32.png';
 
             % Create axesTool_PlotSize
@@ -3082,7 +3134,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @onAxesToolbarPlotSizeChanging, true);
             app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_PlotSize.Layout.Row = 1;
-            app.axesTool_PlotSize.Layout.Column = 10;
+            app.axesTool_PlotSize.Layout.Column = 11;
             app.axesTool_PlotSize.Value = 1;
 
             % Create axesTool_Target
@@ -3091,7 +3143,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_Target.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarTargetButtonClicked, true);
             app.axesTool_Target.Enable = 'off';
             app.axesTool_Target.Layout.Row = 1;
-            app.axesTool_Target.Layout.Column = 11;
+            app.axesTool_Target.Layout.Column = 12;
             app.axesTool_Target.ImageSource = 'target.svg';
 
             % Create DockModule

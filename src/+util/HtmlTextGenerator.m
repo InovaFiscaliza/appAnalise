@@ -463,7 +463,6 @@ classdef (Abstract) HtmlTextGenerator
             switch context
                 case 'SIGNALANALYSIS'
                     emissionTable = specData.UserData.Emissions(emissionIdx, :);
-                    emissionTag = util.HtmlTextGenerator.createTag('Emission', emissionTable.Frequency, emissionTable.BandWidthkHz);
         
                     % LOG
                     columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable');
@@ -500,7 +499,7 @@ classdef (Abstract) HtmlTextGenerator
                     end
         
                     htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', htmlIntro);
-                    varargout = {htmlContent1, htmlContent2, emissionTag, emissionTable.Description(1), emissionTable.Classification.UserModified};
+                    varargout = {htmlContent1, htmlContent2, emissionTable.Description(1), emissionTable.Classification.UserModified};
 
                 otherwise % 'PLAYBACK' | 'DRIVETEST'
                     if ~isempty(emissionIdx)

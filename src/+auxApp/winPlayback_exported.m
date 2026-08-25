@@ -21,6 +21,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         axesTool_minHold               matlab.ui.control.Image
         axesTool_crearWrite            matlab.ui.control.Image
         axesTool_Separator1            matlab.ui.control.Image
+        axesTool_ExportGraphics        matlab.ui.control.Image
         axesTool_Pan                   matlab.ui.control.Image
         axesTool_RestoreView           matlab.ui.control.Image
         AxesAnnotation                 matlab.ui.control.Label
@@ -382,6 +383,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.FlowChannelFileImport;
                         app.FlowChannelRefresh;
                         app.FlowOccupancyEdit;
+                        ...
                         app.tool_LayoutLeft;
                         app.tool_Play;
                         app.tool_LoopControl;
@@ -390,6 +392,20 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         app.tool_GenerateReport;
                         app.tool_UploadFinalFile;
                         app.tool_LayoutRight;
+                        ...
+                        app.axesTool_RestoreView;
+                        app.axesTool_Pan;
+                        app.axesTool_ExportGraphics;
+                        app.axesTool_crearWrite;
+                        app.axesTool_minHold;
+                        app.axesTool_average;
+                        app.axesTool_maxHold;
+                        app.axesTool_emissions;
+                        app.axesTool_persistence;
+                        app.axesTool_occupancy;
+                        app.axesTool_waterfall;
+                        app.axesTool_DataTip;
+                        ....
                         app.dockModule_Undock;
                         app.dockModule_Close
                     };
@@ -397,28 +413,44 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,             'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.AxesAnnotation.UserData.id,          'styleImportant', struct('pointerEvents', 'none')), ...
-                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id,        'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
-                            struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id,          'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à esquerda')), ...
-                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id,               'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla execução do playback da monitoração')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Controla loop da execução do playback')), ...
-                            struct('appName', appName, 'dataTag', app.tool_OpenPopupMerge.UserData.id,     'tooltip', struct('defaultPosition', 'top',    'textContent', 'Mescla fluxos')), ...
-                            struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
-                            struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id,     'tooltip', struct('defaultPosition', 'top',    'textContent', 'Gera relatório')), ...
-                            struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Upload relatório')), ...
-                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,       'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,        'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')), ...
-                            struct('appName', appName, 'dataTag', app.FlowDetectionLimitsEdit.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Edita os limites de detecção')), ...
-                            struct('appName', appName, 'dataTag', app.FlowEmissionsFileImport.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Importar emissões')), ...
-                            struct('appName', appName, 'dataTag', app.FlowEmissionsDataTips.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Converter datatips em emissões')), ...
-                            struct('appName', appName, 'dataTag', app.FlowEmissionsDrawRoi.UserData.id,    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Desenhar contorno de emissão')), ...
-                            struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Detectar emissões automaticamente')), ...
-                            struct('appName', appName, 'dataTag', app.FlowChannelFileImport.UserData.id,   'tooltip', struct('defaultPosition', 'top',    'textContent', 'Importar canais')), ...
-                            struct('appName', appName, 'dataTag', app.FlowChannelRefresh.UserData.id,      'tooltip', struct('defaultPosition', 'top',    'textContent', 'Volta às configurações iniciais')), ...
-                            struct('appName', appName, 'dataTag', app.FlowOccupancyEdit.UserData.id,       'tooltip', struct('defaultPosition', 'top',    'textContent', 'Afere ocupação por outro método')) ...
+                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                            struct('appName', appName, 'dataTag', app.AxesAnnotation.UserData.id, 'styleImportant', struct('pointerEvents', 'none')), ...
+                            struct('appName', appName, 'dataTag', app.SpectrumFlowList.UserData.id, 'selector', 'input', 'styleImportant', struct('height', '44px'), 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                            struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id, 'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à esquerda')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla loop da execução do playback')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupMerge.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Mescla fluxos')), ...
+                            struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
+                            struct('appName', appName, 'dataTag', app.tool_GenerateReport.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Gera relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_UploadFinalFile.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Upload relatório')), ...
+                            struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.axesTool_RestoreView.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Restaura limites iniciais dos eixos')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_Pan.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita/desabilita pan')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_ExportGraphics.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exporta plot')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_crearWrite.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe curva "ClearWrite"')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_minHold.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe curva "MinHold"')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_average.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe curva "Average"')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_maxHold.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe curva "MaxHold"')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_emissions.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe todas as emissões')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_persistence.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe persistência')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_occupancy.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe ocupação do espectro')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_waterfall.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe waterfall')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DataTip.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita modo DataCursor (no waterfall)')), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')), ...
+                            ...
+                            struct('appName', appName, 'dataTag', app.FlowDetectionLimitsEdit.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Edita os limites de detecção')), ...
+                            struct('appName', appName, 'dataTag', app.FlowEmissionsFileImport.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Importar emissões')), ...
+                            struct('appName', appName, 'dataTag', app.FlowEmissionsDataTips.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Converter datatips em emissões')), ...
+                            struct('appName', appName, 'dataTag', app.FlowEmissionsDrawRoi.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Desenhar contorno de emissão')), ...
+                            struct('appName', appName, 'dataTag', app.FlowEmissionsAdd.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Detectar emissões automaticamente')), ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelFileImport.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Importar canais')), ...
+                            struct('appName', appName, 'dataTag', app.FlowChannelRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Volta às configurações iniciais')), ...
+                            struct('appName', appName, 'dataTag', app.FlowOccupancyEdit.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Afere ocupação por outro método')) ...
                         });
                     catch
                     end
@@ -1767,6 +1799,27 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
+        % Image clicked function: axesTool_ExportGraphics
+        function onAxesToolbarExportGraphicsClicked(app, event)
+            
+            fileFormats = {'*.jpeg', '(*.jpeg)'};
+            fileFullPath = ui.Dialog(app.UIFigure, 'uiputfile', '', fileFormats, app.mainApp.General.fileFolder.userPath);
+            if isempty(fileFullPath)
+                return
+            end
+
+            app.progressDialog.Visible = 'visible';
+
+            try
+                exportgraphics(app.AxesContainer, fileFullPath, 'ContentType', 'image', 'Resolution', app.mainApp.General.reportLib.image.resolutionDpi, 'BackgroundColor', [0,0,0])
+            catch ME
+                ui.Dialog(app.UIFigure, 'error', ME.message);
+            end
+
+            app.progressDialog.Visible = 'hidden';
+
+        end
+
         % Callback function: LimitsRefresh, LimitsXLim1, LimitsXLim2, 
         % ...and 8 other components
         function onAxesLimitsConfigChanged(app, event)
@@ -2249,28 +2302,28 @@ classdef winPlayback_exported < matlab.apps.AppBase
             switch event.Source
                 case app.tool_LayoutLeft
                     if event.Source.UserData.status
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left.svg';
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left.svg';
                         app.AxesContainer.Layout.Column(1) = 4;
-                        app.AxesToolbar.Layout.Column      = 5;
-                        app.LeftPanel.Visible              = 'on';
+                        app.AxesToolbar.Layout.Column = 5;
+                        app.LeftPanel.Visible = 'on';
                     else
-                        app.tool_LayoutLeft.ImageSource    = 'layout-sidebar-left-off.svg';
+                        app.tool_LayoutLeft.ImageSource = 'layout-sidebar-left-off.svg';
                         app.AxesContainer.Layout.Column(1) = 1;
-                        app.AxesToolbar.Layout.Column      = 2;
-                        app.LeftPanel.Visible              = 'off';
+                        app.AxesToolbar.Layout.Column = [2, 4];
+                        app.LeftPanel.Visible = 'off';
                     end
 
                 case app.tool_LayoutRight
                     if event.Source.UserData.status
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right.svg';
+                        app.tool_LayoutRight.ImageSource = 'layout-sidebar-right.svg';
                         app.AxesContainer.Layout.Column(2) = 6;
-                        app.AxesAnnotation.Layout.Column   = 6;
-                        app.RightPanel.Visible             = 'on';
+                        app.AxesAnnotation.Layout.Column = 6;
+                        app.RightPanel.Visible = 'on';
                     else
-                        app.tool_LayoutRight.ImageSource   = 'layout-sidebar-right-off.svg';
+                        app.tool_LayoutRight.ImageSource = 'layout-sidebar-right-off.svg';
                         app.AxesContainer.Layout.Column(2) = 8;
-                        app.AxesAnnotation.Layout.Column   = [6 8];
-                        app.RightPanel.Visible             = 'off';
+                        app.AxesAnnotation.Layout.Column = [6 8];
+                        app.RightPanel.Visible = 'off';
                     end
             end
 
@@ -2871,7 +2924,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Document
             app.Document = uigridlayout(app.GridLayout);
-            app.Document.ColumnWidth = {5, 315, 10, 5, 315, '1x', 10, 232};
+            app.Document.ColumnWidth = {5, 315, 10, 5, 335, '1x', 10, 232};
             app.Document.RowHeight = {24, 12, '1x'};
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
@@ -3581,7 +3634,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {10, 25, 25, 5, 25, 25, 25, 25, 25, 25, 7, 25, 8, 25, 25, 10};
+            app.AxesToolbar.ColumnWidth = {8, 25, 25, 25, 5, 25, 25, 25, 25, 25, 25, 7, 25, 8, 25, 25, 7};
             app.AxesToolbar.RowHeight = {'1x'};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -3605,12 +3658,20 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Pan.Layout.Column = 3;
             app.axesTool_Pan.ImageSource = 'pan-32px.png';
 
+            % Create axesTool_ExportGraphics
+            app.axesTool_ExportGraphics = uiimage(app.AxesToolbar);
+            app.axesTool_ExportGraphics.ScaleMethod = 'none';
+            app.axesTool_ExportGraphics.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarExportGraphicsClicked, true);
+            app.axesTool_ExportGraphics.Layout.Row = 1;
+            app.axesTool_ExportGraphics.Layout.Column = 4;
+            app.axesTool_ExportGraphics.ImageSource = 'screen-cut.svg';
+
             % Create axesTool_Separator1
             app.axesTool_Separator1 = uiimage(app.AxesToolbar);
             app.axesTool_Separator1.ScaleMethod = 'none';
             app.axesTool_Separator1.Enable = 'off';
             app.axesTool_Separator1.Layout.Row = 1;
-            app.axesTool_Separator1.Layout.Column = 4;
+            app.axesTool_Separator1.Layout.Column = 5;
             app.axesTool_Separator1.ImageSource = 'LineV.svg';
 
             % Create axesTool_crearWrite
@@ -3620,7 +3681,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_crearWrite.Tag = 'minHold';
             app.axesTool_crearWrite.Enable = 'off';
             app.axesTool_crearWrite.Layout.Row = 1;
-            app.axesTool_crearWrite.Layout.Column = 5;
+            app.axesTool_crearWrite.Layout.Column = 6;
             app.axesTool_crearWrite.ImageSource = 'eye-closed-16px.svg';
 
             % Create axesTool_minHold
@@ -3629,7 +3690,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_minHold.Tag = 'minHold';
             app.axesTool_minHold.Enable = 'off';
             app.axesTool_minHold.Layout.Row = 1;
-            app.axesTool_minHold.Layout.Column = 6;
+            app.axesTool_minHold.Layout.Column = 7;
             app.axesTool_minHold.ImageSource = 'MinHold_32.png';
 
             % Create axesTool_average
@@ -3638,7 +3699,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_average.Tag = 'average';
             app.axesTool_average.Enable = 'off';
             app.axesTool_average.Layout.Row = 1;
-            app.axesTool_average.Layout.Column = 7;
+            app.axesTool_average.Layout.Column = 8;
             app.axesTool_average.ImageSource = 'Average_32.png';
 
             % Create axesTool_maxHold
@@ -3647,7 +3708,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_maxHold.Tag = 'maxHold';
             app.axesTool_maxHold.Enable = 'off';
             app.axesTool_maxHold.Layout.Row = 1;
-            app.axesTool_maxHold.Layout.Column = 8;
+            app.axesTool_maxHold.Layout.Column = 9;
             app.axesTool_maxHold.ImageSource = 'MaxHold_32.png';
 
             % Create axesTool_emissions
@@ -3655,7 +3716,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_emissions.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_emissions.Enable = 'off';
             app.axesTool_emissions.Layout.Row = 1;
-            app.axesTool_emissions.Layout.Column = 9;
+            app.axesTool_emissions.Layout.Column = 10;
             app.axesTool_emissions.ImageSource = 'wave-roi-22px-red.svg';
 
             % Create axesTool_persistence
@@ -3664,7 +3725,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.Tag = 'persistence';
             app.axesTool_persistence.Enable = 'off';
             app.axesTool_persistence.Layout.Row = 1;
-            app.axesTool_persistence.Layout.Column = 10;
+            app.axesTool_persistence.Layout.Column = 11;
             app.axesTool_persistence.ImageSource = 'persistence-36px.png';
 
             % Create axesTool_Separator2
@@ -3672,7 +3733,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator2.ScaleMethod = 'none';
             app.axesTool_Separator2.Enable = 'off';
             app.axesTool_Separator2.Layout.Row = 1;
-            app.axesTool_Separator2.Layout.Column = 11;
+            app.axesTool_Separator2.Layout.Column = 12;
             app.axesTool_Separator2.ImageSource = 'LineV.svg';
 
             % Create axesTool_occupancy
@@ -3681,7 +3742,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_occupancy.Tag = 'occupancy';
             app.axesTool_occupancy.Enable = 'off';
             app.axesTool_occupancy.Layout.Row = 1;
-            app.axesTool_occupancy.Layout.Column = 12;
+            app.axesTool_occupancy.Layout.Column = 13;
             app.axesTool_occupancy.ImageSource = 'Occupancy_32.png';
 
             % Create axesTool_Separator3
@@ -3689,7 +3750,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_Separator3.ScaleMethod = 'none';
             app.axesTool_Separator3.Enable = 'off';
             app.axesTool_Separator3.Layout.Row = 1;
-            app.axesTool_Separator3.Layout.Column = 13;
+            app.axesTool_Separator3.Layout.Column = 14;
             app.axesTool_Separator3.ImageSource = 'LineV.svg';
 
             % Create axesTool_waterfall
@@ -3699,7 +3760,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_waterfall.Tag = 'waterfall';
             app.axesTool_waterfall.Enable = 'off';
             app.axesTool_waterfall.Layout.Row = 1;
-            app.axesTool_waterfall.Layout.Column = 14;
+            app.axesTool_waterfall.Layout.Column = 15;
             app.axesTool_waterfall.ImageSource = 'waterfall-22px.png';
 
             % Create axesTool_DataTip
@@ -3708,7 +3769,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
             app.axesTool_DataTip.Enable = 'off';
             app.axesTool_DataTip.Layout.Row = 1;
-            app.axesTool_DataTip.Layout.Column = 15;
+            app.axesTool_DataTip.Layout.Column = 16;
             app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
             % Create DockModule

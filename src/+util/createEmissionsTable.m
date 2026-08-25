@@ -16,10 +16,12 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
         emissionsTable.Level_FreqCenter_Min(:)       = zeros(0);
         emissionsTable.Level_FreqCenter_Mean(:)      = zeros(0);
         emissionsTable.Level_FreqCenter_Max(:)       = zeros(0);
+        emissionsTable.LevelRange(:)                 = {};
         emissionsTable.FCO_FreqCenter_Infinite(:)    = zeros(0);
         emissionsTable.FCO_FreqCenter_Finite_Min(:)  = zeros(0);
         emissionsTable.FCO_FreqCenter_Finite_Mean(:) = zeros(0);
         emissionsTable.FCO_FreqCenter_Finite_Max(:)  = zeros(0);
+        emissionsTable.FCORange(:)                   = {};
         emissionsTable.RFDataHubDescription(:)       = {};
 
     else
@@ -41,10 +43,18 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
             emissionsTempTable.Level_FreqCenter_Min           = arrayfun(@(x) x.Level.FreqCenter_Min,       emissionsTempTable.Measures);
             emissionsTempTable.Level_FreqCenter_Mean          = arrayfun(@(x) x.Level.FreqCenter_Mean,      emissionsTempTable.Measures);
             emissionsTempTable.Level_FreqCenter_Max           = arrayfun(@(x) x.Level.FreqCenter_Max,       emissionsTempTable.Measures);
+            emissionsTempTable.LevelRange = arrayfun(@(x,y) sprintf('%.1f a %.1f %s', x, y, specData(ii).MetaData.LevelUnit), emissionsTempTable.Level_FreqCenter_Min, emissionsTempTable.Level_FreqCenter_Max, 'UniformOutput', false);
+
             emissionsTempTable.FCO_FreqCenter_Infinite        = arrayfun(@(x) x.FCO.FreqCenter_Infinite,    emissionsTempTable.Measures);
             emissionsTempTable.FCO_FreqCenter_Finite_Min      = arrayfun(@(x) x.FCO.FreqCenter_Finite_Min,  emissionsTempTable.Measures);
             emissionsTempTable.FCO_FreqCenter_Finite_Mean     = arrayfun(@(x) x.FCO.FreqCenter_Finite_Mean, emissionsTempTable.Measures);
             emissionsTempTable.FCO_FreqCenter_Finite_Max      = arrayfun(@(x) x.FCO.FreqCenter_Finite_Max,  emissionsTempTable.Measures);
+            
+            emissionsTempTable.FCORange = arrayfun(@(x,y) sprintf('%.1f a %.1f%%', x, y), emissionsTempTable.FCO_FreqCenter_Finite_Min, emissionsTempTable.FCO_FreqCenter_Finite_Max, 'UniformOutput', false);
+            sameOccupancyIdxs = find(emissionsTempTable.FCO_FreqCenter_Finite_Min == emissionsTempTable.FCO_FreqCenter_Finite_Max);
+            if ~isempty(sameOccupancyIdxs)
+                emissionsTempTable.FCORange(sameOccupancyIdxs) = extractAfter(emissionsTempTable.FCORange(sameOccupancyIdxs), ' a ');
+            end
     
             emissionsTempTable.RFDataHubDescription_auto      = arrayfun(@(x) x.AutoSuggested.Description,  emissionsTempTable.Classification, 'UniformOutput', false);
             emissionsTempTable.RFDataHubDescription           = arrayfun(@(x) x.UserModified.Description,   emissionsTempTable.Classification, 'UniformOutput', false);

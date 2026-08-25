@@ -8,7 +8,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         dockModule_Close              matlab.ui.control.Image
         dockModule_Undock             matlab.ui.control.Image
         Toolbar                       matlab.ui.container.GridLayout
-        tool_ControlPanelVisibility   matlab.ui.control.Image
+        PanelLeftVisibility           matlab.ui.control.Image
+        PanelBottomVisibility         matlab.ui.control.Image
         tool_Separator                matlab.ui.control.Image
         tool_ShowGlobalExceptionList  matlab.ui.control.Image
         tool_ExportJSONFile           matlab.ui.control.Image
@@ -49,12 +50,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         SelectedEmissionLabel         matlab.ui.control.Label
         SelectedEmissionIcon          matlab.ui.control.Image
         Document                      matlab.ui.container.GridLayout
+        UITable                       matlab.ui.control.Table
         RFLinkWarning                 matlab.ui.control.Image
         AxesToolbar                   matlab.ui.container.GridLayout
         AxesPanButton                 matlab.ui.control.Image
         AxesRestoreViewButton         matlab.ui.control.Image
         AxesContainer                 matlab.ui.container.Panel
-        UITable                       matlab.ui.control.Table
         UITableLabel                  matlab.ui.control.Label
         UITableIcon                   matlab.ui.control.Image
         ContextMenu                   matlab.ui.container.ContextMenu
@@ -158,11 +159,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                                     flowIdx = varargin{2};
                                     emissionIdx = varargin{3};
     
-                                    previousSelection = app.UITable.Selection;
+                                    previousSelection = app.UITable.UserData.selectedRow;
                                     currentSelection = find(app.emissionsTable.flowIdx == flowIdx & app.emissionsTable.emissionIdx == emissionIdx, 1);
                                     
                                     if ~isempty(currentSelection) && ~isequal(previousSelection, currentSelection)
                                         app.UITable.Selection = currentSelection;
+                                        app.UITable.UserData.selectedRow = currentSelection;
                                         scroll(app.UITable, 'row', currentSelection)
 
                                         onUITableSelectionChanged(app, struct('Selection', currentSelection, 'PreviousSelection', previousSelection))
@@ -201,7 +203,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         app.TXLocationEditCancel;
                         app.tool_ExportJSONFile;
                         app.tool_ShowGlobalExceptionList;
-                        app.tool_ControlPanelVisibility;
+                        app.PanelBottomVisibility;
+                        app.PanelLeftVisibility;
                         app.RFLinkWarning;
                         app.dockModule_Undock;
                         app.dockModule_Close;
@@ -211,18 +214,19 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id,                  'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Retorna à classificação automática')), ...
-                            struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id,                    'tooltip', struct('defaultPosition', 'top',    'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id,           'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel de edição')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id,        'tooltip', struct('defaultPosition', 'top',    'textContent', 'Confirma edição, recriando perfil de terreno')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id,         'tooltip', struct('defaultPosition', 'top',    'textContent', 'Cancela edição')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id,          'tooltip', struct('defaultPosition', 'top',    'textContent', 'Exporta arquivo com informações das emissões')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ShowGlobalExceptionList.UserData.id, 'tooltip', struct('defaultPosition', 'top',    'textContent', 'Mostra lista global de exceções')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ControlPanelVisibility.UserData.id,  'tooltip', struct('defaultPosition', 'top',    'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.RFLinkWarning.UserData.id,                'tooltip', struct('defaultPosition', 'top',    'textContent', 'Evidenciada obstrução total da 1ª Zona de Fresnel')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,            'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,             'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                            struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna à classificação automática')), ...
+                            struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
+                            struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel de edição')), ...
+                            struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Confirma edição, recriando perfil de terreno')), ...
+                            struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Cancela edição')), ...
+                            struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exporta arquivo com informações das emissões')), ...
+                            struct('appName', appName, 'dataTag', app.tool_ShowGlobalExceptionList.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Mostra lista global de exceções')), ...
+                            struct('appName', appName, 'dataTag', app.PanelBottomVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel inferior')), ...
+                            struct('appName', appName, 'dataTag', app.PanelLeftVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
+                            struct('appName', appName, 'dataTag', app.RFLinkWarning.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Evidenciada obstrução total da 1ª Zona de Fresnel')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
                     catch
                     end
@@ -248,9 +252,16 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
+            addStyle(app.UITable, uistyle('HorizontalAlignment', 'right'), 'column', [4,5]) 
+            app.UITable.UserData.selectedRow = [];
+            app.UITable.UserData.selectedRowStyleIdx = [];
+
+            app.AxesContainer.UserData.emissionTag = '';
+            app.AxesContainer.UserData.rfLinkWarning = false;
+
             app.AxesPanButton.UserData.status = false;
             app.TXLocationEditMode.UserData.status = false;
-            app.UITable.RowName = 'numbered';
+            app.PanelBottomVisibility.UserData.status = true;
 
             initializeAxes(app)
         end
@@ -265,7 +276,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 flowIdxs = 1:numel(app.mainApp.specData);
             end
 
-            selectedRow = app.UITable.Selection;
+            selectedRow = app.UITable.UserData.selectedRow;
             updateTable(app, flowIdxs, selectedRow)
 
             focus(app.UITable)
@@ -314,20 +325,19 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 'Frequency', ...
                 'Truncated', ...
                 'BandWidthkHz', ...
-                'Level_FreqCenter_Min', ...
-                'Level_FreqCenter_Mean', ...
-                'Level_FreqCenter_Max', ...
-                'FCO_FreqCenter_Infinite', ...
-                'FCO_FreqCenter_Finite_Min', ...
-                'FCO_FreqCenter_Finite_Mean', ...
-                'FCO_FreqCenter_Finite_Max',  ...
+                'LevelRange', ...
+                'FCORange',  ...
                 'RFDataHubDescription' ...
             };
 
-            app.UITable.Data = app.emissionsTable(:, columnNames);
-            updateTableStyle(app)
+            set(app.UITable, 'Data', app.emissionsTable(:, columnNames), 'Selection', selectedRow)
+            app.UITable.UserData.selectedRow = selectedRow;
+            app.UITable.UserData.selectedRowStyleIdx = [];
 
-            app.UITable.Selection = selectedRow;
+            applyTableStyle(app, 'clearCellStyles')
+            applyTableStyle(app, 'emissionIndicators')
+            applyTableStyle(app, 'selectedRow')
+
             updateSelectedEmissionFormAndPlot(app)
             pause(.100)
     
@@ -335,65 +345,83 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateTableStyle(app)
-            removeStyle(app.UITable)
+        function applyTableStyle(app, style)
+            switch style
+                case 'clearCellStyles'
+                    cellStylesIdxs = find(app.UITable.StyleConfigurations.Target == "cell");
+                    if ~isempty(cellStylesIdxs)
+                        removeStyle(app.UITable, cellStylesIdxs)
+                    end
 
-            % Destaca registros que tiveram a sua classificação editada...
-            editedEmissionIdxs = [];            
-            for ii = 1:height(app.emissionsTable)
-                if ~isequal(app.emissionsTable.Classification(ii).AutoSuggested, ...
-                            app.emissionsTable.Classification(ii).UserModified)
-                    editedEmissionIdxs = [editedEmissionIdxs; ii];
-                end
-            end
-            
-            if ~isempty(editedEmissionIdxs)
-                cellList = [editedEmissionIdxs, 2*ones(numel(editedEmissionIdxs), 1)];
-                addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
-            end
+                case 'emissionIndicators'
+                    % Destaca registros que tiveram a sua classificação editada...
+                    editedEmissionIdxs = [];           
 
-            % Destaca registros que apresentam valores inválidos de estações...
-            % (usei o método dois por robustez na obtenção dos índices)
-            % idxInvalidStationNumber = find(arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification) == -1);
-            invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
-            if ~isempty(invalidStationNumberIdxs)
-                addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'row', invalidStationNumberIdxs) 
+                    for ii = 1:height(app.emissionsTable)
+                        if ~isequal(app.emissionsTable.Classification(ii).AutoSuggested, ...
+                                    app.emissionsTable.Classification(ii).UserModified)
+                            editedEmissionIdxs = [editedEmissionIdxs; ii];
+                        end
+                    end
+                    
+                    if ~isempty(editedEmissionIdxs)
+                        cellList = [editedEmissionIdxs, ones(numel(editedEmissionIdxs), 1)];
+                        addStyle(app.UITable, uistyle('Icon', 'edit.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
+                    end
+
+                    % Destaca registros cujas frequências centrais não foram
+                    % truncados.
+                    nonTruncatedIdxs = find(~app.emissionsTable.IsTruncated);
+
+                    if ~isempty(nonTruncatedIdxs)
+                        cellList = [nonTruncatedIdxs, 2*ones(numel(nonTruncatedIdxs), 1)];
+                        addStyle(app.UITable, uistyle('Icon', 'wave.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
+                    end
+        
+                    % Destaca registros que apresentam valores inválidos de 
+                    % estações.
+                    invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
+
+                    if ~isempty(invalidStationNumberIdxs)
+                        numColumns = width(app.UITable.Data);
+                        cellList = [invalidStationNumberIdxs, numColumns*ones(numel(invalidStationNumberIdxs), 1)];
+                        addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'cell', cellList) 
+                    end
+
+                case 'selectedRow'
+                    % Destaca célula selecionada...
+                    if ~isempty(app.emissionsTable)
+                        selectedRow = app.UITable.UserData.selectedRow;
+                        selectedRowStyleIdx = app.UITable.UserData.selectedRowStyleIdx;
+
+                        if isempty(selectedRowStyleIdx)
+                            selectedRowStyleIdx = height(app.UITable.StyleConfigurations) + 1;
+                        else
+                            removeStyle(app.UITable, selectedRowStyleIdx)
+                        end
+
+                        addStyle(app.UITable, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
+                        app.UITable.UserData.selectedRowStyleIdx = selectedRowStyleIdx;
+                        drawnow
+                    end
             end
         end
 
         %-----------------------------------------------------------------%
         function updateSelectedEmissionFormAndPlot(app)
             if ~isempty(app.emissionsTable)
-                [flowIdx, emissionIdx] = getEmissionIndexes(app);
+                selectedRow = app.UITable.UserData.selectedRow;
+                [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
                 specData = app.mainApp.specData(flowIdx);
-
-                % Destaca célula selecionada...
-                selectedRow = app.UITable.Selection;
-                selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
-                if ~isempty(selectedRowOldStyleIdx)
-                    removeStyle(app.UITable, selectedRowOldStyleIdx)
-                end
-                addStyle(app.UITable, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
-                drawnow
 
                 [htmlContent1, ...
                  htmlContent2, ...
-                 emissionTag, ...
                  userDescription, ...
                  stationInfo] = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context);
     
                 ui.TextView.update(app.EmissionTitle, htmlContent1);
                 ui.TextView.update(app.LOG, htmlContent2);
                 set(app.AdditionalDescription, 'Value', userDescription, 'UserData', userDescription) 
-    
-                % TABLE CONTEXT MENU
-                if specData.UserData.Emissions.IsTruncated(emissionIdx)
-                    app.contextmenu_NonTruncateEmission.Enable  = 1;
-                    app.contextmenu_TruncateEmission.Enable = 0;
-                else
-                    app.contextmenu_NonTruncateEmission.Enable  = 0;
-                    app.contextmenu_TruncateEmission.Enable = 1;
-                end
     
                 % CONTROL PANEL
                 app.ClassificationRefresh.Visible = ~isequal(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, ...
@@ -418,8 +446,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 updateCoordinatesPanelContent(app)
     
                 % PLOT
-                createSpectrumPlot(app, specData, emissionIdx, emissionTag)
-                createRFLinkPlot(app, selectedRow, flowIdx)
+                updatePlot(app, selectedRow, flowIdx, emissionIdx)
                 
                 app.SelectedEmissionPanelGrid.Visible = 1;
                 app.tool_ExportJSONFile.Enable = 1;
@@ -437,10 +464,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 ylabel(app.UIAxes1, 'Nível (dB)')
                 app.UIAxes1.Parent.Title.String = newline;
                 
-                app.RFLinkWarning.Visible = 0;
+                app.RFLinkWarning.Visible = false;
                 app.ClassificationRefresh.Visible = 0;
                 app.SelectedEmissionPanelGrid.Visible = 0;
                 app.tool_ExportJSONFile.Enable = 0;
+
+                app.AxesContainer.UserData.emissionTag = '';
+                app.AxesContainer.UserData.rfLinkWarning = false;
             end
 
             updateRiskLevelStyle(app)
@@ -557,6 +587,24 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
+        function updatePlot(app, selectedRow, flowIdx, emissionIdx)
+            if ~app.PanelBottomVisibility.UserData.status
+                return
+            end
+
+            specData = app.mainApp.specData(flowIdx);
+            emissionTag = util.HtmlTextGenerator.createTag('Emission', specData.UserData.Emissions.Frequency(emissionIdx), specData.UserData.Emissions.BandWidthkHz(emissionIdx));
+            
+            if strcmp(app.AxesContainer.UserData.emissionTag, emissionTag)
+                return
+            end
+
+            createSpectrumPlot(app, specData, emissionIdx, emissionTag)
+            createRFLinkPlot(app, selectedRow, flowIdx)
+            app.AxesContainer.UserData.emissionTag = emissionTag;
+        end
+
+        %-----------------------------------------------------------------%
         function createSpectrumPlot(app, specData, emissionIdx, emissionTag)
             % Atualiza bandObj...
             updateSpectrumInfo(app.bandObj, specData, emissionIdx);
@@ -603,11 +651,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.UIAxes2.PickableParts = "visible";
                 app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.UIAxes2.XLim, 'yLim', app.UIAxes2.YLim, 'cLim', 'auto');
 
-                if isempty(findobj(app.UIAxes2.Children, 'Tag', 'FirstObstruction'))
-                    app.RFLinkWarning.Visible = 0;
-                else
-                    app.RFLinkWarning.Visible = 1;
-                end
+                app.RFLinkWarning.Visible = ~isempty(findobj(app.UIAxes2.Children, 'Tag', 'FirstObstruction'));
+                app.AxesContainer.UserData.rfLinkWarning = app.RFLinkWarning.Visible;
                 
             catch ME
                 cla(app.UIAxes2)
@@ -631,7 +676,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 msgTextHandle = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), msgText, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
                 msgTextHandle.Units = 'normalized';
                 
-                app.RFLinkWarning.Visible = 0;
+                app.RFLinkWarning.Visible = false;
+                app.AxesContainer.UserData.rfLinkWarning = false;
             end
 
             app.TXLocationEditConfirm.Enable = 0;
@@ -643,7 +689,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function fetchEmissionUpdate(app, triggeredComponent, varargin)
-            [flowIdx, emissionIdx] = getEmissionIndexes(app);
+            selectedRow = app.UITable.UserData.selectedRow;
+            [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
             specData = app.mainApp.specData(flowIdx);
 
             requestVisibilityChange(app.progressDialog, 'visible', 'locked')
@@ -721,8 +768,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function [flowIdx, emissionIdx] = getEmissionIndexes(app)
-            selectedRow = app.UITable.Selection;
+        function [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow)
             flowIdx = app.emissionsTable.flowIdx(selectedRow);
             emissionIdx = app.emissionsTable.emissionIdx(selectedRow);
         end
@@ -805,40 +851,81 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         % Selection changed function: UITable
         function onUITableSelectionChanged(app, event)
 
-            if isempty(event.Selection)
+            selectedRows = event.Selection;
+
+            if isempty(selectedRows)
                 app.UITable.Selection = event.PreviousSelection;
-            else
+                return
+            end
+
+            if ~ismember(app.UITable.UserData.selectedRow, selectedRows)
+                selectedRows = selectedRows(1);
+                app.UITable.Selection = selectedRows;
+                app.UITable.UserData.selectedRow = selectedRows;
+
+                applyTableStyle(app, 'selectedRow')
                 updateSelectedEmissionFormAndPlot(app)
             end
             
         end
 
-        % Menu selected function: contextmenu_ChannelEmission, 
-        % ...and 3 other components
+        % Menu selected function: contextmenu_DeleteEmission, 
+        % ...and 2 other components
         function onUITableContextMenuClicked(app, event)
             
             if isempty(app.UITable.Selection)
                 return
             end
 
-            [flowIdx, emissionIdx] = getEmissionIndexes(app);
-            specData = app.mainApp.specData(flowIdx);
+            requestVisibilityChange(app.progressDialog, 'visible', 'locked')
 
-            switch event.Source
-                case app.contextmenu_DeleteEmission
-                    update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionDeleted', app.Context)
+            selectedRows = app.UITable.Selection;
+            eventStatus = false;
 
-                case app.contextmenu_ChannelEmission
-                    ipcMainMatlabOpenPopupApp(app.mainApp, app, 'EmissionChannel', app.Context, flowIdx, emissionIdx)
+            for selectedRow = flip(selectedRows)
+                [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+                specData = app.mainApp.specData(flowIdx);
+    
+                switch event.Source
+                    case app.contextmenu_DeleteEmission
+                        update(specData, 'UserData:Emissions', 'Delete', emissionIdx)
+                        eventName = 'onEmissionDeleted';
+                        eventStatus = true;
+    
+                    case {app.contextmenu_TruncateEmission, app.contextmenu_NonTruncateEmission}
+                        isTruncated = specData.UserData.Emissions.IsTruncated(emissionIdx);
 
-                otherwise % app.contextmenu_TruncateEmission | app.contextmenu_NonTruncateEmission
-                    isTruncated = ~specData.UserData.Emissions.IsTruncated(emissionIdx);
-                    update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, isTruncated, app.mainApp.channelObj)
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionTruncatedValueChanged', app.Context)
+                        if ((event.Source == app.contextmenu_TruncateEmission) && isTruncated) || ...
+                           ((event.Source == app.contextmenu_NonTruncateEmission) && ~isTruncated)
+
+                            continue
+                        end
+
+                        update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, ~isTruncated, app.mainApp.channelObj)
+                        eventName = 'onEmissionTruncatedValueChanged';
+                        eventStatus = true;
+                end
             end
 
-            applyInitialLayout(app)
+            if eventStatus
+                ipcMainMatlabCallsHandler(app.mainApp, app, eventName, app.Context)
+                applyInitialLayout(app)
+            end
+
+            requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+
+        end
+
+        % Menu selected function: contextmenu_ChannelEmission
+        function onOpenPopupApp(app, event)
+            
+            if isempty(app.UITable.Selection)
+                return
+            end
+
+            selectedRow = app.UITable.UserData.selectedRow;
+            [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+            ipcMainMatlabOpenPopupApp(app.mainApp, app, 'EmissionChannel', app.Context, flowIdx, emissionIdx)
 
         end
 
@@ -891,7 +978,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     ])
                 end
                 
-                [flowIdx, emissionIdx] = getEmissionIndexes(app);
+                selectedRow = app.UITable.UserData.selectedRow;
+                [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
                 specData = app.mainApp.specData(flowIdx);
 
                 receiverLatitude  = specData.GPS.Latitude;
@@ -1043,8 +1131,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: tool_ControlPanelVisibility, 
-        % ...and 2 other components
+        % Image clicked function: PanelBottomVisibility, 
+        % ...and 3 other components
         function onToolbarButtonClicked(app, event)
 
             switch event.Source
@@ -1092,15 +1180,36 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                     end
 
                 %---------------------------------------------------------%
-                case app.tool_ControlPanelVisibility
+                case app.PanelBottomVisibility
+                    app.PanelBottomVisibility.UserData.status = ~app.PanelBottomVisibility.UserData.status;
+                    
+                    if app.PanelBottomVisibility.UserData.status
+                        app.UITable.Layout.Row = 3;
+                        set([app.AxesContainer, app.AxesToolbar], 'Visible', 'on')
+                        app.RFLinkWarning.Visible = app.AxesContainer.UserData.rfLinkWarning;
+                        app.PanelBottomVisibility.ImageSource = 'layout-panel.svg';
+
+                        % Atualiza o plot, caso necessário...
+                        selectedRow = app.UITable.UserData.selectedRow;
+                        [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+                        updatePlot(app, selectedRow, flowIdx, emissionIdx)
+
+                    else
+                        app.UITable.Layout.Row = [3 6];
+                        set([app.AxesContainer, app.AxesToolbar, app.RFLinkWarning], 'Visible', 'off')
+                        app.PanelBottomVisibility.ImageSource = 'layout-panel-off.svg';
+                    end
+
+                %---------------------------------------------------------%
+                case app.PanelLeftVisibility
                     if app.SelectedEmissionGrid.Visible
                         app.SelectedEmissionGrid.Visible = 0;
                         app.Document.Layout.Column = [2, numel(app.GridLayout.ColumnWidth)-2];
-                        app.tool_ControlPanelVisibility.ImageSource = 'layout-sidebar-right-off.svg';
+                        app.PanelLeftVisibility.ImageSource = 'layout-sidebar-right-off.svg';
                     else
                         app.SelectedEmissionGrid.Visible = 1;
                         app.Document.Layout.Column = 2;
-                        app.tool_ControlPanelVisibility.ImageSource = 'layout-sidebar-right.svg';
+                        app.PanelLeftVisibility.ImageSource = 'layout-sidebar-right.svg';
                     end
             end
 
@@ -1176,20 +1285,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITableLabel.Layout.Column = [4 5];
             app.UITableLabel.Text = 'EMISSÕES RELACIONADAS AOS FLUXOS ESPECTRAIS';
 
-            % Create UITable
-            app.UITable = uitable(app.Document);
-            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
-            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|MÍNIMO (dB)'; 'NÍVEL|MÉDIO (dB)'; 'NÍVEL|MÁXIMO (dB)'; 'OCUPAÇÃO|TOTAL (%)'; 'OCUPAÇÃO|MÍNIMA (%)'; 'OCUPAÇÃO|MÉDIA (%)'; 'OCUPAÇÃO|MÁXIMA (%)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
-            app.UITable.ColumnWidth = {95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 'auto'};
-            app.UITable.RowName = {};
-            app.UITable.ColumnSortable = true;
-            app.UITable.SelectionType = 'row';
-            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @onUITableSelectionChanged, true);
-            app.UITable.Multiselect = 'off';
-            app.UITable.Layout.Row = 3;
-            app.UITable.Layout.Column = [1 8];
-            app.UITable.FontSize = 10.5;
-
             % Create AxesContainer
             app.AxesContainer = uipanel(app.Document);
             app.AxesContainer.AutoResizeChildren = 'off';
@@ -1231,6 +1326,19 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.RFLinkWarning.Layout.Row = 5;
             app.RFLinkWarning.Layout.Column = 7;
             app.RFLinkWarning.ImageSource = 'warning.svg';
+
+            % Create UITable
+            app.UITable = uitable(app.Document);
+            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
+            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|(Δ)'; 'OCUPAÇÃO|(Δ)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
+            app.UITable.ColumnWidth = {95, 95, 95, 115, 115, 'auto'};
+            app.UITable.RowName = {};
+            app.UITable.ColumnSortable = true;
+            app.UITable.SelectionType = 'row';
+            app.UITable.SelectionChangedFcn = createCallbackFcn(app, @onUITableSelectionChanged, true);
+            app.UITable.Layout.Row = 3;
+            app.UITable.Layout.Column = [1 8];
+            app.UITable.FontSize = 11;
 
             % Create SelectedEmissionGrid
             app.SelectedEmissionGrid = uigridlayout(app.GridLayout);
@@ -1540,7 +1648,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {'1x', 22, 22, 5, 22};
+            app.Toolbar.ColumnWidth = {'1x', 22, 22, 5, 22, 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -1582,13 +1690,21 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.tool_Separator.VerticalAlignment = 'bottom';
             app.tool_Separator.ImageSource = 'LineV.svg';
 
-            % Create tool_ControlPanelVisibility
-            app.tool_ControlPanelVisibility = uiimage(app.Toolbar);
-            app.tool_ControlPanelVisibility.ScaleMethod = 'none';
-            app.tool_ControlPanelVisibility.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
-            app.tool_ControlPanelVisibility.Layout.Row = [1 3];
-            app.tool_ControlPanelVisibility.Layout.Column = 5;
-            app.tool_ControlPanelVisibility.ImageSource = 'layout-sidebar-right.svg';
+            % Create PanelBottomVisibility
+            app.PanelBottomVisibility = uiimage(app.Toolbar);
+            app.PanelBottomVisibility.ScaleMethod = 'none';
+            app.PanelBottomVisibility.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.PanelBottomVisibility.Layout.Row = [1 3];
+            app.PanelBottomVisibility.Layout.Column = 5;
+            app.PanelBottomVisibility.ImageSource = 'layout-panel.svg';
+
+            % Create PanelLeftVisibility
+            app.PanelLeftVisibility = uiimage(app.Toolbar);
+            app.PanelLeftVisibility.ScaleMethod = 'none';
+            app.PanelLeftVisibility.ImageClickedFcn = createCallbackFcn(app, @onToolbarButtonClicked, true);
+            app.PanelLeftVisibility.Layout.Row = [1 3];
+            app.PanelLeftVisibility.Layout.Column = 6;
+            app.PanelLeftVisibility.ImageSource = 'layout-sidebar-right.svg';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
@@ -1628,14 +1744,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create contextmenu_ChannelEmission
             app.contextmenu_ChannelEmission = uimenu(app.contextmenu_TruncateItem);
-            app.contextmenu_ChannelEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
+            app.contextmenu_ChannelEmission.MenuSelectedFcn = createCallbackFcn(app, @onOpenPopupApp, true);
             app.contextmenu_ChannelEmission.Text = 'Canal';
 
             % Create contextmenu_TruncateEmission
             app.contextmenu_TruncateEmission = uimenu(app.contextmenu_TruncateItem);
             app.contextmenu_TruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
             app.contextmenu_TruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.contextmenu_TruncateEmission.Enable = 'off';
             app.contextmenu_TruncateEmission.Separator = 'on';
             app.contextmenu_TruncateEmission.Text = 'Truncar frequência';
 

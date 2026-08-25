@@ -1114,7 +1114,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.eFiscalizaLabel.FontSize = 10;
             app.eFiscalizaLabel.Layout.Row = 1;
             app.eFiscalizaLabel.Layout.Column = 1;
-            app.eFiscalizaLabel.Text = 'INICIALIZAÇÃO eFISCALIZA';
+            app.eFiscalizaLabel.Text = 'eFISCALIZA';
 
             % Create eFiscalizaRefresh
             app.eFiscalizaRefresh = uiimage(app.SubGrid3);
