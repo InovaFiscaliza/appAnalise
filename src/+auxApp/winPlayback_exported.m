@@ -122,7 +122,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
         ContextMenuEmissions           matlab.ui.container.ContextMenu
         ContextMenuWhoIsEmission       matlab.ui.container.Menu
         ContextMenuDeleteEmission      matlab.ui.container.Menu
-        ContextMenuDeleteEmissions     matlab.ui.container.Menu
     end
 
     
@@ -188,6 +187,15 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % após alteração das suas características (via tabela ou no próprio plot, 
         % ajustando a ROI).
         emissionSelectedHash = ''
+    end
+
+
+    properties (Constant)
+        %-----------------------------------------------------------------%
+        WEEK_DAYS_MAP = dictionary( ...
+            [1, 2, 3, 4, 5, 6, 7], ...
+            ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"] ...
+        )
     end
 
 
@@ -438,6 +446,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             app.FlowAttributesPanelVisibleIdx.UserData.index = 1;
+            app.FlowEmissions.UserData.selectedRow = [];
+            
             app.axesTool_Pan.UserData.status = false;
             app.axesTool_DataTip.UserData.status = false;
             app.axesTool_minHold.UserData = struct('status', false, 'imageSource', {{'MinHold_32Filled.png', 'MinHold_32.png'}});
@@ -446,6 +456,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.UserData.status = false;
             app.axesTool_occupancy.UserData.status = false;
             app.axesTool_waterfall.UserData.status = false;
+
             app.tool_LayoutLeft.UserData.status = true;
             app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
@@ -709,7 +720,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function [flowIdx, emissionIdx] = findSpecDataIndex(app)
             flowIdx = app.SpectrumFlowList.Value;
-            emissionIdx = app.FlowEmissions.Selection;
+            emissionIdx = app.FlowEmissions.UserData.selectedRow;
         end
 
         %-----------------------------------------------------------------%
@@ -805,9 +816,12 @@ classdef winPlayback_exported < matlab.apps.AppBase
                          app.ContextMenuAddChannelAsEmission, ...
                          app.ContextMenuDeleteChannel], 'Enable', hasChannelSelected)
 
-                otherwise % 'emissions'
+                case 'emissions'
                     hasEmissions = ~isempty(app.FlowEmissions.Data);
-                    set(app.ContextMenuEmissions.Children, 'Enable', hasEmissions)
+                    numSelectedRows = numel(app.FlowEmissions.Selection);
+
+                    set(app.ContextMenuWhoIsEmission,  'Enable', isscalar(numSelectedRows))
+                    set(app.ContextMenuDeleteEmission, 'Enable', hasEmissions)
             end
         end
 
@@ -910,6 +924,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             updateContextMenuState(app, 'channels')
 
             % Subtab "EMISSÕES"
+            emissionSelectedIdx = [];
             if hasEmissions
                 [~, emissionSelectedIdx] = ismember(app.emissionSelectedHash, specData.UserData.Emissions.Uuid);
                 if ~emissionSelectedIdx
@@ -918,10 +933,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 
                 app.FlowEmissions.Data = specData.UserData.Emissions(:, {'Frequency', 'BandWidthkHz', 'Description'});
                 app.FlowEmissions.Selection = emissionSelectedIdx;
-
+                app.FlowEmissions.UserData.selectedRow = emissionSelectedIdx;
             else
                 app.FlowEmissions.Data = [];
+                app.FlowEmissions.UserData.selectedRow = [];
             end
+
+            applyEmissionsTableStyle(app, hasEmissions, emissionSelectedIdx)
             updateContextMenuState(app, 'emissions')
         end
 
@@ -1036,11 +1054,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
             resetRestoreView(app)
 
             if ~isempty(specData)
-                app.tool_TimestampLabel.Text = sprintf('1 de %d\n%s', app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1));
+                updateTimestamp(app, 1, app.bandObj.NumSweeps, app.bandObj.YLimitsTime(1))
                 app.AxesAnnotation.Text = sprintf('%s    \n%.3f – %.3f MHz    ', app.bandObj.Receiver, app.bandObj.FreqStart, app.bandObj.FreqStop);
 
             else
-                app.tool_TimestampLabel.Text = '';
+                clearTimestamp(app)
                 app.AxesAnnotation.Text = '';
 
                 if app.axesTool_occupancy.UserData.status || app.axesTool_waterfall.UserData.status
@@ -1207,7 +1225,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 return
             end
 
-            emissionSelectedIdx = app.FlowEmissions.Selection;
+            emissionSelectedIdx = app.FlowEmissions.UserData.selectedRow;
             app.emissionSelectedHash = emissions.Uuid(emissionSelectedIdx);
 
             app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
@@ -1217,7 +1235,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             addlistener(emissionSelectedHandle, 'ROIMoved',  @(~, evt)emissionROI(evt));
 
             function emissionROI(evt)
-                emissionSelectedIdx = app.FlowEmissions.Selection;
+                emissionSelectedIdx = app.FlowEmissions.UserData.selectedRow;
     
                 switch(evt.EventName)
                     case 'MovingROI'
@@ -1243,6 +1261,17 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         updateEmissionTable(app, specData, 'Edit', emissionSelectedIdx, 'Frequency|BandWidth', frequencyIdx, freqCenter, bandWidthkHz, app.mainApp.channelObj)
                 end
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function updateTimestamp(app, sweepIdx, sweepCount, sweepTime)
+            weekDay = app.WEEK_DAYS_MAP(weekday(sweepTime));
+            app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s • %s', sweepIdx, sweepCount, sweepTime, weekDay);
+        end
+        
+        %-----------------------------------------------------------------%
+        function clearTimestamp(app)
+            app.tool_TimestampLabel.Text = '';
         end
 
         %-----------------------------------------------------------------%
@@ -1272,6 +1301,17 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
+        end
+
+        %-----------------------------------------------------------------%
+        function applyEmissionsTableStyle(app, hasEmissions, emissionSelectedIdx)
+            if ~isempty(app.FlowEmissions.StyleConfigurations)
+                removeStyle(app.FlowEmissions)
+            end
+
+            if hasEmissions
+                addStyle(app.FlowEmissions, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [emissionSelectedIdx, 1])
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -1417,7 +1457,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 sweepTic = tic;
                 
                 updatePlot(app)
-                app.tool_TimestampLabel.Text   = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx));
+                updateTimestamp(app, app.sweepTimeIdx, nSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
                 app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
                 
                 pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
@@ -2126,19 +2166,21 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Selection changed function: FlowEmissions
         function onEmissionsTableSelectionChanged(app, event)
             
-            emissionSelectedIdx = app.FlowEmissions.Selection;
+            selectedRows = event.Selection;
 
-            if isempty(emissionSelectedIdx)
-                if exist('event', 'var')
-                    emissionSelectedIdx = event.PreviousSelection;
-                else
-                    emissionSelectedIdx = 1;
-                end
-
-                app.FlowEmissions.Selection = emissionSelectedIdx;
+            if isempty(selectedRows)
+                app.FlowEmissions.Selection = event.PreviousSelection;
+                return
             end
 
-            updateEmissionsPlot(app)
+            if ~ismember(app.FlowEmissions.UserData.selectedRow, selectedRows)
+                selectedRows = selectedRows(1);
+                app.FlowEmissions.Selection = selectedRows;
+                app.FlowEmissions.UserData.selectedRow = selectedRows;
+
+                applyEmissionsTableStyle(app, true, selectedRows)
+                updateEmissionsPlot(app)
+            end
             
         end
 
@@ -2287,7 +2329,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
                 end
 
-                app.tool_TimestampLabel.Text = sprintf('%d de %d\n%s', app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx));
+                updateTimestamp(app, app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx))
             end
             
         end
@@ -2637,24 +2679,21 @@ classdef winPlayback_exported < matlab.apps.AppBase
         end
 
         % Menu selected function: ContextMenuDeleteEmission, 
-        % ...and 2 other components
+        % ...and 1 other component
         function onContextMenuEmissionOptionClicked(app, event)
             
             specData = app.bandObj.SpecData;
-            [~, emissionIdx] = findSpecDataIndex(app);
 
             switch event.Source
                 case app.ContextMenuWhoIsEmission
+                    [~, emissionIdx] = findSpecDataIndex(app);
                     emissionDetails = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context, [], app.mainApp.General);
                     ui.Dialog(app.UIFigure, 'none', emissionDetails);
                     return
 
                 case app.ContextMenuDeleteEmission
-                    updateEmissionTable(app, specData, 'Delete', emissionIdx)
-
-                case app.ContextMenuDeleteEmissions
-                    emissionIdxs = 1:height(specData.UserData.Emissions);
-                    updateEmissionTable(app, specData, 'Delete', emissionIdxs)
+                    selectedRows = app.FlowEmissions.Selection;
+                    updateEmissionTable(app, specData, 'Delete', selectedRows)
             end
 
             emissions = specData.UserData.Emissions;
@@ -2767,7 +2806,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.FontSize = 10;
             app.tool_TimestampLabel.Layout.Row = [1 3];
             app.tool_TimestampLabel.Layout.Column = 6;
-            app.tool_TimestampLabel.Text = {'22 de 328 '; '22/02/2022 08:00:00 '};
+            app.tool_TimestampLabel.Text = '';
 
             % Create tool_OpenPopupMerge
             app.tool_OpenPopupMerge = uiimage(app.Toolbar);
@@ -3035,7 +3074,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.FlowEmissions.ColumnEditable = true;
             app.FlowEmissions.CellEditCallback = createCallbackFcn(app, @onEmissionsTableCellEdit, true);
             app.FlowEmissions.SelectionChangedFcn = createCallbackFcn(app, @onEmissionsTableSelectionChanged, true);
-            app.FlowEmissions.Multiselect = 'off';
             app.FlowEmissions.Layout.Row = [4 8];
             app.FlowEmissions.Layout.Column = [8 15];
             app.FlowEmissions.FontSize = 11;
@@ -3753,12 +3791,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.ContextMenuDeleteEmission.Enable = 'off';
             app.ContextMenuDeleteEmission.Separator = 'on';
             app.ContextMenuDeleteEmission.Text = '❌ Excluir';
-
-            % Create ContextMenuDeleteEmissions
-            app.ContextMenuDeleteEmissions = uimenu(app.ContextMenuEmissions);
-            app.ContextMenuDeleteEmissions.MenuSelectedFcn = createCallbackFcn(app, @onContextMenuEmissionOptionClicked, true);
-            app.ContextMenuDeleteEmissions.Enable = 'off';
-            app.ContextMenuDeleteEmissions.Text = '🚫 Excluir tudo';
             
             % Assign app.ContextMenuEmissions
             app.FlowEmissions.ContextMenu = app.ContextMenuEmissions;

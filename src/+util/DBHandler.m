@@ -781,8 +781,6 @@ classdef DBHandler < handle
         function output = getSpectrumFileDataCount(obj, filters)
             % Retorna a quantidade total de linhas da consulta por arquivo.
 
-            output = 0;
-
             requestType = 'count';
             cacheIdx = getSessionCache(obj, requestType, filters);
             if ~isempty(cacheIdx)
@@ -859,6 +857,8 @@ classdef DBHandler < handle
 
         %-----------------------------------------------------------------%
         function output = executeFetch(obj, schemaName, sqlQuery, requestType, filters)
+            conn = [];
+
             try
                 conn = getConnection(obj, schemaName);
                 output = fetch(conn, sqlQuery);
@@ -872,8 +872,8 @@ classdef DBHandler < handle
                 % erro com identificador 'database:mysql:connection:DriverError'.
                 % Ao detectar esse erro, o objeto de conexão é deletado para forçar a
                 % reconexão na próxima tentativa.
-                delete(conn);
-                rethrow(ME);
+                delete(conn)
+                rethrow(ME)
             end
         end
 

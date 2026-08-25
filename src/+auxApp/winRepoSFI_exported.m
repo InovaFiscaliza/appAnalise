@@ -939,7 +939,7 @@ end
             app.ModuleIntro.Layout.Row = 1;
             app.ModuleIntro.Layout.Column = [3 5];
             app.ModuleIntro.Interpreter = 'html';
-            app.ModuleIntro.Text = {'<b>REPOSFI</b>'; '<p style="padding: 2px; text-align: justify; font-size: 10px; color: gray; line-height: 13px">Centraliza a coleta, organiza e disponibiliza dados de monitoramento de espectro, integrando arquivos de estações remotas, fluxos de espectro e artefatos analíticos.</p>'};
+            app.ModuleIntro.Text = {'<b>RF.Fusion</b>'; '<p style="padding: 2px; text-align: justify; font-size: 10px; color: gray; line-height: 13px">Centraliza a coleta, organiza e disponibiliza dados de monitoramento de espectro, integrando arquivos de estações remotas, fluxos de espectro e artefatos analíticos.</p>'};
 
             % Create StateLabel
             app.StateLabel = uilabel(app.LeftPanelGrid);

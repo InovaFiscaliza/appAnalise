@@ -439,7 +439,18 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 refreshTableFootnote(app, currentFilter)
 
             catch ME
-                ui.Dialog(app.UIFigure, 'error', ME.message);
+                msg = ME.message;
+
+                if strcmp(ME.identifier, 'MATLAB:networklib:tcpclient:cannotCreateObject')
+                    msg = [ ...
+                        'Não foi possível consultar as informações do RF.Fusion. ' ...
+                        'Esse recurso requer acesso à rede interna da Anatel. ' ...
+                        'Se estiver fora da rede, conecte-se à VPN da Anatel e tente ' ...
+                        'novamente.' ...
+                    ];
+                end
+
+                ui.Dialog(app.UIFigure, 'error', msg);
             end
 
             app.progressDialog.Visible = 'hidden';
