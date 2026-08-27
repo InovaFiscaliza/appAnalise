@@ -459,7 +459,7 @@ classdef (Abstract) HtmlTextGenerator
                     emissionTag = util.HtmlTextGenerator.createTag('Emission', emissionTable.Frequency, emissionTable.BandWidthkHz);
         
                     % LOG
-                    columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable');
+                    columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), {'Details', 'AlertClassificationMismatch'}, 'stable');
                     stationInfo = [];
                     columnsDiff = [];
         
@@ -511,7 +511,7 @@ classdef (Abstract) HtmlTextGenerator
                         % CLASSIFICAÇÃO        
                         classification = specData.UserData.Emissions(emissionIdx, :).Classification;
                         classificationInfo = [];                        
-                        for classificationField = string(setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable'))'
+                        for classificationField = string(setdiff(fieldnames(util.Classification.RESULT_DEFAULT), {'Details', 'AlertClassificationMismatch'}, 'stable'))'
                             isNumeric = isnumeric(classification.AutoSuggested.(classificationField));
                             
                             if isNumeric && abs(classification.AutoSuggested.(classificationField) - classification.UserModified.(classificationField)) < 1e-5 || ...

@@ -20,6 +20,10 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
         emissionsTable.FCO_FreqCenter_Finite_Min(:)  = zeros(0);
         emissionsTable.FCO_FreqCenter_Finite_Mean(:) = zeros(0);
         emissionsTable.FCO_FreqCenter_Finite_Max(:)  = zeros(0);
+        emissionsTable.Prediction_E_P526             = cell(0, 1);
+        emissionsTable.Prediction_E_P1812            = cell(0, 1);
+        emissionsTable.Prediction_Delta              = cell(0, 1);
+        emissionsTable.MeasuredValue                 = cell(0, 1);
         emissionsTable.RFDataHubDescription(:)       = {};
 
     else
@@ -48,6 +52,39 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
     
             emissionsTempTable.RFDataHubDescription_auto      = arrayfun(@(x) x.AutoSuggested.Description,  emissionsTempTable.Classification, 'UniformOutput', false);
             emissionsTempTable.RFDataHubDescription           = arrayfun(@(x) x.UserModified.Description,   emissionsTempTable.Classification, 'UniformOutput', false);
+
+            % Predição de propagação (cache por emissão, calculado em
+            % auxApp.winSignalAnalysis_exported/getOrCalculateEmissionPrediction)...
+            emissionsTempTable.Prediction_E_P526       = cell(height(emissionsTempTable), 1);
+            emissionsTempTable.Prediction_E_P1812      = cell(height(emissionsTempTable), 1);
+            emissionsTempTable.Prediction_Delta        = cell(height(emissionsTempTable), 1);
+            emissionsTempTable.MeasuredValue           = cell(height(emissionsTempTable), 1);
+
+            for kk = 1:height(emissionsTempTable)
+                if util.isMergedEmission(emissionsTempTable.Classification(kk))
+                    continue
+                end
+
+                emissionsTempTable.MeasuredValue{kk} = emissionsTempTable.Measures(kk).Level.Channel_Max;
+
+                try
+                    signalAnalysis = emissionsTempTable.AuxAppData(kk).SignalAnalysis;
+                    if isempty(signalAnalysis) || ~signalAnalysis.IsCalculated
+                        continue
+                    end
+
+                    emissionsTempTable.Prediction_E_P526{kk}      = scalarOrEmpty(signalAnalysis.P526.E);
+                    emissionsTempTable.Prediction_E_P1812{kk}     = scalarOrEmpty(signalAnalysis.P1812.E);
+
+                    deltas = [scalarOrEmpty(signalAnalysis.P526.Delta), scalarOrEmpty(signalAnalysis.P1812.Delta)];
+                    deltas = deltas(isfinite(deltas));
+                    if ~isempty(deltas)
+                        emissionsTempTable.Prediction_Delta{kk} = min(abs(deltas));
+                    end
+                catch
+                end
+            end
+
     
             if ismember(operationType, {'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})
                 emissionsTempTable.Type                       = arrayfun(@(x) x.UserModified.EmissionType,  emissionsTempTable.Classification, 'UniformOutput', false);
@@ -206,5 +243,13 @@ end
 function description = addFreeDescriptionComment(description, userFreeDescriptionComment)
     if ~isempty(userFreeDescriptionComment)
         description = sprintf('%s<br><font style="color: #0000FF;">%s</font>', description, strtrim(userFreeDescriptionComment));
+    end
+end
+
+
+%-------------------------------------------------------------------------%
+function value = scalarOrEmpty(value)
+    if isempty(value) || ~isscalar(value) || (isnumeric(value) && isnan(value))
+        value = [];
     end
 end

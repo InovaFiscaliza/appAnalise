@@ -162,6 +162,8 @@ classdef SpecData < model.SpecDataBase
             
             occupancyMapping(obj)
 
+            normalizeClassificationAlertFlag(obj)
+
             % Popula o espectro dos fluxos que já possuem ao menos uma 
             % emissão identificada.
             emissionDetectedIdxs = find(arrayfun(@(x) ~isempty(x.UserData.Emissions), obj));
@@ -1203,6 +1205,33 @@ classdef SpecData < model.SpecDataBase
 
 
     methods (Access = private)
+        %-----------------------------------------------------------------%
+        function normalizeClassificationAlertFlag(obj)
+            for ii = 1:numel(obj)
+                if isempty(obj(ii).UserData.Emissions)
+                    continue
+                end
+
+                emissions = obj(ii).UserData.Emissions;
+                for jj = 1:height(emissions)
+                    classification = emissions.Classification(jj);
+
+                    if ~isfield(classification.AutoSuggested, 'AlertClassificationMismatch')
+                        classification.AutoSuggested.AlertClassificationMismatch = true;
+                    end
+
+                    if ~isfield(classification.UserModified, 'AlertClassificationMismatch')
+                        classification.UserModified.AlertClassificationMismatch = ...
+                            classification.AutoSuggested.AlertClassificationMismatch;
+                    end
+
+                    emissions.Classification(jj) = classification;
+                end
+
+                obj(ii).UserData.Emissions = emissions;
+            end
+        end
+
         %-----------------------------------------------------------------%
         function checkIfScalar(obj)
             if ~isscalar(obj)

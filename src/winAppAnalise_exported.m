@@ -1700,7 +1700,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
                 case 'ImageClicked'
                     [~, filePath, ~, fileName] = ui.Dialog(app.UIFigure, 'uigetfile', '', {'*.bin;*.dbm;*.mat', 'Binários (*.bin,*.dbm,*.mat)'; '*.csv;*.sm1809', 'Textuais (*.csv,*.sm1809)'}, app.General.fileFolder.lastVisited, {'MultiSelect', 'on'});
-    
+
                     if isempty(fileName)
                         return
                     elseif ~iscell(fileName)

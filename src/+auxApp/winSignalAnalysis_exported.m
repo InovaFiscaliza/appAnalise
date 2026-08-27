@@ -16,6 +16,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         SelectedEmissionGrid          matlab.ui.container.GridLayout
         SelectedEmissionPanel         matlab.ui.container.Panel
         SelectedEmissionPanelGrid     matlab.ui.container.GridLayout
+        SinalizarCheckBox             matlab.ui.control.CheckBox
+        AnaliseAlerts                 matlab.ui.control.EditField
+        TXLocationPanelLabel_2        matlab.ui.control.Label
         ClassificationRefresh         matlab.ui.control.Image
         LOG                           matlab.ui.control.Label
         LOGLabel                      matlab.ui.control.Label
@@ -294,6 +297,22 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateTable(app, flowIdxs, selectedRow)
+            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+
+            % Calcula (ou reaproveita do cache) a predição de propagação
+            % para TODAS as emissões dos flows selecionados, de modo que
+            % as colunas Lb/E/Delta possam ser exibidas na UITable...
+            for ii = flowIdxs
+                specData_ii = app.mainApp.specData(ii);
+                for jj = 1:height(specData_ii.UserData.Emissions)
+                    if util.isMergedEmission(specData_ii.UserData.Emissions.Classification(jj))
+                        continue
+                    end
+
+                    getOrCalculateEmissionPrediction(app, specData_ii, jj);
+                end
+            end
+
             app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI');
     
             if isempty(app.emissionsTable)
@@ -306,7 +325,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 end
             end
 
-            requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
     
             columnNames = { ...
                 'Frequency', ...
@@ -319,10 +337,32 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 'FCO_FreqCenter_Finite_Min', ...
                 'FCO_FreqCenter_Finite_Mean', ...
                 'FCO_FreqCenter_Finite_Max',  ...
+                'MeasuredValue', ...
+                'Prediction_E_P526', ...
+                'Prediction_E_P1812', ...
+                'Prediction_Delta', ...
                 'RFDataHubDescription' ...
             };
 
             app.UITable.Data = app.emissionsTable(:, columnNames);
+                        app.UITable.ColumnName = { ...
+                'FREQUÊNCIA|(MHz)'; ...
+                'FREQUÊNCIA|CANAL (MHz)'; ...
+                'LARGURA|(kHz)'; ...
+                'NÍVEL|MÍNIMO (dB)'; ...
+                'NÍVEL|MÉDIO (dB)'; ...
+                'NÍVEL|MÁXIMO (dB)'; ...
+                'OCUPAÇÃO|TOTAL (%)'; ...
+                'OCUPAÇÃO|MÍNIMA (%)'; ...
+                'OCUPAÇÃO|MÉDIA (%)'; ...
+                'OCUPAÇÃO|MÁXIMA (%)'; ...
+                'POTÊNCIA MEDIDA|(dBµV/m)'; ...
+                'PREDIÇÃO P.526|E (dBµV/m)'; ...
+                'PREDIÇÃO P.1812|E (dBµV/m)'; ...
+                'MENOR ERRO DE|PREDIÇÃO (dB)'; ...
+                'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)' ...
+                };
+            app.UITable.ColumnWidth = [repmat({95}, 1, numel(columnNames)-1), {'auto'}];
             updateTableStyle(app)
 
             app.UITable.Selection = selectedRow;
@@ -357,21 +397,103 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             if ~isempty(invalidStationNumberIdxs)
                 addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'row', invalidStationNumberIdxs) 
             end
+
+                        updatePredictionWarningStyle(app)
         end
 
         %-----------------------------------------------------------------%
+        function updatePredictionWarningStyle(app)
+            % Alerta emissões cujo menor delta absoluto excede o limite configurado...
+            deltaPredictionLimit = app.mainApp.General.context.SIGNALANALYSIS.detection.deltaPrediction;
+            alertClassificationMismatch = arrayfun(@(x) x.UserModified.AlertClassificationMismatch, ...
+                app.emissionsTable.Classification(:));
+            predictionWarningIdxs = find(cellfun(@(x) isnumeric(x) && isscalar(x) && ...
+                ~isnan(x) && ~isinf(x) && abs(x) > deltaPredictionLimit, app.emissionsTable.Prediction_Delta(:)) & ...
+                alertClassificationMismatch);
+            if ~isempty(predictionWarningIdxs)
+                addStyle(app.UITable, uistyle('Icon', 'warning.svg', 'IconAlignment', 'leftmargin'), ...
+                    'cell', [predictionWarningIdxs, ones(numel(predictionWarningIdxs), 1)])
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        %-----------------------------------------------------------------%
+        function [signedDelta, absoluteDelta] = getSelectedPredictionMismatch(app, selectedRow)
+            signedDelta = [];
+            absoluteDelta = [];
+
+            measuredValue = app.emissionsTable.MeasuredValue{selectedRow};
+            if ~isnumeric(measuredValue) || ~isscalar(measuredValue) || ...
+                    isnan(measuredValue) || isinf(measuredValue)
+                return
+            end
+
+            predictedValues = { ...
+                app.emissionsTable.Prediction_E_P526{selectedRow}, ...
+                app.emissionsTable.Prediction_E_P1812{selectedRow} ...
+            };
+            validPredictions = cellfun(@(x) isnumeric(x) && isscalar(x) && ...
+                ~isnan(x) && ~isinf(x), predictedValues);
+            if ~any(validPredictions)
+                return
+            end
+
+            signedDeltas = measuredValue - [predictedValues{validPredictions}];
+            [absoluteDelta, minimumIdx] = min(abs(signedDeltas));
+            signedDelta = signedDeltas(minimumIdx);
+        end
+
+        %-----------------------------------------------------------------%
+        function updateAnalysisAlerts(app, selectedRow, classification)
+            app.AnaliseAlerts.Value = '';
+            app.AnaliseAlerts.BackgroundColor = [1, 1, 1];
+
+            [signedDelta, absoluteDelta] = getSelectedPredictionMismatch(app, selectedRow);
+            deltaPredictionLimit = app.mainApp.General.context.SIGNALANALYSIS.detection.deltaPrediction;
+            if isempty(absoluteDelta) || absoluteDelta <= deltaPredictionLimit
+                return
+            end
+
+            if signedDelta >= 0
+                direction = 'acima';
+            else
+                direction = 'abaixo';
+            end
+
+            app.AnaliseAlerts.Value = sprintf( ...
+                'O nível de sinal recebido está %.1f dB %s do valor predito.', ...
+                absoluteDelta, direction);
+
+            if classification.UserModified.AlertClassificationMismatch
+                app.AnaliseAlerts.BackgroundColor = [1, 1, 0];
+            end
+        end
+
         function updateSelectedEmissionFormAndPlot(app)
+            deltaPredictionLimit = app.mainApp.General.context.SIGNALANALYSIS.detection.deltaPrediction;
             if ~isempty(app.emissionsTable)
                 [flowIdx, emissionIdx] = getEmissionIndexes(app);
                 specData = app.mainApp.specData(flowIdx);
+                classification = specData.UserData.Emissions.Classification(emissionIdx);
+                app.SinalizarCheckBox.Value = classification.UserModified.AlertClassificationMismatch;
 
                 % Destaca célula selecionada...
                 selectedRow = app.UITable.Selection;
+                updateAnalysisAlerts(app, selectedRow, classification)
                 selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
                 if ~isempty(selectedRowOldStyleIdx)
                     removeStyle(app.UITable, selectedRowOldStyleIdx)
                 end
-                addStyle(app.UITable, uistyle('Icon', 'eye.svg', 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
+                updatePredictionWarningStyle(app)
+                selectedDelta = app.emissionsTable.Prediction_Delta{selectedRow};
+                if classification.UserModified.AlertClassificationMismatch && ...
+                        isnumeric(selectedDelta) && isscalar(selectedDelta) && ...
+                        ~isnan(selectedDelta) && ~isinf(selectedDelta) && abs(selectedDelta) > deltaPredictionLimit
+                    selectedIcon = 'warning.svg';
+                else
+                    selectedIcon = 'eye.svg';
+                end
+                addStyle(app.UITable, uistyle('Icon', selectedIcon, 'IconAlignment', 'leftmargin'), 'cell', [selectedRow, 1])
                 drawnow
 
                 [htmlContent1, ...
@@ -439,6 +561,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.ClassificationRefresh.Visible = 0;
                 app.SelectedEmissionPanelGrid.Visible = 0;
                 app.tool_ExportJSONFile.Enable = 0;
+                app.SinalizarCheckBox.Value = true;
+
+                app.AnaliseAlerts.Value = '';
+                app.AnaliseAlerts.BackgroundColor = [1, 1, 1];
+
             end
 
             updateRiskLevelStyle(app)
@@ -580,24 +707,37 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         function createRFLinkPlot(app, selectedRow, flowIdx)
             try
                 specData = app.mainApp.specData(flowIdx);
-
-                % OBJETOS TX e RX
-                [txObj, rxObj] = getRFLinkObjects(app, specData, selectedRow);
-    
-                % ELEVAÇÃO DO LINK TX-RX
-                % Validação que possibilitahabilitar o bloqueio de tela apenas 
-                % se a informação de elevação não estiver em cache.
-                if ~IsCached(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
-                    requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+                emissionIdx = app.emissionsTable.emissionIdx(selectedRow);
+                if util.isMergedEmission(specData.UserData.Emissions.Classification(emissionIdx))
+                    cla(app.UIAxes2)
+                    app.UIAxes2.PickableParts = "none";
+                    app.RFLinkWarning.Visible = 0;
+                    app.TXLocationEditConfirm.Enable = 0;
+                    if strcmp(app.progressDialog.Visible, 'visible')
+                        requestVisibilityChange(app.progressDialog, 'hidden', 'unlocked')
+                    end
+                    return
                 end
 
-                [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
-                if ~isempty(msgWarning)
-                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
+                % Predição de propagação (cache por emissão, reaproveitado
+                % pelas colunas da UITable calculadas em updateTable)...
+                predictionResult = getOrCalculateEmissionPrediction(app, specData, emissionIdx);
+
+                if ~predictionResult.IsCalculated
+                    error(predictionResult.ErrorMessage)
                 end
+
+                if ~isempty(predictionResult.ErrorMessage)
+                    ui.Dialog(app.UIFigure, 'warning', predictionResult.ErrorMessage);
+                end
+
+                txObj         = predictionResult.TxObj;
+                 rxObj         = predictionResult.RxObj;
+                wayPoints3D   = predictionResult.WayPoints3D;
+                preditionData = predictionResult.PreditionData;
     
                 % PLOT: RFLink
-                plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, 'dark')
+                plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, preditionData, 'dark')
                 app.UIAxes2.PickableParts = "visible";
                 app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.UIAxes2.XLim, 'yLim', app.UIAxes2.YLim, 'cLim', 'auto');
 
@@ -608,22 +748,23 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 end
                 
             catch ME
+
                 cla(app.UIAxes2)
                 app.UIAxes2.PickableParts = "none";
 
-                if exist('msgWarning', 'var') && ~isempty(msgWarning)
+                if ~isempty(ME.message)
                     msgText = { ...
                         'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
                         'E PROVÁVEL EMISSOR INDISPONÍVEL';  ...
-                        sprintf('(%s)', msgWarning) ...
-                    };
+                        sprintf('(%s)', ME.message) ...
+                        };
                 else
                     msgText = { ...
                         'PERFIL DE TERRENO ENTRE RECEPTOR';  ...
                         'E PROVÁVEL EMISSOR É LIMITADO ÀS';  ...
                         'ESTAÇÕES INCLUÍDAS NO RFDATAHUB';   ...
                         '(EXCETO VISUALIZAÇÃO TEMPORÁRIA)' ...
-                    };
+                        };
                 end
 
                 msgTextHandle = text(app.UIAxes2, mean(app.UIAxes2.XLim), mean(app.UIAxes2.YLim), msgText, 'BackgroundColor', [.8,.8,.8], 'HorizontalAlignment', 'center', 'FontSize', 10);
@@ -688,6 +829,9 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 case app.TXLocationEditConfirm % Latitude | Longitude | AntennaHeight
                     update(specData, 'UserData:Emissions', 'Edit', 'Latitude+Longitude+AntennaHeight', emissionIdx, app.TXLatitude.Value, app.TXLongitude.Value, app.TXAntennaHeight.Value)
 
+                case app.SinalizarCheckBox
+                    specData.UserData.Emissions.Classification(emissionIdx).UserModified.AlertClassificationMismatch = app.SinalizarCheckBox.Value;
+
                 otherwise
                     oldRegulatory = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Regulatory;
                     newRegulatory = app.Regulatory.Value;
@@ -726,30 +870,58 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function [txSite, rxSite] = getRFLinkObjects(app, specData, selectedRow)
-            % txSite e rxSite estão como struct, mas basta mudar para "txsite" e 
-            % "rxsite" que eles poderão ser usados em predições, uma vez que os 
-            % campos da estrutura são idênticos às propriedades dos objetos.
-            if (app.TXLatitude.Value == -1) && (app.TXLongitude.Value == -1)
-                error('winSignalAnalysis:RFLinkObjects:UnexpectedEmptyIndex', 'Unexpected empty index')
+        function predictionResult = getOrCalculateEmissionPrediction(app, specData, emissionIdx)
+            % getOrCalculateEmissionPrediction Calcula (ou reaproveita do
+            % cache) a predição de propagação de uma emissão, armazenando
+            % o resultado em specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis.
+            % O cache é considerado válido enquanto "StationHash" (localização
+            % TX, altura de antena, frequência do canal e detalhes RFDataHub)
+            % permanecer inalterado.
+            defaultTxAntennaHeight = app.mainApp.General.context.RFDATAHUB.tx.defaultHeight;
+
+            emptyResult = struct( ...
+                'StationHash', '', 'MeasuredValue', [], 'LevelUnit', '', ...
+                'P526', struct('Lb', [], 'E', [], 'Delta', []), ...
+                'P1812', struct('Lb', [], 'E', [], 'Delta', []), ...
+                'IsCalculated', false, 'ErrorMessage', '', ...
+                'WayPoints3D', [], 'TxObj', [], 'RxObj', [], 'PreditionData', [] ...
+                );
+
+            if util.isMergedEmission(specData.UserData.Emissions.Classification(emissionIdx))
+                predictionResult = emptyResult;
+                return
             end
 
-            % TX
-            txSite = struct( ...
-                'Name', 'TX', ...
-                'TransmitterFrequency', double(app.UITable.Data.Truncated(selectedRow) * 1e+6), ...
-                'Latitude', app.TXLatitude.Value, ...
-                'Longitude', app.TXLongitude.Value, ...
-                'AntennaHeight', app.TXAntennaHeight.Value ...
-            );
+            try
+                [txObj, rxObj, stationSignature] = util.buildRFLinkObjects(specData, emissionIdx, defaultTxAntennaHeight);
+            catch ME
+                predictionResult = emptyResult;
+                predictionResult.ErrorMessage = ME.message;
+                return
+            end
 
-            % RX
-            rxSite = struct( ...
-                'Name', 'RX', ...
-                'Latitude', specData.GPS.Latitude,  ...
-                'Longitude', specData.GPS.Longitude, ...
-                'AntennaHeight', calculateAntennaHeight(specData, 1, 10) ...
-            );
+            cached = specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis;
+            if ~isempty(cached) && isfield(cached, 'StationHash') && isfield(cached, 'IsCalculated') ...
+                    && strcmp(cached.StationHash, stationSignature) && cached.IsCalculated
+                predictionResult = cached;
+                return
+            end
+
+            % ELEVAÇÃO DO LINK TX-RX
+            % Validação que possibilita habilitar o bloqueio de tela apenas
+            % se a informação de elevação não estiver em cache.
+            if ~IsCached(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
+                requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
+            end
+
+            [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
+
+            predictionResult = util.calcEmissionPropagationPrediction(specData, emissionIdx, txObj, rxObj, wayPoints3D, stationSignature);
+            if ~isempty(msgWarning) && isempty(predictionResult.ErrorMessage)
+                predictionResult.ErrorMessage = msgWarning;
+            end
+
+            specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis = predictionResult;
         end
     end
 
@@ -940,7 +1112,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         % Callback function: AdditionalDescription, ClassificationRefresh, 
-        % ...and 2 other components
+        % ...and 3 other components
         function onOthersParametersValueChanged(app, event)
             
             switch event.Source
@@ -1180,9 +1352,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create UITable
             app.UITable = uitable(app.Document);
-            app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
-            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|MÍNIMO (dB)'; 'NÍVEL|MÉDIO (dB)'; 'NÍVEL|MÁXIMO (dB)'; 'OCUPAÇÃO|TOTAL (%)'; 'OCUPAÇÃO|MÍNIMA (%)'; 'OCUPAÇÃO|MÉDIA (%)'; 'OCUPAÇÃO|MÁXIMA (%)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
-            app.UITable.ColumnWidth = {95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 'auto'};
+            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|MÍNIMO (dB)'; 'NÍVEL|MÉDIO (dB)'; 'NÍVEL|MÁXIMO (dB)'; 'OCUPAÇÃO|TOTAL (%)'; 'OCUPAÇÃO|MÍNIMA (%)'; 'OCUPAÇÃO|MÉDIA (%)'; 'OCUPAÇÃO|MÁXIMA (%)'; 'POTENCIA|MEDIDA(E (dBµV/m)'; 'PREDIÇÃO P.526|E (dBµV/m);PREDIÇÃO P.1812|E (dBµV/m)'; 'MENOR ERRO DE|PREDIÇÃO (dB)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
+            app.UITable.ColumnWidth = {95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 95, 'auto'};
             app.UITable.RowName = {};
             app.UITable.ColumnSortable = true;
             app.UITable.SelectionType = 'row';
@@ -1195,7 +1366,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create AxesContainer
             app.AxesContainer = uipanel(app.Document);
             app.AxesContainer.AutoResizeChildren = 'off';
-            app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [5 6];
@@ -1264,7 +1434,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create SelectedEmissionPanel
             app.SelectedEmissionPanel = uipanel(app.SelectedEmissionGrid);
             app.SelectedEmissionPanel.AutoResizeChildren = 'off';
-            app.SelectedEmissionPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.SelectedEmissionPanel.BackgroundColor = [1 1 1];
             app.SelectedEmissionPanel.Layout.Row = [2 4];
             app.SelectedEmissionPanel.Layout.Column = [1 2];
@@ -1272,7 +1441,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create SelectedEmissionPanelGrid
             app.SelectedEmissionPanelGrid = uigridlayout(app.SelectedEmissionPanel);
             app.SelectedEmissionPanelGrid.ColumnWidth = {'1x', '1x', 67, 18};
-            app.SelectedEmissionPanelGrid.RowHeight = {108, 15, 22, 17, 22, 17, 22, 19, 61, 17, 22, 22, '1x'};
+            app.SelectedEmissionPanelGrid.RowHeight = {108, 15, 22, 17, 22, 17, 22, 19, 61, 17, 22, 17, 22, 22, '1x'};
             app.SelectedEmissionPanelGrid.RowSpacing = 5;
             app.SelectedEmissionPanelGrid.BackgroundColor = [1 1 1];
 
@@ -1501,7 +1670,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AdditionalDescriptionLabel = uilabel(app.SelectedEmissionPanelGrid);
             app.AdditionalDescriptionLabel.VerticalAlignment = 'bottom';
             app.AdditionalDescriptionLabel.FontSize = 11;
-            app.AdditionalDescriptionLabel.Layout.Row = 10;
+            app.AdditionalDescriptionLabel.Layout.Row = 12;
             app.AdditionalDescriptionLabel.Layout.Column = [1 3];
             app.AdditionalDescriptionLabel.Text = 'Informações adicionais:';
 
@@ -1509,14 +1678,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AdditionalDescription = uieditfield(app.SelectedEmissionPanelGrid, 'text');
             app.AdditionalDescription.ValueChangedFcn = createCallbackFcn(app, @onOthersParametersValueChanged, true);
             app.AdditionalDescription.FontSize = 11;
-            app.AdditionalDescription.Layout.Row = 11;
+            app.AdditionalDescription.Layout.Row = 13;
             app.AdditionalDescription.Layout.Column = [1 4];
 
             % Create LOGLabel
             app.LOGLabel = uilabel(app.SelectedEmissionPanelGrid);
             app.LOGLabel.VerticalAlignment = 'bottom';
             app.LOGLabel.FontSize = 10;
-            app.LOGLabel.Layout.Row = 12;
+            app.LOGLabel.Layout.Row = 14;
             app.LOGLabel.Layout.Column = [1 3];
             app.LOGLabel.Text = 'LOG';
 
@@ -1525,7 +1694,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.LOG.VerticalAlignment = 'top';
             app.LOG.WordWrap = 'on';
             app.LOG.FontSize = 11;
-            app.LOG.Layout.Row = 13;
+            app.LOG.Layout.Row = 15;
             app.LOG.Layout.Column = [1 4];
             app.LOG.Interpreter = 'html';
             app.LOG.Text = '';
@@ -1535,10 +1704,32 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.ClassificationRefresh.ScaleMethod = 'none';
             app.ClassificationRefresh.ImageClickedFcn = createCallbackFcn(app, @onOthersParametersValueChanged, true);
             app.ClassificationRefresh.Visible = 'off';
-            app.ClassificationRefresh.Layout.Row = 12;
+            app.ClassificationRefresh.Layout.Row = 14;
             app.ClassificationRefresh.Layout.Column = 4;
             app.ClassificationRefresh.VerticalAlignment = 'bottom';
             app.ClassificationRefresh.ImageSource = 'Refresh_18.png';
+
+            % Create TXLocationPanelLabel_2
+            app.TXLocationPanelLabel_2 = uilabel(app.SelectedEmissionPanelGrid);
+            app.TXLocationPanelLabel_2.VerticalAlignment = 'bottom';
+            app.TXLocationPanelLabel_2.FontSize = 11;
+            app.TXLocationPanelLabel_2.Layout.Row = 10;
+            app.TXLocationPanelLabel_2.Layout.Column = [1 2];
+            app.TXLocationPanelLabel_2.Text = 'Conformidade da analise:';
+
+            % Create AnaliseAlerts
+            app.AnaliseAlerts = uieditfield(app.SelectedEmissionPanelGrid, 'text');
+            app.AnaliseAlerts.FontSize = 11;
+            app.AnaliseAlerts.Layout.Row = 11;
+            app.AnaliseAlerts.Layout.Column = [1 4];
+
+            % Create SinalizarCheckBox
+            app.SinalizarCheckBox = uicheckbox(app.SelectedEmissionPanelGrid);
+            app.SinalizarCheckBox.ValueChangedFcn = createCallbackFcn(app, @onOthersParametersValueChanged, true);
+            app.SinalizarCheckBox.Text = 'Sinalizar';
+            app.SinalizarCheckBox.Layout.Row = 10;
+            app.SinalizarCheckBox.Layout.Column = [3 4];
+            app.SinalizarCheckBox.Value = true;
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
@@ -1625,7 +1816,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             % Create contextmenu_TruncateItem
             app.contextmenu_TruncateItem = uimenu(app.ContextMenu);
-            app.contextmenu_TruncateItem.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_TruncateItem.Text = '✏️ Editar';
 
             % Create contextmenu_ChannelEmission
@@ -1636,7 +1826,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create contextmenu_TruncateEmission
             app.contextmenu_TruncateEmission = uimenu(app.contextmenu_TruncateItem);
             app.contextmenu_TruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
-            app.contextmenu_TruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_TruncateEmission.Enable = 'off';
             app.contextmenu_TruncateEmission.Separator = 'on';
             app.contextmenu_TruncateEmission.Text = 'Truncar frequência';
@@ -1644,7 +1833,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create contextmenu_NonTruncateEmission
             app.contextmenu_NonTruncateEmission = uimenu(app.contextmenu_TruncateItem);
             app.contextmenu_NonTruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
-            app.contextmenu_NonTruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_NonTruncateEmission.Text = 'Não truncar';
 
             % Create contextmenu_DeleteEmission

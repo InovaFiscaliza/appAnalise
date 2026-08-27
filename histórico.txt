@@ -1,0 +1,399 @@
+>> srcDir = '/home/mlnunes/Documentos/dev/matlab/appAnalise/src';
+>> addpath(srcDir);
+>> matlabpath(pathdef());
+>> openProject('AppAnalise.prj')
+
+ans = 
+
+  Project with properties:
+
+                        Name: "appAnalise"
+                 Description: ""
+                  RootFolder: "/home/mlnunes/Documentos/dev/matlab/appAnalise"
+                    TopLevel: 1
+                    ReadOnly: 0
+         DefinitionFilesType: FixedPathMultiFile
+    SourceControlIntegration: "Git"
+          RepositoryLocation: "https://github.com/InovaFiscaliza/appAnalise"
+       SourceControlMessages: [1x3 string]
+                       Files: [1x297 matlab.project.ProjectFile]
+                   Shortcuts: [1x0 matlab.project.Shortcut]
+                  Categories: [1x1 matlab.project.Category]
+                Dependencies: [1x1 digraph]
+                StartupFiles: [1x0 string]
+               ShutdownFiles: [1x0 string]
+                 ProjectPath: [1x3 matlab.project.PathFolder]
+           ProjectReferences: [1x0 matlab.project.ProjectReference]
+        ProjectStartupFolder: "/home/mlnunes/Documentos/dev/matlab/appAnalise"
+         DependencyCacheFile: ""
+         SimulinkCacheFolder: ""
+       SimulinkCodeGenFolder: ""
+
+>> 
+>> appdesigner
+>> version
+
+ans =
+
+    '24.2.0.2740171 (R2024b) Update 1'
+
+K>> app.specData
+
+ans = 
+
+  1x19 SpecData array with properties:
+
+    Hash
+    InputFiles
+    IsUserModified
+    UserData
+    Receiver
+    MetaData
+    Data
+    GPS
+    RelatedFiles
+    FileMap
+    Enable
+
+K>> app.specData(3).UserData
+
+ans = 
+
+  UserData with properties:
+
+                AntennaHeightMeters: -1
+                   CalibrationCurve: [0x4 table]
+       ChannelLibraryRelatedIndexes: [4x1 double]
+                 ChannelUserDefined: [0x0 struct]
+           DetectionSubBandsEnabled: 0
+                  DetectionSubBands: [0x2 table]
+                          Emissions: [16x11 table]
+           OccupancyComputationMode: [1x1 struct]
+    OccupancyFiniteIntegrationCache: [1x1 struct]
+     OccupancyCumulativeIntegration: [2048x338 logical]
+                  PlotDisplayConfig: [1x1 struct]
+                      ReportInclude: 0
+                   ReportAlgorithms: [1x1 struct]
+                  ReportAttachments: [0x5 table]
+                     ReportChannels: []
+        ReportChannelAnalysisResult: []
+                                LOG: {}
+
+K>> app.specData(3).UserData.Emissions(4,:)
+
+ans =
+
+  1x11 table
+
+    Frequency    FrequencyIdx    BandWidthkHz    IsTruncated    Description    Algorithms     Measures     ChannelAssigned    Classification    AuxAppData                     Uuid                 
+    _________    ____________    ____________    ___________    ___________    __________    __________    _______________    ______________    __________    ______________________________________
+
+     90.911          1071           152.43          true            ""         1x1 struct    1x1 struct      1x1 struct         1x1 struct      1x1 struct    "b228dc01-ae1f-416a-8377-494bddabfec7"
+
+K>> app.specData(3).UserData.Emissions(4,:).Measures
+
+ans = 
+
+  struct with fields:
+
+        Level: [1x1 struct]
+          FCO: [1x1 struct]
+          FBO: [1x1 struct]
+    BandWidth: []
+
+
+K>> app.specData(3).UserData.Emissions(4,:).AuxAppData
+
+ans = 
+
+  struct with fields:
+
+         DriveTest: []
+
+    SignalAnalysis: [1x1 struct]
+
+K>> app.specData(3).UserData.Emissions(4,:).AuxAppData.SignalAnalysis
+
+ans = 
+
+  struct with fields:
+
+      StationHash: '-16.728201|-43.857800|25.00|90.900000|[{"AntennaAzimuth":"0.0","AntennaElevation":"4.0","AntennaGain":"3.22","AntennaPattern":"{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}","BW":256,"Description":"[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)","EmissionClass":"-1","Fistel":50446009385,"Frequency":90.9,"ID":"#30210","LineAccessoryLosses":"0.5","LineAttenuation":"0.609","LineLength":"30","Location":"Montes Claros","LocationID":"3143302","Log":1,"MergeCount":"1","Name":"Radio Terra De Montes Claros Ltda","Source":"MOSAICO-SRD","SpectrumActValidity":"2026-12-03","State":"MG","StationClass":"A1","Status":"FM-C4","TowerBaseElevation":"-1","TransmitterPower":"5000.0","URL":"http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4","x_Location":"montes claros","x_Name":"radio terra de montes claros ltda"}]'
+    MeasuredValue: 94.5000
+        LevelUnit: 'dBµV/m'
+             P526: [1x1 struct]
+            P1812: [1x1 struct]
+     IsCalculated: 1
+     ErrorMessage: ''
+      WayPoints3D: [256x3 double]
+            TxObj: [1x1 struct]
+            RxObj: [1x1 struct]
+    PreditionData: [1x1 struct]
+
+K>> app.specData(3).UserData.Emissions(4,:).AuxAppData.SignalAnalysis.P526
+
+ans = 
+
+  struct with fields:
+
+       Lb: 108.3440
+        E: 76.0680
+    Delta: 18.4320
+
+K>> app.specData(3).UserData.Emissions(4,:).Calssification
+Error using () (line 132)
+Unrecognized table variable name 'Calssification'.
+ 
+K>> app.specData(3).UserData.Emissions(4,:).Classification
+
+ans = 
+
+  struct with fields:
+
+    AutoSuggested: [1x1 struct]
+     UserModified: [1x1 struct]
+
+K>> app.specData(3).UserData.Emissions(4,:).Classification.AutoSuggested
+
+ans = 
+
+  struct with fields:
+
+          Service: 230
+          Station: 1015586578
+         Latitude: -16.7282
+        Longitude: -43.8578
+    AntennaHeight: 25
+      Description: '[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda (Fistel = 50446009385, Estação = 1015586578), Montes Claros/MG @ (Latitude = -16.728201º, Longitude = -43.857800º)'
+          Details: '[{"AntennaAzimuth":"0.0","AntennaElevation":"4.0","AntennaGain":"3.22","AntennaPattern":"{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}","BW":256,"Description":"[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)","EmissionClass":"-1","Fistel":50446009385,"Frequency":90.9,"ID":"#30210","LineAccessoryLosses":"0.5","LineAttenuation":"0.609","LineLength":"30","Location":"Montes Claros","LocationID":"3143302","Log":1,"MergeCount":"1","Name":"Radio Terra De Montes Claros Ltda","Source":"MOSAICO-SRD","SpectrumActValidity":"2026-12-03","State":"MG","StationClass":"A1","Status":"FM-C4","TowerBaseElevation":"-1","TransmitterPower":"5000.0","URL":"http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4","x_Location":"montes claros","x_Name":"radio terra de montes claros ltda"}]'
+         Distance: 5.7051
+       Regulatory: 'Licenciada'
+     EmissionType: 'Fundamental'
+        Irregular: 'Não'
+        RiskLevel: '-'
+
+K>> app.specData(3).UserData.Emissions(4,:).Classification.UserModified
+
+ans = 
+
+  struct with fields:
+
+          Service: 230
+          Station: 1015586578
+         Latitude: -16.7282
+        Longitude: -43.8578
+    AntennaHeight: 25
+      Description: '[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda (Fistel = 50446009385, Estação = 1015586578), Montes Claros/MG @ (Latitude = -16.728201º, Longitude = -43.857800º)'
+          Details: '[{"AntennaAzimuth":"0.0","AntennaElevation":"4.0","AntennaGain":"3.22","AntennaPattern":"{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}","BW":256,"Description":"[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)","EmissionClass":"-1","Fistel":50446009385,"Frequency":90.9,"ID":"#30210","LineAccessoryLosses":"0.5","LineAttenuation":"0.609","LineLength":"30","Location":"Montes Claros","LocationID":"3143302","Log":1,"MergeCount":"1","Name":"Radio Terra De Montes Claros Ltda","Source":"MOSAICO-SRD","SpectrumActValidity":"2026-12-03","State":"MG","StationClass":"A1","Status":"FM-C4","TowerBaseElevation":"-1","TransmitterPower":"5000.0","URL":"http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4","x_Location":"montes claros","x_Name":"radio terra de montes claros ltda"}]'
+         Distance: 5.7051
+       Regulatory: 'Licenciada'
+     EmissionType: 'Fundamental'
+        Irregular: 'Não'
+        RiskLevel: '-'
+
+K>> app.specData(3).UserData.Emissions(4,:).Classification.UserModified
+
+ans = 
+
+  struct with fields:
+
+          Service: 230
+          Station: 1015586578
+         Latitude: -16.7282
+        Longitude: -43.8578
+    AntennaHeight: 25
+      Description: '[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda (Fistel = 50446009385, Estação = 1015586578), Montes Claros/MG @ (Latitude = -16.728201º, Longitude = -43.857800º)'
+          Details: '[{"AntennaAzimuth":"0.0","AntennaElevation":"4.0","AntennaGain":"3.22","AntennaPattern":"{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}","BW":256,"Description":"[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)","EmissionClass":"-1","Fistel":50446009385,"Frequency":90.9,"ID":"#30210","LineAccessoryLosses":"0.5","LineAttenuation":"0.609","LineLength":"30","Location":"Montes Claros","LocationID":"3143302","Log":1,"MergeCount":"1","Name":"Radio Terra De Montes Claros Ltda","Source":"MOSAICO-SRD","SpectrumActValidity":"2026-12-03","State":"MG","StationClass":"A1","Status":"FM-C4","TowerBaseElevation":"-1","TransmitterPower":"5000.0","URL":"http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4","x_Location":"montes claros","x_Name":"radio terra de montes claros ltda"}]'
+         Distance: 5.7051
+       Regulatory: 'Licenciada'
+     EmissionType: 'Fundamental'
+        Irregular: 'Sim'
+        RiskLevel: 'Baixo'
+
+>> app.specData(3).UserData.Emissions(end,:)
+Unrecognized method, property, or field 'specData' for class 'auxApp.winPlayback'.
+ 
+K>> app.specData(3).UserData.Emissions(end,:)
+
+ans =
+
+  1x11 table
+
+    Frequency    FrequencyIdx    BandWidthkHz    IsTruncated    Description    Algorithms     Measures     ChannelAssigned    Classification    AuxAppData                     Uuid                 
+    _________    ____________    ____________    ___________    ___________    __________    __________    _______________    ______________    __________    ______________________________________
+
+     106.51          1870           97.704          true            ""         1x1 struct    1x1 struct      1x1 struct         1x1 struct      1x1 struct    "955e6fc8-2d82-4690-bcc3-1192dd3f1d61"
+
+K>> app.specData(3).UserData.Emissions(end,:).AuxAppData
+
+ans = 
+
+  struct with fields:
+
+         DriveTest: []
+
+    SignalAnalysis: []
+
+
+K>> app.specData(3).UserData.Emissions(end,:).Classification
+
+ans = 
+
+  struct with fields:
+
+    AutoSuggested: [1x1 struct]
+     UserModified: [1x1 struct]
+
+K>> app.specData(3).UserData.Emissions(end,:).Classification.AutoSuggested
+
+ans = 
+
+  struct with fields:
+
+          Service: -1
+          Station: -1
+         Latitude: -1
+        Longitude: -1
+    AntennaHeight: 0
+      Description: '-'
+          Details: ''
+         Distance: -1
+       Regulatory: 'Não licenciada'
+     EmissionType: 'Pendente identificação'
+        Irregular: 'Sim'
+        RiskLevel: 'Baixo'
+
+K>> app.specData(10).UserData.Emissions(end,:).Classification.AutoSuggested
+
+ans = 
+
+  struct with fields:
+
+          Service: 10
+          Station: 687371619
+         Latitude: -16.7282
+        Longitude: -43.8578
+    AntennaHeight: 0
+      Description: '[MOSAICO-LIC] L, FB, Claro S.A. (Fistel = 50409307637, Estação = 687371619, M=77), Montes Claros/MG @ (Latitude = -16.728201º, Longitude = -43.857800º)'
+          Details: '[{"AntennaAzimuth":"-1","AntennaElevation":"-1","AntennaGain":"-1","AntennaPattern":"-1","BW":10000,"Description":"[MOSAICO-LIC] L, FB, Claro S.A., Montes Claros/MG (M=77)","EmissionClass":"G7W","Fistel":50409307637,"Frequency":798,"ID":"#597470","LineAccessoryLosses":"-1","LineAttenuation":"-1","LineLength":"-1","Location":"Montes Claros","LocationID":"3143302","Log":53061,"MergeCount":"77","Name":"Claro S.A.","Source":"MOSAICO-LIC","SpectrumActValidity":"2029-12-08","State":"MG","StationClass":"FB","Status":"L","TowerBaseElevation":"-1","TransmitterPower":"-1","URL":"-1","x_Location":"montes claros","x_Name":"claro s a"}]'
+         Distance: 5.7051
+       Regulatory: 'Licenciada'
+     EmissionType: 'Fundamental'
+        Irregular: 'Não'
+        RiskLevel: '-'
+
+K>> app.specData(3).UserData.Emissions(end,:).Classification.AutoSuggested
+
+ans = 
+
+  struct with fields:
+
+          Service: -1
+          Station: -1
+         Latitude: -1
+        Longitude: -1
+    AntennaHeight: 0
+      Description: '-'
+          Details: ''
+         Distance: -1
+       Regulatory: 'Não licenciada'
+     EmissionType: 'Pendente identificação'
+        Irregular: 'Sim'
+        RiskLevel: 'Baixo'
+
+K>> app.specData(3).UserData.Emissions(4,:).Classification.AutoSuggested
+
+ans = 
+
+  struct with fields:
+
+          Service: 230
+          Station: 1015586578
+         Latitude: -16.7282
+        Longitude: -43.8578
+    AntennaHeight: 25
+      Description: '[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda (Fistel = 50446009385, Estação = 1015586578), Montes Claros/MG @ (Latitude = -16.728201º, Longitude = -43.857800º)'
+          Details: '[{"AntennaAzimuth":"0.0","AntennaElevation":"4.0","AntennaGain":"3.22","AntennaPattern":"{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}","BW":256,"Description":"[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)","EmissionClass":"-1","Fistel":50446009385,"Frequency":90.9,"ID":"#30210","LineAccessoryLosses":"0.5","LineAttenuation":"0.609","LineLength":"30","Location":"Montes Claros","LocationID":"3143302","Log":1,"MergeCount":"1","Name":"Radio Terra De Montes Claros Ltda","Source":"MOSAICO-SRD","SpectrumActValidity":"2026-12-03","State":"MG","StationClass":"A1","Status":"FM-C4","TowerBaseElevation":"-1","TransmitterPower":"5000.0","URL":"http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4","x_Location":"montes claros","x_Name":"radio terra de montes claros ltda"}]'
+         Distance: 5.7051
+       Regulatory: 'Licenciada'
+     EmissionType: 'Fundamental'
+        Irregular: 'Não'
+        RiskLevel: '-'
+
+K>> s = jsondecode(app.specData(3).UserData.Emissions(4,:).Classification.AutoSuggested.Details)
+
+s = 
+
+  struct with fields:
+
+         AntennaAzimuth: '0.0'
+       AntennaElevation: '4.0'
+            AntennaGain: '3.22'
+         AntennaPattern: '{'0': 1.02, '5': 1.02, '10': 1.02, '15': 1.1, '20': 1.1, '25': 1.1, '30': 1.1, '35': 1.1, '40': 1.19, '45': 1.28, '50': 1.37, '55': 1.37, '60': 1.46, '65': 1.55, '70': 1.65, '75': 1.74, '80': 1.74, '85': 1.84, '90': 1.84, '95': 1.93, '100': 1.93, '105': 2.03, '110': 2.03, '115': 2.13, '120': 2.13, '125': 2.13, '130': 2.13, '135': 2.13, '140': 2.13, '145': 2.13, '150': 2.13, '155': 2.23, '160': 2.23, '165': 2.23, '170': 2.23, '175': 2.23, '180': 2.23, '185': 2.23, '190': 2.23, '195': 2.23, '200': 2.23, '205': 2.23, '210': 2.13, '215': 2.13, '220': 2.13, '225': 2.13, '230': 2.13, '235': 2.13, '240': 2.13, '245': 2.03, '250': 2.03, '255': 2.03, '260': 2.03, '265': 1.93, '270': 1.93, '275': 1.84, '280': 1.84, '285': 1.84, '290': 1.74, '295': 1.65, '300': 1.55, '305': 1.55, '310': 1.46, '315': 1.37, '320': 1.37, '325': 1.28, '330': 1.19, '335': 1.19, '340': 1.1, '345': 1.1, '350': 1.02, '355': 1.02}'
+                     BW: 256
+            Description: '[MOSAICO-SRD] FM-C4, A1, Radio Terra De Montes Claros Ltda, Montes Claros/MG (M=1)'
+          EmissionClass: '-1'
+                 Fistel: 5.0446e+10
+              Frequency: 90.9000
+                     ID: '#30210'
+    LineAccessoryLosses: '0.5'
+        LineAttenuation: '0.609'
+             LineLength: '30'
+               Location: 'Montes Claros'
+             LocationID: '3143302'
+                    Log: 1
+             MergeCount: '1'
+                   Name: 'Radio Terra De Montes Claros Ltda'
+                 Source: 'MOSAICO-SRD'
+    SpectrumActValidity: '2026-12-03'
+                  State: 'MG'
+           StationClass: 'A1'
+                 Status: 'FM-C4'
+     TowerBaseElevation: '-1'
+       TransmitterPower: '5000.0'
+                    URL: 'http://sistemas.anatel.gov.br/se/eApp/reports/b/srd/resumo_sistema.php?id=57dbac559cba1&state=FM-C4'
+             x_Location: 'montes claros'
+                 x_Name: 'radio terra de montes claros ltda'
+
+K>> app.General
+
+ans = 
+
+  struct with fields:
+
+          version: 1.5100
+    operationMode: [1x1 struct]
+     computerName: [1x1 struct]
+       fileFolder: [1x1 struct]
+          context: [1x1 struct]
+             plot: [1x1 struct]
+        elevation: [1x1 struct]
+        reportLib: [1x1 struct]
+       eFiscaliza: [1x1 struct]
+       AppVersion: [1x1 struct]
+
+K>> app.General.contexto
+Unrecognized field name "contexto".
+ 
+K>> app.General.context
+
+ans = 
+
+  struct with fields:
+
+              FILE: [1x1 struct]
+          PLAYBACK: [1x1 struct]
+         DRIVETEST: [1x1 struct]
+    SIGNALANALYSIS: []
+         RFDATAHUB: [1x1 struct]
+           REPOSFI: [1x1 struct]
+
+K>> app.mainApp.General.context.SIGNALANALYSIS
+Unrecognized method, property, or field 'mainApp' for class 'winAppAnalise'.
+ 
+K>> app.specData(3).UserData.Emissions(4,:).Classification.UserModified
+
+
+opencode -s ses_fc24a4528ffeYAQJwMJ6RNHqj0
+Preencher o campo conformidade da análise
+O nível de sinal recebido está (X) dB (acima/abaixo) do valor predito.
