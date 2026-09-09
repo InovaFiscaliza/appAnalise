@@ -36,3 +36,6 @@ codegen/
 
 # Cloud based storage dotfile
 .MATLABDriveTag
+
+# Local MATLAB command history
+/histórico.txt

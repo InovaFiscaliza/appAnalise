@@ -16,8 +16,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         SelectedEmissionGrid          matlab.ui.container.GridLayout
         SelectedEmissionPanel         matlab.ui.container.Panel
         SelectedEmissionPanelGrid     matlab.ui.container.GridLayout
+        AnaliseAlerts                 matlab.ui.control.TextArea
         SinalizarCheckBox             matlab.ui.control.CheckBox
-        AnaliseAlerts                 matlab.ui.control.EditField
         TXLocationPanelLabel_2        matlab.ui.control.Label
         ClassificationRefresh         matlab.ui.control.Image
         LOG                           matlab.ui.control.Label
@@ -404,12 +404,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function updatePredictionWarningStyle(app)
             % Alerta emissões cujo menor delta absoluto excede o limite configurado...
-            deltaPredictionLimit = app.mainApp.General.context.SIGNALANALYSIS.detection.deltaPrediction;
-            alertClassificationMismatch = arrayfun(@(x) x.UserModified.AlertClassificationMismatch, ...
-                app.emissionsTable.Classification(:));
-            predictionWarningIdxs = find(cellfun(@(x) isnumeric(x) && isscalar(x) && ...
-                ~isnan(x) && ~isinf(x) && abs(x) > deltaPredictionLimit, app.emissionsTable.Prediction_Delta(:)) & ...
-                alertClassificationMismatch);
+            predictionWarningFlags = false(height(app.emissionsTable), 1);
+            for ii = 1:height(app.emissionsTable)
+                predictionWarningFlags(ii) = getPredictionWarningState( ...
+                    app, ii, app.emissionsTable.Classification(ii));
+            end
+            predictionWarningIdxs = find(predictionWarningFlags);
             if ~isempty(predictionWarningIdxs)
                 addStyle(app.UITable, uistyle('Icon', 'warning.svg', 'IconAlignment', 'leftmargin'), ...
                     'cell', [predictionWarningIdxs, ones(numel(predictionWarningIdxs), 1)])
@@ -417,8 +417,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        %-----------------------------------------------------------------%
         function [signedDelta, absoluteDelta] = getSelectedPredictionMismatch(app, selectedRow)
+            [signedDelta, absoluteDelta] = getPredictionMismatch(app, selectedRow);
+        end
+
+        %-----------------------------------------------------------------%
+        function [signedDelta, absoluteDelta] = getPredictionMismatch(app, selectedRow)
             signedDelta = [];
             absoluteDelta = [];
 
@@ -444,7 +448,30 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function updateAnalysisAlerts(app, selectedRow, classification)
+        function [isWarning, signedDelta, absoluteDelta] = getPredictionWarningState(app, selectedRow, classification)
+            [signedDelta, absoluteDelta] = getPredictionMismatch(app, selectedRow);
+            deltaPredictionLimit = app.mainApp.General.context.SIGNALANALYSIS.detection.deltaPrediction;
+
+            cachedDelta = app.emissionsTable.Prediction_Delta{selectedRow};
+            hasCachedDelta = isnumeric(cachedDelta) && isscalar(cachedDelta) && ...
+                ~isnan(cachedDelta) && ~isinf(cachedDelta) && isfinite(cachedDelta);
+            if hasCachedDelta
+                absoluteDelta = cachedDelta;
+            end
+
+            alertEnabled = classification.UserModified.AlertClassificationMismatch;
+            if isempty(alertEnabled)
+                alertEnabled = false;
+            else
+                alertEnabled = logical(alertEnabled);
+            end
+
+            isWarning = alertEnabled && ~isempty(absoluteDelta) && ...
+                absoluteDelta > deltaPredictionLimit;
+        end
+
+        %-----------------------------------------------------------------%
+        function updateAnalysisAlerts(app, selectedRow, classification, hasFirstObstruction)
             app.AnaliseAlerts.Value = '';
             app.AnaliseAlerts.BackgroundColor = [1, 1, 1];
 
@@ -463,6 +490,17 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.AnaliseAlerts.Value = sprintf( ...
                 'O nível de sinal recebido está %.1f dB %s do valor predito.', ...
                 absoluteDelta, direction);
+            analysisAlertText = app.AnaliseAlerts.Value{1};
+
+            if signedDelta > deltaPredictionLimit && hasFirstObstruction
+                analysisAlertText = sprintf( ...
+                    '%s, apesar de observarmos uma obstrução na primeira zona de Fresnel entre o provável transmissor e a estação de monitoragem.', ...
+                    analysisAlertText);
+            else
+                analysisAlertText = [analysisAlertText, '.'];
+            end
+
+            app.AnaliseAlerts.Value = {analysisAlertText};
 
             if classification.UserModified.AlertClassificationMismatch
                 app.AnaliseAlerts.BackgroundColor = [1, 1, 0];
@@ -479,16 +517,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 % Destaca célula selecionada...
                 selectedRow = app.UITable.Selection;
-                updateAnalysisAlerts(app, selectedRow, classification)
-                selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
+               selectedRowOldStyleIdx = find(cellfun(@(x) numel(x) > 1 && isequal(x(2), 1), app.UITable.StyleConfigurations.TargetIndex));
                 if ~isempty(selectedRowOldStyleIdx)
                     removeStyle(app.UITable, selectedRowOldStyleIdx)
                 end
                 updatePredictionWarningStyle(app)
-                selectedDelta = app.emissionsTable.Prediction_Delta{selectedRow};
-                if classification.UserModified.AlertClassificationMismatch && ...
-                        isnumeric(selectedDelta) && isscalar(selectedDelta) && ...
-                        ~isnan(selectedDelta) && ~isinf(selectedDelta) && abs(selectedDelta) > deltaPredictionLimit
+                [isWarning, ~, ~] = getPredictionWarningState( ...
+                    app, selectedRow, classification);
+                if isWarning
                     selectedIcon = 'warning.svg';
                 else
                     selectedIcon = 'eye.svg';
@@ -539,7 +575,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
     
                 % PLOT
                 createSpectrumPlot(app, specData, emissionIdx, emissionTag)
-                createRFLinkPlot(app, selectedRow, flowIdx)
+                hasFirstObstruction = createRFLinkPlot(app, selectedRow, flowIdx);
+                updateAnalysisAlerts(app, selectedRow, classification, hasFirstObstruction)
                 
                 app.SelectedEmissionPanelGrid.Visible = 1;
                 app.tool_ExportJSONFile.Enable = 1;
@@ -704,7 +741,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function createRFLinkPlot(app, selectedRow, flowIdx)
+        function hasFirstObstruction = createRFLinkPlot(app, selectedRow, flowIdx)
+            hasFirstObstruction = false;
             try
                 specData = app.mainApp.specData(flowIdx);
                 emissionIdx = app.emissionsTable.emissionIdx(selectedRow);
@@ -737,11 +775,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 preditionData = predictionResult.PreditionData;
     
                 % PLOT: RFLink
-                plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, preditionData, 'dark')
+                hasFirstObstruction = plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, preditionData, 'dark');
                 app.UIAxes2.PickableParts = "visible";
                 app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.UIAxes2.XLim, 'yLim', app.UIAxes2.YLim, 'cLim', 'auto');
 
-                if isempty(findobj(app.UIAxes2.Children, 'Tag', 'FirstObstruction'))
+                if ~hasFirstObstruction
                     app.RFLinkWarning.Visible = 0;
                 else
                     app.RFLinkWarning.Visible = 1;
@@ -1441,7 +1479,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create SelectedEmissionPanelGrid
             app.SelectedEmissionPanelGrid = uigridlayout(app.SelectedEmissionPanel);
             app.SelectedEmissionPanelGrid.ColumnWidth = {'1x', '1x', 67, 18};
-            app.SelectedEmissionPanelGrid.RowHeight = {108, 15, 22, 17, 22, 17, 22, 19, 61, 17, 22, 17, 22, 22, '1x'};
+            app.SelectedEmissionPanelGrid.RowHeight = {108, 15, 22, 17, 22, 17, 22, 19, 61, 17, 56, 17, 22, 22, '1x'};
             app.SelectedEmissionPanelGrid.RowSpacing = 5;
             app.SelectedEmissionPanelGrid.BackgroundColor = [1 1 1];
 
@@ -1717,12 +1755,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.TXLocationPanelLabel_2.Layout.Column = [1 2];
             app.TXLocationPanelLabel_2.Text = 'Conformidade da analise:';
 
-            % Create AnaliseAlerts
-            app.AnaliseAlerts = uieditfield(app.SelectedEmissionPanelGrid, 'text');
-            app.AnaliseAlerts.FontSize = 11;
-            app.AnaliseAlerts.Layout.Row = 11;
-            app.AnaliseAlerts.Layout.Column = [1 4];
-
             % Create SinalizarCheckBox
             app.SinalizarCheckBox = uicheckbox(app.SelectedEmissionPanelGrid);
             app.SinalizarCheckBox.ValueChangedFcn = createCallbackFcn(app, @onOthersParametersValueChanged, true);
@@ -1730,6 +1762,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.SinalizarCheckBox.Layout.Row = 10;
             app.SinalizarCheckBox.Layout.Column = [3 4];
             app.SinalizarCheckBox.Value = true;
+
+            % Create AnaliseAlerts
+            app.AnaliseAlerts = uitextarea(app.SelectedEmissionPanelGrid);
+            app.AnaliseAlerts.Editable = 'off';
+            app.AnaliseAlerts.Layout.Row = 11;
+            app.AnaliseAlerts.Layout.Column = [1 4];
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);

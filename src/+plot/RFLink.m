@@ -1,4 +1,4 @@
-function RFLink(hAxes, txSite, rxSite, wayPoints3D, preditionData, plotMode, rotateViewFlag, footnoteFlag, clutterCategories, clutterHeights, fieldStrengthData)
+function hasFirstObstruction = RFLink(hAxes, txSite, rxSite, wayPoints3D, preditionData, plotMode, rotateViewFlag, footnoteFlag, clutterCategories, clutterHeights, fieldStrengthData)
     arguments
         hAxes
         txSite
@@ -31,7 +31,8 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, preditionData, plotMode, rot
     d1  = double(d1); % força double porque fspl só aceita double
     vq  = interp1([0, distM], [txAntenna, rxAntenna], d1, 'linear');    
     PL  = fspl(d1, physconst('LightSpeed')/txSite.TransmitterFrequency);
-    [~, xFirstObstruction] = RF.Propagation.LOS(wayPoints3D(:,3), vq, Rn);
+    [hasFirstObstruction, obstructionDistance, obstructionElevation] = ...
+        util.hasFirstFresnelObstruction(txSite, rxSite, wayPoints3D);
 
     % (c) Cores
     [faceColorTerrain, ...
@@ -71,8 +72,8 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, preditionData, plotMode, rot
     hTerrainTable = table(wayPoints3D(:,1), wayPoints3D(:,2), wayPoints3D(:,3), 'VariableNames', {'Latitude', 'Longitude', 'Elevation'});
     plot.datatip.Template(hTerrain, 'RFLink.Terrain', hTerrainTable)
 
-    if ~isempty(xFirstObstruction)
-        stem(hAxes, d1(xFirstObstruction)/1000, wayPoints3D(xFirstObstruction,3), 'filled', 'Marker', 'square', 'MarkerSize', 8, 'MarkerFaceColor', colorObstruction, 'LineStyle', '-.', 'Color', colorObstruction, 'PickableParts', 'none', 'Tag', 'FirstObstruction');
+    if hasFirstObstruction
+        stem(hAxes, obstructionDistance/1000, obstructionElevation, 'filled', 'Marker', 'square', 'MarkerSize', 8, 'MarkerFaceColor', colorObstruction, 'LineStyle', '-.', 'Color', colorObstruction, 'PickableParts', 'none', 'Tag', 'FirstObstruction');
     end
     
     % (b) Estações TX e RX
