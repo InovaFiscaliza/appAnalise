@@ -82,7 +82,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         channelObj
         elevationObj = RF.Elevation
         kmlObj
-        dbHandlerObj
+        webFusionHandlerObj
 
         rfDataHub
         rfDataHubLOG
@@ -1553,8 +1553,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 end
             end
 
-            if ~isempty(app.dbHandlerObj)
-                delete(app.dbHandlerObj)
+            if ~isempty(app.webFusionHandlerObj)
+                delete(app.webFusionHandlerObj)
             end
 
             % Aspectos gerais (comum em todos os apps):
@@ -2027,7 +2027,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.SubTab1.AutoResizeChildren = 'off';
             app.SubTab1.Title = 'ARQUIVOS';
             app.SubTab1.BackgroundColor = 'none';
-            app.SubTab1.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
 
             % Create SubGrid1
             app.SubGrid1 = uigridlayout(app.SubTab1);
@@ -2107,7 +2106,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             % Create FileFilterValueText
             app.FileFilterValueText = uieditfield(app.SubGrid2, 'text');
             app.FileFilterValueText.FontSize = 11;
-            app.FileFilterValueText.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FileFilterValueText.Layout.Row = 2;
             app.FileFilterValueText.Layout.Column = 1;
 
@@ -2116,7 +2114,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileFilterValueList.Items = {};
             app.FileFilterValueList.Visible = 'off';
             app.FileFilterValueList.FontSize = 11;
-            app.FileFilterValueList.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FileFilterValueList.BackgroundColor = [1 1 1];
             app.FileFilterValueList.Layout.Row = 2;
             app.FileFilterValueList.Layout.Column = 1;
@@ -2134,7 +2131,6 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.FileFilterTree = uitree(app.SubGrid2);
             app.FileFilterTree.Multiselect = 'on';
             app.FileFilterTree.FontSize = 11;
-            app.FileFilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FileFilterTree.Layout.Row = [1 2];
             app.FileFilterTree.Layout.Column = 3;
 

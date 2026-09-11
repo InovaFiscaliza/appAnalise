@@ -60,7 +60,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         UIAxes
         UIAxesLimits = struct('LatitudeLimits', [-90, 90], 'LongitudeLimits', [-180, 180])
         
-        dbHandlerObj
+        webFusionHandlerObj
         dbCacheData        
         dbReference
         dbReferenceSummary
@@ -171,16 +171,16 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function initializeAppProperties(app)
             warningMsg = '';
-            if isempty(app.mainApp.dbHandlerObj) || ~isvalid(app.mainApp.dbHandlerObj)
-                [app.mainApp.dbHandlerObj, warningMsg] = util.DBHandler(app.mainApp.General);
+            if isempty(app.mainApp.webFusionHandlerObj) || ~isvalid(app.mainApp.webFusionHandlerObj)
+                [app.mainApp.webFusionHandlerObj, warningMsg] = util.WebFusionHandler(app.mainApp.General);
             end
 
             if ~isempty(warningMsg)
                 ui.Dialog(app.UIFigure, 'warning', warningMsg);
             end
 
-            app.dbHandlerObj = app.mainApp.dbHandlerObj;
-            app.dbCacheData = app.dbHandlerObj.CacheData;
+            app.webFusionHandlerObj = app.mainApp.webFusionHandlerObj;
+            app.dbCacheData = app.webFusionHandlerObj.CacheData;
 
             % Cria tabela de referência, que pode vir a ser entregue diretamente
             % pelo banco, ordenando-a por "Location". Posteriormente, ordena-se
@@ -223,7 +223,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             initializeAxes(app)
 
             app.State.Items = [{''}, cellstr(unique([app.dbCacheData.points.state_code]))];
-            cacheUpdatedAt = strsplit(app.dbHandlerObj.CacheUpdatedAt, ' ');
+            cacheUpdatedAt = strsplit(app.webFusionHandlerObj.CacheUpdatedAt, ' ');
             app.CacheUpdatedAt.Text = sprintf('%s às %s', cacheUpdatedAt{2}, cacheUpdatedAt{1});
         end
 
@@ -935,7 +935,6 @@ end
             app.ModuleIntro.VerticalAlignment = 'top';
             app.ModuleIntro.WordWrap = 'on';
             app.ModuleIntro.FontSize = 11;
-            app.ModuleIntro.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ModuleIntro.Layout.Row = 1;
             app.ModuleIntro.Layout.Column = [3 5];
             app.ModuleIntro.Interpreter = 'html';
