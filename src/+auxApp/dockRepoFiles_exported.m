@@ -54,7 +54,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        dbHandlerObj
+        webFusionHandlerObj
         dbCacheData
         dbReference
         dbMatchMask
@@ -100,7 +100,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app, dbCacheData, dbReference)
-            app.dbHandlerObj = app.mainApp.dbHandlerObj;
+            app.webFusionHandlerObj = app.mainApp.webFusionHandlerObj;
             app.dbCacheData = dbCacheData;
             app.dbReference = dbReference;
         end
@@ -226,8 +226,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 description{end+1} = sprintf('Sensor:<b>%s</b>', currentFilter.receiver);
             end
 
-            if ~isnat(currentFilter.startDate) && ~isnat(currentFilter.endDate)
+             if ~isnat(currentFilter.startDate) && ~isnat(currentFilter.endDate)
                 description{end+1} = sprintf('Observação: <b>%s a %s</b>', string(currentFilter.startDate), string(currentFilter.endDate));
+            elseif ~isnat(currentFilter.startDate)
+                description{end+1} = sprintf('Observação: <b>a partir de %s</b>', string(currentFilter.startDate));
+            elseif ~isnat(currentFilter.endDate)
+                description{end+1} = sprintf('Observação: <b>até %s</b>', string(currentFilter.endDate));
             end
 
             if ~isnan(currentFilter.freqStart) && ~isnan(currentFilter.freqEnd)
@@ -252,7 +256,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             isPeriodBeginNaT = isnat(app.PeriodBegin.Value);
             isPeriodEndNaT   = isnat(app.PeriodEnd.Value);
-            if xor(isPeriodBeginNaT, isPeriodEndNaT) || (~isPeriodBeginNaT && ~isPeriodEndNaT && app.PeriodEnd.Value < app.PeriodBegin.Value)
+            
+            % Os limites são independentes: início sem fim significa "a partir de"
+            % e fim sem início significa "até". A ordem só é verificável quando
+            % ambos os controles possuem uma data.
+                        
+            if ~isPeriodBeginNaT && ~isPeriodEndNaT && app.PeriodEnd.Value < app.PeriodBegin.Value
                 issues{end+1} = 'período de observação';
             end
 
@@ -395,11 +404,24 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                     end
 
                 case app.Location
+                    % Mantém o sensor quando ele também existir na nova localidade.
+                    % A lista é refeita com o recorte UF + localidade; caso não haja
+                    % correspondência, refreshReceiverDropDown o deixa vazio.
+                    previousReceiverValue = app.Receiver.Value;
                     app.Receiver.Value = '';
+                    matchMask = applyFilter(app);
+                    dbFilteredReference = app.dbReference(matchMask, :);
+                    refreshReceiverDropDown(app, dbFilteredReference, previousReceiverValue)
                     applyFilter(app);
 
                 case app.Receiver
+                    % Aplica a mesma regra no sentido inverso: ao trocar o sensor,
+                    % preserva a localidade atual somente se ela contiver o sensor.
+                    previousLocationValue = app.Location.Value;
                     app.Location.Value = '';
+                    matchMask = applyFilter(app);
+                    dbFilteredReference = app.dbReference(matchMask, :);
+                    refreshLocationDropDown(app, dbFilteredReference, previousLocationValue)
                     applyFilter(app);
 
                 case {app.FreqStart, app.FreqStop}
@@ -425,11 +447,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.progressDialog.Visible = 'visible';
 
             try
-                pageSizeTotal = getSpectrumFileDataCount(app.dbHandlerObj, currentFilter);
+                pageSizeTotal = getSpectrumFileDataCount(app.webFusionHandlerObj, currentFilter);
                 currentFilter.page = 1;
                 currentFilter.pageSize = max(pageSizeTotal, 1);
         
-                resultData = getSpectrumFileData(app.dbHandlerObj, currentFilter);
+                resultData = getSpectrumFileData(app.webFusionHandlerObj, currentFilter);
 
                 if ~istable(resultData) || isempty(resultData)
                     error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
@@ -472,7 +494,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 app.progressDialog.Visible = 'visible';
 
                 try
-                    resultData = getSpectraByFileId(app.dbHandlerObj, fileId);
+                    resultData = getSpectraByFileId(app.webFusionHandlerObj, fileId);
                     
                     if ~istable(resultData) || isempty(resultData)
                         error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
