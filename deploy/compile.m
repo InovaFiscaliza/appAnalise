@@ -11,7 +11,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
     arguments
         compilationType         char {mustBeMember(compilationType, {'Desktop+WebApp', 'Desktop', 'WebApp'})} = 'Desktop+WebApp'
         rootCompiledFolder      char    = 'C:\InovaFiscaliza (AppsDeployVersions)'
-        matlabRuntimeFolder     char    = 'E:\MATLAB Runtime\MATLAB Runtime (Custom)\R2024a'
+        matlabRuntimeFolder     char    = ''
         showConsoleInDesktopBuild  (1,1) logical = false % versão desktop apresenta console
         createGitHubReleaseForDesktopBuild (1,1) logical = true
         githubCLIFolder         char    = 'C:\Program Files\GitHub CLI'

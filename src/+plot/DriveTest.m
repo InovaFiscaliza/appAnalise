@@ -113,36 +113,38 @@ classdef (Abstract) DriveTest
                 replotAfterFilterChangeFcn = []
             end
             
-            if ~isempty(filterTable)
-                for ii = 1:height(filterTable)
-                    filterSubtype = filterTable.subtype{ii};
+            if isempty(filterTable)
+                return
+            end
 
-                    switch filterSubtype
-                        case 'PolygonKML'
-                            lat = filterTable.roi(ii).specification.Latitude;
-                            lng = filterTable.roi(ii).specification.Longitude;
-                            shapeObj = geopolyshape(lat, lng);
+            for ii = 1:height(filterTable)
+                filterSubtype = filterTable.subtype{ii};
 
-                            roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, geoAxesHandle, replotAfterFilterChangeFcn, shapeObj);
+                switch filterSubtype
+                    case 'PolygonKML'
+                        lat = filterTable.roi(ii).specification.Latitude;
+                        lng = filterTable.roi(ii).specification.Longitude;
+                        shapeObj = geopolyshape(lat, lng);
 
-                        otherwise
-                            switch filterSubtype                        
-                                case 'Threshold'
-                                    axesHandle = cartesianAxesHandle;
-                                otherwise
-                                    axesHandle = geoAxesHandle;
-                            end
+                        roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, geoAxesHandle, replotAfterFilterChangeFcn, shapeObj);
 
-                            roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, axesHandle, replotAfterFilterChangeFcn, 'DrawProgrammatically');
-            
-                            fieldsList = fields(filterTable.roi(ii).specification);
-                            for jj = 1:numel(fieldsList)
-                                roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
-                            end
-                    end
-    
-                    filterTable.roi(ii).handle = roiHandle;
+                    otherwise
+                        switch filterSubtype                        
+                            case 'Threshold'
+                                axesHandle = cartesianAxesHandle;
+                            otherwise
+                                axesHandle = geoAxesHandle;
+                        end
+
+                        roiHandle = plot.DriveTest.FilterRoiGraphic(filterSubtype, axesHandle, replotAfterFilterChangeFcn, 'DrawProgrammatically');
+        
+                        fieldsList = fields(filterTable.roi(ii).specification);
+                        for jj = 1:numel(fieldsList)
+                            roiHandle.(fieldsList{jj}) = filterTable.roi(ii).specification.(fieldsList{jj});
+                        end
                 end
+
+                filterTable.roi(ii).handle = roiHandle;
             end
         end
 
