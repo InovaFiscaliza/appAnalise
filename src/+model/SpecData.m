@@ -341,8 +341,13 @@ classdef SpecData < model.SpecDataBase
                 blockingWarning{end+1} = 'Ao menos um dos fluxos espectrais selecionados não pode ser mesclado por ser desconhecido o seu local da monitoração.';
             end
 
-            if strcmp(mergeType, 'co-channel') && ~issorted(reshape([mergeTable.BeginTime, mergeTable.EndTime]', 1, []), "strictascend")
-                blockingWarning{end+1} = 'A mesclagem do tipo "co-channel" demanda que os fluxos tenham sido coletados em períodos distintos.';
+            if strcmp(mergeType, 'co-channel')
+                timeTable = sortrows(mergeTable, 'BeginTime');
+                hasInvalidInterval = any(timeTable.EndTime < timeTable.BeginTime);
+                hasOverlap = any(timeTable.EndTime(1:end-1) >= timeTable.BeginTime(2:end));
+                if hasInvalidInterval || hasOverlap
+                    blockingWarning{end+1} = 'A mesclagem do tipo "co-channel" demanda que os fluxos tenham sido coletados em períodos distintos.';
+                end
             end
 
             if ~isempty(blockingWarning)
