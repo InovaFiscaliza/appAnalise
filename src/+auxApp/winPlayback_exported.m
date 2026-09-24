@@ -166,10 +166,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             'cLim', {} ...
         )
 
-        % Controla o estado de atualização do plot:
-        %  -1: mudança de fluxo espectral
-        %   0: finaliza a apresentação da última varredura
-        %   1: atualiza alguma característica do plot em andamento
+        % Estado do playback:
+        %  -1: foi solicitada a troca ou recarga do fluxo durante a execução
+        %   0: pausado ou parado
+        %   1: em execução
         plotUpdateEvent = 0
 
         % Handles dos objetos gráficos do plot.
@@ -345,6 +345,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
                             case 'onYAxesScaleChange'
                                 set(app.UIAxes2, 'YScale', app.mainApp.General.plot.cartesianAxes.yOccupancyScale)
+
+                            case 'onKeyPressPlaybackControl'
+                                key = varargin{2};
+                                modifiers = varargin{3};
+                                handlePlaybackKey(app, key, modifiers)
 
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -843,7 +848,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     
                     set(app.ContextMenuDeleteChannels, 'Enable', hasChannel)
                     set(app.ContextMenuChannelInfo, 'Enable', hasScalarChannel)
-        
+
                     set([app.ContextMenuAddDetectionLimits, ...
                          app.ContextMenuAddChannelAsEmission, ...
                          app.ContextMenuDeleteChannel], 'Enable', hasChannelSelected)
@@ -1461,6 +1466,113 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
+
+        function handlePlaybackKey(app, key, modifiers)
+            %--------------------------------------------------------------
+            % Implementa controles via teclado para o playback
+            %--------------------------------------------------------------
+            if ~isempty(modifiers)
+                return
+            end
+
+            switch key
+                %----------------------------------------------------------
+                % controle de play e pause
+                case 'space'
+                    togglePlayback(app)
+                %----------------------------------------------------------
+                % controle de retrocesso de um frame
+                case 'leftarrow'
+                    stepPlaybackFrame(app, -1)
+
+                %----------------------------------------------------------
+                % controle de avanço de 1 frame
+                case 'rightarrow'
+                    stepPlaybackFrame(app, 1)
+
+            end
+
+        end
+
+        %------------------------------------------------------------------
+        % Controle de avanço de retrocesso de frames no playback.
+        % As setas só alteram o frame enquanto o playback está pausado.
+        function stepPlaybackFrame(app, direction)
+
+            if app.plotUpdateEvent ~= 0
+                return
+            end
+            flowIdx = findSpecDataIndex(app);
+            if isempty(flowIdx) || ~isnumeric(flowIdx) || ...
+                    ~isscalar(flowIdx) || ~isfinite(flowIdx) || ...
+                    flowIdx ~= fix(flowIdx) || ...
+                    flowIdx < 1 || flowIdx > numel(app.mainApp.specData)
+                return
+            end
+            specData = app.mainApp.specData(flowIdx);
+            if isempty(specData.Data) || numel(specData.Data) < 2 || ...
+                    isempty(specData.Data{1}) || isempty(specData.Data{2})
+                return
+            end
+            nSweeps = numel(specData.Data{1});
+            % Os timestamps e as colunas de nível devem representar os mesmos frames.
+            if nSweeps == 0 || size(specData.Data{2}, 2) ~= nSweeps
+                return
+            end
+            if isempty(app.sweepTimeIdx) || ~isnumeric(app.sweepTimeIdx) || ...
+                    ~isscalar(app.sweepTimeIdx) || ~isfinite(app.sweepTimeIdx)
+                return
+            end
+            currentIdx = min(max(round(app.sweepTimeIdx), 1), nSweeps);
+            nextIdx = min(max(currentIdx + direction, 1), nSweeps);
+            if nextIdx == currentIdx
+                return
+            end
+            app.sweepTimeIdx = nextIdx;
+            updateCurrentFrame(app, flowIdx, nSweeps)
+        end
+
+        %------------------------------------------------------------------
+        % Controle de inicio e pausa do playback
+        function togglePlayback(app)
+            % Uma segunda ativação pausa a execução ou cancela uma troca pendente.
+            if app.plotUpdateEvent ~= 0
+                app.plotUpdateEvent = 0;
+                return
+            end
+            flowIdx = findSpecDataIndex(app);
+            if isempty(flowIdx)
+                return
+            end
+            specData = app.mainApp.specData(flowIdx);
+            if isempty(specData.Data) || isempty(specData.Data{1})
+                return
+            end
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+            app.plotUpdateEvent = 1;
+            runPlaybackLoop(app, flowIdx, numel(specData.Data{1}))
+        end
+
+        %------------------------------------------------------------------
+        % funçao de reuso para atualizaçao frame a frame
+        function updateCurrentFrame(app, flowIdx, nSweeps)
+
+            updatePlot(app);
+
+            updateTimestamp( ...
+                app, ...
+                app.sweepTimeIdx, ...
+                nSweeps, ...
+                app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx));
+
+            app.tool_TimestampSlider.Value = ...
+                round(100 * app.sweepTimeIdx / nSweeps, 1);
+
+        end
+
+
+        %------------------------------------------------------------------
+        % funçao principal do playback
         function runPlaybackLoop(app, flowIdx, nSweeps)
             app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
 
@@ -1479,7 +1591,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         if isempty(flowIdx)
                             break
                         end
-                        
+
                         nSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
 
                     case  0
@@ -1487,26 +1599,28 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 end
 
                 sweepTic = tic;
-                
-                updatePlot(app)
-                updateTimestamp(app, app.sweepTimeIdx, nSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
-                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
-                
-                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
-                
-                % Reload Flag
+                updateCurrentFrame(app, flowIdx, nSweeps);
+
+                pause(max( ...
+                    app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds ...
+                    - toc(sweepTic), ...
+                    .025));
+                % Se o playback foi pausado durante a espera, preserve o frame exibido.
+                if app.plotUpdateEvent == 0
+                    break
+                end
                 if app.sweepTimeIdx == nSweeps
                     if ~app.tool_LoopControl.UserData.loopMode
                         break
                     end
                     app.sweepTimeIdx = 1;
                 else
-                    app.sweepTimeIdx = app.sweepTimeIdx+1;
-                end                
+                    app.sweepTimeIdx = app.sweepTimeIdx + 1;
+                end
             end
-
             app.plotUpdateEvent = 0;
             app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
+
         end
 
         %-----------------------------------------------------------------%
@@ -2165,7 +2279,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         if isempty(datatipHandles)
                             return
                         end
-        
+
                         freqList = [];
                         for ii = 1:numel(datatipHandles)
                             freqList(end+1, 1) = double(round(datatipHandles(ii).X, 3)); % Em MHz
@@ -2334,16 +2448,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    flowIdx = findSpecDataIndex(app);
-
-                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        runPlaybackLoop(app, flowIdx, numel(app.mainApp.specData(flowIdx).Data{1}))        
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
+                    togglePlayback(app)
 
                 %---------------------------------------------------------%
                 case app.tool_LoopControl
@@ -2753,6 +2858,13 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.plotHandles.clearWrite.MarkerIndices = emissions.FrequencyIdx;
 
         end
+
+        % Window key press function: UIFigure
+        function onKeyPressPlaybackControl(app, event)
+
+            handlePlaybackKey(app, event.Key, event.Modifier)
+
+        end
     end
 
     % Component initialization
@@ -2772,6 +2884,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
+                app.UIFigure.WindowKeyPressFcn = createCallbackFcn(app, @onKeyPressPlaybackControl, true);
 
                 app.Container = app.UIFigure;
 
