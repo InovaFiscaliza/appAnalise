@@ -1930,6 +1930,18 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             end
 
         end
+
+        % Window key press function: UIFigure
+        function UIFigureKeyPress(app, event)
+
+            if ~app.Tab2Button.Value
+                return
+            end
+            ipcMainMatlabCallAuxiliarApp( ...
+                app, 'PLAYBACK', 'MATLAB', ...
+                'onKeyPressPlaybackControl', event.Key, event.Modifier)
+
+        end
     end
 
     % Component initialization
@@ -1949,6 +1961,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.UIFigure.Name = 'appAnalise';
             app.UIFigure.Icon = 'icon_48.png';
             app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
+            app.UIFigure.WindowKeyPressFcn = createCallbackFcn(app, @UIFigureKeyPress, true);
             app.UIFigure.HandleVisibility = 'on';
 
             % Create GridLayout
