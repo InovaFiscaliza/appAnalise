@@ -23,11 +23,11 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
 
     % (b) 1ª Zona de Fresnel, atenuação no espaço livre, análise de visada 
     %     entre TX e RX, distância e azimute.
-    [Rn, distM, d1, Azimuth] = RF.Propagation.FresnelZone(txSite, rxSite, height(wayPoints3D));
+    [rn, distMeters, d1, az] = RF.Propagation.FresnelZone(txSite, rxSite, height(wayPoints3D));
     d1  = double(d1); % força double porque fspl só aceita double
-    vq  = interp1([0, distM], [txAntenna, rxAntenna], d1, 'linear');    
+    vq  = interp1([0, distMeters], [txAntenna, rxAntenna], d1, 'linear');    
     PL  = fspl(d1, physconst('LightSpeed')/txSite.TransmitterFrequency);
-    [~, xFirstObstruction] = RF.Propagation.LOS(wayPoints3D(:,3), vq, Rn);
+    [~, xFirstObstruction] = RF.Propagation.LOS(wayPoints3D(:,3), vq, rn);
 
     % (c) Cores
     [faceColorTerrain, ...
@@ -53,7 +53,7 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
     
     % (b) Estações TX e RX
     stem(hAxes, 0,          txAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation,                'PickableParts', 'none', 'Tag', 'Station');
-    stem(hAxes, distM/1000, rxAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation, 'Marker', '^', 'PickableParts', 'none', 'Tag', 'Station');
+    stem(hAxes, distMeters/1000, rxAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation, 'Marker', '^', 'PickableParts', 'none', 'Tag', 'Station');
         
     % (c) Linha de visada entre TX e RX
     hLOS = plot(hAxes, d1/1000, vq, 'Color', colorLink, 'LineStyle', '-.', 'LineWidth', .5,  'Tag', 'Link');
@@ -61,7 +61,7 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
     plot.datatip.Template(hLOS, 'RFLink.LOS', hLOSTable)
 
     % (d) 1ª Zona de Fresnel
-    images.roi.Polygon(hAxes, Position=[d1/1000, vq+Rn; flip(d1/1000), flip(vq-Rn)], ...
+    images.roi.Polygon(hAxes, Position=[d1/1000, vq+rn; flip(d1/1000), flip(vq-rn)], ...
                               Color=colorFresnel, ...
                               Deletable=0, ...
                               EdgeAlpha=.25, ...
@@ -98,7 +98,7 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
     end
 
     text(hAxes, 0,          txAntenna, txLabel, 'Color', colorStation, 'HorizontalAlignment', txLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
-    text(hAxes, distM/1000, rxAntenna, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
+    text(hAxes, distMeters/1000, rxAntenna, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
 
     % (f) Nota de rodapé (OPCIONAL)
     if footnoteFlag
@@ -115,12 +115,12 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
                             '\\bfRX\nLocalização: (%.6fº, %.6fº, %.1fm)\nAltura: %.1fm\n\n'                                                         ...
                             '\\bfTX-RX\nDistância: %.1f km\nAzimute: %.1fº\nAtenuação espaço livre: %.1f dB'],                                      ...
                             txSite.ID, txSite.TransmitterFrequency/1e+6, txSite.Latitude, txSite.Longitude, wayPoints3D(1,3), txSite.AntennaHeight, ...
-                            rxSite.Latitude, rxSite.Longitude, wayPoints3D(end,3), rxSite.AntennaHeight, distM/1000, Azimuth, PL(end));
+                            rxSite.Latitude, rxSite.Longitude, wayPoints3D(end,3), rxSite.AntennaHeight, distMeters/1000, az, PL(end));
         text(hAxes, footNotePosition, 1, Footnote, Units='normalized', FontSize=10, Interpreter='tex', HorizontalAlignment=footNoteAlign, VerticalAlignment='top', PickableParts='none', Tag='Footnote');
     end
 
     % ## post-Plot
-    hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', distM/1000, 'Azimuth', Azimuth, 'TXAntennaElevation', txAntenna, 'RXAntennaElevation', rxAntenna);
+    hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', distMeters/1000, 'Azimuth', az, 'TXAntennaElevation', txAntenna, 'RXAntennaElevation', rxAntenna);
     plot.axes.StackingOrder.execute(hAxes, 'RFLink')
 end
 

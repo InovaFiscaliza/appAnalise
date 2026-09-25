@@ -1,5 +1,5 @@
 {
-    "version": 1.64,
+    "version": 1.65,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -110,7 +110,11 @@
                 "aggregationFunction": "rms"
             }
         },
-        "SIGNALANALYSIS": [],
+        "SIGNALANALYSIS": {
+            "detection": {
+                "deltaPrediction": 15
+            }
+        },
         "RFDATAHUB": {
             "tx": {
                 "defaultHeight": 10

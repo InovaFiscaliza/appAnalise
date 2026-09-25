@@ -369,15 +369,14 @@ classdef (Abstract) Table
         % SUMARIZAÇÃO DA CLASSIFICAÇÃO DE TODAS AS EMISSÕES
         % (única, engloba todas as emissões)
         %-----------------------------------------------------------------&
-        function varargout = GlobalEmissionSummary(specData, requestedOutput, outputFinality)
+        function varargout = GlobalEmissionSummary(specData, requestedOutput)
             arguments
                 specData
                 requestedOutput char {mustBeMember(requestedOutput, {'EditedEmissionsTable', 'Summary', 'EditedEmissionsTable+Summary', 'Irregular'})} = 'Summary'
-                outputFinality  char {mustBeMember(outputFinality,  {'SIGNALANALYSIS: GUI', 'SIGNALANALYSIS: JSONFile', 'REPORT: JSONFile', 'REPORT: HTMLFile'})} = 'REPORT: HTMLFile'
             end
         
             varargout = {};
-            emissionsTable = util.createEmissionsTable(specData, 1:numel(specData), outputFinality);
+            emissionsTable = util.createEmissionsTable(specData, 1:numel(specData), 'REPORT: HTMLFile');
         
             % Itera em relação às faixas de frequências monitoradas, montando tabela que 
             % pode ser renderizada no Relatório de Monitoração ou no "journal" (ou histórico) 

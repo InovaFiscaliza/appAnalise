@@ -942,6 +942,7 @@ classdef SpecData < model.SpecDataBase
                                     end
 
                                     obj.UserData.Emissions.AuxAppData(idx).DriveTest = [];
+                                    obj.UserData.Emissions.AuxAppData(idx).SignalAnalysis = [];
                                     util.Measures(obj, 1, idx, 'Emission', channelObj)
 
                                 case 'Channel'
@@ -969,6 +970,10 @@ classdef SpecData < model.SpecDataBase
                                     obj.UserData.Emissions.Classification(idx).UserModified.AntennaHeight = antennaHeight;
                                     obj.UserData.Emissions.Classification(idx).UserModified.Distance = deg2km(distance(obj.GPS.Latitude, obj.GPS.Longitude, lat, lng));
                                     return
+
+                                case 'AlertClassificationMismatch'
+                                    obj.UserData.Emissions.Classification(idx).UserModified.AlertClassificationMismatch = ~obj.UserData.Emissions.Classification(idx).UserModified.AlertClassificationMismatch;
+                                    return
                             end
 
                         case 'Refresh'
@@ -991,6 +996,11 @@ classdef SpecData < model.SpecDataBase
                             idx = varargin{1};
                             obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude = ~obj.UserData.Emissions.AuxAppData(idx).DriveTest.ReportInclude;
                             return
+
+                        case 'AuxAppData:SignalAnalysis'
+                            idx = varargin{1};
+                            predictionResult = varargin{2};
+                            obj.UserData.Emissions.AuxAppData(idx).SignalAnalysis = predictionResult;
 
                         otherwise 
                             error('model:specData:UnexpectedUpdateType', 'Unexpected update type "%s"', updateType)

@@ -2187,7 +2187,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.AppName.Layout.Row = [1 5];
             app.AppName.Layout.Column = [1 2];
             app.AppName.Interpreter = 'html';
-            app.AppName.Text = {'appAnalise v. 2.00.0'; '<font style="font-size: 9px;">R2024a</font>'};
+            app.AppName.Text = {'appAnalise v. 2.01.0'; '<font style="font-size: 9px;">R2024a</font>'};
 
             % Create Tab1Button
             app.Tab1Button = uibutton(app.NavBar, 'state');

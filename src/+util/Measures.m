@@ -20,12 +20,12 @@ function Measures(specData, flowIdx, emissionIdx, orientation, varargin)
             emissionFreqStart = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx) * 1e+6 - (specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx)/2) * 1e+3;
             emissionFreqStop = specData(flowIdx).UserData.Emissions.Frequency(emissionIdx) * 1e+6 + (specData(flowIdx).UserData.Emissions.BandWidthkHz(emissionIdx)/2) * 1e+3;
 
-            idxMatrixStart = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStart);
-            idxMatrixStop = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStop);
+            emissionFreqStartIdx = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStart);
+            emissionFreqStopIdx = freq2idx(bandFreqStart, bandFreqStop, bandDataPoints, emissionFreqStop);
 
             % E agora afere as medidas...
             Level(specData, flowIdx, emissionIdx, emissionFreqStart, emissionFreqStop)
-            Occupancy(specData, flowIdx, emissionIdx, idxMatrixStart, idxMatrixStop)
+            Occupancy(specData, flowIdx, emissionIdx, emissionFreqStartIdx, emissionFreqStopIdx)
             BandWidth()
 
         otherwise % 'Band' | 'Channel'

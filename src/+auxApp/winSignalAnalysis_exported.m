@@ -2,68 +2,69 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                      matlab.ui.Figure
-        GridLayout                    matlab.ui.container.GridLayout
-        DockModule                    matlab.ui.container.GridLayout
-        dockModule_Close              matlab.ui.control.Image
-        dockModule_Undock             matlab.ui.control.Image
-        Toolbar                       matlab.ui.container.GridLayout
-        PanelLeftVisibility           matlab.ui.control.Image
-        PanelBottomVisibility         matlab.ui.control.Image
-        tool_Separator                matlab.ui.control.Image
-        tool_ShowGlobalExceptionList  matlab.ui.control.Image
-        tool_ExportJSONFile           matlab.ui.control.Image
-        tool_EmissionReportListLimit  matlab.ui.control.CheckBox
-        SelectedEmissionGrid          matlab.ui.container.GridLayout
-        SelectedEmissionPanel         matlab.ui.container.Panel
-        SelectedEmissionPanelGrid     matlab.ui.container.GridLayout
-        ClassificationRefresh         matlab.ui.control.Image
-        LOG                           matlab.ui.control.Label
-        LOGLabel                      matlab.ui.control.Label
-        AdditionalDescription         matlab.ui.control.EditField
-        AdditionalDescriptionLabel    matlab.ui.control.Label
-        TXLocationPanel               matlab.ui.container.Panel
-        TXLocationGrid                matlab.ui.container.GridLayout
-        TXAntennaHeight               matlab.ui.control.NumericEditField
-        TXAntennaHeightLabel          matlab.ui.control.Label
-        TXLongitude                   matlab.ui.control.NumericEditField
-        TXLongitudeLabel              matlab.ui.control.Label
-        TXLatitude                    matlab.ui.control.NumericEditField
-        TXLatitudeLabel               matlab.ui.control.Label
-        TXLocationEditionGrid         matlab.ui.container.GridLayout
-        TXLocationEditCancel          matlab.ui.control.Image
-        TXLocationEditConfirm         matlab.ui.control.Image
-        TXLocationEditMode            matlab.ui.control.Image
-        TXLocationPanelLabel          matlab.ui.control.Label
-        RiskLevel                     matlab.ui.control.DropDown
-        RiskLevelIcon                 matlab.ui.control.Label
-        RiskLevelLabel                matlab.ui.control.Label
-        Compliance                    matlab.ui.control.DropDown
-        ComplianceLabel               matlab.ui.control.Label
-        EmissionType                  matlab.ui.control.DropDown
-        EmissionTypeLabel             matlab.ui.control.Label
-        StationID                     matlab.ui.control.EditField
-        StationIDLabel                matlab.ui.control.Label
-        Regulatory                    matlab.ui.control.DropDown
-        RegulatoryLabel               matlab.ui.control.Label
-        EmissionTitle                 matlab.ui.control.Label
-        SelectedEmissionLabel         matlab.ui.control.Label
-        SelectedEmissionIcon          matlab.ui.control.Image
-        Document                      matlab.ui.container.GridLayout
-        UITable                       matlab.ui.control.Table
-        RFLinkWarning                 matlab.ui.control.Image
-        AxesToolbar                   matlab.ui.container.GridLayout
-        AxesPanButton                 matlab.ui.control.Image
-        AxesRestoreViewButton         matlab.ui.control.Image
-        AxesContainer                 matlab.ui.container.Panel
-        UITableLabel                  matlab.ui.control.Label
-        UITableIcon                   matlab.ui.control.Image
-        ContextMenu                   matlab.ui.container.ContextMenu
-        contextmenu_TruncateItem      matlab.ui.container.Menu
-        contextmenu_ChannelEmission   matlab.ui.container.Menu
-        contextmenu_TruncateEmission  matlab.ui.container.Menu
+        UIFigure                       matlab.ui.Figure
+        GridLayout                     matlab.ui.container.GridLayout
+        DockModule                     matlab.ui.container.GridLayout
+        dockModule_Close               matlab.ui.control.Image
+        dockModule_Undock              matlab.ui.control.Image
+        Toolbar                        matlab.ui.container.GridLayout
+        PanelLeftVisibility            matlab.ui.control.Image
+        PanelBottomVisibility          matlab.ui.control.Image
+        tool_Separator                 matlab.ui.control.Image
+        tool_ShowGlobalExceptionList   matlab.ui.control.Image
+        tool_ExportJSONFile            matlab.ui.control.Image
+        tool_EmissionReportListLimit   matlab.ui.control.CheckBox
+        SelectedEmissionGrid           matlab.ui.container.GridLayout
+        SelectedEmissionPanel          matlab.ui.container.Panel
+        SelectedEmissionPanelGrid      matlab.ui.container.GridLayout
+        ClassificationRefresh          matlab.ui.control.Image
+        LOG                            matlab.ui.control.Label
+        LOGLabel                       matlab.ui.control.Label
+        AdditionalDescription          matlab.ui.control.EditField
+        AdditionalDescriptionLabel     matlab.ui.control.Label
+        TXLocationPanel                matlab.ui.container.Panel
+        TXLocationGrid                 matlab.ui.container.GridLayout
+        TXAntennaHeight                matlab.ui.control.NumericEditField
+        TXAntennaHeightLabel           matlab.ui.control.Label
+        TXLongitude                    matlab.ui.control.NumericEditField
+        TXLongitudeLabel               matlab.ui.control.Label
+        TXLatitude                     matlab.ui.control.NumericEditField
+        TXLatitudeLabel                matlab.ui.control.Label
+        TXLocationEditionGrid          matlab.ui.container.GridLayout
+        TXLocationEditCancel           matlab.ui.control.Image
+        TXLocationEditConfirm          matlab.ui.control.Image
+        TXLocationEditMode             matlab.ui.control.Image
+        TXLocationPanelLabel           matlab.ui.control.Label
+        RiskLevel                      matlab.ui.control.DropDown
+        RiskLevelIcon                  matlab.ui.control.Label
+        RiskLevelLabel                 matlab.ui.control.Label
+        Compliance                     matlab.ui.control.DropDown
+        ComplianceLabel                matlab.ui.control.Label
+        EmissionType                   matlab.ui.control.DropDown
+        EmissionTypeLabel              matlab.ui.control.Label
+        StationID                      matlab.ui.control.EditField
+        StationIDLabel                 matlab.ui.control.Label
+        Regulatory                     matlab.ui.control.DropDown
+        RegulatoryLabel                matlab.ui.control.Label
+        EmissionTitle                  matlab.ui.control.Label
+        SelectedEmissionLabel          matlab.ui.control.Label
+        SelectedEmissionIcon           matlab.ui.control.Image
+        Document                       matlab.ui.container.GridLayout
+        UITable                        matlab.ui.control.Table
+        RFLinkWarning                  matlab.ui.control.Image
+        AxesToolbar                    matlab.ui.container.GridLayout
+        AxesPanButton                  matlab.ui.control.Image
+        AxesRestoreViewButton          matlab.ui.control.Image
+        AxesContainer                  matlab.ui.container.Panel
+        UITableLabel                   matlab.ui.control.Label
+        UITableIcon                    matlab.ui.control.Image
+        ContextMenu                    matlab.ui.container.ContextMenu
+        contextmenu_TruncateItem       matlab.ui.container.Menu
+        contextmenu_ChannelEmission    matlab.ui.container.Menu
+        contextmenu_TruncateEmission   matlab.ui.container.Menu
         contextmenu_NonTruncateEmission  matlab.ui.container.Menu
-        contextmenu_DeleteEmission    matlab.ui.container.Menu
+        contextmenu_PredictionWarning  matlab.ui.container.Menu
+        contextmenu_DeleteEmission     matlab.ui.container.Menu
     end
 
     
@@ -71,6 +72,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         Role = 'secondaryApp'
         Context = 'SIGNALANALYSIS'
+        AppHandleNameInBase
     end
 
 
@@ -107,7 +109,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        elevationObj = RF.Elevation
         emissionsTable
     end
 
@@ -119,6 +120,14 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 switch event.HTMLEventName
                     case 'renderer'
                         appEngine.activate(app, app.Role)
+
+                    case 'onPredictionWarningToogleRequested'
+                        selectedRow = app.UITable.UserData.selectedRow;
+                        [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+                        specData = app.mainApp.specData(flowIdx);
+
+                        update(specData, 'UserData:Emissions', 'Edit', 'AlertClassificationMismatch', emissionIdx)
+                        applyInitialLayout(app)
 
                     otherwise
                         ipcMainJSEventsHandler(app.mainApp, event)
@@ -195,6 +204,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             switch tabIndex
                 case 1
                     elToModify = { 
+                        app.UITable;
                         app.AxesToolbar;
                         app.ClassificationRefresh;
                         app.RiskLevel;
@@ -214,6 +224,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                            struct('appName', appName, 'dataTag', app.UITable.UserData.id, 'tableMultiline', struct('status', true, 'verticalCenter', false), 'tableTextAlignment', [struct('columnId', 4, 'textAlign', 'right'), struct('columnId', 5, 'textAlign', 'right'), struct('columnId', 7, 'textAlign', 'justify')]), ...
                             struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                             struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna à classificação automática')), ...
                             struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
@@ -252,7 +263,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
-            addStyle(app.UITable, uistyle('HorizontalAlignment', 'right'), 'column', [4,5]) 
+            addStyle(app.UITable, uistyle("Interpreter", "html"))
             app.UITable.UserData.selectedRow = [];
             app.UITable.UserData.selectedRowStyleIdx = [];
 
@@ -268,8 +279,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyInitialLayout(app)
-            pause(.100)
-
             if app.tool_EmissionReportListLimit.Value
                 flowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
             else
@@ -278,7 +287,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
             selectedRow = app.UITable.UserData.selectedRow;
             updateTable(app, flowIdxs, selectedRow)
-
             focus(app.UITable)
         end
     end
@@ -307,7 +315,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateTable(app, flowIdxs, selectedRow)
-            app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI');
+            calculateEmissionPrediction(app, flowIdxs)
+            app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI', app.mainApp.General);
     
             if isempty(app.emissionsTable)
                 selectedRow = [];
@@ -326,8 +335,10 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 'Truncated', ...
                 'BandWidthkHz', ...
                 'LevelRange', ...
-                'FCORange',  ...
-                'RFDataHubDescription' ...
+                'FCORange', ...
+                'Prediction', ...
+                'RFDataHubDescription', ...
+                'Distance' ...
             };
 
             set(app.UITable, 'Data', app.emissionsTable(:, columnNames), 'Selection', selectedRow)
@@ -355,11 +366,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                 case 'emissionIndicators'
                     % Destaca registros que tiveram a sua classificação editada...
-                    editedEmissionIdxs = [];           
+                    editedEmissionIdxs = [];
 
                     for ii = 1:height(app.emissionsTable)
-                        if ~isequal(app.emissionsTable.Classification(ii).AutoSuggested, ...
-                                    app.emissionsTable.Classification(ii).UserModified)
+                        if ~isequal( ...
+                            rmfield(app.emissionsTable.Classification(ii).AutoSuggested, 'AlertClassificationMismatch'), ...
+                            rmfield(app.emissionsTable.Classification(ii).UserModified,  'AlertClassificationMismatch') ...
+                        )
                             editedEmissionIdxs = [editedEmissionIdxs; ii];
                         end
                     end
@@ -377,14 +390,22 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         cellList = [nonTruncatedIdxs, 2*ones(numel(nonTruncatedIdxs), 1)];
                         addStyle(app.UITable, uistyle('Icon', 'wave.svg',  'IconAlignment', 'leftmargin'), 'cell', cellList) 
                     end
+
+                    % Destaca registros cuja diferença entre os níveis preditos 
+                    % e o medido são superiores à tolerância.
+                    predictionWarningIdxs = find(app.emissionsTable.PredictionWarning);
+
+                    if ~isempty(predictionWarningIdxs)
+                        cellList = [predictionWarningIdxs, 6*ones(numel(predictionWarningIdxs), 1)];
+                        addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'cell', cellList) 
+                    end
         
                     % Destaca registros que apresentam valores inválidos de 
                     % estações.
                     invalidStationNumberIdxs = find(cellfun(@(x) isequal(x, -1), arrayfun(@(x) x.UserModified.Station, app.emissionsTable.Classification, 'UniformOutput', false)));
 
                     if ~isempty(invalidStationNumberIdxs)
-                        numColumns = width(app.UITable.Data);
-                        cellList = [invalidStationNumberIdxs, numColumns*ones(numel(invalidStationNumberIdxs), 1)];
+                        cellList = [invalidStationNumberIdxs, 7*ones(numel(invalidStationNumberIdxs), 1)];
                         addStyle(app.UITable, uistyle('FontColor', 'white', 'BackgroundColor', 'red'), 'cell', cellList) 
                     end
 
@@ -414,18 +435,29 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
                 specData = app.mainApp.specData(flowIdx);
 
+                % Verifica se o handle para o app continua ativo no workspace
+                % base do MATLAB, possibilitando que clicks no ui.TextView sejam 
+                % capturados corretamente.
+                appHandleNameInBase = app.AppHandleNameInBase;
+                if isempty(appHandleNameInBase) || ~evalin('base', sprintf('exist("%s", "var") && isa(%s, "%s") && isvalid(%s)', appHandleNameInBase, appHandleNameInBase, class(app), appHandleNameInBase))
+                    app.AppHandleNameInBase = ui.Table.exportAppHandleToBaseWorkspace(app);
+                end
+
                 [htmlContent1, ...
                  htmlContent2, ...
                  userDescription, ...
-                 stationInfo] = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context);
+                 stationInfo] = util.HtmlTextGenerator.getSelectedEmissionMetaData(specData, emissionIdx, app.Context, app.AppHandleNameInBase, app.mainApp.General);
     
                 ui.TextView.update(app.EmissionTitle, htmlContent1);
                 ui.TextView.update(app.LOG, htmlContent2);
                 set(app.AdditionalDescription, 'Value', userDescription, 'UserData', userDescription) 
     
                 % CONTROL PANEL
-                app.ClassificationRefresh.Visible = ~isequal(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, ...
-                                                     specData.UserData.Emissions.Classification(emissionIdx).UserModified);
+
+                app.ClassificationRefresh.Visible = ~isequal( ...
+                    rmfield(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, 'AlertClassificationMismatch'), ...
+                    rmfield(specData.UserData.Emissions.Classification(emissionIdx).UserModified,  'AlertClassificationMismatch') ...
+                );
                 
                 app.Regulatory.Value = specData.UserData.Emissions.Classification(emissionIdx).UserModified.Regulatory;
                 updateRegulatoryStyle(app)
@@ -637,11 +669,11 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 % ELEVAÇÃO DO LINK TX-RX
                 % Validação que possibilitahabilitar o bloqueio de tela apenas 
                 % se a informação de elevação não estiver em cache.
-                if ~IsCached(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
+                if ~IsCached(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount)
                     requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
                 end
 
-                [wayPoints3D, msgWarning] = Get(app.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
+                [wayPoints3D, msgWarning] = Get(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
                 if ~isempty(msgWarning)
                     ui.Dialog(app.UIFigure, 'warning', msgWarning);
                 end
@@ -694,6 +726,15 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             specData = app.mainApp.specData(flowIdx);
 
             requestVisibilityChange(app.progressDialog, 'visible', 'locked')
+
+            % Se a alteração for apenas a descrição (campo textual), então
+            % não é necessário reinicializar dados relacionados à predição.
+            if triggeredComponent ~= app.AdditionalDescription
+                predictionResults = specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis;
+                if ~isempty(predictionResults)
+                    specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis = [];
+                end
+            end
 
             switch triggeredComponent
                 case app.ClassificationRefresh
@@ -762,7 +803,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             end
 
             ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionParameterValueChanged', app.Context)
-            onToolbarCheckBoxValueChanged(app)
+            applyInitialLayout(app)
 
             requestVisibilityChange(app.progressDialog, 'hidden', 'locked')
         end
@@ -798,6 +839,34 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 'Longitude', specData.GPS.Longitude, ...
                 'AntennaHeight', calculateAntennaHeight(specData, 1, 10) ...
             );
+        end
+
+        %-----------------------------------------------------------------%
+        function calculateEmissionPrediction(app, flowIdxs)
+            for ii = flowIdxs
+                for jj = 1:height(app.mainApp.specData(ii).UserData.Emissions)
+                    specData = app.mainApp.specData(ii);
+                    emissionIdx = jj;
+
+                    predictionResult = specData.UserData.Emissions.AuxAppData(emissionIdx).SignalAnalysis;
+                    if ~isempty(predictionResult) && isfield(predictionResult, 'IsCalculated') && predictionResult.IsCalculated
+                        continue
+                    end
+
+                    try
+                        [txObj, rxObj, stationSignature] = util.Propagation.buildRFLinkObjects(specData, emissionIdx, app.mainApp.General.context.RFDATAHUB.tx.defaultHeight);
+            
+                        [wayPoints3D, msgWarning] = Get(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
+                        if isempty(wayPoints3D)
+                            error(msgWarning)
+                        end
+            
+                        predictionResult = util.Propagation.calculateEmissionPrediction(specData, emissionIdx, txObj, rxObj, wayPoints3D, stationSignature);
+                        update(specData, 'UserData:Emissions', 'AuxAppData:SignalAnalysis', emissionIdx, predictionResult)
+                    catch
+                    end
+                end
+            end
         end
     end
 
@@ -870,7 +939,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         % Menu selected function: contextmenu_DeleteEmission, 
-        % ...and 2 other components
+        % ...and 3 other components
         function onUITableContextMenuClicked(app, event)
             
             if isempty(app.UITable.Selection)
@@ -904,11 +973,19 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                         update(specData, 'UserData:Emissions', 'Edit', 'IsTruncated', emissionIdx, ~isTruncated, app.mainApp.channelObj)
                         eventName = 'onEmissionTruncatedValueChanged';
                         eventStatus = true;
+
+                    case app.contextmenu_PredictionWarning
+                        update(specData, 'UserData:Emissions', 'Edit', 'AlertClassificationMismatch', emissionIdx)
+                        eventName = '';
+                        eventStatus = true;
                 end
             end
 
             if eventStatus
-                ipcMainMatlabCallsHandler(app.mainApp, app, eventName, app.Context)
+                if ~isempty(eventName)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, eventName, app.Context)
+                end
+
                 applyInitialLayout(app)
             end
 
@@ -1330,8 +1407,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             % Create UITable
             app.UITable = uitable(app.Document);
             app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
-            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|(Δ)'; 'OCUPAÇÃO|(Δ)'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'};
-            app.UITable.ColumnWidth = {95, 95, 95, 115, 115, 'auto'};
+            app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|(Δ)'; 'OCUPAÇÃO|(Δ)'; 'PREDIÇÃO'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'; 'DISTÂNCIA|(km)'};
+            app.UITable.ColumnWidth = {95, 95, 95, 115, 115, 230, 'auto', 95};
             app.UITable.RowName = {};
             app.UITable.ColumnSortable = true;
             app.UITable.SelectionType = 'row';
@@ -1624,7 +1701,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.LOGLabel.FontSize = 10;
             app.LOGLabel.Layout.Row = 12;
             app.LOGLabel.Layout.Column = [1 3];
-            app.LOGLabel.Text = 'LOG';
+            app.LOGLabel.Text = 'OCORRÊNCIAS';
 
             % Create LOG
             app.LOG = uilabel(app.SelectedEmissionPanelGrid);
@@ -1759,6 +1836,12 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.contextmenu_NonTruncateEmission.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
             app.contextmenu_NonTruncateEmission.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.contextmenu_NonTruncateEmission.Text = 'Não truncar';
+
+            % Create contextmenu_PredictionWarning
+            app.contextmenu_PredictionWarning = uimenu(app.contextmenu_TruncateItem);
+            app.contextmenu_PredictionWarning.MenuSelectedFcn = createCallbackFcn(app, @onUITableContextMenuClicked, true);
+            app.contextmenu_PredictionWarning.Separator = 'on';
+            app.contextmenu_PredictionWarning.Text = 'Predição';
 
             % Create contextmenu_DeleteEmission
             app.contextmenu_DeleteEmission = uimenu(app.ContextMenu);

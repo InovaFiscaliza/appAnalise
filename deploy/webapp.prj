@@ -33,6 +33,7 @@
       <file>C:\InovaFiscaliza\appAnalise\src\resources</file>
       <file>C:\SupportPackages\src\Anatel</file>
       <file>C:\SupportPackages\src\General</file>
+      <file>C:\SupportPackages\src\Propagation</file>
       <file>C:\SupportPackages\src\Spectrum</file>
     </fileset.resources>
     <fileset.depfun />
@@ -43,7 +44,14 @@
     <workflow />
     <matlab>
       <root>C:\Program Files\MATLAB\R2024a</root>
-      <toolboxes />
+      <toolboxes>
+        <toolbox name="neuralnetwork" />
+      </toolboxes>
+      <toolbox>
+        <neuralnetwork>
+          <enabled>true</enabled>
+        </neuralnetwork>
+      </toolbox>
     </matlab>
     <platform>
       <unix>false</unix>

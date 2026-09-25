@@ -462,10 +462,17 @@ classdef (Abstract) HtmlTextGenerator
 
             switch context
                 case 'SIGNALANALYSIS'
+                    % Mantendo compatibilidade com projetos salvos em versões 
+                    % anteriores...
+                    if ~isfield(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, 'AlertClassificationMismatch')
+                        specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.AlertClassificationMismatch = true;
+                        specData.UserData.Emissions.Classification(emissionIdx).UserModified.AlertClassificationMismatch  = true;
+                    end
+
                     emissionTable = specData.UserData.Emissions(emissionIdx, :);
-        
+
                     % LOG
-                    columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable');
+                    columnsToCompare = setdiff(fieldnames(util.Classification.RESULT_DEFAULT), {'Details', 'AlertClassificationMismatch'}, 'stable');
                     stationInfo = [];
                     columnsDiff = [];
         
@@ -492,13 +499,61 @@ classdef (Abstract) HtmlTextGenerator
                             columnsDiff.AntennaHeight = '<font style="color: red;">-1</font>';
                         end
                         
-                        htmlContent2 = replace(sprintf('<p style="padding: 10px;">%s</p>', strtrim(textFormatGUI.structParser('', columnsDiff, 1))), newline, '<br>');
+                        logSummary = strtrim(textFormatGUI.structParser('', columnsDiff, 1));
         
                     else
-                        htmlContent2 = sprintf('<p style="padding: 10px;">%s</p>', 'Nenhuma alteração na classificação automática foi identificada.');
+                        logSummary = 'Nenhuma alteração na classificação automática foi identificada.';
+                    end
+                    displayEntry = struct('group', 'LOG', 'value', logSummary, 'link', '');
+
+                    % PREDIÇÃO
+                    predictionResult = emissionTable.AuxAppData.SignalAnalysis;
+                    if ~isempty(predictionResult) 
+                        predictionWarning = '';
+                        predictionWarningControl = false;
+
+                        if isfield(predictionResult, 'IsCalculated') && predictionResult.IsCalculated
+                            delta = min(abs([predictionResult.P526.Delta, predictionResult.P1812.Delta]));
+    
+                            if ~isempty(generalSettings)
+                                if delta > generalSettings.context.SIGNALANALYSIS.detection.deltaPrediction
+                                    predictionWarning = sprintf([ ...
+                                        '<font style="color: red;">A diferença absoluta entre os níveis recebido ' ...
+                                        'e predito é superior a %.1f dB</font>' ...
+                                    ], generalSettings.context.SIGNALANALYSIS.detection.deltaPrediction);
+                                    predictionWarningControl = true;
+
+                                else
+                                    predictionWarning = sprintf([ ...
+                                        'A diferença absoluta entre os níveis recebido ' ...
+                                        'e predito é igual ou menor que %.1f dB' ...
+                                    ], generalSettings.context.SIGNALANALYSIS.detection.deltaPrediction);
+                                end
+                            end
+
+                        elseif isfield(predictionResult, 'ErrorMessage') && ~isempty(predictionResult.ErrorMessage)
+                            predictionWarning = predictionResult.ErrorMessage;
+                        end
+
+                        if ~isempty(predictionWarning)
+                            predictionWarningControlLink = '';
+                            if predictionWarningControl
+                                if emissionTable.Classification.UserModified.AlertClassificationMismatch
+                                    predictionWarningIcon = util.HtmlTextGenerator.CHECKBOX_HTML.on;
+                                else
+                                    predictionWarningIcon = util.HtmlTextGenerator.CHECKBOX_HTML.off;
+                                end
+
+                                predictionWarningControlLink = ui.TextView.createHTMLLink('customText', appHandleNameInBase, 'onPredictionWarningToogleRequested', '', predictionWarningIcon);
+                            end
+    
+                            displayEntry(2) = struct('group', 'PREDIÇÃO', 'value', predictionWarning, 'link', predictionWarningControlLink);
+                        end
                     end
         
                     htmlContent1 = sprintf('<p style="padding-top: 3px;">%s</p>', htmlIntro);
+                    htmlContent2 = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', '', 'textview');
+
                     varargout = {htmlContent1, htmlContent2, emissionTable.Description(1), emissionTable.Classification.UserModified};
 
                 otherwise % 'PLAYBACK' | 'DRIVETEST'
@@ -514,7 +569,7 @@ classdef (Abstract) HtmlTextGenerator
                             end
                         end
 
-                        % CLASSIFICAÇÃO        
+                        % CLASSIFICAÇÃO
                         classification = specData.UserData.Emissions(emissionIdx, :).Classification;
                         classificationInfo = [];                        
                         for classificationField = string(setdiff(fieldnames(util.Classification.RESULT_DEFAULT), 'Details', 'stable'))'
