@@ -19,7 +19,8 @@ classdef SpecData < model.SpecDataBase
     %   ├── computeOccupancyPerBin ⚠️
     %   ├── hasEmissionsInSearchBand
     %   ├── calculateAntennaHeight
-    %   └── buildSpectrumReferenceTable
+    %   ├── buildSpectrumReferenceTable
+    %   └── ensureDataSchema
 
     % PRIVATE
     %   ├── checkIfScalar
@@ -1244,6 +1245,28 @@ classdef SpecData < model.SpecDataBase
             end
             
             referenceTable = sortrows(referenceTable, {'FreqStart', 'FreqStop'});
+        end
+
+        %-----------------------------------------------------------------%
+        function ensureDataSchema(obj)
+            % Edições que precisam ser aplciadas para manter compatibilidade 
+            % com instância de model.SpecData salva em em versões anteriores 
+            % do app.
+            % - Em 25/09/2026 foi inserido o campo "AlertClassificationMismatch"
+            %   na estrutura de Classification.
+            
+            for ii = 1:numel(obj)
+                if isempty(obj(ii).UserData)
+                    continue
+                end
+
+                for jj = 1:height(obj(ii).UserData.Emissions)
+                    if ~isfield(obj(ii).UserData.Emissions.Classification(jj).AutoSuggested, 'AlertClassificationMismatch')
+                        obj(ii).UserData.Emissions.Classification(jj).AutoSuggested.AlertClassificationMismatch = true;
+                        obj(ii).UserData.Emissions.Classification(jj).UserModified.AlertClassificationMismatch  = true;
+                    end
+                end
+            end
         end
     end
 

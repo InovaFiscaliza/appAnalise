@@ -56,12 +56,13 @@ classdef (Abstract) HtmlTextGenerator
     
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function htmlContent = getAppInfo(generalSettings, rootFolder, executionMode, renderCount, outputFormat)
+        function htmlContent = getAppInfo(generalSettings, rootFolder, executionMode, renderCount, eFiscalizaObj, outputFormat)
             arguments
                 generalSettings 
                 rootFolder 
                 executionMode 
                 renderCount
+                eFiscalizaObj
                 outputFormat char {mustBeMember(outputFormat, {'popup', 'textview'})} = 'textview'
             end
 
@@ -93,6 +94,10 @@ classdef (Abstract) HtmlTextGenerator
             displayEntry(end+1) = struct('group', 'RENDERIZAÇÕES','value', renderCount);
             displayEntry(end+1) = struct('group', 'APLICATIVO', 'value', appVersion.application);
             displayEntry(end+1) = struct('group', 'RFDataHub', 'value', struct('releasedDate', RFDataHub_info.ReleaseDate, 'numberOfRows', height(RFDataHub), 'numberOfUniqueStations', numel(unique(RFDataHub.("Station")))));
+
+            if ~isempty(eFiscalizaObj)
+                displayEntry(end+1) = struct('group', 'USUÁRIO AUTENTICADO', 'value', eFiscalizaObj.login);
+            end
         
             htmlIntro = sprintf('<font style="font-size: 12px;">O repositório das ferramentas desenvolvidas no Laboratório de inovação da SFI pode ser acessado <a href="%s" target="_blank">aqui</a>.</font>\n\n', appURL.Sharepoint);
             htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'print -1', htmlIntro, outputFormat);
@@ -462,13 +467,6 @@ classdef (Abstract) HtmlTextGenerator
 
             switch context
                 case 'SIGNALANALYSIS'
-                    % Mantendo compatibilidade com projetos salvos em versões 
-                    % anteriores...
-                    if ~isfield(specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested, 'AlertClassificationMismatch')
-                        specData.UserData.Emissions.Classification(emissionIdx).AutoSuggested.AlertClassificationMismatch = true;
-                        specData.UserData.Emissions.Classification(emissionIdx).UserModified.AlertClassificationMismatch  = true;
-                    end
-
                     emissionTable = specData.UserData.Emissions(emissionIdx, :);
 
                     % LOG

@@ -410,12 +410,17 @@ classdef dockReportLib_exported < matlab.apps.AppBase
                 ui.Dialog(app.UIFigure, 'info', msg);
 
             else
+                eventName = 'onFetchIssueDetails';
                 if isempty(app.mainApp.eFiscalizaObj) || ~isvalid(app.mainApp.eFiscalizaObj)
-                    dialogBox    = struct('id', 'login',    'label', 'Usuário: ', 'type', 'text');
-                    dialogBox(2) = struct('id', 'password', 'label', 'Senha: ',   'type', 'password');
-                    sendEventToHTMLSource(app.jsBackDoor, 'customForm', struct('UUID', 'onFetchIssueDetails', 'Fields', dialogBox, 'Context', context))
+                    eventData = ws.eFiscaliza.getCredentials('auto', app.mainApp.executionMode, app.jsBackDoor, eventName, context);
+                    if ~isempty(eventData)
+                        eventData.uuid = eventName;
+                        eventData.context = context;
+    
+                        ipcMainJSEventsHandler(app.mainApp, struct('HTMLEventName', 'customForm', 'HTMLEventData', eventData))
+                    end
                 else
-                    ipcMainMatlabCallsHandler(app.mainApp, app, 'onFetchIssueDetails', context)
+                    ipcMainMatlabCallsHandler(app.mainApp, app, eventName, context)
                 end
             end
             % </PROCESSO>

@@ -193,6 +193,7 @@ classdef Project < model.ProjectCommon
 
                                % Elimina dados de espectro, mantendo apenas metadados...
                                specDataObj = prjData.variables.specDataObj;
+                               ensureDataSchema(specDataObj)
                                for kk = 1:numel(specDataObj)
                                    specDataObj(kk).Data = {};
                                end
