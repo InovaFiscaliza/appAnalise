@@ -1408,7 +1408,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             app.UITable = uitable(app.Document);
             app.UITable.BackgroundColor = [1 1 1;0.96078431372549 0.96078431372549 0.96078431372549];
             app.UITable.ColumnName = {'FREQUÊNCIA|(MHz)'; 'FREQUÊNCIA|CANAL (MHz)'; 'LARGURA|(kHz)'; 'NÍVEL|(Δ)'; 'OCUPAÇÃO|(Δ)'; 'PREDIÇÃO'; 'PROVÁVEL EMISSOR|(Entidade+Fistel+Serviço+Estação+Localidade)'; 'DISTÂNCIA|(km)'};
-            app.UITable.ColumnWidth = {95, 95, 95, 115, 115, 230, 'auto', 95};
+            app.UITable.ColumnWidth = {95, 95, 95, 115, 115, 230, 'auto', 90};
             app.UITable.RowName = {};
             app.UITable.ColumnSortable = true;
             app.UITable.SelectionType = 'row';
