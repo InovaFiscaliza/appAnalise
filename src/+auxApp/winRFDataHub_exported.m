@@ -115,9 +115,9 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         StationMarkerSizeSlider         matlab.ui.control.Slider
         StationMarkerColorPicker        matlab.ui.control.ColorPicker
         StationMarkerSectionLabel       matlab.ui.control.Label
-        ColormapDropDown                matlab.ui.control.DropDown
+        Colormap                        matlab.ui.control.DropDown
         ColormapLabel                   matlab.ui.control.Label
-        BasemapDropDown                 matlab.ui.control.DropDown
+        Basemap                         matlab.ui.control.DropDown
         BasemapLabel                    matlab.ui.control.Label
         SettingsResetButton             matlab.ui.control.Image
         GeoAxesSettingsSectionLabel     matlab.ui.control.Label
@@ -395,22 +395,22 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         
         %-----------------------------------------------------------------%
         function initializeAxes(app)
-            hParent     = tiledlayout(app.PlotPanel, 2, 2, "Padding", "none", "TileSpacing", "none");
+            hParent = tiledlayout(app.PlotPanel, 2, 2, "Padding", "none", "TileSpacing", "none");
 
             % Eixo geográfico: MAPA
-            app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.BasemapDropDown.Value,                 ...
+            app.UIAxes1 = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.Basemap.Value,                        ...
                                                                      'Color',    [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
                                                                      'UserData', struct('CLimMode', 'auto', 'Colormap', '')});
-
             app.UIAxes1.Layout.Tile = 1;
             app.UIAxes1.Layout.TileSpan = [2, 2];
 
             set(app.UIAxes1.LatitudeAxis,  'TickLabels', {}, 'Color', 'none')
             set(app.UIAxes1.LongitudeAxis, 'TickLabels', {}, 'Color', 'none')
-            geolimits(app.UIAxes1, 'auto')
-            plot.axes.Colormap(app.UIAxes1, app.ColormapDropDown.Value)
 
-            if ismember(app.BasemapDropDown.Value, {'darkwater', 'none'})
+            geolimits(app.UIAxes1, 'auto')
+            plot.axes.Colormap(app.UIAxes1, app.Colormap.Value)
+
+            if ismember(app.Basemap.Value, {'darkwater', 'none'})
                 app.UIAxes1.Grid = 'on';
             end
 
@@ -2106,14 +2106,14 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         end
 
-        % Callback function: BasemapDropDown, ColormapDropDown, 
-        % ...and 4 other components
+        % Callback function: Basemap, Colormap, RXMarkerSizeSlider, 
+        % ...and 3 other components
         function onConfigOthersParameterChanged(app, event)
             
             switch event.Source
-                case app.BasemapDropDown
-                    app.UIAxes1.Basemap = app.BasemapDropDown.Value;
-                    switch app.BasemapDropDown.Value
+                case app.Basemap
+                    app.UIAxes1.Basemap = app.Basemap.Value;
+                    switch app.Basemap.Value
                         case {'darkwater', 'none'}
                             app.UIAxes1.Grid = 'on';
                         otherwise
@@ -2121,7 +2121,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     end
                     return
 
-                case app.ColormapDropDown
+                case app.Colormap
                     if strcmp(app.UIAxes1.UserData.Colormap, event.Value)
                         return
                     end
@@ -2159,7 +2159,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.ElevationPointCount.Value = num2str(app.mainApp.General.elevation.pointCount);
 
             % % Eixo geográfico - app.UIAxes1
-            app.ColormapDropDown.Value = 'turbo';            
+            app.Colormap.Value = 'turbo';            
             app.StationMarkerColorPicker.Value = [0 1 1];
             app.StationMarkerSizeSlider.Value = 1;
             app.TXMarkerColorPicker.Value = [0.7882 0.2784 0.3412];
@@ -3051,16 +3051,16 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.BasemapLabel.Layout.Column = [1 2];
             app.BasemapLabel.Text = 'Basemap:';
 
-            % Create BasemapDropDown
-            app.BasemapDropDown = uidropdown(app.GeoAxesSettingsGrid);
-            app.BasemapDropDown.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
-            app.BasemapDropDown.ValueChangedFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
-            app.BasemapDropDown.FontSize = 11;
-            app.BasemapDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.BasemapDropDown.BackgroundColor = [1 1 1];
-            app.BasemapDropDown.Layout.Row = 2;
-            app.BasemapDropDown.Layout.Column = [1 2];
-            app.BasemapDropDown.Value = 'satellite';
+            % Create Basemap
+            app.Basemap = uidropdown(app.GeoAxesSettingsGrid);
+            app.Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
+            app.Basemap.ValueChangedFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
+            app.Basemap.FontSize = 11;
+            app.Basemap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.Basemap.BackgroundColor = [1 1 1];
+            app.Basemap.Layout.Row = 2;
+            app.Basemap.Layout.Column = [1 2];
+            app.Basemap.Value = 'satellite';
 
             % Create ColormapLabel
             app.ColormapLabel = uilabel(app.GeoAxesSettingsGrid);
@@ -3071,16 +3071,16 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.ColormapLabel.Layout.Column = [3 4];
             app.ColormapLabel.Text = 'Mapa de cor:';
 
-            % Create ColormapDropDown
-            app.ColormapDropDown = uidropdown(app.GeoAxesSettingsGrid);
-            app.ColormapDropDown.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
-            app.ColormapDropDown.ValueChangedFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
-            app.ColormapDropDown.FontSize = 11;
-            app.ColormapDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.ColormapDropDown.BackgroundColor = [1 1 1];
-            app.ColormapDropDown.Layout.Row = 2;
-            app.ColormapDropDown.Layout.Column = [3 4];
-            app.ColormapDropDown.Value = 'winter';
+            % Create Colormap
+            app.Colormap = uidropdown(app.GeoAxesSettingsGrid);
+            app.Colormap.Items = {'winter', 'parula', 'turbo', 'gray', 'hot', 'jet', 'summer'};
+            app.Colormap.ValueChangedFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
+            app.Colormap.FontSize = 11;
+            app.Colormap.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.Colormap.BackgroundColor = [1 1 1];
+            app.Colormap.Layout.Row = 2;
+            app.Colormap.Layout.Column = [3 4];
+            app.Colormap.Value = 'winter';
 
             % Create StationMarkerSectionLabel
             app.StationMarkerSectionLabel = uilabel(app.GeoAxesSettingsGrid);

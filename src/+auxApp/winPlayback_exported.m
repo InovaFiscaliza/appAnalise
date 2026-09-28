@@ -166,10 +166,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             'cLim', {} ...
         )
 
-        % Controla o estado de atualização do plot:
-        %  -1: mudança de fluxo espectral
-        %   0: finaliza a apresentação da última varredura
-        %   1: atualiza alguma característica do plot em andamento
+        % Estado do playback:
+        %  -1: foi solicitada a troca ou recarga do fluxo durante a execução
+        %   0: pausado ou parado
+        %   1: em execução
         plotUpdateEvent = 0
 
         % Handles dos objetos gráficos do plot.
@@ -346,6 +346,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             case 'onYAxesScaleChange'
                                 set(app.UIAxes2, 'YScale', app.mainApp.General.plot.cartesianAxes.yOccupancyScale)
 
+                            case 'onKeyPressPlaybackControl'
+                                key = varargin{2};
+                                modifiers = varargin{3};
+                                handlePlaybackKey(app, key, modifiers)
+
                             otherwise
                                 error('auxApp:winPlayback:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
@@ -419,7 +424,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.FlowPanelLabel.UserData.id, 'styleImportant', struct('borderLeft', '3px solid #b7312c', 'paddingLeft', '8px')), ...
                             ...
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à esquerda')), ...
-                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla a execução do playback da monitoração<br>(também pelas teclas Espaço, ← e →)')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla loop da execução do playback')), ...
                             struct('appName', appName, 'dataTag', app.tool_OpenPopupMerge.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Mescla fluxos')), ...
                             struct('appName', appName, 'dataTag', app.tool_OpenPopupProject.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Edita informações do projeto<br>(fiscalizada, arquivo de backup etc)')), ...
@@ -438,7 +443,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.axesTool_persistence.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe persistência')), ...
                             struct('appName', appName, 'dataTag', app.axesTool_occupancy.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe ocupação do espectro')), ...
                             struct('appName', appName, 'dataTag', app.axesTool_waterfall.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe waterfall')), ...
-                            struct('appName', appName, 'dataTag', app.axesTool_DataTip.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita modo DataCursor (no waterfall)')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DataTip.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita o modo DataCursor no waterfall<br>(desabilita o controle do playback pelas teclas)')), ...
                             ...
                             struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
                             struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')), ...
@@ -475,6 +480,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function initializeUIComponents(app)
             if ~strcmp(app.mainApp.executionMode, 'webApp')
                 app.dockModule_Undock.Enable = 1;
+            end
+
+            if ~app.isDocked
+                app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
+                focus(app.UIFigure)
             end
 
             app.FlowAttributesPanelVisibleIdx.UserData.index = 1;
@@ -792,16 +802,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.axesTool_persistence.Enable = hasMoreThanTwoSamples;
             app.axesTool_waterfall.Enable   = hasMoreThanTwoSamples;
 
-            % DataCursorMode
-            % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
-            % cartesianos por bloquear as outras (Pan, RegionZoom etc). Por
-            % essa razão, restringir o DataCursorMode apenas ao eixo específico
-            % em que está sendo plotado a imagem (que não suporta a interação 
-            % padrão de DataTip).
             app.axesTool_DataTip.Enable = isWaterfallRenderedAsImage;
 
             if ~isWaterfallRenderedAsImage && app.axesTool_DataTip.UserData.status
-                onAxesToolbarButtonClicked(app, struct('Source', app.axesTool_DataTip))
+                onAxesToolbarDataCursorModeButtonClicked(app)
             end
 
             if isOccupancyFlow
@@ -1458,17 +1462,95 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
         end
 
+
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
-        function runPlaybackLoop(app, flowIdx, nSweeps)
+        function handlePlaybackKey(app, key, modifiers)
+            if ~isempty(modifiers)
+                return
+            end
+
+            switch key
+                case 'space'
+                    togglePlayback(app)
+                case 'leftarrow'
+                    stepPlaybackFrame(app, -1)
+                case 'rightarrow'
+                    stepPlaybackFrame(app, 1)
+            end
+        end
+
+        %------------------------------------------------------------------
+        function stepPlaybackFrame(app, direction)
+            if app.plotUpdateEvent ~= 0
+                return
+            end
+
+            flowIdx = findSpecDataIndex(app);
+
+            if isempty(flowIdx)
+                return
+            end
+
+            specData = app.mainApp.specData(flowIdx);
+            numSweeps = numel(specData.Data{1});
+
+            if isempty(app.sweepTimeIdx)
+                return
+            end
+
+            currentIdx = min(max(round(app.sweepTimeIdx), 1), numSweeps);
+            nextIdx = min(max(currentIdx + direction, 1), numSweeps);
+
+            if nextIdx == currentIdx
+                return
+            end
+
+            app.sweepTimeIdx = nextIdx;
+            updateCurrentFrame(app, flowIdx, numSweeps)
+        end
+
+        %------------------------------------------------------------------
+        function togglePlayback(app)
+            if app.plotUpdateEvent ~= 0
+                app.plotUpdateEvent = 0;
+                return
+            end
+
+            flowIdx = findSpecDataIndex(app);
+
+            if isempty(flowIdx)
+                return
+            end
+
+            specData = app.mainApp.specData(flowIdx);
+
+            if isempty(specData.Data) || isempty(specData.Data{1})
+                return
+            end
+
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+            app.plotUpdateEvent = 1;
+            runPlaybackLoop(app, flowIdx, numel(specData.Data{1}))
+        end
+
+        %------------------------------------------------------------------
+        function updateCurrentFrame(app, flowIdx, numSweeps)
+            updatePlot(app)
+            updateTimestamp(app, app.sweepTimeIdx, numSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
+            app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx / numSweeps, 1);
+        end        
+
+        %------------------------------------------------------------------
+        function runPlaybackLoop(app, flowIdx, numSweeps)
             app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
 
             if ~app.plotHandles.clearWrite.Visible
                 app.plotHandles.clearWrite.Visible = true;
             end
 
-            while app.sweepTimeIdx <= nSweeps
+            while app.sweepTimeIdx <= numSweeps
                 switch app.plotUpdateEvent
                     case -1
                         app.plotUpdateEvent = 1;
@@ -1479,30 +1561,26 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         if isempty(flowIdx)
                             break
                         end
-                        
-                        nSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
+
+                        numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
 
                     case  0
+                        app.sweepTimeIdx = max(1, app.sweepTimeIdx-1);
                         break
                 end
 
                 sweepTic = tic;
-                
-                updatePlot(app)
-                updateTimestamp(app, app.sweepTimeIdx, nSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
-                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
-                
-                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
-                
-                % Reload Flag
-                if app.sweepTimeIdx == nSweeps
+                updateCurrentFrame(app, flowIdx, numSweeps);
+                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025))
+
+                if app.sweepTimeIdx == numSweeps
                     if ~app.tool_LoopControl.UserData.loopMode
                         break
                     end
                     app.sweepTimeIdx = 1;
                 else
-                    app.sweepTimeIdx = app.sweepTimeIdx+1;
-                end                
+                    app.sweepTimeIdx = app.sweepTimeIdx + 1;
+                end
             end
 
             app.plotUpdateEvent = 0;
@@ -1516,6 +1594,9 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
         end
 
+
+        %-----------------------------------------------------------------%
+        % ## RELATÓRIO ##
         %-----------------------------------------------------------------%
         function reportDispatchOperation(app, eventName, varargin)
             if isempty(app.mainApp.eFiscalizaObj) || ~isvalid(app.mainApp.eFiscalizaObj)
@@ -1541,7 +1622,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         function startupFcn(app, mainApp)
             
             try
-                appEngine.boot(app, app.Role, mainApp)                
+                appEngine.boot(app, app.Role, mainApp)
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
             end
@@ -1668,8 +1749,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
         end
 
-        % Image clicked function: axesTool_DataTip, axesTool_Pan, 
-        % ...and 9 other components
+        % Image clicked function: axesTool_Pan, axesTool_RestoreView, 
+        % ...and 8 other components
         function onAxesToolbarButtonClicked(app, event)
             
             specData = app.bandObj.SpecData;
@@ -1762,16 +1843,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                         updateWaterfallPanel(app)
                     end
 
-                case app.axesTool_DataTip
-                    app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
-                    if app.axesTool_DataTip.UserData.status
-                        app.axesTool_DataTip.ImageSource = 'datatip-filled-20px.png';
-                    else
-                        app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
-                    end
-
-                    plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
-
                 case app.axesTool_emissions
                     emissionsHandle = findobj(app.UIAxes1, 'Tag', 'emissionsTemp');
                     if ~isempty(emissionsHandle)
@@ -1806,6 +1877,25 @@ classdef winPlayback_exported < matlab.apps.AppBase
             end
 
             app.progressDialog.Visible = 'hidden';
+
+        end
+
+        % Image clicked function: axesTool_DataTip
+        function onAxesToolbarDataCursorModeButtonClicked(app, event)
+            
+            % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
+            % cartesianos por bloquear as outras (Pan, RegionZoom etc).
+            % Bloqueia, também, o controle de playback pelas teclas Espaço, 
+            % ← e →.
+
+            app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
+            if app.axesTool_DataTip.UserData.status
+                app.axesTool_DataTip.ImageSource = 'datatip-filled-20px.png';
+            else
+                app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
+            end
+
+            plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
 
         end
 
@@ -2323,18 +2413,8 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    flowIdx = findSpecDataIndex(app);
-
-                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        runPlaybackLoop(app, flowIdx, numel(app.mainApp.specData(flowIdx).Data{1}))        
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
-
-                %---------------------------------------------------------%
+                    togglePlayback(app)
+                    
                 case app.tool_LoopControl
                      app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
 
@@ -3755,7 +3835,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             % Create axesTool_DataTip
             app.axesTool_DataTip = uiimage(app.AxesToolbar);
             app.axesTool_DataTip.ScaleMethod = 'none';
-            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarDataCursorModeButtonClicked, true);
             app.axesTool_DataTip.Enable = 'off';
             app.axesTool_DataTip.Layout.Row = 1;
             app.axesTool_DataTip.Layout.Column = 16;

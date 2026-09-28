@@ -1549,6 +1549,27 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             
         end
 
+        % Window key press function: UIFigure
+        function onFigureWindowKeyPress(app, event)
+            
+            if app.Tab2Button.Value
+                forwardKeyPress(app.Tab2Button)
+
+            elseif app.Tab3Button.Value
+                % forwardKeyPress(app.Tab3Button)
+            end
+
+            function forwardKeyPress(tabButton)
+                auxAppName = tabButton.Tag;
+                hAuxApp = getAppHandle(app.tabGroupController, auxAppName);
+
+                if ~isempty(hAuxApp) && isvalid(hAuxApp) && hAuxApp.isDocked
+                    ipcMainMatlabCallAuxiliarApp(app, auxAppName, 'MATLAB', 'onKeyPressPlaybackControl', event.Key, event.Modifier)
+                end
+            end
+            
+        end
+
         % Callback function: AppInfo, DataHubLamp, FigurePosition, 
         % ...and 7 other components
         function onTabNavigatorButtonPushed(app, event)
@@ -1936,6 +1957,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             app.UIFigure.Name = 'appAnalise';
             app.UIFigure.Icon = 'icon_48.png';
             app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
+            app.UIFigure.WindowKeyPressFcn = createCallbackFcn(app, @onFigureWindowKeyPress, true);
             app.UIFigure.HandleVisibility = 'on';
 
             % Create GridLayout

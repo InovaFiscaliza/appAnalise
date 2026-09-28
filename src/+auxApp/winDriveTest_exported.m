@@ -9,6 +9,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         dockModule_Undock               matlab.ui.control.Image
         Document                        matlab.ui.container.GridLayout
         AxesToolbar                     matlab.ui.container.GridLayout
+        axesTool_DataTip                matlab.ui.control.Image
         axesTool_Target                 matlab.ui.control.Image
         axesTool_PlotSize               matlab.ui.control.Slider
         axesTool_DensityPlot            matlab.ui.control.Image
@@ -375,6 +376,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             case 'auxApp.winDriveTest.PointsTree'
                                 onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree.Children(1), 'Source', app.DeleteSelectedItem))
 
+                            % case 'onKeyPressPlaybackControl'
+                            %     key = varargin{2};
+                            %     modifiers = varargin{3};
+                            %     handlePlaybackKey(app, key, modifiers)
+
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
                         end
@@ -420,6 +426,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                         app.axesTool_DensityPlot;
                         app.axesTool_PlotSize;
                         app.axesTool_Target;
+                        app.axesTool_DataTip;
                         ...
                         app.dockModule_Undock;
                         app.dockModule_Close
@@ -437,7 +444,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             ...
                             struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à esquerda')), ...
                             struct('appName', appName, 'dataTag', app.tool_LayoutRight.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla execução do playback da monitoração')), ...
+                            struct('appName', appName, 'dataTag', app.tool_Play.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla a execução do playback da monitoração')), ...
                             struct('appName', appName, 'dataTag', app.tool_LoopControl.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Controla loop da execução do playback')), ...
                             ...
                             struct('appName', appName, 'dataTag', app.axesTool_RestoreView.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Restaura limites iniciais dos eixos')), ...
@@ -448,9 +455,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             struct('appName', appName, 'dataTag', app.axesTool_DensityPlot.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exibe plot de densidade')), ...
                             struct('appName', appName, 'dataTag', app.axesTool_PlotSize.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Define raio de cada medida')), ...
                             struct('appName', appName, 'dataTag', app.axesTool_Target.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Geolocalização (AoA ou PoA)')), ...
+                            struct('appName', appName, 'dataTag', app.axesTool_DataTip.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita o modo DataCursor no waterfall<br>(desabilita o controle do playback pelas teclas)')), ...
                             ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id,  'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id,   'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
                         });
                     catch
                     end
@@ -499,11 +507,16 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
+            % if ~app.isDocked
+            %     app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
+            %     focus(app.UIFigure)
+            % end
+
             app.EmissionAttributesPanelVisibleIdx.UserData.index = 1;
             app.tool_LayoutLeft.UserData.status = true;
             app.tool_LayoutRight.UserData.status = false;
             app.tool_LoopControl.UserData.loopMode = true;
-
+            app.axesTool_DataTip.UserData.status = false;
             
             app.Basemap.Value = app.defaultValues.basemap;
             app.Colormap.Value = app.defaultValues.colormap;
@@ -588,7 +601,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             linkaxes([app.UIAxes2, app.UIAxes3], 'x')
             plot.axes.Interactivity.DefaultCreation(app.UIAxes1, [dataTipInteraction, zoomInteraction, panInteraction])
             plot.axes.Interactivity.DefaultCreation([app.UIAxes2, app.UIAxes4], dataTipInteraction)
-            plot.axes.Interactivity.DataCursorMode(app.UIAxes3, true)
         end
 
         %-----------------------------------------------------------------%
@@ -1074,6 +1086,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.axesTool_DistortionPlot;
                 app.axesTool_PlotSize;
                 app.axesTool_Target; 
+                app.axesTool_DataTip; 
                 app.DataBinningLength;
                 app.DataBinningFcn;
                 app.FilterTreeButton;
@@ -1081,6 +1094,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             ], 'Enable', hasEmission)
 
             app.axesTool_DensityPlot.Enable = hasEmission && isDataBinned;
+
+            if ~hasEmission && app.axesTool_DataTip.UserData.status
+                onAxesToolbarDataCursorModeButtonClicked(app)
+            end
 
             app.BandGuardType.Enable = hasChannelBW;
             app.BandGuardFixedValue.Enable = hasChannelBW && strcmp(app.BandGuardType.Value, 'Fixed');
@@ -1514,17 +1531,44 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             persistAxesViewLimits(app, 'refreshGeoAxesPlotLimits')
         end
 
+
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
-        function runPlaybackLoop(app, nSweeps)
+        % function handlePlaybackKey(app, key, modifiers)
+        %     if ~isempty(modifiers)
+        %         return
+        %     end
+        % 
+        %     switch key
+        %         case 'space'
+        %             togglePlayback(app)
+        %         case 'leftarrow'
+        %             stepPlaybackFrame(app, -1)
+        %         case 'rightarrow'
+        %             stepPlaybackFrame(app, 1)
+        %     end
+        % end
+        % 
+        % %------------------------------------------------------------------
+        % function stepPlaybackFrame(app, direction)
+        %     % ...
+        % end
+        % 
+        % %------------------------------------------------------------------
+        % function togglePlayback(app)
+        %     % ...
+        % end
+
+        %-----------------------------------------------------------------%
+        function runPlaybackLoop(app, numSweeps)
             app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
 
             if ~app.plotHandles.clearWrite.Visible
                 app.plotHandles.clearWrite.Visible = true;
             end
 
-            while app.sweepTimeIdx <= nSweeps
+            while app.sweepTimeIdx <= numSweeps
                 switch app.plotUpdateEvent
                     case -2
                         app.plotUpdateEvent = 1;
@@ -1536,7 +1580,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             break
                         end
                         
-                        nSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
+                        numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
 
                     case -1
                         app.plotUpdateEvent = 1;
@@ -1550,12 +1594,12 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
                 refreshPlots(app)
                 refreshTimestampLabel(app)
-                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/nSweeps, 1);
+                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/numSweeps, 1);
                 
                 pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
 
                 % Reload Flag
-                if app.sweepTimeIdx == nSweeps
+                if app.sweepTimeIdx == numSweeps
                     if ~app.tool_LoopControl.UserData.loopMode
                         break
                     end
@@ -1926,6 +1970,25 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             catch ME
                 ui.Dialog(app.UIFigure, 'error', ME.message);
             end
+
+        end
+
+        % Image clicked function: axesTool_DataTip
+        function onAxesToolbarDataCursorModeButtonClicked(app, event)
+
+            % O DataCursorMode é, de forma geral, uma interação ruim p/ eixos
+            % cartesianos por bloquear as outras (Pan, RegionZoom etc).
+            % Bloqueia, também, o controle de playback pelas teclas Espaço, 
+            % ← e →.
+
+            app.axesTool_DataTip.UserData.status = ~app.axesTool_DataTip.UserData.status;
+            if app.axesTool_DataTip.UserData.status
+                app.axesTool_DataTip.ImageSource = 'datatip-filled-20px.png';
+            else
+                app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
+            end
+
+            plot.axes.Interactivity.DataCursorMode(app.UIAxes3, app.axesTool_DataTip.UserData.status)
 
         end
 
@@ -3066,7 +3129,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create AxesToolbar
             app.AxesToolbar = uigridlayout(app.Document);
-            app.AxesToolbar.ColumnWidth = {8, 25, 25, 25, 5, '1x', 5, 25, 25, 5, 54, 25, 8};
+            app.AxesToolbar.ColumnWidth = {8, 25, 25, 25, 5, '1x', 5, 20, 20, 5, 42, 22, 25, 7};
             app.AxesToolbar.RowHeight = {22};
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
@@ -3145,6 +3208,15 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_Target.Layout.Row = 1;
             app.axesTool_Target.Layout.Column = 12;
             app.axesTool_Target.ImageSource = 'target.svg';
+
+            % Create axesTool_DataTip
+            app.axesTool_DataTip = uiimage(app.AxesToolbar);
+            app.axesTool_DataTip.ScaleMethod = 'none';
+            app.axesTool_DataTip.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarDataCursorModeButtonClicked, true);
+            app.axesTool_DataTip.Enable = 'off';
+            app.axesTool_DataTip.Layout.Row = 1;
+            app.axesTool_DataTip.Layout.Column = 13;
+            app.axesTool_DataTip.ImageSource = 'datatip-20px.png';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
