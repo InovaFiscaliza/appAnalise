@@ -1600,7 +1600,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         function reportDispatchOperation(app, eventName, varargin)
             if isempty(app.mainApp.eFiscalizaObj) || ~isvalid(app.mainApp.eFiscalizaObj)
-                eventData = ws.eFiscaliza.getCredentials('auto', app.mainApp.executionMode, app.jsBackDoor, eventName, app.Context);
+                eventData = ws.eFiscaliza.getCredentials('auto', app.mainApp.executionMode, app.jsBackDoor, eventName, app.Context, varargin{:});
                 if ~isempty(eventData)
                     eventData.uuid = eventName;
                     eventData.context = app.Context;

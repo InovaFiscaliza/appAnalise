@@ -113,7 +113,8 @@ function emissionsTable = createEmissionsTable(specData, flowIdxs, operationType
             emissionsTempTable.RiskLevel = arrayfun(@(x) x.UserModified.RiskLevel, emissionsTempTable.Classification, 'UniformOutput', false);
     
             emissionsTempTable.RFDataHubSource = repmat({''}, height(emissionsTempTable), 1);
-            emissionsTempTable.RFDataHubClass = repmat({''}, height(emissionsTempTable), 1);    
+            emissionsTempTable.RFDataHubClass = repmat({''}, height(emissionsTempTable), 1);
+            emissionsTempTable.MergedDescriptions = repmat({''}, height(emissionsTempTable), 1);
             
             for kk = 1:height(emissionsTempTable)
                 try
