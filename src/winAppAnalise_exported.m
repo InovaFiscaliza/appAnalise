@@ -1556,7 +1556,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 forwardKeyPress(app.Tab2Button)
 
             elseif app.Tab3Button.Value
-                % forwardKeyPress(app.Tab3Button)
+                forwardKeyPress(app.Tab3Button)
             end
 
             function forwardKeyPress(tabButton)
