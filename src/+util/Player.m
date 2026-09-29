@@ -109,6 +109,12 @@ classdef Player
                 return
             end
 
+            key = lower(char(key));
+            keypadDigit = regexp(key, '^(?:numpad|keypad|kp)[ _-]*([1-9])$', 'tokens', 'once');
+            if ~isempty(keypadDigit)
+                key = keypadDigit{1};
+            end
+
             switch key
                 case 'space'
                     util.Player.toggle(app, callbacks)
@@ -116,6 +122,22 @@ classdef Player
                     numSweeps = callbacks.getNumSweeps();
                     direction = 2 * strcmp(key, 'rightarrow') - 1;
                     util.Player.step(app, direction, numSweeps, callbacks.renderFrame)
+                case {'home', 'end', '1', '2', '3', '4', '5', '6', '7', '8', '9'}
+                    if app.plotUpdateEvent ~= 0
+                        return
+                    end
+
+                    switch key
+                        case 'home'
+                            percentage = 0;
+                        case 'end'
+                            percentage = 100;
+                        otherwise
+                            percentage = str2double(key) * 10;
+                    end
+
+                    numSweeps = callbacks.getNumSweeps();
+                    util.Player.seek(app, percentage, numSweeps, callbacks.renderFrame)
             end
         end
     end
