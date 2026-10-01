@@ -234,7 +234,7 @@
                         "Origin": "FunctionEvaluation",
                         "Source": "img_Plot",
                         "Context": "appAnalise:REPORT:BAND",
-                        "Name": "minHold+average+maxHold+emission:waterfall",
+                        "Name": "minHold+average+maxHold+emission+bandLimits:waterfall",
                         "Layout": "1:1",
                         "Caption": "Representação gráfica da faixa de frequência sob análise.",
                         "Settings": {
