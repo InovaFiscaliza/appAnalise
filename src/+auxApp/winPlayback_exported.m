@@ -504,6 +504,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
             app.tool_LoopControl.UserData.loopMode = true;
 
             initializeAxes(app)
+            util.Player.boot(app)
         end
 
         %-----------------------------------------------------------------%
@@ -1467,124 +1468,100 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
         function handlePlaybackKey(app, key, modifiers)
-            if ~isempty(modifiers)
-                return
-            end
-
-            switch key
-                case 'space'
-                    togglePlayback(app)
-                case 'leftarrow'
-                    stepPlaybackFrame(app, -1)
-                case 'rightarrow'
-                    stepPlaybackFrame(app, 1)
-            end
+            util.Player.handleKey(app, key, modifiers, getPlayerCallbacks(app))
         end
 
-        %------------------------------------------------------------------
-        function stepPlaybackFrame(app, direction)
-            if app.plotUpdateEvent ~= 0
-                return
-            end
+        %-----------------------------------------------------------------%
+        function callbacks = getPlayerCallbacks(app)
+            callbacks = struct( ...
+                'getNumSweeps',      @() getPlaybackNumSweeps(app), ...
+                'onPlaybackStarted', @() notifyPlaybackStarted(app), ...
+                'prepareIteration',  @(numSweeps) preparePlaybackIteration(app, numSweeps), ...
+                'renderFrame',       @() renderPlaybackFrame(app) ...
+            );
+        end
 
+        %-----------------------------------------------------------------%
+        function numSweeps = getPlaybackNumSweeps(app)
             flowIdx = findSpecDataIndex(app);
-
-            if isempty(flowIdx)
+            if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                numSweeps = [];
                 return
             end
 
             specData = app.mainApp.specData(flowIdx);
+            if isempty(specData.Data) || isempty(specData.Data{1})
+                numSweeps = [];
+                return
+            end
+
             numSweeps = numel(specData.Data{1});
+        end
 
-            if isempty(app.sweepTimeIdx)
+        %-----------------------------------------------------------------%
+        function notifyPlaybackStarted(app)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+        end
+
+        %-----------------------------------------------------------------%
+        function iteration = preparePlaybackIteration(app, numSweeps)
+            iteration = struct('numSweeps', numSweeps, 'shouldContinue', true);
+            
+            switch app.plotUpdateEvent
+                case -1
+                    app.plotUpdateEvent = 1;
+                    flowIdx = findSpecDataIndex(app);
+
+                    if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                        iteration.shouldContinue = false;
+                        return
+                    end
+
+                    loadSelectedFlow(app, flowIdx)
+                    iteration.numSweeps = getPlaybackNumSweeps(app);
+                    iteration.shouldContinue = ~isempty(iteration.numSweeps);
+                    
+                case 0
+                    % Compensa o incremento feito ao final da iteração anterior:
+                    % mantém selecionada a última varredura exibida.
+                    app.sweepTimeIdx = max(1, app.sweepTimeIdx - 1);
+                    iteration.shouldContinue = false;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function renderPlaybackFrame(app)
+            flowIdx = findSpecDataIndex(app);
+            
+            if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
                 return
             end
 
-            currentIdx = min(max(round(app.sweepTimeIdx), 1), numSweeps);
-            nextIdx = min(max(currentIdx + direction, 1), numSweeps);
-
-            if nextIdx == currentIdx
-                return
-            end
-
-            app.sweepTimeIdx = nextIdx;
+            numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
             updateCurrentFrame(app, flowIdx, numSweeps)
         end
 
-        %------------------------------------------------------------------
-        function togglePlayback(app)
-            if app.plotUpdateEvent ~= 0
-                app.plotUpdateEvent = 0;
-                return
-            end
-
-            flowIdx = findSpecDataIndex(app);
-
-            if isempty(flowIdx)
-                return
-            end
-
-            specData = app.mainApp.specData(flowIdx);
-
-            if isempty(specData.Data) || isempty(specData.Data{1})
-                return
-            end
-
-            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-            app.plotUpdateEvent = 1;
-            runPlaybackLoop(app, flowIdx, numel(specData.Data{1}))
-        end
-
-        %------------------------------------------------------------------
-        function updateCurrentFrame(app, flowIdx, numSweeps)
-            updatePlot(app)
-            updateTimestamp(app, app.sweepTimeIdx, numSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
-            app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx / numSweeps, 1);
-        end        
-
-        %------------------------------------------------------------------
-        function runPlaybackLoop(app, flowIdx, numSweeps)
-            app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
-
+        %-----------------------------------------------------------------%
+        function renderTimelineFrame(app)
             if ~app.plotHandles.clearWrite.Visible
                 app.plotHandles.clearWrite.Visible = true;
             end
 
-            while app.sweepTimeIdx <= numSweeps
-                switch app.plotUpdateEvent
-                    case -1
-                        app.plotUpdateEvent = 1;
+            app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
+            updatePersistencePlot(app, 'Update')
 
-                        flowIdx = findSpecDataIndex(app);
-                        loadSelectedFlow(app, flowIdx)
-
-                        if isempty(flowIdx)
-                            break
-                        end
-
-                        numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
-
-                    case  0
-                        app.sweepTimeIdx = max(1, app.sweepTimeIdx-1);
-                        break
-                end
-
-                sweepTic = tic;
-                updateCurrentFrame(app, flowIdx, numSweeps);
-                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025))
-
-                if app.sweepTimeIdx == numSweeps
-                    if ~app.tool_LoopControl.UserData.loopMode
-                        break
-                    end
-                    app.sweepTimeIdx = 1;
-                else
-                    app.sweepTimeIdx = app.sweepTimeIdx + 1;
-                end
+            if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
+                plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
             end
 
-            app.plotUpdateEvent = 0;
-            app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
+            updateTimestamp(app, app.sweepTimeIdx, app.bandObj.NumSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx))
+        end
+        
+        %-----------------------------------------------------------------%
+        function updateCurrentFrame(app, flowIdx, numSweeps)
+            updatePlot(app)
+            updateTimestamp(app, app.sweepTimeIdx, numSweeps, app.mainApp.specData(flowIdx).Data{1}(app.sweepTimeIdx))
+            app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx / numSweeps, 1);
         end
 
         %-----------------------------------------------------------------%
@@ -2413,16 +2390,10 @@ classdef winPlayback_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    togglePlayback(app)
-                    
+                    util.Player.toggle(app, getPlayerCallbacks(app))
+                 
                 case app.tool_LoopControl
-                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
-
-                     if app.tool_LoopControl.UserData.loopMode
-                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
-                     else
-                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
-                    end
+                    util.Player.toggleLoop(app)
             end
 
         end
@@ -2430,29 +2401,11 @@ classdef winPlayback_exported < matlab.apps.AppBase
         % Callback function: tool_TimestampSlider, tool_TimestampSlider
         function onToolbarTimelineSliderChanging(app, event)
             
-            nSweeps = app.bandObj.NumSweeps;            
-            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
-            
-            if app.sweepTimeIdx < 1
-                app.sweepTimeIdx = 1;
-            elseif app.sweepTimeIdx > nSweeps
-                app.sweepTimeIdx = nSweeps;
+            if isempty(app.bandObj.SpecData) || app.bandObj.NumSweeps < 1
+                return
             end
 
-            if ~app.plotUpdateEvent
-                if ~app.plotHandles.clearWrite.Visible
-                    app.plotHandles.clearWrite.Visible = true;
-                end
-                app.plotHandles.clearWrite.YData = app.bandObj.SpecData.Data{2}(:, app.sweepTimeIdx)';
-                
-                updatePersistencePlot(app, 'Update')
-
-                if app.axesTool_waterfall.UserData.status && ~isempty(app.plotHandles.waterfallTime)
-                    plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                end
-
-                updateTimestamp(app, app.sweepTimeIdx, nSweeps, app.bandObj.SpecData.Data{1}(app.sweepTimeIdx))
-            end
+            util.Player.seek(app, event.Value, app.bandObj.NumSweeps, @() renderTimelineFrame(app))
             
         end
 

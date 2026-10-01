@@ -1344,10 +1344,12 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     msg = util.HtmlTextGenerator.issueDetails(system, issue, details);
                     icon = 'info';
                 else
-                    app.eFiscalizaObj = [];
+                    delete(app.eFiscalizaObj)
+
                     msg = msgError;
                     icon = 'error';
                 end
+                
                 ui.Dialog(app.UIFigure, icon, msg);
             end
 
@@ -1373,6 +1375,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 end
 
             catch ME
+                delete(app.eFiscalizaObj)
                 ui.Dialog(callingApp.UIFigure, 'error', getReport(ME));
             end
 
@@ -1462,7 +1465,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 msg = response;
 
             catch ME
-                app.eFiscalizaObj = [];
+                delete(app.eFiscalizaObj)
                 
                 status = false;
                 icon = 'error';
@@ -1556,7 +1559,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 forwardKeyPress(app.Tab2Button)
 
             elseif app.Tab3Button.Value
-                % forwardKeyPress(app.Tab3Button)
+                forwardKeyPress(app.Tab3Button)
             end
 
             function forwardKeyPress(tabButton)

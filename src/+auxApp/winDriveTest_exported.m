@@ -376,10 +376,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             case 'auxApp.winDriveTest.PointsTree'
                                 onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree.Children(1), 'Source', app.DeleteSelectedItem))
 
-                            % case 'onKeyPressPlaybackControl'
-                            %     key = varargin{2};
-                            %     modifiers = varargin{3};
-                            %     handlePlaybackKey(app, key, modifiers)
+                            case 'onKeyPressPlaybackControl'
+                                key = varargin{2};
+                                modifiers = varargin{3};
+                                handlePlaybackKey(app, key, modifiers)
 
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -507,10 +507,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
-            % if ~app.isDocked
-            %     app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
-            %     focus(app.UIFigure)
-            % end
+            if ~app.isDocked
+                app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
+                focus(app.UIFigure)
+            end
 
             app.EmissionAttributesPanelVisibleIdx.UserData.index = 1;
             app.tool_LayoutLeft.UserData.status = true;
@@ -522,6 +522,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.Colormap.Value = app.defaultValues.colormap;
             
             initializeAxes(app)
+            util.Player.boot(app)
 
             % Preenche valores que atualmente não são customizados:
             % (a lista de customização está restrita aos elementos do painel 
@@ -1535,82 +1536,95 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
-        % function handlePlaybackKey(app, key, modifiers)
-        %     if ~isempty(modifiers)
-        %         return
-        %     end
-        % 
-        %     switch key
-        %         case 'space'
-        %             togglePlayback(app)
-        %         case 'leftarrow'
-        %             stepPlaybackFrame(app, -1)
-        %         case 'rightarrow'
-        %             stepPlaybackFrame(app, 1)
-        %     end
-        % end
-        % 
-        % %------------------------------------------------------------------
-        % function stepPlaybackFrame(app, direction)
-        %     % ...
-        % end
-        % 
-        % %------------------------------------------------------------------
-        % function togglePlayback(app)
-        %     % ...
-        % end
+        function handlePlaybackKey(app, key, modifiers)
+            if app.axesTool_DataTip.UserData.status
+                return
+            end
+
+            util.Player.handleKey(app, key, modifiers, getPlayerCallbacks(app))
+        end
 
         %-----------------------------------------------------------------%
-        function runPlaybackLoop(app, numSweeps)
-            app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
+        function callbacks = getPlayerCallbacks(app)
+            callbacks = struct( ...
+                'getNumSweeps',      @() getPlaybackNumSweeps(app), ...
+                'onPlaybackStarted', @() notifyPlaybackStarted(app), ...
+                'prepareIteration',  @(numSweeps) preparePlaybackIteration(app, numSweeps), ...
+                'renderFrame',       @() renderPlaybackFrame(app) ...
+                );
+        end
 
-            if ~app.plotHandles.clearWrite.Visible
-                app.plotHandles.clearWrite.Visible = true;
+        %-----------------------------------------------------------------%
+        function numSweeps = getPlaybackNumSweeps(app)
+            flowIdx = getSelectedFlowAndEmissionIndices(app);
+
+            if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                numSweeps = [];
+                return
             end
 
-            while app.sweepTimeIdx <= numSweeps
-                switch app.plotUpdateEvent
-                    case -2
-                        app.plotUpdateEvent = 1;
+            specData = app.mainApp.specData(flowIdx);
 
-                        flowIdx = getSelectedFlowAndEmissionIndices(app);
-                        loadSelectedFlow(app, flowIdx)
+            if isempty(specData.Data) || isempty(specData.Data{1})
+                numSweeps = [];
+                return
+            end
 
-                        if isempty(flowIdx)
-                            break
-                        end
-                        
-                        numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
+            numSweeps = numel(specData.Data{1});
+        end
 
-                    case -1
-                        app.plotUpdateEvent = 1;
-                        loadSelectedEmission(app)
+        %-----------------------------------------------------------------%
+        function notifyPlaybackStarted(app)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+        end
 
-                    case  0
-                        break
-                end
+        %-----------------------------------------------------------------%
+        function iteration = preparePlaybackIteration(app, numSweeps)
+            iteration = struct('numSweeps', numSweeps, 'shouldContinue', true);
 
-                sweepTic = tic;
+            switch app.plotUpdateEvent
+                case -2
+                    % O fluxo mudou durante o playback.
+                    app.plotUpdateEvent = 1;
+                    flowIdx = getSelectedFlowAndEmissionIndices(app);
 
-                refreshPlots(app)
-                refreshTimestampLabel(app)
-                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/numSweeps, 1);
-                
-                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
-
-                % Reload Flag
-                if app.sweepTimeIdx == numSweeps
-                    if ~app.tool_LoopControl.UserData.loopMode
-                        break
+                    if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                        iteration.shouldContinue = false;
+                        return
                     end
-                    app.sweepTimeIdx = 1;
-                else
-                    app.sweepTimeIdx = app.sweepTimeIdx+1;
-                end       
-            end
 
-            app.plotUpdateEvent = 0;
-            app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
+                    loadSelectedFlow(app, flowIdx)
+                    iteration.numSweeps = getPlaybackNumSweeps(app);
+                    iteration.shouldContinue = ~isempty(iteration.numSweeps);
+
+                case -1
+                    % A emissão mudou durante o playback.
+                    app.plotUpdateEvent = 1;
+                    loadSelectedEmission(app)
+
+                case 0
+                    iteration.shouldContinue = false;
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function renderPlaybackFrame(app)
+            refreshPlots(app)
+            refreshTimestampLabel(app)
+            numSweeps = app.bandObj.NumSweeps;
+
+            if numSweeps > 0
+                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx / numSweeps, 1);
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function renderTimelineFrame(app)
+            plot.draw2D.OrdinaryLineUpdate('clearWrite', app.plotHandles.clearWrite, app.bandObj, app.sweepTimeIdx);
+            plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
+            plotOrUpdateVehicleMarker(app, 'Update')
+            plotOrUpdateAzimuthMeasure(app, 'Update')
+            refreshTimestampLabel(app)
         end
     end
     
@@ -2030,29 +2044,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    flowIdx = getSelectedFlowAndEmissionIndices(app);
+                    util.Player.toggle(app, getPlayerCallbacks(app))
 
-                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        try
-                            runPlaybackLoop(app, numel(app.mainApp.specData(flowIdx).Data{1}))
-                        catch
-                        end
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
-
-                %---------------------------------------------------------%
                 case app.tool_LoopControl
-                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
-
-                     if app.tool_LoopControl.UserData.loopMode
-                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
-                     else
-                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
-                    end
+                    util.Player.toggleLoop(app)
             end
 
         end
@@ -2060,24 +2055,11 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         % Callback function: tool_TimestampSlider, tool_TimestampSlider
         function onToolbarTimelineSliderChanging(app, event)
             
-            nSweeps = app.bandObj.NumSweeps;            
-            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
+            if isempty(app.bandObj.SpecData) || app.bandObj.NumSweeps < 1
+                return
+            end
             
-            if app.sweepTimeIdx < 1
-                app.sweepTimeIdx = 1;
-            elseif app.sweepTimeIdx > nSweeps
-                app.sweepTimeIdx = nSweeps;
-            end
-
-            if ~app.plotUpdateEvent
-                plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
-                plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                
-                plotOrUpdateVehicleMarker(app, 'Update')
-                plotOrUpdateAzimuthMeasure(app, 'Update')
-
-                refreshTimestampLabel(app)
-            end
+            util.Player.seek(app, event.Value, app.bandObj.NumSweeps, @() renderTimelineFrame(app))
 
         end
 
