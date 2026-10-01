@@ -376,10 +376,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                             case 'auxApp.winDriveTest.PointsTree'
                                 onContextMenuItemClicked(app, struct('ContextObject', app.PointsTree.Children(1), 'Source', app.DeleteSelectedItem))
 
-                            % case 'onKeyPressPlaybackControl'
-                            %     key = varargin{2};
-                            %     modifiers = varargin{3};
-                            %     handlePlaybackKey(app, key, modifiers)
+                            case 'onKeyPressPlaybackControl'
+                                key = varargin{2};
+                                modifiers = varargin{3};
+                                handlePlaybackKey(app, key, modifiers)
 
                             otherwise
                                 error('auxApp:winDriveTest:UnexpectedCall', 'Unexpected call "%s"', eventName)
@@ -507,10 +507,10 @@ classdef winDriveTest_exported < matlab.apps.AppBase
                 app.dockModule_Undock.Enable = 1;
             end
 
-            % if ~app.isDocked
-            %     app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
-            %     focus(app.UIFigure)
-            % end
+            if ~app.isDocked
+                app.UIFigure.WindowKeyPressFcn = @(~, event)handlePlaybackKey(app, event.Key, event.Modifier);
+                focus(app.UIFigure)
+            end
 
             app.EmissionAttributesPanelVisibleIdx.UserData.index = 1;
             app.tool_LayoutLeft.UserData.status = true;
@@ -1535,83 +1535,94 @@ classdef winDriveTest_exported < matlab.apps.AppBase
         %-----------------------------------------------------------------%
         % ## PLAYBACK ##
         %-----------------------------------------------------------------%
-        % function handlePlaybackKey(app, key, modifiers)
-        %     if ~isempty(modifiers)
-        %         return
-        %     end
-        % 
-        %     switch key
-        %         case 'space'
-        %             togglePlayback(app)
-        %         case 'leftarrow'
-        %             stepPlaybackFrame(app, -1)
-        %         case 'rightarrow'
-        %             stepPlaybackFrame(app, 1)
-        %     end
-        % end
-        % 
-        % %------------------------------------------------------------------
-        % function stepPlaybackFrame(app, direction)
-        %     % ...
-        % end
-        % 
-        % %------------------------------------------------------------------
-        % function togglePlayback(app)
-        %     % ...
-        % end
 
-        %-----------------------------------------------------------------%
-        function runPlaybackLoop(app, numSweeps)
-            app.tool_Play.ImageSource = 'playback-stop-16px-gray.png';
-
-            if ~app.plotHandles.clearWrite.Visible
-                app.plotHandles.clearWrite.Visible = true;
+        function handlePlaybackKey(app, key, modifiers)
+            if app.axesTool_DataTip.UserData.status
+                return
             end
-
-            while app.sweepTimeIdx <= numSweeps
-                switch app.plotUpdateEvent
-                    case -2
-                        app.plotUpdateEvent = 1;
-
-                        flowIdx = getSelectedFlowAndEmissionIndices(app);
-                        loadSelectedFlow(app, flowIdx)
-
-                        if isempty(flowIdx)
-                            break
-                        end
-                        
-                        numSweeps = numel(app.mainApp.specData(flowIdx).Data{1});
-
-                    case -1
-                        app.plotUpdateEvent = 1;
-                        loadSelectedEmission(app)
-
-                    case  0
-                        break
-                end
-
-                sweepTic = tic;
-
-                refreshPlots(app)
-                refreshTimestampLabel(app)
-                app.tool_TimestampSlider.Value = round(100 * app.sweepTimeIdx/numSweeps, 1);
-                
-                pause(max(app.mainApp.General.context.PLAYBACK.minSweepTimeSeconds - toc(sweepTic), .025)) % Valor mínimo: 25ms
-
-                % Reload Flag
-                if app.sweepTimeIdx == numSweeps
-                    if ~app.tool_LoopControl.UserData.loopMode
-                        break
-                    end
-                    app.sweepTimeIdx = 1;
-                else
-                    app.sweepTimeIdx = app.sweepTimeIdx+1;
-                end       
-            end
-
-            app.plotUpdateEvent = 0;
-            app.tool_Play.ImageSource = 'playback-play-16px-gray.png';
+            util.Player.handleKey(app, key, modifiers, getPlayerCallbacks(app))
         end
+        %------------------------------------------------------------------
+
+        function callbacks = getPlayerCallbacks(app)
+            callbacks = struct( ...
+                'getNumSweeps',      @() getPlaybackNumSweeps(app), ...
+                'onPlaybackStarted', @() notifyPlaybackStarted(app), ...
+                'prepareIteration',  @(numSweeps) preparePlaybackIteration(app, numSweeps), ...
+                'renderFrame',       @() renderPlaybackFrame(app) ...
+                );
+        end
+        %-----------------------------------------------------------------%
+
+        function numSweeps = getPlaybackNumSweeps(app)
+            flowIdx = getSelectedFlowAndEmissionIndices(app);
+            if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                numSweeps = [];
+                return
+            end
+            specData = app.mainApp.specData(flowIdx);
+            if isempty(specData.Data) || isempty(specData.Data{1})
+                numSweeps = [];
+                return
+            end
+            numSweeps = numel(specData.Data{1});
+        end
+        %-----------------------------------------------------------------%
+
+        function notifyPlaybackStarted(app)
+            ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
+        end
+        %-----------------------------------------------------------------%
+
+        function iteration = preparePlaybackIteration(app, numSweeps)
+            iteration = struct('numSweeps', numSweeps, 'shouldContinue', true);
+            switch app.plotUpdateEvent
+                case -2
+                    % O fluxo mudou durante o playback.
+                    app.plotUpdateEvent = 1;
+                    flowIdx = getSelectedFlowAndEmissionIndices(app);
+                    if isempty(flowIdx) || flowIdx > numel(app.mainApp.specData)
+                        iteration.shouldContinue = false;
+                        return
+                    end
+                    loadSelectedFlow(app, flowIdx)
+                    iteration.numSweeps = getPlaybackNumSweeps(app);
+                    iteration.shouldContinue = ~isempty(iteration.numSweeps);
+                case -1
+                    % A emissão mudou durante o playback.
+                    app.plotUpdateEvent = 1;
+                    loadSelectedEmission(app)
+                case 0
+                    iteration.shouldContinue = false;
+            end
+        end
+        %-----------------------------------------------------------------%
+
+        function renderPlaybackFrame(app)
+            refreshPlots(app)
+            refreshTimestampLabel(app)
+            numSweeps = app.bandObj.NumSweeps;
+            if numSweeps > 0
+                app.tool_TimestampSlider.Value = ...
+                    round(100 * app.sweepTimeIdx / numSweeps, 1);
+            end
+        end
+        %-----------------------------------------------------------------%
+
+        function renderTimelineFrame(app)
+            plot.draw2D.OrdinaryLineUpdate( ...
+                'clearWrite', app.plotHandles.clearWrite, ...
+                app.bandObj, app.sweepTimeIdx);
+            plot.draw2D.OrdinaryLineUpdate( ...
+                'waterfallTime', app.plotHandles.waterfallTime, ...
+                app.bandObj, app.sweepTimeIdx);
+            plotOrUpdateVehicleMarker(app, 'Update')
+            plotOrUpdateAzimuthMeasure(app, 'Update')
+            refreshTimestampLabel(app)
+        end
+        %-----------------------------------------------------------------%
+
+
     end
     
 
@@ -2030,54 +2041,24 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             
             switch event.Source
                 case app.tool_Play
-                    flowIdx = getSelectedFlowAndEmissionIndices(app);
+                    util.Player.toggle(app, getPlayerCallbacks(app))
 
-                    if ~isempty(flowIdx) && ~app.plotUpdateEvent
-                        ipcMainMatlabCallsHandler(app.mainApp, app, 'onPlaybackStarted')
-
-                        app.plotUpdateEvent = 1;
-                        try
-                            runPlaybackLoop(app, numel(app.mainApp.specData(flowIdx).Data{1}))
-                        catch
-                        end
-                    else
-                        app.plotUpdateEvent = 0;
-                    end
-
-                %---------------------------------------------------------%
                 case app.tool_LoopControl
-                     app.tool_LoopControl.UserData.loopMode = ~ app.tool_LoopControl.UserData.loopMode;
+                    util.Player.toggleLoop(app)
 
-                     if app.tool_LoopControl.UserData.loopMode
-                         app.tool_LoopControl.ImageSource = 'playback-loop-36px-gray.png';
-                     else
-                         app.tool_LoopControl.ImageSource = 'playback-straight-36px-gray.png';
-                    end
             end
 
         end
 
         % Callback function: tool_TimestampSlider, tool_TimestampSlider
         function onToolbarTimelineSliderChanging(app, event)
-            
-            nSweeps = app.bandObj.NumSweeps;            
-            app.sweepTimeIdx = round(event.Value/100 * nSweeps);
-            
-            if app.sweepTimeIdx < 1
-                app.sweepTimeIdx = 1;
-            elseif app.sweepTimeIdx > nSweeps
-                app.sweepTimeIdx = nSweeps;
+            if isempty(app.bandObj.SpecData) || app.bandObj.NumSweeps < 1
+                return
             end
+            util.Player.seek( ...
+                app, event.Value, app.bandObj.NumSweeps, ...
+                @() renderTimelineFrame(app))
 
-            if ~app.plotUpdateEvent
-                plot.draw2D.OrdinaryLineUpdate('clearWrite',    app.plotHandles.clearWrite,    app.bandObj, app.sweepTimeIdx);
-                plot.draw2D.OrdinaryLineUpdate('waterfallTime', app.plotHandles.waterfallTime, app.bandObj, app.sweepTimeIdx);
-                
-                plotOrUpdateVehicleMarker(app, 'Update')
-                plotOrUpdateAzimuthMeasure(app, 'Update')
-
-                refreshTimestampLabel(app)
-            end
 
         end
 
@@ -2447,7 +2428,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_TimestampLabel = uilabel(app.Toolbar);
             app.tool_TimestampLabel.WordWrap = 'on';
             app.tool_TimestampLabel.FontSize = 10;
-            app.tool_TimestampLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.tool_TimestampLabel.Layout.Row = [1 3];
             app.tool_TimestampLabel.Layout.Column = 6;
             app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
@@ -2563,8 +2543,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create DataBinningPanel
             app.DataBinningPanel = uipanel(app.EmissionPanelGrid);
             app.DataBinningPanel.AutoResizeChildren = 'off';
-            app.DataBinningPanel.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.DataBinningPanel.BackgroundColor = [0.96078431372549 0.96078431372549 0.96078431372549];
             app.DataBinningPanel.Layout.Row = 5;
             app.DataBinningPanel.Layout.Column = [3 4];
 
@@ -2580,7 +2558,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.DataBinningLengthLabel.VerticalAlignment = 'bottom';
             app.DataBinningLengthLabel.WordWrap = 'on';
             app.DataBinningLengthLabel.FontSize = 11;
-            app.DataBinningLengthLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.DataBinningLengthLabel.Layout.Row = 1;
             app.DataBinningLengthLabel.Layout.Column = 1;
             app.DataBinningLengthLabel.Interpreter = 'html';
@@ -2594,7 +2571,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.DataBinningLength.ValueDisplayFormat = '%.0f';
             app.DataBinningLength.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarDataSourceChanged, true);
             app.DataBinningLength.FontSize = 11;
-            app.DataBinningLength.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.DataBinningLength.Enable = 'off';
             app.DataBinningLength.Layout.Row = 2;
             app.DataBinningLength.Layout.Column = 1;
@@ -2605,7 +2581,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.DataBinningFcnLabel.VerticalAlignment = 'bottom';
             app.DataBinningFcnLabel.WordWrap = 'on';
             app.DataBinningFcnLabel.FontSize = 11;
-            app.DataBinningFcnLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.DataBinningFcnLabel.Layout.Row = 1;
             app.DataBinningFcnLabel.Layout.Column = 2;
             app.DataBinningFcnLabel.Text = {'Função'; 'estatística:'};
@@ -2616,7 +2591,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.DataBinningFcn.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarDataSourceChanged, true);
             app.DataBinningFcn.Enable = 'off';
             app.DataBinningFcn.FontSize = 11;
-            app.DataBinningFcn.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.DataBinningFcn.BackgroundColor = [1 1 1];
             app.DataBinningFcn.Layout.Row = 2;
             app.DataBinningFcn.Layout.Column = 2;
@@ -2646,7 +2620,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.FilterTree = uitree(app.EmissionPanelGrid);
             app.FilterTree.SelectionChangedFcn = createCallbackFcn(app, @onFilterTreeSelectionChanged, true);
             app.FilterTree.FontSize = 11;
-            app.FilterTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.FilterTree.Layout.Row = 10;
             app.FilterTree.Layout.Column = [3 4];
 
@@ -2673,7 +2646,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create PointsTree
             app.PointsTree = uitree(app.EmissionPanelGrid, 'checkbox');
             app.PointsTree.FontSize = 11;
-            app.PointsTree.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.PointsTree.Layout.Row = [5 10];
             app.PointsTree.Layout.Column = [6 7];
 
@@ -3121,7 +3093,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             % Create AxesContainer
             app.AxesContainer = uipanel(app.Document);
             app.AxesContainer.AutoResizeChildren = 'off';
-            app.AxesContainer.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
             app.AxesContainer.Layout.Row = [1 2];
@@ -3167,7 +3138,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_DataSourceDropDown.Items = {'Dados brutos', 'Processados'};
             app.axesTool_DataSourceDropDown.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarDataSourceChanged, true);
             app.axesTool_DataSourceDropDown.FontSize = 11;
-            app.axesTool_DataSourceDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_DataSourceDropDown.BackgroundColor = [1 1 1];
             app.axesTool_DataSourceDropDown.Layout.Row = 1;
             app.axesTool_DataSourceDropDown.Layout.Column = 6;
@@ -3195,7 +3165,6 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.axesTool_PlotSize.MajorTickLabels = {''};
             app.axesTool_PlotSize.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarPlotSizeChanged, true);
             app.axesTool_PlotSize.ValueChangingFcn = createCallbackFcn(app, @onAxesToolbarPlotSizeChanging, true);
-            app.axesTool_PlotSize.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.axesTool_PlotSize.Layout.Row = 1;
             app.axesTool_PlotSize.Layout.Column = 11;
             app.axesTool_PlotSize.Value = 1;
