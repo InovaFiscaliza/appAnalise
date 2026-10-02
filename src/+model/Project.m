@@ -113,7 +113,7 @@ classdef Project < model.ProjectCommon
             end
 
             try
-                required = {'source', 'type', 'version', 'variables', 'userData'};
+                required = {'source', 'version', 'variables'};
                 varsInFile = who('-file', fileName);
                 if any(~ismember(required, varsInFile))
                     missing = setdiff(required, varsInFile);
