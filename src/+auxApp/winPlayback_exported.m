@@ -1522,9 +1522,6 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     iteration.shouldContinue = ~isempty(iteration.numSweeps);
 
                 case 0
-                    % Compensa o incremento feito ao final da iteração anterior:
-                    % mantém selecionada a última varredura exibida.
-                    app.sweepTimeIdx = max(1, app.sweepTimeIdx - 1);
                     iteration.shouldContinue = false;
             end
         end
