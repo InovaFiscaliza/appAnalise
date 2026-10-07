@@ -2,7 +2,10 @@
 
 ## Contexto do Projeto
 
-Este é um projeto MATLAB com frontend desenvolvido em App Designer, executado via VS Code integrado com MATLAB.
+Este é um projeto MATLAB com frontend desenvolvido em App Designer, executado via VS Code integrado 
+com MATLAB. O app mantém em `C:\ProgramData\ANATEL\appAnalise` (caso sistema operacional seja Windows) 
+um cache dos arquivos de `src/config`. Sempre que algum arquivo na pasta `src/config` for alterado, 
+incremente a versão em `src/config/GeneralSettings.json` para que o app atualize o cache.
 
 ## Dependências
 
@@ -82,5 +85,9 @@ Antes de cada função, insira uma linha de comentário para facilitar a visuali
   function icon = monitoringTypeIcon(specData)
     % ...
   end
+
+**Chamar métodos de uma classe**
+
+Use a notação `methodName(obj, ...)` ao invés de `obj.methodName(...)` para chamar métodos de instâncias de classes.
 
 Adote este padrão em todo o código MATLAB do projeto.
