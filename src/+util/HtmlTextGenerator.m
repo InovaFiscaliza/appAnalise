@@ -206,6 +206,15 @@ classdef (Abstract) HtmlTextGenerator
 
             % LOCAL DA MONITORAÇÃO
             monitoringTypeIcon = util.HtmlTextGenerator.monitoringTypeIcon(specData);
+            locationName = '<font style="color: red;">Desconhecida</font>';
+            if ~isempty(specData.GPS.Location)
+                locationName = specData.GPS.Location;
+            end
+            locationSource = '';
+            if ~isempty(specData.GPS.LocationSource)
+                locationSource = sprintf(' (Fonte: %s)', specData.GPS.LocationSource);
+            end
+
             initialAntennaHeight = calculateAntennaHeight(specData, 1, -1, 'initialValue');
             currentAntennaHeight = specData.UserData.AntennaHeightMeters;
 
@@ -233,7 +242,7 @@ classdef (Abstract) HtmlTextGenerator
                 'Latitude', sprintf('%.6f ± %.6f (1σ)', specData.GPS.Latitude, specData.GPS.Latitude_std), ...
                 'Longitude', sprintf('%.6f ± %.6f (1σ)', specData.GPS.Longitude, specData.GPS.Longitude_std), ...
                 'AntennaHeight', antennaHeight, ...
-                'Location', sprintf('%s (Fonte: %s)', specData.GPS.Location, specData.GPS.LocationSource) ...
+                'Location', sprintf('%s%s', locationName, locationSource) ...
             );
 
             if specData.GPS.Status > 0 && strcmp(specData.GPS.LocationSource, 'Manual')
@@ -304,7 +313,7 @@ classdef (Abstract) HtmlTextGenerator
 
             htmlIntro = [ ...
                 util.HtmlTextGenerator.receiverBadge(util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) '<br><br>' ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s%s<br>%s %s<br><br>', flowTag, description, observationPeriod, durationWarning, monitoringTypeIcon, specData.GPS.Location) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📃 %s<br>⌛ %s%s<br>%s %s<br><br>', flowTag, description, observationPeriod, durationWarning, monitoringTypeIcon, locationName) ...
             ];
 
             htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro);
@@ -458,11 +467,16 @@ classdef (Abstract) HtmlTextGenerator
             flowTag = util.HtmlTextGenerator.createTag('Flow', specData);
             emissionTag = util.HtmlTextGenerator.createTag('Emission', freqCenter, bandWidthkHz);
             observationPeriod = util.HtmlTextGenerator.observationPeriod(specData);
+            
             monitoringTypeIcon = util.HtmlTextGenerator.monitoringTypeIcon(specData);
+            locationName = '<font style="color: red;">Desconhecida</font>';
+            if ~isempty(specData.GPS.Location)
+                locationName = specData.GPS.Location;
+            end
 
             htmlIntro = [ ...
                 util.HtmlTextGenerator.receiverBadge(util.layoutTreeNodeText(specData.Receiver, 'play_TreeBuilding')) '<br><br>' ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, flowTag, observationPeriod, monitoringTypeIcon, specData.GPS.Location) ...
+                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>📶 %s<br>⌛ %s<br>%s %s<br><br>', emissionTag, flowTag, observationPeriod, monitoringTypeIcon, locationName) ...
             ];
 
             switch context
