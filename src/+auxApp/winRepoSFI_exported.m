@@ -868,8 +868,8 @@ end
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {10, 232, 10, 5, 190, '1x', 200, 48, 8, 2};
-            app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
+            app.GridLayout.ColumnWidth = {20, 232, 10, 5, 190, '1x', 200, 38, 10, 8, 2};
+            app.GridLayout.RowHeight = {2, 8, 10, 14, 10, '1x', 20, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
@@ -882,8 +882,8 @@ end
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
             app.Toolbar.Padding = [10 5 10 5];
-            app.Toolbar.Layout.Row = 6;
-            app.Toolbar.Layout.Column = [1 10];
+            app.Toolbar.Layout.Row = 8;
+            app.Toolbar.Layout.Column = [1 11];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
             % Create tool_LayoutLeft
@@ -912,7 +912,7 @@ end
             % Create LeftPanel
             app.LeftPanel = uipanel(app.GridLayout);
             app.LeftPanel.AutoResizeChildren = 'off';
-            app.LeftPanel.Layout.Row = [3 4];
+            app.LeftPanel.Layout.Row = [4 6];
             app.LeftPanel.Layout.Column = 2;
 
             % Create LeftPanelGrid
@@ -1068,7 +1068,7 @@ end
             app.AxesContainer.ForegroundColor = [1 1 1];
             app.AxesContainer.BorderType = 'none';
             app.AxesContainer.BackgroundColor = [0 0 0];
-            app.AxesContainer.Layout.Row = [3 4];
+            app.AxesContainer.Layout.Row = [4 6];
             app.AxesContainer.Layout.Column = [4 8];
             app.AxesContainer.FontSize = 11;
 
@@ -1078,7 +1078,7 @@ end
             app.AxesPopup.WordWrap = 'on';
             app.AxesPopup.FontSize = 11;
             app.AxesPopup.Visible = 'off';
-            app.AxesPopup.Layout.Row = [3 4];
+            app.AxesPopup.Layout.Row = [4 6];
             app.AxesPopup.Layout.Column = [7 8];
             app.AxesPopup.Interpreter = 'html';
             app.AxesPopup.Text = '';
@@ -1090,7 +1090,7 @@ end
             app.AxesToolbar.ColumnSpacing = 0;
             app.AxesToolbar.RowSpacing = 0;
             app.AxesToolbar.Padding = [0 2 0 1];
-            app.AxesToolbar.Layout.Row = 3;
+            app.AxesToolbar.Layout.Row = [4 5];
             app.AxesToolbar.Layout.Column = 5;
             app.AxesToolbar.BackgroundColor = [1 1 1];
 
@@ -1125,9 +1125,8 @@ end
             app.DockModule.RowHeight = {'1x'};
             app.DockModule.ColumnSpacing = 2;
             app.DockModule.Padding = [5 2 5 2];
-            app.DockModule.Visible = 'off';
-            app.DockModule.Layout.Row = [2 3];
-            app.DockModule.Layout.Column = [8 9];
+            app.DockModule.Layout.Row = [2 4];
+            app.DockModule.Layout.Column = [8 10];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create dockModule_Undock

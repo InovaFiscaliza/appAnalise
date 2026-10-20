@@ -2213,8 +2213,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {10, 320, 10, '1x', 48, 8, 2};
-            app.GridLayout.RowHeight = {2, 8, 24, '1x', 10, 34};
+            app.GridLayout.ColumnWidth = {20, 320, 10, '1x', 38, 10, 8, 2};
+            app.GridLayout.RowHeight = {2, 8, 10, 14, '1x', 20, 34};
             app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [0 0 0 0];
@@ -2227,8 +2227,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
             app.Toolbar.Padding = [10 5 10 5];
-            app.Toolbar.Layout.Row = 6;
-            app.Toolbar.Layout.Column = [1 7];
+            app.Toolbar.Layout.Row = 7;
+            app.Toolbar.Layout.Column = [1 8];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
             % Create SidePanelToggleButton
@@ -2310,7 +2310,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.SubTabGroup = uitabgroup(app.GridLayout);
             app.SubTabGroup.AutoResizeChildren = 'off';
             app.SubTabGroup.SelectionChangedFcn = createCallbackFcn(app, @onSubTabGroupSelectionChanged, true);
-            app.SubTabGroup.Layout.Row = [3 4];
+            app.SubTabGroup.Layout.Row = [4 5];
             app.SubTabGroup.Layout.Column = 2;
 
             % Create SubTab1
@@ -3268,7 +3268,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.Document.ColumnSpacing = 0;
             app.Document.RowSpacing = 0;
             app.Document.Padding = [0 0 0 0];
-            app.Document.Layout.Row = [3 4];
+            app.Document.Layout.Row = [4 5];
             app.Document.Layout.Column = [4 5];
             app.Document.BackgroundColor = [1 1 1];
 
@@ -3364,8 +3364,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.DockModule.ColumnSpacing = 2;
             app.DockModule.Padding = [5 2 5 2];
             app.DockModule.Visible = 'off';
-            app.DockModule.Layout.Row = [2 3];
-            app.DockModule.Layout.Column = [5 6];
+            app.DockModule.Layout.Row = [2 4];
+            app.DockModule.Layout.Column = [5 7];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
             % Create DockUndockButton

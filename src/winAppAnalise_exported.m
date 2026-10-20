@@ -1984,11 +1984,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
             % Create Tab1Grid
             app.Tab1Grid = uigridlayout(app.Tab1_File);
-            app.Tab1Grid.ColumnWidth = {10, '1x', '1x', 10, '0.25x', 360, 10};
-            app.Tab1Grid.RowHeight = {94, 10, '1x', 10, 34};
+            app.Tab1Grid.ColumnWidth = {20, '1x', '1x', 10, '0.25x', 360, 20};
+            app.Tab1Grid.RowHeight = {94, 10, '1x', 20, 34};
             app.Tab1Grid.ColumnSpacing = 0;
             app.Tab1Grid.RowSpacing = 0;
-            app.Tab1Grid.Padding = [0 0 0 40];
+            app.Tab1Grid.Padding = [0 0 0 50];
             app.Tab1Grid.BackgroundColor = [1 1 1];
 
             % Create FileTree
