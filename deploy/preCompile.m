@@ -71,7 +71,14 @@ function preCompile()
                     matlabCode  = replace(matlabCode, [oldTag4 extractAfter(matlabCode, oldTag4)], Step3Pattern(newClassName));
             end
 
-            matlabCode = strjoin(splitlines(matlabCode), '\r\n');
+            % Usa a quebra de linha nativa do SO, compatível com o checkout do
+            % git (CRLF no Windows, LF no Linux).
+            if ispc
+                lineBreak = '\r\n';
+            else
+                lineBreak = '\n';
+            end
+            matlabCode = strjoin(splitlines(matlabCode), lineBreak);
             writematrix(matlabCode, [fileBaseName '_exported.m'], 'FileType', 'text', 'WriteMode', 'overwrite', 'QuoteStrings', 'none', 'Encoding', 'UTF-8')
             fprintf('Criado o arquivo %s\n', [fileBaseName '_exported.m'])
 
