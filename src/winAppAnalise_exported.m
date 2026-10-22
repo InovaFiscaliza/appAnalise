@@ -592,7 +592,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications(13, :) = {"FlowMerge",          880, 480, true};
                 popupSpecifications(14, :) = {"Location",           412, 190, false};                
                 popupSpecifications(15, :) = {"Occupancy",          412, 516, false}; % Não iniciada revisão
-                popupSpecifications(16, :) = {"ReportLib",          784, 594, false};
+                popupSpecifications(16, :) = {"ReportLib",          890, 600, false};
                 popupSpecifications(17, :) = {"RepoFiles",         1244, 660, false};
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);

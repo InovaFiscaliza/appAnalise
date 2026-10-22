@@ -40,26 +40,6 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         TXPanelIcon                     matlab.ui.control.Image
         SubTab2                         matlab.ui.container.Tab
         SubGrid2                        matlab.ui.container.GridLayout
-        FilterTypeButtonGroup           matlab.ui.container.ButtonGroup
-        FilterTypeAntennaPatternRadio   matlab.ui.control.RadioButton
-        FilterTypeROIRadio              matlab.ui.control.RadioButton
-        FilterTypeDistanceRadio         matlab.ui.control.RadioButton
-        FilterTypeMunicipalityRadio     matlab.ui.control.RadioButton
-        FilterTypeStateRadio            matlab.ui.control.RadioButton
-        FilterTypeStationRadio          matlab.ui.control.RadioButton
-        FilterTypeServiceRadio          matlab.ui.control.RadioButton
-        FilterTypeFistelRadio           matlab.ui.control.RadioButton
-        FilterTypeEntityRadio           matlab.ui.control.RadioButton
-        FilterTypeBandwidthRadio        matlab.ui.control.RadioButton
-        FilterTypeFrequencyRadio        matlab.ui.control.RadioButton
-        FilterTypeSourceRadio           matlab.ui.control.RadioButton
-        RXTitleGrid                     matlab.ui.container.GridLayout
-        RXEditCancelButton              matlab.ui.control.Image
-        RXEditConfirmButton             matlab.ui.control.Image
-        RXEditModeButton                matlab.ui.control.Image
-        RXRefreshButton                 matlab.ui.control.Image
-        RXPanelTitle                    matlab.ui.control.Label
-        RXPanelIcon                     matlab.ui.control.Image
         FilterRulesTree                 matlab.ui.container.CheckBoxTree
         FilterAddButton                 matlab.ui.control.Image
         FilterOperationButtonGroup      matlab.ui.container.ButtonGroup
@@ -84,6 +64,19 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         FilterOperation3Button          matlab.ui.control.ToggleButton
         FilterOperation2Button          matlab.ui.control.ToggleButton
         FilterOperation1Button          matlab.ui.control.ToggleButton
+        FilterTypeButtonGroup           matlab.ui.container.ButtonGroup
+        FilterTypeROIRadio              matlab.ui.control.RadioButton
+        FilterTypeDistanceRadio         matlab.ui.control.RadioButton
+        FilterTypeMunicipalityRadio     matlab.ui.control.RadioButton
+        FilterTypeStateRadio            matlab.ui.control.RadioButton
+        FilterTypeStationRadio          matlab.ui.control.RadioButton
+        FilterTypeServiceRadio          matlab.ui.control.RadioButton
+        FilterTypeFistelRadio           matlab.ui.control.RadioButton
+        FilterTypeEntityRadio           matlab.ui.control.RadioButton
+        FilterTypeAntennaPatternRadio   matlab.ui.control.RadioButton
+        FilterTypeBandwidthRadio        matlab.ui.control.RadioButton
+        FilterTypeFrequencyRadio        matlab.ui.control.RadioButton
+        FilterTypeSourceRadio           matlab.ui.control.RadioButton
         filter_SecondaryLabel           matlab.ui.control.Label
         RXReferencePanel                matlab.ui.container.Panel
         RXReferenceGrid                 matlab.ui.container.GridLayout
@@ -93,6 +86,13 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         RXLongitudeLabel                matlab.ui.control.Label
         RXLatitude                      matlab.ui.control.NumericEditField
         RXLatitudeLabel                 matlab.ui.control.Label
+        RXTitleGrid                     matlab.ui.container.GridLayout
+        RXEditCancelButton              matlab.ui.control.Image
+        RXEditConfirmButton             matlab.ui.control.Image
+        RXEditModeButton                matlab.ui.control.Image
+        RXRefreshButton                 matlab.ui.control.Image
+        RXPanelTitle                    matlab.ui.control.Label
+        RXPanelIcon                     matlab.ui.control.Image
         SubTab3                         matlab.ui.container.Tab
         SubGrid3                        matlab.ui.container.GridLayout
         ElevationSourcePanel            matlab.ui.container.Panel
@@ -108,8 +108,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
         RXMarkerSizeSlider              matlab.ui.control.Slider
         RXMarkerColorPicker             matlab.ui.control.ColorPicker
         RXMarkerSectionLabel            matlab.ui.control.Label
-        TXDataTipVisibilityDropDown     matlab.ui.control.DropDown
         TXMarkerSizeSlider              matlab.ui.control.Slider
+        TXDataTipVisibilityDropDown     matlab.ui.control.DropDown
         TXMarkerColorPicker             matlab.ui.control.ColorPicker
         TXMarkerSectionLabel            matlab.ui.control.Label
         StationMarkerSizeSlider         matlab.ui.control.Slider
@@ -2503,6 +2503,65 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.SubGrid2.Padding = [10 10 10 5];
             app.SubGrid2.BackgroundColor = [1 1 1];
 
+            % Create RXTitleGrid
+            app.RXTitleGrid = uigridlayout(app.SubGrid2);
+            app.RXTitleGrid.ColumnWidth = {22, '1x', 18, 18, 0, 0};
+            app.RXTitleGrid.RowHeight = {18, 18};
+            app.RXTitleGrid.ColumnSpacing = 5;
+            app.RXTitleGrid.RowSpacing = 0;
+            app.RXTitleGrid.Padding = [0 0 0 0];
+            app.RXTitleGrid.Layout.Row = 1;
+            app.RXTitleGrid.Layout.Column = [1 2];
+            app.RXTitleGrid.BackgroundColor = [1 1 1];
+
+            % Create RXPanelIcon
+            app.RXPanelIcon = uiimage(app.RXTitleGrid);
+            app.RXPanelIcon.Layout.Row = [1 2];
+            app.RXPanelIcon.Layout.Column = 1;
+            app.RXPanelIcon.ImageSource = 'Pin_32Triangle.png';
+
+            % Create RXPanelTitle
+            app.RXPanelTitle = uilabel(app.RXTitleGrid);
+            app.RXPanelTitle.VerticalAlignment = 'bottom';
+            app.RXPanelTitle.FontSize = 11;
+            app.RXPanelTitle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.RXPanelTitle.Layout.Row = [1 2];
+            app.RXPanelTitle.Layout.Column = 2;
+            app.RXPanelTitle.Interpreter = 'html';
+            app.RXPanelTitle.Text = {'<b>Estação receptora - RX</b>'; '<font style="font-size: 9px; color: gray;">(referência coluna "Distância" e enlace)</font>'};
+
+            % Create RXRefreshButton
+            app.RXRefreshButton = uiimage(app.RXTitleGrid);
+            app.RXRefreshButton.ScaleMethod = 'none';
+            app.RXRefreshButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
+            app.RXRefreshButton.Visible = 'off';
+            app.RXRefreshButton.Layout.Row = 2;
+            app.RXRefreshButton.Layout.Column = 3;
+            app.RXRefreshButton.ImageSource = 'Refresh_18.png';
+
+            % Create RXEditModeButton
+            app.RXEditModeButton = uiimage(app.RXTitleGrid);
+            app.RXEditModeButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
+            app.RXEditModeButton.Layout.Row = 2;
+            app.RXEditModeButton.Layout.Column = 4;
+            app.RXEditModeButton.ImageSource = 'Edit_32.png';
+
+            % Create RXEditConfirmButton
+            app.RXEditConfirmButton = uiimage(app.RXTitleGrid);
+            app.RXEditConfirmButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
+            app.RXEditConfirmButton.Enable = 'off';
+            app.RXEditConfirmButton.Layout.Row = 2;
+            app.RXEditConfirmButton.Layout.Column = 5;
+            app.RXEditConfirmButton.ImageSource = 'Ok_32Green.png';
+
+            % Create RXEditCancelButton
+            app.RXEditCancelButton = uiimage(app.RXTitleGrid);
+            app.RXEditCancelButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
+            app.RXEditCancelButton.Enable = 'off';
+            app.RXEditCancelButton.Layout.Row = 2;
+            app.RXEditCancelButton.Layout.Column = 6;
+            app.RXEditCancelButton.ImageSource = 'Delete_32Red.png';
+
             % Create RXReferencePanel
             app.RXReferencePanel = uipanel(app.SubGrid2);
             app.RXReferencePanel.AutoResizeChildren = 'off';
@@ -2584,6 +2643,126 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.filter_SecondaryLabel.Layout.Row = 3;
             app.filter_SecondaryLabel.Layout.Column = 1;
             app.filter_SecondaryLabel.Text = 'FILTRO';
+
+            % Create FilterTypeButtonGroup
+            app.FilterTypeButtonGroup = uibuttongroup(app.SubGrid2);
+            app.FilterTypeButtonGroup.AutoResizeChildren = 'off';
+            app.FilterTypeButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @onFilterTypeButtonGroupSelectionChanged, true);
+            app.FilterTypeButtonGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeButtonGroup.BackgroundColor = [1 1 1];
+            app.FilterTypeButtonGroup.Layout.Row = 4;
+            app.FilterTypeButtonGroup.Layout.Column = [1 2];
+            app.FilterTypeButtonGroup.FontWeight = 'bold';
+            app.FilterTypeButtonGroup.FontSize = 10;
+
+            % Create FilterTypeSourceRadio
+            app.FilterTypeSourceRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeSourceRadio.Tag = 'Source';
+            app.FilterTypeSourceRadio.Text = 'Base de dados';
+            app.FilterTypeSourceRadio.FontSize = 10.5;
+            app.FilterTypeSourceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeSourceRadio.Interpreter = 'html';
+            app.FilterTypeSourceRadio.Position = [8 69 94 22];
+
+            % Create FilterTypeFrequencyRadio
+            app.FilterTypeFrequencyRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeFrequencyRadio.Tag = 'Frequency';
+            app.FilterTypeFrequencyRadio.Text = 'Frequência (MHz)';
+            app.FilterTypeFrequencyRadio.FontSize = 10.5;
+            app.FilterTypeFrequencyRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeFrequencyRadio.Interpreter = 'html';
+            app.FilterTypeFrequencyRadio.Position = [8 48 108 22];
+
+            % Create FilterTypeBandwidthRadio
+            app.FilterTypeBandwidthRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeBandwidthRadio.Tag = 'BW';
+            app.FilterTypeBandwidthRadio.Text = 'Largura (kHz)';
+            app.FilterTypeBandwidthRadio.FontSize = 10.5;
+            app.FilterTypeBandwidthRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeBandwidthRadio.Interpreter = 'html';
+            app.FilterTypeBandwidthRadio.Position = [8 27 88 22];
+
+            % Create FilterTypeAntennaPatternRadio
+            app.FilterTypeAntennaPatternRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeAntennaPatternRadio.Tag = 'AntennaPattern';
+            app.FilterTypeAntennaPatternRadio.Text = 'Padrão de antena';
+            app.FilterTypeAntennaPatternRadio.FontSize = 10.5;
+            app.FilterTypeAntennaPatternRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeAntennaPatternRadio.Interpreter = 'html';
+            app.FilterTypeAntennaPatternRadio.Position = [8 6 106 22];
+
+            % Create FilterTypeEntityRadio
+            app.FilterTypeEntityRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeEntityRadio.Tag = '_Name';
+            app.FilterTypeEntityRadio.Text = 'Entidade';
+            app.FilterTypeEntityRadio.FontSize = 10.5;
+            app.FilterTypeEntityRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeEntityRadio.Interpreter = 'html';
+            app.FilterTypeEntityRadio.Position = [136 69 63 22];
+
+            % Create FilterTypeFistelRadio
+            app.FilterTypeFistelRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeFistelRadio.Tag = 'Fistel';
+            app.FilterTypeFistelRadio.Text = 'Fistel';
+            app.FilterTypeFistelRadio.FontSize = 10.5;
+            app.FilterTypeFistelRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeFistelRadio.Interpreter = 'html';
+            app.FilterTypeFistelRadio.Position = [136 48 47 22];
+
+            % Create FilterTypeServiceRadio
+            app.FilterTypeServiceRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeServiceRadio.Tag = 'Service';
+            app.FilterTypeServiceRadio.Text = 'Serviço';
+            app.FilterTypeServiceRadio.FontSize = 10.5;
+            app.FilterTypeServiceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeServiceRadio.Interpreter = 'html';
+            app.FilterTypeServiceRadio.Position = [136 27 57 22];
+
+            % Create FilterTypeStationRadio
+            app.FilterTypeStationRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeStationRadio.Tag = 'Station';
+            app.FilterTypeStationRadio.Text = 'Estação';
+            app.FilterTypeStationRadio.FontSize = 10.5;
+            app.FilterTypeStationRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeStationRadio.Interpreter = 'html';
+            app.FilterTypeStationRadio.Position = [136 6 60 22];
+
+            % Create FilterTypeStateRadio
+            app.FilterTypeStateRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeStateRadio.Tag = 'State';
+            app.FilterTypeStateRadio.Text = 'UF';
+            app.FilterTypeStateRadio.FontSize = 10.5;
+            app.FilterTypeStateRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeStateRadio.Interpreter = 'html';
+            app.FilterTypeStateRadio.Position = [224 69 36 22];
+
+            % Create FilterTypeMunicipalityRadio
+            app.FilterTypeMunicipalityRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeMunicipalityRadio.Tag = '_Location';
+            app.FilterTypeMunicipalityRadio.Text = 'Município';
+            app.FilterTypeMunicipalityRadio.FontSize = 10.5;
+            app.FilterTypeMunicipalityRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeMunicipalityRadio.Interpreter = 'html';
+            app.FilterTypeMunicipalityRadio.Position = [224 48 67 22];
+
+            % Create FilterTypeDistanceRadio
+            app.FilterTypeDistanceRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeDistanceRadio.Tag = 'Distance';
+            app.FilterTypeDistanceRadio.Text = 'Distância';
+            app.FilterTypeDistanceRadio.FontSize = 10.5;
+            app.FilterTypeDistanceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeDistanceRadio.Interpreter = 'html';
+            app.FilterTypeDistanceRadio.Position = [224 27 65 22];
+            app.FilterTypeDistanceRadio.Value = true;
+
+            % Create FilterTypeROIRadio
+            app.FilterTypeROIRadio = uiradiobutton(app.FilterTypeButtonGroup);
+            app.FilterTypeROIRadio.Tag = '-1';
+            app.FilterTypeROIRadio.Text = 'ROI';
+            app.FilterTypeROIRadio.FontSize = 10.5;
+            app.FilterTypeROIRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.FilterTypeROIRadio.Interpreter = 'html';
+            app.FilterTypeROIRadio.Position = [224 5 41 22];
 
             % Create FilterOperationButtonGroup
             app.FilterOperationButtonGroup = uibuttongroup(app.SubGrid2);
@@ -2797,10 +2976,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.FilterAddButton = uiimage(app.SubGrid2);
             app.FilterAddButton.ScaleMethod = 'none';
             app.FilterAddButton.ImageClickedFcn = createCallbackFcn(app, @onFilterAddButtonClicked, true);
-            app.FilterAddButton.Tooltip = {'Adicionar filtro'};
             app.FilterAddButton.Layout.Row = 6;
             app.FilterAddButton.Layout.Column = 2;
-            app.FilterAddButton.HorizontalAlignment = 'right';
             app.FilterAddButton.ImageSource = 'Add_16.png';
 
             % Create FilterRulesTree
@@ -2813,185 +2990,6 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             % Assign Checked Nodes
             app.FilterRulesTree.CheckedNodesChangedFcn = createCallbackFcn(app, @onFilterRulesTreeCheckedNodesChanged, true);
 
-            % Create RXTitleGrid
-            app.RXTitleGrid = uigridlayout(app.SubGrid2);
-            app.RXTitleGrid.ColumnWidth = {22, '1x', 18, 18, 0, 0};
-            app.RXTitleGrid.RowHeight = {18, 18};
-            app.RXTitleGrid.ColumnSpacing = 5;
-            app.RXTitleGrid.RowSpacing = 0;
-            app.RXTitleGrid.Padding = [0 0 0 0];
-            app.RXTitleGrid.Layout.Row = 1;
-            app.RXTitleGrid.Layout.Column = [1 2];
-            app.RXTitleGrid.BackgroundColor = [1 1 1];
-
-            % Create RXPanelIcon
-            app.RXPanelIcon = uiimage(app.RXTitleGrid);
-            app.RXPanelIcon.Layout.Row = [1 2];
-            app.RXPanelIcon.Layout.Column = 1;
-            app.RXPanelIcon.ImageSource = 'Pin_32Triangle.png';
-
-            % Create RXPanelTitle
-            app.RXPanelTitle = uilabel(app.RXTitleGrid);
-            app.RXPanelTitle.VerticalAlignment = 'bottom';
-            app.RXPanelTitle.FontSize = 11;
-            app.RXPanelTitle.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.RXPanelTitle.Layout.Row = [1 2];
-            app.RXPanelTitle.Layout.Column = 2;
-            app.RXPanelTitle.Interpreter = 'html';
-            app.RXPanelTitle.Text = {'<b>Estação receptora - RX</b>'; '<font style="font-size: 9px; color: gray;">(referência coluna "Distância" e enlace)</font>'};
-
-            % Create RXRefreshButton
-            app.RXRefreshButton = uiimage(app.RXTitleGrid);
-            app.RXRefreshButton.ScaleMethod = 'none';
-            app.RXRefreshButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
-            app.RXRefreshButton.Visible = 'off';
-            app.RXRefreshButton.Layout.Row = 2;
-            app.RXRefreshButton.Layout.Column = 3;
-            app.RXRefreshButton.ImageSource = 'Refresh_18.png';
-
-            % Create RXEditModeButton
-            app.RXEditModeButton = uiimage(app.RXTitleGrid);
-            app.RXEditModeButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
-            app.RXEditModeButton.Layout.Row = 2;
-            app.RXEditModeButton.Layout.Column = 4;
-            app.RXEditModeButton.ImageSource = 'Edit_32.png';
-
-            % Create RXEditConfirmButton
-            app.RXEditConfirmButton = uiimage(app.RXTitleGrid);
-            app.RXEditConfirmButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
-            app.RXEditConfirmButton.Enable = 'off';
-            app.RXEditConfirmButton.Layout.Row = 2;
-            app.RXEditConfirmButton.Layout.Column = 5;
-            app.RXEditConfirmButton.ImageSource = 'Ok_32Green.png';
-
-            % Create RXEditCancelButton
-            app.RXEditCancelButton = uiimage(app.RXTitleGrid);
-            app.RXEditCancelButton.ImageClickedFcn = createCallbackFcn(app, @onRXEditButtonClicked, true);
-            app.RXEditCancelButton.Enable = 'off';
-            app.RXEditCancelButton.Layout.Row = 2;
-            app.RXEditCancelButton.Layout.Column = 6;
-            app.RXEditCancelButton.ImageSource = 'Delete_32Red.png';
-
-            % Create FilterTypeButtonGroup
-            app.FilterTypeButtonGroup = uibuttongroup(app.SubGrid2);
-            app.FilterTypeButtonGroup.AutoResizeChildren = 'off';
-            app.FilterTypeButtonGroup.SelectionChangedFcn = createCallbackFcn(app, @onFilterTypeButtonGroupSelectionChanged, true);
-            app.FilterTypeButtonGroup.ForegroundColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeButtonGroup.BackgroundColor = [1 1 1];
-            app.FilterTypeButtonGroup.Layout.Row = 4;
-            app.FilterTypeButtonGroup.Layout.Column = [1 2];
-            app.FilterTypeButtonGroup.FontWeight = 'bold';
-            app.FilterTypeButtonGroup.FontSize = 10;
-
-            % Create FilterTypeSourceRadio
-            app.FilterTypeSourceRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeSourceRadio.Tag = 'Source';
-            app.FilterTypeSourceRadio.Text = 'Base de dados';
-            app.FilterTypeSourceRadio.FontSize = 10.5;
-            app.FilterTypeSourceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeSourceRadio.Interpreter = 'html';
-            app.FilterTypeSourceRadio.Position = [8 69 94 22];
-
-            % Create FilterTypeFrequencyRadio
-            app.FilterTypeFrequencyRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeFrequencyRadio.Tag = 'Frequency';
-            app.FilterTypeFrequencyRadio.Text = 'Frequência (MHz)';
-            app.FilterTypeFrequencyRadio.FontSize = 10.5;
-            app.FilterTypeFrequencyRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeFrequencyRadio.Interpreter = 'html';
-            app.FilterTypeFrequencyRadio.Position = [8 48 108 22];
-
-            % Create FilterTypeBandwidthRadio
-            app.FilterTypeBandwidthRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeBandwidthRadio.Tag = 'BW';
-            app.FilterTypeBandwidthRadio.Text = 'Largura (kHz)';
-            app.FilterTypeBandwidthRadio.FontSize = 10.5;
-            app.FilterTypeBandwidthRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeBandwidthRadio.Interpreter = 'html';
-            app.FilterTypeBandwidthRadio.Position = [8 27 88 22];
-
-            % Create FilterTypeEntityRadio
-            app.FilterTypeEntityRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeEntityRadio.Tag = '_Name';
-            app.FilterTypeEntityRadio.Text = 'Entidade';
-            app.FilterTypeEntityRadio.FontSize = 10.5;
-            app.FilterTypeEntityRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeEntityRadio.Interpreter = 'html';
-            app.FilterTypeEntityRadio.Position = [136 69 63 22];
-
-            % Create FilterTypeFistelRadio
-            app.FilterTypeFistelRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeFistelRadio.Tag = 'Fistel';
-            app.FilterTypeFistelRadio.Text = 'Fistel';
-            app.FilterTypeFistelRadio.FontSize = 10.5;
-            app.FilterTypeFistelRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeFistelRadio.Interpreter = 'html';
-            app.FilterTypeFistelRadio.Position = [136 48 47 22];
-
-            % Create FilterTypeServiceRadio
-            app.FilterTypeServiceRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeServiceRadio.Tag = 'Service';
-            app.FilterTypeServiceRadio.Text = 'Serviço';
-            app.FilterTypeServiceRadio.FontSize = 10.5;
-            app.FilterTypeServiceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeServiceRadio.Interpreter = 'html';
-            app.FilterTypeServiceRadio.Position = [136 27 57 22];
-
-            % Create FilterTypeStationRadio
-            app.FilterTypeStationRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeStationRadio.Tag = 'Station';
-            app.FilterTypeStationRadio.Text = 'Estação';
-            app.FilterTypeStationRadio.FontSize = 10.5;
-            app.FilterTypeStationRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeStationRadio.Interpreter = 'html';
-            app.FilterTypeStationRadio.Position = [136 6 60 22];
-
-            % Create FilterTypeStateRadio
-            app.FilterTypeStateRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeStateRadio.Tag = 'State';
-            app.FilterTypeStateRadio.Text = 'UF';
-            app.FilterTypeStateRadio.FontSize = 10.5;
-            app.FilterTypeStateRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeStateRadio.Interpreter = 'html';
-            app.FilterTypeStateRadio.Position = [224 69 36 22];
-
-            % Create FilterTypeMunicipalityRadio
-            app.FilterTypeMunicipalityRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeMunicipalityRadio.Tag = '_Location';
-            app.FilterTypeMunicipalityRadio.Text = 'Município';
-            app.FilterTypeMunicipalityRadio.FontSize = 10.5;
-            app.FilterTypeMunicipalityRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeMunicipalityRadio.Interpreter = 'html';
-            app.FilterTypeMunicipalityRadio.Position = [224 48 67 22];
-
-            % Create FilterTypeDistanceRadio
-            app.FilterTypeDistanceRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeDistanceRadio.Tag = 'Distance';
-            app.FilterTypeDistanceRadio.Text = 'Distância';
-            app.FilterTypeDistanceRadio.FontSize = 10.5;
-            app.FilterTypeDistanceRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeDistanceRadio.Interpreter = 'html';
-            app.FilterTypeDistanceRadio.Position = [224 27 65 22];
-            app.FilterTypeDistanceRadio.Value = true;
-
-            % Create FilterTypeROIRadio
-            app.FilterTypeROIRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeROIRadio.Tag = '-1';
-            app.FilterTypeROIRadio.Text = 'ROI';
-            app.FilterTypeROIRadio.FontSize = 10.5;
-            app.FilterTypeROIRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeROIRadio.Interpreter = 'html';
-            app.FilterTypeROIRadio.Position = [224 5 41 22];
-
-            % Create FilterTypeAntennaPatternRadio
-            app.FilterTypeAntennaPatternRadio = uiradiobutton(app.FilterTypeButtonGroup);
-            app.FilterTypeAntennaPatternRadio.Tag = 'AntennaPattern';
-            app.FilterTypeAntennaPatternRadio.Text = 'Padrão de antena';
-            app.FilterTypeAntennaPatternRadio.FontSize = 10.5;
-            app.FilterTypeAntennaPatternRadio.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.FilterTypeAntennaPatternRadio.Interpreter = 'html';
-            app.FilterTypeAntennaPatternRadio.Position = [8 6 106 22];
-
             % Create SubTab3
             app.SubTab3 = uitab(app.SubTabGroup);
             app.SubTab3.AutoResizeChildren = 'off';
@@ -3002,7 +3000,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             % Create SubGrid3
             app.SubGrid3 = uigridlayout(app.SubTab3);
             app.SubGrid3.ColumnWidth = {'1x', 18};
-            app.SubGrid3.RowHeight = {22, 284, 22, '1x'};
+            app.SubGrid3.RowHeight = {22, 282, 22, '1x'};
             app.SubGrid3.ColumnSpacing = 5;
             app.SubGrid3.RowSpacing = 5;
             app.SubGrid3.Padding = [10 10 10 5];
@@ -3040,6 +3038,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.GeoAxesSettingsGrid.ColumnWidth = {36, '1x', 36, '1x'};
             app.GeoAxesSettingsGrid.RowHeight = {17, 22, 40, 22, 40, 22, 40, 22};
             app.GeoAxesSettingsGrid.RowSpacing = 5;
+            app.GeoAxesSettingsGrid.Padding = [10 10 10 8];
             app.GeoAxesSettingsGrid.BackgroundColor = [1 1 1];
 
             % Create BasemapLabel
@@ -3104,12 +3103,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.StationMarkerSizeSlider = uislider(app.GeoAxesSettingsGrid);
             app.StationMarkerSizeSlider.Limits = [1 36];
             app.StationMarkerSizeSlider.MajorTicks = [];
-            app.StationMarkerSizeSlider.MajorTickLabels = {''};
             app.StationMarkerSizeSlider.ValueChangingFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
             app.StationMarkerSizeSlider.MinorTicks = [1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36];
-            app.StationMarkerSizeSlider.FontSize = 10;
-            app.StationMarkerSizeSlider.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.StationMarkerSizeSlider.Tooltip = {''};
             app.StationMarkerSizeSlider.Layout.Row = 4;
             app.StationMarkerSizeSlider.Layout.Column = [2 4];
             app.StationMarkerSizeSlider.Value = 1;
@@ -3132,31 +3127,25 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.TXMarkerColorPicker.Layout.Column = 1;
             app.TXMarkerColorPicker.BackgroundColor = [1 1 1];
 
-            % Create TXMarkerSizeSlider
-            app.TXMarkerSizeSlider = uislider(app.GeoAxesSettingsGrid);
-            app.TXMarkerSizeSlider.Limits = [1 3];
-            app.TXMarkerSizeSlider.MajorTicks = [];
-            app.TXMarkerSizeSlider.MajorTickLabels = {''};
-            app.TXMarkerSizeSlider.ValueChangingFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
-            app.TXMarkerSizeSlider.MinorTicks = [1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3];
-            app.TXMarkerSizeSlider.FontSize = 10;
-            app.TXMarkerSizeSlider.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.TXMarkerSizeSlider.Tooltip = {''};
-            app.TXMarkerSizeSlider.Layout.Row = 6;
-            app.TXMarkerSizeSlider.Layout.Column = [3 4];
-            app.TXMarkerSizeSlider.Value = 1;
-
             % Create TXDataTipVisibilityDropDown
             app.TXDataTipVisibilityDropDown = uidropdown(app.GeoAxesSettingsGrid);
             app.TXDataTipVisibilityDropDown.Items = {'on', 'off'};
             app.TXDataTipVisibilityDropDown.ValueChangedFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
-            app.TXDataTipVisibilityDropDown.Tooltip = {''};
             app.TXDataTipVisibilityDropDown.FontSize = 11;
-            app.TXDataTipVisibilityDropDown.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.TXDataTipVisibilityDropDown.BackgroundColor = [1 1 1];
             app.TXDataTipVisibilityDropDown.Layout.Row = 6;
             app.TXDataTipVisibilityDropDown.Layout.Column = 2;
             app.TXDataTipVisibilityDropDown.Value = 'on';
+
+            % Create TXMarkerSizeSlider
+            app.TXMarkerSizeSlider = uislider(app.GeoAxesSettingsGrid);
+            app.TXMarkerSizeSlider.Limits = [1 3];
+            app.TXMarkerSizeSlider.MajorTicks = [];
+            app.TXMarkerSizeSlider.ValueChangingFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
+            app.TXMarkerSizeSlider.MinorTicks = [1 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2 2.1 2.2 2.3 2.4 2.5 2.6 2.7 2.8 2.9 3];
+            app.TXMarkerSizeSlider.Layout.Row = 6;
+            app.TXMarkerSizeSlider.Layout.Column = [3 4];
+            app.TXMarkerSizeSlider.Value = 1;
 
             % Create RXMarkerSectionLabel
             app.RXMarkerSectionLabel = uilabel(app.GeoAxesSettingsGrid);
@@ -3180,12 +3169,8 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.RXMarkerSizeSlider = uislider(app.GeoAxesSettingsGrid);
             app.RXMarkerSizeSlider.Limits = [1 3];
             app.RXMarkerSizeSlider.MajorTicks = [];
-            app.RXMarkerSizeSlider.MajorTickLabels = {''};
             app.RXMarkerSizeSlider.ValueChangingFcn = createCallbackFcn(app, @onConfigOthersParameterChanged, true);
             app.RXMarkerSizeSlider.MinorTicks = [1 1.05 1.1 1.15 1.2 1.25 1.3 1.35 1.4 1.45 1.5 1.55 1.6 1.65 1.7 1.75 1.8 1.85 1.9 1.95 2 2.05 2.1 2.15 2.2 2.25 2.3 2.35 2.4 2.45 2.5 2.55 2.6 2.65 2.7 2.75 2.8 2.85 2.9 2.95 3];
-            app.RXMarkerSizeSlider.FontSize = 10;
-            app.RXMarkerSizeSlider.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.RXMarkerSizeSlider.Tooltip = {''};
             app.RXMarkerSizeSlider.Layout.Row = 8;
             app.RXMarkerSizeSlider.Layout.Column = [2 4];
             app.RXMarkerSizeSlider.Value = 1;
@@ -3212,6 +3197,7 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             app.ElevationSourceGrid.ColumnWidth = {110, '1x'};
             app.ElevationSourceGrid.RowHeight = {17, 22, 22, 22, 40};
             app.ElevationSourceGrid.RowSpacing = 5;
+            app.ElevationSourceGrid.Padding = [10 10 10 8];
             app.ElevationSourceGrid.BackgroundColor = [1 1 1];
 
             % Create ElevationProviderLabel

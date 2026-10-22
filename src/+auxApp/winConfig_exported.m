@@ -5,16 +5,16 @@ classdef winConfig_exported < matlab.apps.AppBase
         UIFigure                     matlab.ui.Figure
         GridLayout                   matlab.ui.container.GridLayout
         DockModule                   matlab.ui.container.GridLayout
-        dockModule_Undock            matlab.ui.control.Image
         dockModule_Close             matlab.ui.control.Image
+        dockModule_Undock            matlab.ui.control.Image
         SubTabGroup                  matlab.ui.container.TabGroup
         SubTab1                      matlab.ui.container.Tab
         SubGrid1                     matlab.ui.container.GridLayout
-        tool_RFDataHubButton         matlab.ui.control.Image
-        tool_versionInfoRefresh      matlab.ui.control.Image
         openAuxiliarApp2Debug        matlab.ui.control.CheckBox
         openAuxiliarAppAsDocked      matlab.ui.control.CheckBox
         versionInfo                  matlab.ui.control.Label
+        tool_RFDataHubButton         matlab.ui.control.Image
+        tool_versionInfoRefresh      matlab.ui.control.Image
         versionInfoLabel             matlab.ui.control.Label
         SubTab2                      matlab.ui.container.Tab
         SubGrid2                     matlab.ui.container.GridLayout
@@ -83,8 +83,8 @@ classdef winConfig_exported < matlab.apps.AppBase
         DataHubPOST                  matlab.ui.control.EditField
         DATAHUBPOSTLabel             matlab.ui.control.Label
         Toolbar                      matlab.ui.container.GridLayout
-        tool_simulationMode          matlab.ui.control.Image
         tool_openDevTools            matlab.ui.control.Image
+        tool_simulationMode          matlab.ui.control.Image
     end
 
     
@@ -135,11 +135,18 @@ classdef winConfig_exported < matlab.apps.AppBase
                 return
             end
             app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
+            appName = class(app);
 
             switch tabIndex
                 case 1
                     elToModify = {
-                        app.versionInfo
+                        app.versionInfo;
+                        app.tool_versionInfoRefresh;
+                        app.tool_RFDataHubButton;
+                        app.tool_simulationMode;
+                        app.tool_openDevTools;
+                        app.dockModule_Undock;
+                        app.dockModule_Close
                     };
                     ui.CustomizationBase.getElementsDataTag(elToModify);
                     
@@ -148,15 +155,37 @@ classdef winConfig_exported < matlab.apps.AppBase
                     catch
                     end
 
-                case 2
-                    updatePanel_Analysis(app)
+                    try
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                            struct('appName', appName, 'dataTag', app.tool_versionInfoRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Verifica atualizações')), ...
+                            struct('appName', appName, 'dataTag', app.tool_RFDataHubButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Atualiza RF.DataHub')), ...
+                            struct('appName', appName, 'dataTag', app.tool_simulationMode.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Leitura arquivos de simulação')), ...
+                            struct('appName', appName, 'dataTag', app.tool_openDevTools.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Abre DevTools')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Undock.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                            struct('appName', appName, 'dataTag', app.dockModule_Close.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                        });
+                    catch
+                    end
 
-                case 3
-                    ui.CustomizationBase.getElementsDataTag({app.MacrothemesButton});
+                case 2
+                    ui.CustomizationBase.getElementsDataTag({app.configAnalysisRefresh});
 
                     try
                         sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', class(app), 'dataTag', app.MacrothemesButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita ou desabilita a edição da lista de macrotemas<br>Ex: "PM-EC", "UTE", ""')) ...
+                            struct('appName', appName, 'dataTag', app.configAnalysisRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna às configurações iniciais')) ...
+                        });
+                    catch
+                    end
+
+                    updatePanel_Analysis(app)
+
+                case 3
+                    ui.CustomizationBase.getElementsDataTag({app.eFiscalizaRefresh, app.MacrothemesButton});
+
+                    try
+                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                            struct('appName', appName, 'dataTag', app.eFiscalizaRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna às configurações iniciais')), ...
+                            struct('appName', appName, 'dataTag', app.MacrothemesButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita ou desabilita a edição da lista de macrotemas<br>Ex: "PM-RNI", "UTE", ""')) ...
                         });
                     catch
                     end
@@ -739,24 +768,22 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.Toolbar.Layout.Column = [1 6];
             app.Toolbar.BackgroundColor = [0.9412 0.9412 0.9412];
 
+            % Create tool_simulationMode
+            app.tool_simulationMode = uiimage(app.Toolbar);
+            app.tool_simulationMode.ScaleMethod = 'none';
+            app.tool_simulationMode.ImageClickedFcn = createCallbackFcn(app, @onSimulationModeButtonClicked, true);
+            app.tool_simulationMode.Layout.Row = [1 3];
+            app.tool_simulationMode.Layout.Column = 1;
+            app.tool_simulationMode.ImageSource = 'Import_16.png';
+
             % Create tool_openDevTools
             app.tool_openDevTools = uiimage(app.Toolbar);
             app.tool_openDevTools.ScaleMethod = 'none';
             app.tool_openDevTools.ImageClickedFcn = createCallbackFcn(app, @onOpenDevToolsButtonClicked, true);
             app.tool_openDevTools.Enable = 'off';
-            app.tool_openDevTools.Tooltip = {'Abre DevTools'};
-            app.tool_openDevTools.Layout.Row = 2;
+            app.tool_openDevTools.Layout.Row = [1 3];
             app.tool_openDevTools.Layout.Column = 3;
             app.tool_openDevTools.ImageSource = 'Debug_18.png';
-
-            % Create tool_simulationMode
-            app.tool_simulationMode = uiimage(app.Toolbar);
-            app.tool_simulationMode.ScaleMethod = 'none';
-            app.tool_simulationMode.ImageClickedFcn = createCallbackFcn(app, @onSimulationModeButtonClicked, true);
-            app.tool_simulationMode.Tooltip = {'Leitura arquivos de simulação'};
-            app.tool_simulationMode.Layout.Row = 2;
-            app.tool_simulationMode.Layout.Column = 1;
-            app.tool_simulationMode.ImageSource = 'Import_16.png';
 
             % Create SubTabGroup
             app.SubTabGroup = uitabgroup(app.GridLayout);
@@ -786,6 +813,23 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.versionInfoLabel.Layout.Row = 1;
             app.versionInfoLabel.Layout.Column = 1;
             app.versionInfoLabel.Text = 'AMBIENTE:';
+
+            % Create tool_versionInfoRefresh
+            app.tool_versionInfoRefresh = uiimage(app.SubGrid1);
+            app.tool_versionInfoRefresh.ScaleMethod = 'none';
+            app.tool_versionInfoRefresh.ImageClickedFcn = createCallbackFcn(app, @onAppEnvRefreshButtonClicked, true);
+            app.tool_versionInfoRefresh.Enable = 'off';
+            app.tool_versionInfoRefresh.Layout.Row = 1;
+            app.tool_versionInfoRefresh.Layout.Column = 2;
+            app.tool_versionInfoRefresh.ImageSource = 'Refresh_18.png';
+
+            % Create tool_RFDataHubButton
+            app.tool_RFDataHubButton = uiimage(app.SubGrid1);
+            app.tool_RFDataHubButton.ImageClickedFcn = createCallbackFcn(app, @onRFDataHubButtonClicked, true);
+            app.tool_RFDataHubButton.Enable = 'off';
+            app.tool_RFDataHubButton.Layout.Row = 1;
+            app.tool_RFDataHubButton.Layout.Column = 3;
+            app.tool_RFDataHubButton.ImageSource = 'mosaic_32.png';
 
             % Create versionInfo
             app.versionInfo = uilabel(app.SubGrid1);
@@ -818,26 +862,6 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.openAuxiliarApp2Debug.Layout.Row = 5;
             app.openAuxiliarApp2Debug.Layout.Column = 1;
 
-            % Create tool_versionInfoRefresh
-            app.tool_versionInfoRefresh = uiimage(app.SubGrid1);
-            app.tool_versionInfoRefresh.ScaleMethod = 'none';
-            app.tool_versionInfoRefresh.ImageClickedFcn = createCallbackFcn(app, @onAppEnvRefreshButtonClicked, true);
-            app.tool_versionInfoRefresh.Enable = 'off';
-            app.tool_versionInfoRefresh.Tooltip = {'Verifica atualizações'};
-            app.tool_versionInfoRefresh.Layout.Row = 1;
-            app.tool_versionInfoRefresh.Layout.Column = 2;
-            app.tool_versionInfoRefresh.VerticalAlignment = 'bottom';
-            app.tool_versionInfoRefresh.ImageSource = 'Refresh_18.png';
-
-            % Create tool_RFDataHubButton
-            app.tool_RFDataHubButton = uiimage(app.SubGrid1);
-            app.tool_RFDataHubButton.ImageClickedFcn = createCallbackFcn(app, @onRFDataHubButtonClicked, true);
-            app.tool_RFDataHubButton.Enable = 'off';
-            app.tool_RFDataHubButton.Tooltip = {'Atualiza RFDataHub'};
-            app.tool_RFDataHubButton.Layout.Row = 1;
-            app.tool_RFDataHubButton.Layout.Column = 3;
-            app.tool_RFDataHubButton.ImageSource = 'mosaic_32.png';
-
             % Create SubTab2
             app.SubTab2 = uitab(app.SubTabGroup);
             app.SubTab2.AutoResizeChildren = 'off';
@@ -847,7 +871,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             % Create SubGrid2
             app.SubGrid2 = uigridlayout(app.SubTab2);
             app.SubGrid2.ColumnWidth = {'1x', 22};
-            app.SubGrid2.RowHeight = {17, 206, 22, 116, 22, '1x'};
+            app.SubGrid2.RowHeight = {17, 184, 22, 120, 22, '1x'};
             app.SubGrid2.RowSpacing = 5;
             app.SubGrid2.BackgroundColor = [1 1 1];
 
@@ -864,10 +888,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.configAnalysisRefresh.ScaleMethod = 'none';
             app.configAnalysisRefresh.ImageClickedFcn = createCallbackFcn(app, @onAnalysisRefreshImageClicked, true);
             app.configAnalysisRefresh.Visible = 'off';
-            app.configAnalysisRefresh.Tooltip = {'Volta à configuração inicial'};
             app.configAnalysisRefresh.Layout.Row = 1;
             app.configAnalysisRefresh.Layout.Column = 2;
-            app.configAnalysisRefresh.VerticalAlignment = 'bottom';
             app.configAnalysisRefresh.ImageSource = 'Refresh_18.png';
 
             % Create analysis_FilePanel
@@ -880,10 +902,11 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create analysis_FileGrid
             app.analysis_FileGrid = uigridlayout(app.analysis_FilePanel);
-            app.analysis_FileGrid.ColumnWidth = {10, 90, '1x'};
-            app.analysis_FileGrid.RowHeight = {17, 22, 22, 22, 22, 1, 22, 22};
+            app.analysis_FileGrid.ColumnWidth = {10, 100, '1x'};
+            app.analysis_FileGrid.RowHeight = {17, 17, 17, 22, 22, 1, 17, 17};
             app.analysis_FileGrid.ColumnSpacing = 0;
             app.analysis_FileGrid.RowSpacing = 5;
+            app.analysis_FileGrid.Padding = [10 10 10 8];
             app.analysis_FileGrid.BackgroundColor = [1 1 1];
 
             % Create mergeLabel1
@@ -978,7 +1001,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.analysis_GraphicsGrid.ColumnWidth = {110, '1x'};
             app.analysis_GraphicsGrid.RowHeight = {17, 22, 22, 22};
             app.analysis_GraphicsGrid.RowSpacing = 5;
-            app.analysis_GraphicsGrid.Padding = [10 10 10 5];
+            app.analysis_GraphicsGrid.Padding = [10 10 10 8];
             app.analysis_GraphicsGrid.BackgroundColor = [1 1 1];
 
             % Create yOccupancyScaleLabel
@@ -1041,10 +1064,10 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create analysis_ElevationGrid
             app.analysis_ElevationGrid = uigridlayout(app.analysis_ElevationPanel);
-            app.analysis_ElevationGrid.ColumnWidth = {220, 110, '1x'};
-            app.analysis_ElevationGrid.RowHeight = {17, 22, 36};
+            app.analysis_ElevationGrid.ColumnWidth = {230, 110, '1x'};
+            app.analysis_ElevationGrid.RowHeight = {17, 22, 1, 22};
             app.analysis_ElevationGrid.RowSpacing = 5;
-            app.analysis_ElevationGrid.Padding = [10 10 10 5];
+            app.analysis_ElevationGrid.Padding = [10 10 10 8];
             app.analysis_ElevationGrid.BackgroundColor = [1 1 1];
 
             % Create elevationAPIServerLabel
@@ -1094,7 +1117,7 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.elevationForceSearch.WordWrap = 'on';
             app.elevationForceSearch.FontSize = 11;
             app.elevationForceSearch.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
-            app.elevationForceSearch.Layout.Row = 3;
+            app.elevationForceSearch.Layout.Row = 4;
             app.elevationForceSearch.Layout.Column = [1 3];
 
             % Create SubTab3
@@ -1122,10 +1145,8 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.eFiscalizaRefresh.ScaleMethod = 'none';
             app.eFiscalizaRefresh.ImageClickedFcn = createCallbackFcn(app, @onProjectRefreshImageClicked, true);
             app.eFiscalizaRefresh.Visible = 'off';
-            app.eFiscalizaRefresh.Tooltip = {'Retorna às configurações iniciais'};
             app.eFiscalizaRefresh.Layout.Row = 1;
             app.eFiscalizaRefresh.Layout.Column = 2;
-            app.eFiscalizaRefresh.VerticalAlignment = 'bottom';
             app.eFiscalizaRefresh.ImageSource = 'Refresh_18.png';
 
             % Create eFiscalizaPanel
@@ -1216,7 +1237,7 @@ classdef winConfig_exported < matlab.apps.AppBase
 
             % Create reportGrid_2
             app.reportGrid_2 = uigridlayout(app.reportPanel);
-            app.reportGrid_2.ColumnWidth = {110, 100, 110, 110};
+            app.reportGrid_2.ColumnWidth = {110, 110, 110, 110};
             app.reportGrid_2.RowHeight = {17, 22, 32, 22, 48, 22, 22, '1x'};
             app.reportGrid_2.RowSpacing = 5;
             app.reportGrid_2.BackgroundColor = [1 1 1];
@@ -1431,26 +1452,22 @@ classdef winConfig_exported < matlab.apps.AppBase
             app.DockModule.Layout.Column = [3 5];
             app.DockModule.BackgroundColor = [0.2 0.2 0.2];
 
-            % Create dockModule_Close
-            app.dockModule_Close = uiimage(app.DockModule);
-            app.dockModule_Close.ScaleMethod = 'none';
-            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
-            app.dockModule_Close.Tag = 'DRIVETEST';
-            app.dockModule_Close.Tooltip = {'Fecha módulo'};
-            app.dockModule_Close.Layout.Row = 1;
-            app.dockModule_Close.Layout.Column = 2;
-            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
-
             % Create dockModule_Undock
             app.dockModule_Undock = uiimage(app.DockModule);
             app.dockModule_Undock.ScaleMethod = 'none';
             app.dockModule_Undock.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
-            app.dockModule_Undock.Tag = 'DRIVETEST';
             app.dockModule_Undock.Enable = 'off';
-            app.dockModule_Undock.Tooltip = {'Reabre módulo em outra janela'};
             app.dockModule_Undock.Layout.Row = 1;
             app.dockModule_Undock.Layout.Column = 1;
             app.dockModule_Undock.ImageSource = 'Undock_18White.png';
+
+            % Create dockModule_Close
+            app.dockModule_Close = uiimage(app.DockModule);
+            app.dockModule_Close.ScaleMethod = 'none';
+            app.dockModule_Close.ImageClickedFcn = createCallbackFcn(app, @onDockModuleGroupButtonClicked, true);
+            app.dockModule_Close.Layout.Row = 1;
+            app.dockModule_Close.Layout.Column = 2;
+            app.dockModule_Close.ImageSource = 'Delete_12SVG_white.svg';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
