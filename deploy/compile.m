@@ -55,7 +55,7 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
     % a figura do app principal (winAppAnalise.mlapp) seja um container para
     % os apps auxiliares.
     cd(initFolder)
-    preCompile(prjInfo)
+    preCompile('generateExportedApps', prjInfo)
 
     % Atualiza base de dados, caso necessário.
     RFDataHubOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RFDataHub.mat');
