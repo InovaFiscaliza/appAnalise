@@ -263,6 +263,7 @@ classdef dockFilterByTime_exported < matlab.apps.AppBase
                 app.UIFigure.Position = [100 100 452 208];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
+                app.UIFigure.Resize = 'off';
                 app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @closeFcn, true);
 
                 app.Container = app.UIFigure;

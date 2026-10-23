@@ -48,14 +48,14 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
             error('UnexpectedProject')
         end
     catch
-        openProject(fullfile(fileparts(initFolder), [appName '.prj']));
+        prjInfo = openProject(fullfile(fileparts(initFolder), [appName '.prj']));
     end
 
     % Cria versões .M para cada um dos arquivos .MLAPP, possibilitando que
     % a figura do app principal (winAppAnalise.mlapp) seja um container para
     % os apps auxiliares.
     cd(initFolder)
-    preCompile()
+    preCompile(prjInfo)
 
     % Atualiza base de dados, caso necessário.
     RFDataHubOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RFDataHub.mat');
