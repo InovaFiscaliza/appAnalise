@@ -312,14 +312,19 @@ classdef SpecData < model.SpecDataBase
 
         %-----------------------------------------------------------------%
         function [status, msg] = validateFlowMergeRequest(obj, flowIdxs)
+            status = false;
             if numel(flowIdxs) < 2
-                status = false;
                 msg = 'O processo de mesclagem requer ao menos dois fluxos espectrais.';
                 return
             end
 
             mergeTable = buildSpectrumReferenceTable(obj, flowIdxs);
-            mergeType = model.SpecData.identifyMergeType(mergeTable);
+            try
+                mergeType = model.SpecData.identifyMergeType(mergeTable);
+            catch ME
+                msg = ME.message;
+                return
+            end
             
             receiverList  = unique(mergeTable.Receiver);
             dataTypeList  = unique(mergeTable.DataType);
@@ -352,7 +357,6 @@ classdef SpecData < model.SpecDataBase
             end
 
             if ~isempty(blockingWarning)
-                status = false;
                 msg = sprintf('Foi evidenciada <font style="color: red;">incompatibilidade</font> entre os fluxos espectrais selecionados para mesclagem.<br>%s', textFormatGUI.cellstr2Bullets(blockingWarning));
                 return
             end

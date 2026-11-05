@@ -187,9 +187,11 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
                 app.Container = app.UIFigure;
 
             else
-                if ~isempty(Container.Children)
-                    delete(Container.Children)
+                children = Container.Children;
+                if isa(Container, 'matlab.ui.Figure') && isprop(Container, 'RunningAppInstance') && isprop(Container.RunningAppInstance, 'jsBackDoor')
+                    children(children == Container.RunningAppInstance.jsBackDoor) = [];
                 end
+                delete(children)
 
                 app.UIFigure  = ancestor(Container, 'figure');
                 app.Container = Container;
@@ -343,7 +345,11 @@ classdef dockEmissionChannel_exported < matlab.apps.AppBase
 
             % Delete UIFigure when app is deleted
             if app.isDocked
-                delete(app.Container.Children)
+                children = app.Container.Children;
+                if isa(app.Container, 'matlab.ui.Figure') && isprop(app.Container, 'RunningAppInstance') && isprop(app.Container.RunningAppInstance, 'jsBackDoor')
+                    children(children == app.Container.RunningAppInstance.jsBackDoor) = [];
+                end
+                delete(children)
             else
                 delete(app.UIFigure)
             end

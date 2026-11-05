@@ -1,5 +1,5 @@
 {
-    "version": 1.67,
+    "version": 1.68,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -143,17 +143,8 @@
         "REPOSFI": {
             "protocol": "http",
             "host": "172.16.18.11",
-            "dbPort": 9081,
-            "dbUser": "root",
-            "dbPassword": "changeme",
-            "dbSchemas": {
-              "rfData": "RFDATA",
-              "bpData": "BPDATA",
-              "smData": "RFFUSION_SUMMARY"
-            },
             "httpPort": 9082,
             "httpBasePath": "/downloads",
-            "networkPath": "\\\\reposfi\\sfi$\\sensores",
             "containerPathPrefixToRemove": "/mnt/reposfi"
           }
     },

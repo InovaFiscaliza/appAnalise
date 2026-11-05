@@ -4,18 +4,20 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     properties (Access = public)
         UIFigure               matlab.ui.Figure
         GridLayout             matlab.ui.container.GridLayout
-        FilterDescriptionIcon  matlab.ui.control.Image
+        Toolbar                matlab.ui.container.GridLayout
         FilterDescription      matlab.ui.control.Label
-        FileDetailsButton      matlab.ui.control.Image
         DownloadButton         matlab.ui.control.Image
+        ToolbarSeparator       matlab.ui.control.Image
+        FileDetailsButton      matlab.ui.control.Image
+        PanelVisibilityButton  matlab.ui.control.Image
+        UITable1               matlab.ui.control.Table
         UITable2Warning        matlab.ui.control.Label
         UITable2               matlab.ui.control.Table
         UITable2Label          matlab.ui.control.Label
         UITable2Icon           matlab.ui.control.Image
-        UITable1               matlab.ui.control.Table
         FilterPanel            matlab.ui.container.Panel
         FilterGrid             matlab.ui.container.GridLayout
-        SearchButton           matlab.ui.control.Image
+        SearchButton           matlab.ui.control.Button
         Description            matlab.ui.control.EditField
         DescriptionLabel       matlab.ui.control.Label
         FreqStop               matlab.ui.control.NumericEditField
@@ -32,6 +34,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
         LocationLabel          matlab.ui.control.Label
         State                  matlab.ui.control.DropDown
         StateLabel             matlab.ui.control.Label
+        ModuleIntro            matlab.ui.control.Label
+        ModuleIcon             matlab.ui.control.Image
     end
 
 
@@ -54,7 +58,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
     properties (Access = private)
         %-----------------------------------------------------------------%
-        dbHandlerObj
+        webFusionHandlerObj
         dbCacheData
         dbReference
         dbMatchMask
@@ -65,8 +69,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
     %     %-----------------------------------------------------------------%
     %     TABLE_RESULTS = table( ...
     %         'Size', [0, 9], ...
-    %         'VariableTypes', {'string', 'string', 'string', 'cell', 'datetime', 'datetime', 'uint32', 'string', 'cell'}, ...
-    %         'VariableNames', {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'ID', 'ARQUIVO', 'TAMANHO'} ...
+    %         'VariableTypes', {'string', 'string', 'string', 'cell', 'datetime', 'datetime', 'string', 'cell'}, ...
+    %         'VariableNames', {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'LIMITES (MHz)', 'INÍCIO', 'FIM', 'ARQUIVO', 'TAMANHO'} ...
     %     )
     % 
     %     TABLE_FILE_DETAILS = table( ...
@@ -83,16 +87,20 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             appName = class(app);
             elToModify = {
                 app.State;
+                app.PanelVisibilityButton;
                 app.DownloadButton;
-                app.FileDetailsButton
+                app.FileDetailsButton;
+                app.UITable1
             };
             ui.CustomizationBase.getElementsDataTag(elToModify);
 
             try
                 sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
                     struct('appName', appName, 'dataTag', app.State.UserData.id, 'selector', 'input', 'dropDownBackgroundColor', struct('items', 'rgba(183, 49, 44, 0.75)', 'selectedItem', 'rgb(108, 4, 4)')), ...
+                    struct('appName', appName, 'dataTag', app.PanelVisibilityButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à esquerda', 'zIndex', 901)), ... 
                     struct('appName', appName, 'dataTag', app.DownloadButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Download de arquivos', 'zIndex', 901)), ... 
-                    struct('appName', appName, 'dataTag', app.FileDetailsButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Detalhes do arquivo selecionado', 'zIndex', 901)) ... 
+                    struct('appName', appName, 'dataTag', app.FileDetailsButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Detalhes do arquivo selecionado', 'zIndex', 901)), ... 
+                    struct('appName', appName, 'dataTag', app.UITable1.UserData.id, 'tableMultiline', struct('status', true, 'verticalCenter', false)) ...
                 });
             catch
             end
@@ -100,16 +108,19 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeAppProperties(app, dbCacheData, dbReference)
-            app.dbHandlerObj = app.mainApp.dbHandlerObj;
+            app.webFusionHandlerObj = app.mainApp.webFusionHandlerObj;
             app.dbCacheData = dbCacheData;
             app.dbReference = dbReference;
         end
 
         %-----------------------------------------------------------------%
         function initializeUIComponents(app)
-            app.UITable1.RowName = 'numbered';
             app.UITable2.RowName = 'numbered';
             app.FileDetailsButton.UserData.status = false;
+            app.UITable1.UserData.fileIds = [];
+
+            limits = [datetime([2010 1 1]), datetime('tomorrow')-seconds(1)];
+            set([app.PeriodBegin, app.PeriodEnd], 'Limits', limits)
         end
 
         %-----------------------------------------------------------------%
@@ -185,13 +196,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                     resultData.("DT_TIME_END").Format = 'dd/MM/yyyy';
                     resultData.("VL_FILE_SIZE_KB") = arrayfun(@(x) textFormatGUI.bytes2human(x), 1024*resultData.("VL_FILE_SIZE_KB"), "UniformOutput", false);
                     resultData.("ARQUIVO") = extractAfter(resultData.("NA_PATH"), app.mainApp.General.context.REPOSFI.containerPathPrefixToRemove) + "/" + resultData.("NA_FILE");
-                    resultData = convertvars(resultData, 'ID_FILE', 'uint32');
-                    resultData = renamevars(resultData(:, {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'LIMITES (MHz)', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'ID_FILE', 'ARQUIVO', 'VL_FILE_SIZE_KB'}), ...
-                        {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'ID_FILE', 'VL_FILE_SIZE_KB'}, ...
-                        {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'INÍCIO', 'FIM', 'ID', 'TAMANHO'} ...
+                    fileIds = uint32(resultData.ID_FILE);
+
+                    resultData = renamevars(resultData(:, {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'LIMITES (MHz)', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'ARQUIVO', 'VL_FILE_SIZE_KB'}), ...
+                        {'LOCALITY_LABELS', 'EQUIPMENT_LABELS', 'NU_SPECTRA', 'DT_TIME_START', 'DT_TIME_END', 'VL_FILE_SIZE_KB'}, ...
+                        {'REGIÃO', 'SENSOR', 'QTD. FLUXOS', 'INÍCIO', 'FIM', 'TAMANHO'} ...
                     );
 
                     set(app.UITable1, 'Data', resultData, 'Selection', [])
+                    app.UITable1.UserData.fileIds = fileIds;
+
                     set(app.UITable2, 'Data', [], 'Enable', 'off')
                     app.UITable2Warning.Visible = 'on';
 
@@ -228,6 +242,10 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             if ~isnat(currentFilter.startDate) && ~isnat(currentFilter.endDate)
                 description{end+1} = sprintf('Observação: <b>%s a %s</b>', string(currentFilter.startDate), string(currentFilter.endDate));
+            elseif ~isnat(currentFilter.startDate)
+                description{end+1} = sprintf('Observação: <b>a partir de %s</b>', string(currentFilter.startDate));
+            elseif ~isnat(currentFilter.endDate)
+                description{end+1} = sprintf('Observação: <b>até %s</b>', string(currentFilter.endDate));
             end
 
             if ~isnan(currentFilter.freqStart) && ~isnan(currentFilter.freqEnd)
@@ -235,7 +253,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
 
             app.FilterDescription.Text = sprintf('%s \n%d arquivos ', strjoin(description, ', '), height(app.UITable1.Data));
-            app.FilterDescriptionIcon.Visible = 'on';
         end
 
         %-----------------------------------------------------------------%
@@ -252,7 +269,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             isPeriodBeginNaT = isnat(app.PeriodBegin.Value);
             isPeriodEndNaT   = isnat(app.PeriodEnd.Value);
-            if xor(isPeriodBeginNaT, isPeriodEndNaT) || (~isPeriodBeginNaT && ~isPeriodEndNaT && app.PeriodEnd.Value < app.PeriodBegin.Value)
+            
+            % Os limites são independentes: início sem fim significa "a partir de"
+            % e fim sem início significa "até". A ordem só é verificável quando
+            % ambos os controles possuem uma data.
+                        
+            if ~isPeriodBeginNaT && ~isPeriodEndNaT && app.PeriodEnd.Value < app.PeriodBegin.Value
                 issues{end+1} = 'período de observação';
             end
 
@@ -395,11 +417,28 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                     end
 
                 case app.Location
+                    % Mantém o sensor quando ele também existir na nova localidade.
+                    % A lista é refeita com o recorte UF + localidade; caso não haja
+                    % correspondência, refreshReceiverDropDown o deixa vazio.
+                    previousReceiverValue = app.Receiver.Value;
                     app.Receiver.Value = '';
+
+                    matchMask = applyFilter(app);
+                    dbFilteredReference = app.dbReference(matchMask, :);
+
+                    refreshReceiverDropDown(app, dbFilteredReference, previousReceiverValue)
                     applyFilter(app);
 
                 case app.Receiver
+                    % Aplica a mesma regra no sentido inverso: ao trocar o sensor,
+                    % preserva a localidade atual somente se ela contiver o sensor.
+                    previousLocationValue = app.Location.Value;
                     app.Location.Value = '';
+
+                    matchMask = applyFilter(app);
+                    dbFilteredReference = app.dbReference(matchMask, :);
+
+                    refreshLocationDropDown(app, dbFilteredReference, previousLocationValue)
                     applyFilter(app);
 
                 case {app.FreqStart, app.FreqStop}
@@ -413,7 +452,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: SearchButton
+        % Button pushed function: SearchButton
         function onSearchButtonClicked(app, event)
             
             [currentFilter, warningMsg] = getCurrentFilter(app);
@@ -425,14 +464,21 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.progressDialog.Visible = 'visible';
 
             try
-                pageSizeTotal = getSpectrumFileDataCount(app.dbHandlerObj, currentFilter);
+                pageSizeTotal = getSpectrumFileDataCount(app.webFusionHandlerObj, currentFilter);
                 currentFilter.page = 1;
                 currentFilter.pageSize = max(pageSizeTotal, 1);
         
-                resultData = getSpectrumFileData(app.dbHandlerObj, currentFilter);
+                resultData = getSpectrumFileData(app.webFusionHandlerObj, currentFilter);
 
-                if ~istable(resultData) || isempty(resultData)
+                if ~istable(resultData)
                     error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
+
+                elseif isempty(resultData)
+                    msg = [ ...
+                        'Nenhum arquivo de espectro foi encontrado para os ' ...
+                        'filtros selecionados.' ...
+                    ];
+                    ui.Dialog(app.UIFigure, 'warning', msg);
                 end
 
                 refreshTable(app, 'files', resultData)
@@ -467,12 +513,12 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             selectedRows = app.UITable1.Selection;
             
             if ~isempty(selectedRows) && isscalar(selectedRows)
-                fileId = app.UITable1.Data.ID(selectedRows);
+                fileId = app.UITable1.UserData.fileIds(selectedRows);
 
                 app.progressDialog.Visible = 'visible';
 
                 try
-                    resultData = getSpectraByFileId(app.dbHandlerObj, fileId);
+                    resultData = getSpectraByFileId(app.webFusionHandlerObj, fileId);
                     
                     if ~istable(resultData) || isempty(resultData)
                         error('auxApp:dockRepoFiles:UnexpectedValue', 'Unexpected value')
@@ -494,6 +540,39 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 app.UITable2Warning.Visible = 'on';
             end
             
+        end
+
+        % Image clicked function: PanelVisibilityButton
+        function onPanelVisibilityButtonClicked(app, event)
+            
+            if app.GridLayout.ColumnWidth{1}
+                app.GridLayout.ColumnWidth{1} = 0;
+            else
+                app.GridLayout.ColumnWidth{1} = 232;
+            end
+
+        end
+
+        % Image clicked function: FileDetailsButton
+        function onToolbarFileDetailsButtonClicked(app, event)
+            
+            app.FileDetailsButton.UserData.status = ~app.FileDetailsButton.UserData.status;
+
+            set([ ...
+                app.UITable2Icon, ...
+                app.UITable2Label, ...
+                app.UITable2 ...
+            ], 'Visible', app.FileDetailsButton.UserData.status)
+
+            app.UITable2Warning.Visible = 'off';
+            
+            if app.FileDetailsButton.UserData.status
+                app.UITable1.Layout.Row = 1;
+                onTableSelectionValueChanged(app)
+            else
+                app.UITable1.Layout.Row = [1 5];
+            end
+
         end
 
         % Image clicked function: DownloadButton
@@ -572,22 +651,6 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             end
 
         end
-
-        % Image clicked function: FileDetailsButton
-        function onToolbarFileDetailsButtonClicked(app, event)
-            
-            app.FileDetailsButton.UserData.status = ~app.FileDetailsButton.UserData.status;
-            
-            if app.FileDetailsButton.UserData.status
-                app.UITable2.Visible = 'on';
-                app.GridLayout.RowHeight(5:8) = {17, 5, '.5x', 10};
-                onTableSelectionValueChanged(app)
-            else
-                app.UITable2.Visible = 'off';
-                app.GridLayout.RowHeight(5:8) = {0, 0, 0, 0};
-            end
-
-        end
     end
 
     % Component initialization
@@ -603,7 +666,7 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             if isempty(Container)
                 app.UIFigure = uifigure('Visible', 'off');
                 app.UIFigure.AutoResizeChildren = 'off';
-                app.UIFigure.Position = [100 100 1244 660];
+                app.UIFigure.Position = [100 100 1120 600];
                 app.UIFigure.Name = 'appAnalise';
                 app.UIFigure.Icon = 'icon_48.png';
                 app.UIFigure.Resize = 'off';
@@ -612,9 +675,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
                 app.Container = app.UIFigure;
 
             else
-                if ~isempty(Container.Children)
-                    delete(Container.Children)
+                children = Container.Children;
+                if isa(Container, 'matlab.ui.Figure') && isprop(Container, 'RunningAppInstance') && isprop(Container.RunningAppInstance, 'jsBackDoor')
+                    children(children == Container.RunningAppInstance.jsBackDoor) = [];
                 end
+                delete(children)
 
                 app.UIFigure  = ancestor(Container, 'figure');
                 app.Container = Container;
@@ -627,31 +692,50 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {22, 22, '1x', 22};
-            app.GridLayout.RowHeight = {66, 10, '1x', 10, 0, 0, 0, 0, 22};
-            app.GridLayout.ColumnSpacing = 5;
+            app.GridLayout.ColumnWidth = {232, 10, 22, 5, '1x'};
+            app.GridLayout.RowHeight = {'1x', 10, 22, 5, '0.5x', 10, 22};
+            app.GridLayout.ColumnSpacing = 0;
             app.GridLayout.RowSpacing = 0;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
             % Create FilterPanel
             app.FilterPanel = uipanel(app.GridLayout);
-            app.FilterPanel.Layout.Row = 1;
-            app.FilterPanel.Layout.Column = [1 4];
+            app.FilterPanel.Layout.Row = [1 5];
+            app.FilterPanel.Layout.Column = 1;
 
             % Create FilterGrid
             app.FilterGrid = uigridlayout(app.FilterPanel);
-            app.FilterGrid.ColumnWidth = {100, 200, 200, 100, 100, 100, 100, '1x', 22};
-            app.FilterGrid.RowHeight = {17, 22, 22, 22, 22, 22, 22, 22, '1x', 49};
+            app.FilterGrid.ColumnWidth = {22, 5, '1x', 10, '1x', 27};
+            app.FilterGrid.RowHeight = {92, 17, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, 22, '1x', 34};
+            app.FilterGrid.ColumnSpacing = 0;
             app.FilterGrid.RowSpacing = 5;
             app.FilterGrid.BackgroundColor = [1 1 1];
+
+            % Create ModuleIcon
+            app.ModuleIcon = uiimage(app.FilterGrid);
+            app.ModuleIcon.Layout.Row = 1;
+            app.ModuleIcon.Layout.Column = 1;
+            app.ModuleIcon.VerticalAlignment = 'top';
+            app.ModuleIcon.ImageSource = 'library-24px.svg';
+
+            % Create ModuleIntro
+            app.ModuleIntro = uilabel(app.FilterGrid);
+            app.ModuleIntro.VerticalAlignment = 'top';
+            app.ModuleIntro.WordWrap = 'on';
+            app.ModuleIntro.FontSize = 11;
+            app.ModuleIntro.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
+            app.ModuleIntro.Layout.Row = 1;
+            app.ModuleIntro.Layout.Column = [3 6];
+            app.ModuleIntro.Interpreter = 'html';
+            app.ModuleIntro.Text = {'<b>RF.Fusion</b>'; '<p style="padding: 2px; text-align: justify; font-size: 10px; color: gray; line-height: 13px">Centraliza a coleta, organiza e disponibiliza dados de monitoramento de espectro, integrando arquivos de estações remotas, fluxos de espectro e artefatos analíticos.</p>'};
 
             % Create StateLabel
             app.StateLabel = uilabel(app.FilterGrid);
             app.StateLabel.VerticalAlignment = 'bottom';
             app.StateLabel.FontSize = 11;
-            app.StateLabel.Layout.Row = 1;
-            app.StateLabel.Layout.Column = 1;
+            app.StateLabel.Layout.Row = 2;
+            app.StateLabel.Layout.Column = [1 3];
             app.StateLabel.Text = 'UF:';
 
             % Create State
@@ -661,16 +745,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.State.FontSize = 11;
             app.State.FontColor = [1 1 1];
             app.State.BackgroundColor = [0.7216 0.1882 0.1686];
-            app.State.Layout.Row = 2;
-            app.State.Layout.Column = 1;
+            app.State.Layout.Row = 3;
+            app.State.Layout.Column = [1 3];
             app.State.Value = {};
 
             % Create LocationLabel
             app.LocationLabel = uilabel(app.FilterGrid);
             app.LocationLabel.VerticalAlignment = 'bottom';
             app.LocationLabel.FontSize = 11;
-            app.LocationLabel.Layout.Row = 1;
-            app.LocationLabel.Layout.Column = 2;
+            app.LocationLabel.Layout.Row = 4;
+            app.LocationLabel.Layout.Column = [1 3];
             app.LocationLabel.Text = 'Localidade:';
 
             % Create Location
@@ -680,16 +764,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.Location.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.Location.FontSize = 11;
             app.Location.BackgroundColor = [1 1 1];
-            app.Location.Layout.Row = 2;
-            app.Location.Layout.Column = 2;
+            app.Location.Layout.Row = 5;
+            app.Location.Layout.Column = [1 6];
             app.Location.Value = {};
 
             % Create ReceiverLabel
             app.ReceiverLabel = uilabel(app.FilterGrid);
             app.ReceiverLabel.VerticalAlignment = 'bottom';
             app.ReceiverLabel.FontSize = 11;
-            app.ReceiverLabel.Layout.Row = 1;
-            app.ReceiverLabel.Layout.Column = 3;
+            app.ReceiverLabel.Layout.Row = 6;
+            app.ReceiverLabel.Layout.Column = [1 3];
             app.ReceiverLabel.Text = 'Sensor:';
 
             % Create Receiver
@@ -699,16 +783,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.Receiver.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.Receiver.FontSize = 11;
             app.Receiver.BackgroundColor = [1 1 1];
-            app.Receiver.Layout.Row = 2;
-            app.Receiver.Layout.Column = 3;
+            app.Receiver.Layout.Row = 7;
+            app.Receiver.Layout.Column = [1 6];
             app.Receiver.Value = {};
 
             % Create PeriodBeginLabel
             app.PeriodBeginLabel = uilabel(app.FilterGrid);
             app.PeriodBeginLabel.VerticalAlignment = 'bottom';
             app.PeriodBeginLabel.FontSize = 11;
-            app.PeriodBeginLabel.Layout.Row = 1;
-            app.PeriodBeginLabel.Layout.Column = 4;
+            app.PeriodBeginLabel.Layout.Row = 8;
+            app.PeriodBeginLabel.Layout.Column = [1 3];
             app.PeriodBeginLabel.Text = 'Período inicial:';
 
             % Create PeriodBegin
@@ -716,15 +800,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.PeriodBegin.DisplayFormat = 'dd/MM/uuuu';
             app.PeriodBegin.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.PeriodBegin.FontSize = 11;
-            app.PeriodBegin.Layout.Row = 2;
-            app.PeriodBegin.Layout.Column = 4;
+            app.PeriodBegin.Layout.Row = 9;
+            app.PeriodBegin.Layout.Column = [1 3];
 
             % Create PeriodEndLabel
             app.PeriodEndLabel = uilabel(app.FilterGrid);
             app.PeriodEndLabel.VerticalAlignment = 'bottom';
             app.PeriodEndLabel.FontSize = 11;
-            app.PeriodEndLabel.Layout.Row = 1;
-            app.PeriodEndLabel.Layout.Column = 5;
+            app.PeriodEndLabel.Layout.Row = 8;
+            app.PeriodEndLabel.Layout.Column = [5 6];
             app.PeriodEndLabel.Text = 'Período final:';
 
             % Create PeriodEnd
@@ -732,15 +816,15 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.PeriodEnd.DisplayFormat = 'dd/MM/uuuu';
             app.PeriodEnd.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.PeriodEnd.FontSize = 11;
-            app.PeriodEnd.Layout.Row = 2;
-            app.PeriodEnd.Layout.Column = 5;
+            app.PeriodEnd.Layout.Row = 9;
+            app.PeriodEnd.Layout.Column = [5 6];
 
             % Create FreqStartLabel
             app.FreqStartLabel = uilabel(app.FilterGrid);
             app.FreqStartLabel.VerticalAlignment = 'bottom';
             app.FreqStartLabel.FontSize = 11;
-            app.FreqStartLabel.Layout.Row = 1;
-            app.FreqStartLabel.Layout.Column = 6;
+            app.FreqStartLabel.Layout.Row = 10;
+            app.FreqStartLabel.Layout.Column = [1 3];
             app.FreqStartLabel.Text = 'Freq. inicial (MHz):';
 
             % Create FreqStart
@@ -750,16 +834,16 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.FreqStart.AllowEmpty = 'on';
             app.FreqStart.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.FreqStart.FontSize = 11;
-            app.FreqStart.Layout.Row = 2;
-            app.FreqStart.Layout.Column = 6;
+            app.FreqStart.Layout.Row = 11;
+            app.FreqStart.Layout.Column = [1 3];
             app.FreqStart.Value = [];
 
             % Create FreqStopLabel
             app.FreqStopLabel = uilabel(app.FilterGrid);
             app.FreqStopLabel.VerticalAlignment = 'bottom';
             app.FreqStopLabel.FontSize = 11;
-            app.FreqStopLabel.Layout.Row = 1;
-            app.FreqStopLabel.Layout.Column = 7;
+            app.FreqStopLabel.Layout.Row = 10;
+            app.FreqStopLabel.Layout.Column = [5 6];
             app.FreqStopLabel.Text = 'Freq. final (MHz):';
 
             % Create FreqStop
@@ -769,50 +853,42 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.FreqStop.AllowEmpty = 'on';
             app.FreqStop.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.FreqStop.FontSize = 11;
-            app.FreqStop.Layout.Row = 2;
-            app.FreqStop.Layout.Column = 7;
+            app.FreqStop.Layout.Row = 11;
+            app.FreqStop.Layout.Column = [5 6];
             app.FreqStop.Value = [];
 
             % Create DescriptionLabel
             app.DescriptionLabel = uilabel(app.FilterGrid);
             app.DescriptionLabel.VerticalAlignment = 'bottom';
             app.DescriptionLabel.FontSize = 11;
-            app.DescriptionLabel.Layout.Row = 1;
-            app.DescriptionLabel.Layout.Column = 8;
+            app.DescriptionLabel.Layout.Row = 12;
+            app.DescriptionLabel.Layout.Column = [1 3];
             app.DescriptionLabel.Text = 'Descrição:';
 
             % Create Description
             app.Description = uieditfield(app.FilterGrid, 'text');
             app.Description.ValueChangedFcn = createCallbackFcn(app, @onFilterValueChanged, true);
             app.Description.FontSize = 11;
-            app.Description.Layout.Row = 2;
-            app.Description.Layout.Column = 8;
+            app.Description.Layout.Row = 13;
+            app.Description.Layout.Column = [1 6];
 
             % Create SearchButton
-            app.SearchButton = uiimage(app.FilterGrid);
-            app.SearchButton.ScaleMethod = 'none';
-            app.SearchButton.ImageClickedFcn = createCallbackFcn(app, @onSearchButtonClicked, true);
-            app.SearchButton.Layout.Row = 2;
-            app.SearchButton.Layout.Column = 9;
-            app.SearchButton.ImageSource = 'search-sparkle.svg';
-
-            % Create UITable1
-            app.UITable1 = uitable(app.GridLayout);
-            app.UITable1.ColumnName = {'REGIÃO'; 'SENSOR'; 'LIMITES (MHz)'; 'QTD. FLUXOS'; 'INÍCIO'; 'FIM'; 'ID'; 'ARQUIVO'; 'TAMANHO'};
-            app.UITable1.ColumnWidth = {130, 130, 130, 90, 90, 90, 90, 'auto', 90};
-            app.UITable1.RowName = {};
-            app.UITable1.ColumnSortable = [true true false false true true false false];
-            app.UITable1.SelectionType = 'row';
-            app.UITable1.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionValueChanged, true);
-            app.UITable1.Layout.Row = 3;
-            app.UITable1.Layout.Column = [1 4];
-            app.UITable1.FontSize = 11;
+            app.SearchButton = uibutton(app.FilterGrid, 'push');
+            app.SearchButton.ButtonPushedFcn = createCallbackFcn(app, @onSearchButtonClicked, true);
+            app.SearchButton.Icon = 'search-20px-white.svg';
+            app.SearchButton.BackgroundColor = [0 0.451 0.7412];
+            app.SearchButton.FontSize = 11;
+            app.SearchButton.FontColor = [1 1 1];
+            app.SearchButton.Layout.Row = 15;
+            app.SearchButton.Layout.Column = [1 6];
+            app.SearchButton.Text = '   Consultar';
 
             % Create UITable2Icon
             app.UITable2Icon = uiimage(app.GridLayout);
             app.UITable2Icon.ScaleMethod = 'none';
-            app.UITable2Icon.Layout.Row = 5;
-            app.UITable2Icon.Layout.Column = 1;
+            app.UITable2Icon.Visible = 'off';
+            app.UITable2Icon.Layout.Row = 3;
+            app.UITable2Icon.Layout.Column = 3;
             app.UITable2Icon.VerticalAlignment = 'bottom';
             app.UITable2Icon.ImageSource = 'selected-row-16px.png';
 
@@ -820,9 +896,10 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2Label = uilabel(app.GridLayout);
             app.UITable2Label.VerticalAlignment = 'bottom';
             app.UITable2Label.FontSize = 10;
-            app.UITable2Label.Layout.Row = 5;
-            app.UITable2Label.Layout.Column = 3;
-            app.UITable2Label.Text = 'INFORMAÇÕES ACERCA DO REGISTRO SELECIONADO';
+            app.UITable2Label.Visible = 'off';
+            app.UITable2Label.Layout.Row = 3;
+            app.UITable2Label.Layout.Column = 5;
+            app.UITable2Label.Text = 'FLUXOS ESPECTRAIS DO ARQUIVO SELECIONADO';
 
             % Create UITable2
             app.UITable2 = uitable(app.GridLayout);
@@ -833,8 +910,8 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2.SelectionType = 'row';
             app.UITable2.Enable = 'off';
             app.UITable2.Visible = 'off';
-            app.UITable2.Layout.Row = 7;
-            app.UITable2.Layout.Column = [1 4];
+            app.UITable2.Layout.Row = 5;
+            app.UITable2.Layout.Column = [3 5];
             app.UITable2.FontSize = 11;
 
             % Create UITable2Warning
@@ -843,44 +920,78 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
             app.UITable2Warning.FontSize = 22;
             app.UITable2Warning.FontWeight = 'bold';
             app.UITable2Warning.FontColor = [0.502 0.502 0.502];
-            app.UITable2Warning.Layout.Row = 7;
-            app.UITable2Warning.Layout.Column = [1 4];
+            app.UITable2Warning.Visible = 'off';
+            app.UITable2Warning.Layout.Row = 5;
+            app.UITable2Warning.Layout.Column = [3 5];
             app.UITable2Warning.Interpreter = 'html';
             app.UITable2Warning.Text = {'❗'; '<p style="font-size: 12px;">SELECIONE UM REGISTRO'; 'NA TABELA ACIMA</p>'};
 
-            % Create DownloadButton
-            app.DownloadButton = uiimage(app.GridLayout);
-            app.DownloadButton.ScaleMethod = 'none';
-            app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarDownloadButtonClicked, true);
-            app.DownloadButton.Layout.Row = 9;
-            app.DownloadButton.Layout.Column = 1;
-            app.DownloadButton.ImageSource = 'Import_16.png';
+            % Create UITable1
+            app.UITable1 = uitable(app.GridLayout);
+            app.UITable1.ColumnName = {'REGIÃO'; 'SENSOR'; 'LIMITES (MHz)'; 'FLUXOS'; 'INÍCIO'; 'FIM'; 'ARQUIVO'; 'TAMANHO'};
+            app.UITable1.ColumnWidth = {'auto', 'auto', 'auto', 70, 70, 70, 'auto', 'auto'};
+            app.UITable1.RowName = {};
+            app.UITable1.ColumnSortable = [true true true false true true false false];
+            app.UITable1.SelectionType = 'row';
+            app.UITable1.SelectionChangedFcn = createCallbackFcn(app, @onTableSelectionValueChanged, true);
+            app.UITable1.Layout.Row = [1 5];
+            app.UITable1.Layout.Column = [3 5];
+            app.UITable1.FontSize = 11;
+
+            % Create Toolbar
+            app.Toolbar = uigridlayout(app.GridLayout);
+            app.Toolbar.ColumnWidth = {22, 22, 5, 22, '1x'};
+            app.Toolbar.RowHeight = {10, '1x'};
+            app.Toolbar.ColumnSpacing = 5;
+            app.Toolbar.RowSpacing = 0;
+            app.Toolbar.Padding = [0 0 0 0];
+            app.Toolbar.Layout.Row = [6 7];
+            app.Toolbar.Layout.Column = [1 5];
+            app.Toolbar.BackgroundColor = [1 1 1];
+
+            % Create PanelVisibilityButton
+            app.PanelVisibilityButton = uiimage(app.Toolbar);
+            app.PanelVisibilityButton.ScaleMethod = 'none';
+            app.PanelVisibilityButton.ImageClickedFcn = createCallbackFcn(app, @onPanelVisibilityButtonClicked, true);
+            app.PanelVisibilityButton.Layout.Row = 2;
+            app.PanelVisibilityButton.Layout.Column = 1;
+            app.PanelVisibilityButton.ImageSource = 'layout-sidebar-left.svg';
 
             % Create FileDetailsButton
-            app.FileDetailsButton = uiimage(app.GridLayout);
+            app.FileDetailsButton = uiimage(app.Toolbar);
             app.FileDetailsButton.ScaleMethod = 'none';
             app.FileDetailsButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarFileDetailsButtonClicked, true);
-            app.FileDetailsButton.Layout.Row = 9;
+            app.FileDetailsButton.Layout.Row = 2;
             app.FileDetailsButton.Layout.Column = 2;
             app.FileDetailsButton.ImageSource = 'split_top_bottom_24.png';
 
+            % Create ToolbarSeparator
+            app.ToolbarSeparator = uiimage(app.Toolbar);
+            app.ToolbarSeparator.ScaleMethod = 'none';
+            app.ToolbarSeparator.Enable = 'off';
+            app.ToolbarSeparator.Layout.Row = 2;
+            app.ToolbarSeparator.Layout.Column = 3;
+            app.ToolbarSeparator.VerticalAlignment = 'bottom';
+            app.ToolbarSeparator.ImageSource = 'LineV.svg';
+
+            % Create DownloadButton
+            app.DownloadButton = uiimage(app.Toolbar);
+            app.DownloadButton.ScaleMethod = 'none';
+            app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onToolbarDownloadButtonClicked, true);
+            app.DownloadButton.Layout.Row = 2;
+            app.DownloadButton.Layout.Column = 4;
+            app.DownloadButton.ImageSource = 'Import_16.png';
+
             % Create FilterDescription
-            app.FilterDescription = uilabel(app.GridLayout);
+            app.FilterDescription = uilabel(app.Toolbar);
             app.FilterDescription.HorizontalAlignment = 'right';
+            app.FilterDescription.VerticalAlignment = 'bottom';
             app.FilterDescription.WordWrap = 'on';
-            app.FilterDescription.FontSize = 10;
-            app.FilterDescription.Layout.Row = 9;
-            app.FilterDescription.Layout.Column = 3;
+            app.FilterDescription.FontSize = 11;
+            app.FilterDescription.Layout.Row = [1 2];
+            app.FilterDescription.Layout.Column = 5;
             app.FilterDescription.Interpreter = 'html';
             app.FilterDescription.Text = '';
-
-            % Create FilterDescriptionIcon
-            app.FilterDescriptionIcon = uiimage(app.GridLayout);
-            app.FilterDescriptionIcon.ScaleMethod = 'none';
-            app.FilterDescriptionIcon.Visible = 'off';
-            app.FilterDescriptionIcon.Layout.Row = 9;
-            app.FilterDescriptionIcon.Layout.Column = 4;
-            app.FilterDescriptionIcon.ImageSource = 'filter.svg';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
@@ -909,7 +1020,11 @@ classdef dockRepoFiles_exported < matlab.apps.AppBase
 
             % Delete UIFigure when app is deleted
             if app.isDocked
-                delete(app.Container.Children)
+                children = app.Container.Children;
+                if isa(app.Container, 'matlab.ui.Figure') && isprop(app.Container, 'RunningAppInstance') && isprop(app.Container.RunningAppInstance, 'jsBackDoor')
+                    children(children == app.Container.RunningAppInstance.jsBackDoor) = [];
+                end
+                delete(children)
             else
                 delete(app.UIFigure)
             end
