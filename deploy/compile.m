@@ -78,6 +78,13 @@ function varargout = compile(compilationType, rootCompiledFolder, matlabRuntimeF
         error('RFDataHubNonUpdated')
     end
 
+    RFFusionOriginalFile = fullfile(fileparts(initFolder), 'src', 'config', 'DataBase', 'RepoSFI.mat');
+    RFFusionEditedFile   = fullfile(fullfile(appEngine.util.OperationSystem('programData'), 'ANATEL', appName), 'DataBase', 'RepoSFI.mat');
+
+    if isfile(RFFusionEditedFile)
+        copyfile(RFFusionEditedFile, RFFusionOriginalFile, 'f');
+    end
+
     % Gera as versões desktop e webapp.
     switch compilationType
         case 'Desktop+WebApp'
