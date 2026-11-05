@@ -68,7 +68,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
         tabGroupController
         renderCount = 0
 
-        executionMode
+        executionMode = ''
         progressDialog
         popupContainer
         popupCurrentApp
