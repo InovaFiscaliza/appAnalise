@@ -30,16 +30,33 @@ classdef (Abstract) Detection
             'MinOccupancy', 3, ...
             'MinAbsOrientation', 75 ...
         )
+
+        % Modelo de IA "SpecDet" (ai_models/pmrd2_4.mat), treinado apenas
+        % para a faixa de 70 a 110 MHz.
+        specDetDefaultValues = struct( ...
+            'Algorithm', 'SpecDet', ...
+            'ScoreThreshold', 0.5, ...
+            'NMSIoUThreshold', 0.8, ...
+            'MergeIoUThreshold', 0.5 ...
+        )
+
+        specDetBandLimitsMHz = [70, 110]
+        specDetBandToleranceMHz = 0.1
     end
 
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthKHzList, methodList] = run(specData, detectionConfig)
+        function [idxList, freqList, widthKHzList, methodList, descriptionList] = run(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct
             end
+
+            % "descriptionList" traz o texto da coluna "Informações adicionais"
+            % de cada emissão. Apenas o SpecDet o preenche; nos demais
+            % algoritmos, é vazio.
+            descriptionList = {};
 
             switch detectionConfig.Algorithm
                 case 'FindPeaks'
@@ -48,7 +65,9 @@ classdef (Abstract) Detection
                     [idxList, freqList, widthList, methodList] = util.Detection.findPeaksPlusOCC(specData, detectionConfig);
                 case 'FindConnectedRegions'
                     [idxList, freqList, widthList, methodList] = util.Detection.findConnectedRegions(specData, detectionConfig);
-            end    
+                case 'SpecDet'
+                    [idxList, freqList, widthList, methodList, descriptionList] = util.Detection.specDet(specData, detectionConfig);
+            end
             widthKHzList = widthList * 1000;
 
             if ~iscellstr(methodList)
@@ -362,10 +381,82 @@ classdef (Abstract) Detection
                 emissions(end+1, :) = {freqCenterMHz, widthMHz, count, occorrences, occupancy, orientation};
             end
         end
+
+        %-----------------------------------------------------------------%
+        function [idxList, freqList, widthList, methodList, descriptionList] = specDet(specData, detectionConfig)
+            arguments
+                specData (1,1) model.SpecDataBase
+                detectionConfig (1,1) struct = util.Detection.specDetDefaultValues
+            end
+
+            % Modelo de IA importado do ONNX (ver util.SpecDet).
+
+            if ~util.Detection.isSpecDetAvailable(specData)
+                error('util:Detection:SpecDetUnsupportedBand', ...
+                    'O modelo SpecDet suporta apenas fluxos espectrais na faixa de %.0f a %.0f MHz.', util.Detection.specDetBandLimitsMHz)
+            end
+
+            idxList    = [];
+            freqList   = [];
+            widthList  = [];
+            methodList = {};
+            descriptionList = {};
+
+            emitters = util.SpecDet.detect( ...
+                specData.Data{2}, ...
+                specData.MetaData.FreqStart, ...
+                specData.MetaData.FreqStop, ...
+                detectionConfig.ScoreThreshold, ...
+                detectionConfig.NMSIoUThreshold, ...
+                detectionConfig.MergeIoUThreshold ...
+            );
+            if isempty(emitters)
+                return
+            end
+
+            freqStartMHz = emitters.FreqStartHz / 1e+6; % Hz >> MHz
+            freqStopMHz  = emitters.FreqStopHz  / 1e+6; % Hz >> MHz
+
+            freqList   = (freqStartMHz + freqStopMHz) / 2;
+            widthList  = freqStopMHz - freqStartMHz;
+            idxList    = util.Detection.freq2idx(specData, freqList * 1e+6);
+            methodList = repmat({jsonencode(struct( ...
+                'Algorithm', detectionConfig.Algorithm, ...
+                'Parameters', rmfield(detectionConfig, 'Algorithm') ...
+            ))}, numel(idxList), 1);
+
+            % Texto gerado pelo modelo (não pelo usuário), identificado como tal.
+            descriptionList = arrayfun(@util.Detection.specDetDescription, emitters.Score, emitters.SNRdB, 'UniformOutput', false);
+        end
+
+        %-----------------------------------------------------------------%
+        function description = specDetDescription(score, snrDb)
+            description = sprintf('SpecDet - Grau de certeza: %.0f%%', 100 * score);
+            if isfinite(snrDb)
+                description = sprintf('%s | SNR: %.1f dB', description, snrDb);
+            end
+        end
     end
 
 
     methods (Static = true)
+        %-----------------------------------------------------------------%
+        function is_available = isSpecDetAvailable(specData)
+            arguments
+                specData model.SpecDataBase
+            end
+
+            % O modelo SpecDet só é ofertado para fluxos cuja faixa coincide
+            % com a faixa de treinamento (70 a 110 MHz).
+            is_available = false;
+            if ~isscalar(specData) || isempty(specData.MetaData)
+                return
+            end
+
+            bandLimitsMHz = [specData.MetaData.FreqStart, specData.MetaData.FreqStop] / 1e+6;
+            is_available  = all(abs(bandLimitsMHz - util.Detection.specDetBandLimitsMHz) <= util.Detection.specDetBandToleranceMHz);
+        end
+
         %-----------------------------------------------------------------%
         function [aCoef, bCoef] = idx2freqCoeffs(specData)
             arguments

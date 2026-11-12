@@ -82,6 +82,11 @@ classdef dockDetection_exported < matlab.apps.AppBase
         function initialValues(app)
             channelObj = app.mainApp.channelObj;
             app.FindPeaksPlusOCCClass.Items = [{''}; channelObj.FindPeaks.EmissionClass];
+
+            % NOVO: o modelo de IA SpecDet só é ofertado na faixa de 70 a 110 MHz.
+            if util.Detection.isSpecDetAvailable(app.callingApp.bandObj.SpecData)
+                app.Algorithm.Items = [app.Algorithm.Items, {'SpecDet (IA)'}];
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -96,6 +101,10 @@ classdef dockDetection_exported < matlab.apps.AppBase
                 case 'Picos com ocupação'
                     relatedElHandles = findobj(elHandles, 'Tag', 'FindPeaksPlusOCC');
                     app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 26, 22, '1x', 0, 0, 0, 0};
+
+                case 'SpecDet (IA)' % NOVO: modelo sem parâmetros configuráveis na interface.
+                    relatedElHandles = [];
+                    app.AlgorithmGrid.RowHeight = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
                 otherwise % 'Regiões conectadas'
                     relatedElHandles = findobj(elHandles, 'Tag', 'ConnectedRegions');
@@ -219,11 +228,26 @@ classdef dockDetection_exported < matlab.apps.AppBase
                             'MinOccupancyMaxOverTime', app.FindPeaksPlusOCCMaxOccupancy.Value ...
                         );
 
+                    case 'SpecDet (IA)'
+                        detectionConfig = util.Detection.specDetDefaultValues;
+
                     otherwise
                         error('auxApp:dockDetection:UnexpectedAlgorithm', 'Unexpected algorithm "%s"', algorithm)
                 end
                         
-                [idxList, freqList, widthkHzList, methodList] = util.Detection.run(specData, detectionConfig);
+                if strcmp(algorithm, 'SpecDet (IA)')
+                    requestVisibilityChange(app.callingApp.progressDialog, 'visible', 'unlocked')
+                    try
+                        [idxList, freqList, widthkHzList, methodList, descriptionList] = util.Detection.run(specData, detectionConfig);
+                        requestVisibilityChange(app.callingApp.progressDialog, 'hidden', 'unlocked')
+                    catch ME
+                        requestVisibilityChange(app.callingApp.progressDialog, 'hidden', 'unlocked')
+                        ui.Dialog(app.UIFigure, 'error', ME.message);
+                        return
+                    end
+                else
+                    [idxList, freqList, widthkHzList, methodList, descriptionList] = util.Detection.run(specData, detectionConfig);
+                end
 
                 if isempty(idxList)
                     ui.Dialog(app.UIFigure, 'info', 'Não foi encontrada emissão que atenda aos critérios especificados.');
@@ -232,11 +256,11 @@ classdef dockDetection_exported < matlab.apps.AppBase
 
                 switch app.SearchModePanel.SelectedObject
                     case app.AddEmissions
-                        update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        update(specData, 'UserData:Emissions', 'Add', idxList, freqList, widthkHzList, methodList, descriptionList, app.mainApp.channelObj)
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
                     
                     case app.ReplaceEmissions
-                        update(specData, 'UserData:Emissions', 'Replace', idxList, freqList, widthkHzList, methodList, [], app.mainApp.channelObj)
+                        update(specData, 'UserData:Emissions', 'Replace', idxList, freqList, widthkHzList, methodList, descriptionList, app.mainApp.channelObj)
                         ipcMainMatlabCallsHandler(app.mainApp, app, 'onEmissionAdded', context)
 
                     otherwise % app.OnlySearchEmissions
@@ -345,7 +369,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.Algorithm.Items = {'Detecção por picos', 'Picos com ocupação', 'Regiões conectadas'};
             app.Algorithm.ValueChangedFcn = createCallbackFcn(app, @onAlgorithmValueChanged, true);
             app.Algorithm.FontSize = 11;
-            app.Algorithm.BackgroundColor = [1 1 1];
             app.Algorithm.Layout.Row = 4;
             app.Algorithm.Layout.Column = [1 2];
             app.Algorithm.Value = 'Detecção por picos';
@@ -377,7 +400,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksTrace.Items = {'MinHold', 'Mean', 'MaxHold'};
             app.FindPeaksTrace.Tag = 'FindPeaks';
             app.FindPeaksTrace.FontSize = 11;
-            app.FindPeaksTrace.BackgroundColor = [1 1 1];
             app.FindPeaksTrace.Layout.Row = 2;
             app.FindPeaksTrace.Layout.Column = 1;
             app.FindPeaksTrace.Value = 'Mean';
@@ -507,7 +529,6 @@ classdef dockDetection_exported < matlab.apps.AppBase
             app.FindPeaksPlusOCCClass.Tag = 'FindPeaksPlusOCC';
             app.FindPeaksPlusOCCClass.Visible = 'off';
             app.FindPeaksPlusOCCClass.FontSize = 11;
-            app.FindPeaksPlusOCCClass.BackgroundColor = [1 1 1];
             app.FindPeaksPlusOCCClass.Layout.Row = 6;
             app.FindPeaksPlusOCCClass.Layout.Column = 1;
             app.FindPeaksPlusOCCClass.Value = {};

@@ -32,3 +32,49 @@ Caso o aplicativo seja executado diretamente no MATLAB, é necessário:
 4. Executar **winAppAnalise.mlapp**.
 
 Outras informações em https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/appAnalise.aspx
+
+## Modelo de detecção de emissores (`ai_models/`)
+
+O modelo de IA usado pelo appAnalise (`ai_models/model.onnx`) é treinado e versionado no repositório [code-anatel-axis4](https://github.com/ita-gnss-lab/code-anatel-axis4). Lá ele está registrado como o artefato DVC **`specdet-pmrd-band2`**: um detector de emissores em espectrogramas da faixa PMRD 2 de 4 (70–110 MHz). O arquivo fica armazenado no S3; as versões e os estágios são tags Git gerenciadas pelo [GTO](https://dvc.org/doc/gto).
+
+### Pré-requisitos
+
+- Dependências no ambiente do projeto: `uv add "dvc[s3]" gto`.
+- Acesso de leitura ao repositório `ita-gnss-lab/code-anatel-axis4` no GitHub.
+- Login na AWS (o remote do DVC usa este perfil):
+
+  ```bash
+  aws sso login --profile AdministratorAccess-567736086855
+  ```
+
+> Execute os comandos com `uv run`, para garantir que seja usado o `dvc` do `.venv` (que tem o plugin `dvc-s3`) e não uma instalação global.
+
+### Consultar versões e estágios
+
+```bash
+REPO=https://github.com/ita-gnss-lab/code-anatel-axis4
+
+uv run gto show specdet-pmrd-band2 --repo $REPO                     # versões, estágios, datas e tags
+uv run gto show 'specdet-pmrd-band2#demo' --repo $REPO --version    # versão atualmente no estágio demo (ex.: v0.1.0)
+uv run gto history specdet-pmrd-band2 --repo $REPO                  # histórico de registros e atribuições de estágio
+```
+
+### Baixar o modelo
+
+```bash
+uv run dvc artifacts get $REPO specdet-pmrd-band2 --stage demo -o ai_models
+```
+
+O comando baixa a versão atribuída ao estágio `demo` em `ai_models/model.onnx`. Para baixar uma versão específica, troque `--stage demo` por `--rev v0.1.0`. A mensagem `Failed to download artifact ... via Studio - No studio config` pode ser ignorada: o DVC tenta primeiro o Studio e, em seguida, baixa do S3.
+
+> O `dvc artifacts get` apenas copia o arquivo; ele não registra qual versão foi baixada. Use `gto show` para confirmar a versão em uso.
+
+### Metadados do modelo
+
+O ONNX exporta somente a rede (espectrograma → predições por âncora). A geração das âncoras e o pós-processamento (limiar de score, decodificação das caixas e NMS) devem ser feitos pela aplicação. Os parâmetros necessários estão nos metadados do próprio arquivo:
+
+```bash
+uv run python -c "import onnx; m = onnx.load('ai_models/model.onnx'); [print(p.key, '=', p.value) for p in m.metadata_props]"
+```
+
+

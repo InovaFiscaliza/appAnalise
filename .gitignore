@@ -36,3 +36,5 @@ codegen/
 
 # Cloud based storage dotfile
 .MATLABDriveTag
+# Pastas geradas dentro de ai_models (ex.: camadas do importador ONNX)
+ai_models/*/
