@@ -85,8 +85,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         progressDialog
         popupContainer
 
-        SubTabGroup = struct('Children', -1, 'UserData', [])
-
         % Handles dos eixos cartesianos utilizados por este módulo.
         UIAxes1
         UIAxes2
@@ -194,61 +192,50 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function applyJSCustomizations(app, tabIndex)
-            if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
-                return
-            end
-            app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
-
+        function applyJSCustomizations(app)
             appName = class(app);
-            switch tabIndex
-                case 1
-                    elToModify = { 
-                        app.UITable;
-                        app.AxesToolbar;
-                        app.ClassificationRefresh;
-                        app.RiskLevel;
-                        app.TXLocationEditMode;
-                        app.TXLocationEditConfirm;
-                        app.TXLocationEditCancel;
-                        app.tool_ExportJSONFile;
-                        app.tool_ShowGlobalExceptionList;
-                        app.PanelBottomVisibility;
-                        app.PanelLeftVisibility;
-                        app.RFLinkWarning;
-                        app.DockUndockButton;
-                        app.DockCloseButton;
-                        app.EmissionTitle
-                    };
-                    ui.CustomizationBase.getElementsDataTag(elToModify);
+            elToModify = { 
+                app.UITable;
+                app.AxesToolbar;
+                app.ClassificationRefresh;
+                app.RiskLevel;
+                app.TXLocationEditMode;
+                app.TXLocationEditConfirm;
+                app.TXLocationEditCancel;
+                app.tool_ExportJSONFile;
+                app.tool_ShowGlobalExceptionList;
+                app.PanelBottomVisibility;
+                app.PanelLeftVisibility;
+                app.RFLinkWarning;
+                app.DockUndockButton;
+                app.DockCloseButton;
+                app.EmissionTitle
+            };
+            ui.CustomizationBase.getElementsDataTag(elToModify);
 
-                    try
-                        sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
-                            struct('appName', appName, 'dataTag', app.UITable.UserData.id, 'tableMultiline', struct('status', true, 'verticalCenter', false), 'tableTextAlignment', [struct('columnId', 4, 'textAlign', 'right'), struct('columnId', 5, 'textAlign', 'right'), struct('columnId', 7, 'textAlign', 'justify')]), ...
-                            struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
-                            struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna à classificação automática')), ...
-                            struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel de edição')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Confirma edição, recriando perfil de terreno')), ...
-                            struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Cancela edição')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exporta arquivo com informações das emissões')), ...
-                            struct('appName', appName, 'dataTag', app.tool_ShowGlobalExceptionList.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Mostra lista global de exceções')), ...
-                            struct('appName', appName, 'dataTag', app.PanelBottomVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel inferior')), ...
-                            struct('appName', appName, 'dataTag', app.PanelLeftVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
-                            struct('appName', appName, 'dataTag', app.RFLinkWarning.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Evidenciada obstrução total da 1ª Zona de Fresnel')), ...
-                            struct('appName', appName, 'dataTag', app.DockUndockButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                            struct('appName', appName, 'dataTag', app.DockCloseButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
-                        });
-                    catch
-                    end
+            try
+                sendEventToHTMLSource(app.jsBackDoor, 'initializeComponents', { ...
+                    struct('appName', appName, 'dataTag', app.UITable.UserData.id, 'tableMultiline', struct('status', true, 'verticalCenter', false), 'tableTextAlignment', [struct('columnId', 4, 'textAlign', 'right'), struct('columnId', 5, 'textAlign', 'right'), struct('columnId', 7, 'textAlign', 'justify')]), ...
+                    struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
+                    struct('appName', appName, 'dataTag', app.ClassificationRefresh.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Retorna à classificação automática')), ...
+                    struct('appName', appName, 'dataTag', app.RiskLevel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Potencial lesivo do indício de irregularidade:<br>• Baixo: sem ação automática.<br>• Médio: alerta ao centralizador para abertura de demanda planejada.<br>• Alto: alerta ao centralizador e à FIGF para abertura de demanda imediata.')), ...
+                    struct('appName', appName, 'dataTag', app.TXLocationEditMode.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel de edição')), ...
+                    struct('appName', appName, 'dataTag', app.TXLocationEditConfirm.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Confirma edição, recriando perfil de terreno')), ...
+                    struct('appName', appName, 'dataTag', app.TXLocationEditCancel.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Cancela edição')), ...
+                    struct('appName', appName, 'dataTag', app.tool_ExportJSONFile.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Exporta arquivo com informações das emissões')), ...
+                    struct('appName', appName, 'dataTag', app.tool_ShowGlobalExceptionList.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Mostra lista global de exceções')), ...
+                    struct('appName', appName, 'dataTag', app.PanelBottomVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel inferior')), ...
+                    struct('appName', appName, 'dataTag', app.PanelLeftVisibility.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel à direita')), ...
+                    struct('appName', appName, 'dataTag', app.RFLinkWarning.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Evidenciada obstrução total da 1ª Zona de Fresnel')), ...
+                    struct('appName', appName, 'dataTag', app.DockUndockButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
+                    struct('appName', appName, 'dataTag', app.DockCloseButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                });
+            catch
+            end
 
-                    try
-                        ui.TextView.startup(app.jsBackDoor, app.LOG, appName, struct('class', {{'textview--wordbreak'}}));
-                    catch
-                    end
-
-                otherwise
-                    % ...
+            try
+                ui.TextView.startup(app.jsBackDoor, app.LOG, appName, struct('class', {{'textview--wordbreak'}}));
+            catch
             end
         end
 

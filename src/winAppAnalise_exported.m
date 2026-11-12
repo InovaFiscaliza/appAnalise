@@ -642,6 +642,11 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function applyJSCustomizations(app, tabIndex)
+            arguments
+                app 
+                tabIndex = 1
+            end
+
             if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
                 return
             end
@@ -808,15 +813,14 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function initializeUIComponents(app)
-            app.tabGroupController = ui.TabNavigator(app.NavBar, app.TabGroup, app.progressDialog, app.jsBackDoor);
-            addComponent(app.tabGroupController, "Built-in", "",                         app.Tab1Button, "AlwaysOn", struct('On', '', 'Off', ''), matlab.graphics.GraphicsPlaceholder, 1)
-            addComponent(app.tabGroupController, "External", "auxApp.winPlayback",       app.Tab2Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      2)
-            addComponent(app.tabGroupController, "External", "auxApp.winDriveTest",      app.Tab3Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      3)
-            addComponent(app.tabGroupController, "External", "auxApp.winSignalAnalysis", app.Tab4Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      4)
-            addComponent(app.tabGroupController, "External", "auxApp.winRFDataHub",      app.Tab5Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      5)
-            addComponent(app.tabGroupController, "External", "auxApp.winRepoSFI",        app.Tab6Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      6)
-            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab7Button, "AlwaysOn", struct('On', '', 'Off', ''), app.Tab1Button,                      7)
-            app.tabGroupController.inlineSVG = true;
+            app.tabGroupController = ui.TabNavigator(app);
+            addComponent(app.tabGroupController, "Built-in", "",                         app.Tab1Button, "AlwaysOn", matlab.graphics.GraphicsPlaceholder, 1)
+            addComponent(app.tabGroupController, "External", "auxApp.winPlayback",       app.Tab2Button, "AlwaysOn", app.Tab1Button,                      2)
+            addComponent(app.tabGroupController, "External", "auxApp.winDriveTest",      app.Tab3Button, "AlwaysOn", app.Tab1Button,                      3)
+            addComponent(app.tabGroupController, "External", "auxApp.winSignalAnalysis", app.Tab4Button, "AlwaysOn", app.Tab1Button,                      4)
+            addComponent(app.tabGroupController, "External", "auxApp.winRFDataHub",      app.Tab5Button, "AlwaysOn", app.Tab1Button,                      5)
+            addComponent(app.tabGroupController, "External", "auxApp.winRepoSFI",        app.Tab6Button, "AlwaysOn", app.Tab1Button,                      6)
+            addComponent(app.tabGroupController, "External", "auxApp.winConfig",         app.Tab7Button, "AlwaysOn", app.Tab1Button,                      7)
 
             % addStyle(app.FileTree, uistyle('Interpreter', 'html'))
         end

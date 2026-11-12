@@ -55,8 +55,6 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         progressDialog
         popupContainer
 
-        SubTabGroup = struct('Children', -1, 'UserData', [])
-
         UIAxes
         UIAxesLimits = struct('LatitudeLimits', [-90, 90], 'LongitudeLimits', [-180, 180])
         
@@ -126,15 +124,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function applyJSCustomizations(app, tabIndex)
-            % Applies JavaScript customizations to the unified search panel.
-            % Previously tracked per-tab initialization; now applies setup for the
-            % single FilterTab only.
-            if app.SubTabGroup.UserData.isTabInitialized(tabIndex)
-                return
-            end
-            app.SubTabGroup.UserData.isTabInitialized(tabIndex) = true;
-
+        function applyJSCustomizations(app)
             appName = class(app);
             elToModify = {
                 app.State;
