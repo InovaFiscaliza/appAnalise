@@ -765,7 +765,35 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlContent = getStationInfo(rfDataHub, idxRFDataHub, rfDataHubLOG, generalSettings)
+        function htmlContent = getStationInfo(rfDataHub, idxRFDataHub, rfDataHubLOG, generalSettings, rfDataHubAnnotation, rxSite, appHandleNameInBase, markerColor)
+            % Gera o HTML com as informações da estação TX selecionada, da 
+            % estação RX de referência e do enlace TX-RX (distância, azimute 
+            % e atenuação no espaço livre). rxSite é uma estrutura com os 
+            % campos Latitude, Longitude e AntennaHeight (vazio omite RX e 
+            % enlace). markerColor (hexadecimal) é a cor dos marcadores TX 
+            % e RX no plot geográfico, replicada nos selos.
+            arguments
+                rfDataHub
+                idxRFDataHub
+                rfDataHubLOG
+                generalSettings
+                rfDataHubAnnotation = []
+                rxSite = []
+                appHandleNameInBase = ''
+                markerColor {mustBeTextScalar} = '#ff365e'
+            end
+
+            % idxRFDataHub vazio (nenhum registro selecionado): apenas a estação
+            % RX, sem TX e sem enlace.
+            if isempty(idxRFDataHub)
+                htmlContent = '';
+                if ~isempty(rxSite)
+                    rxSection   = util.HtmlTextGenerator.rxStationSection(rxSite, appHandleNameInBase, generalSettings, markerColor);
+                    htmlContent = sprintf('<section style="padding: 10px;">%s</section>', util.HtmlTextGenerator.htmlSection(rxSection{1}, rxSection{2}, '', 0));
+                end
+                return
+            end
+
             % stationTag
             stationInfo    = table2struct(rfDataHub(idxRFDataHub,:));
             if stationInfo.BW <= 0
@@ -806,62 +834,168 @@ classdef (Abstract) HtmlTextGenerator
             end
         
             % LOCAL DE INSTALAÇÃO
-            stationLocation = sprintf('(%.6fº, %.6fº)', stationInfo.Latitude, stationInfo.Longitude);
-            stationHeight   = str2double(char(stationInfo.AntennaHeight));
+            % Valores editados pelo usuário (rfDataHubAnnotation) são 
+            % evidenciados com o valor original tachado seguido do novo valor.
+            txLatitude       = double(stationInfo.Latitude);
+            txLongitude      = double(stationInfo.Longitude);
+            stationLatitude  = sprintf('%.6fº', txLatitude);
+            stationLongitude = sprintf('%.6fº', txLongitude);
+            stationHeight    = str2double(char(stationInfo.AntennaHeight));
             if stationHeight <= 0
                 stationHeight = '<font style="color: red;">-1</font>';
             else
-                stationHeight = sprintf('%.1fm', stationHeight);
-            end    
-        
-            % LOG
-            stationLOG = model.RFDataHub.queryLog(rfDataHubLOG, stationInfo.Log);
-            if isempty(stationLOG)
-                stationLOG = 'Registro não editado';
+                stationHeight = sprintf('%.1f metros', stationHeight);
             end
-        
-            % TEXTO FORMATADO
-            displayEntry = [ ...
-                util.HtmlTextGenerator.makeDisplayEntry('Service', stationService), ...
-                util.HtmlTextGenerator.makeDisplayEntry('Station', stationNumber), ...
-                util.HtmlTextGenerator.makeDisplayEntry('Localização', stationLocation), ...
-                util.HtmlTextGenerator.makeDisplayEntry('Altura', stationHeight) ...
-            ];
 
+            if ~isempty(rfDataHubAnnotation)
+                [~, annotationIdx] = ismember(string(stationInfo.ID), rfDataHubAnnotation.ID);
+
+                if annotationIdx
+                    txSite = rfDataHubAnnotation.TXSite(annotationIdx);
+
+                    if txSite.Latitude.Status
+                        txLatitude = txSite.Latitude.EditedValue;
+                        stationLatitude = util.HtmlTextGenerator.markEditedValue(stationLatitude, sprintf('%.6fº', txLatitude));
+                    end
+
+                    if txSite.Longitude.Status
+                        txLongitude = txSite.Longitude.EditedValue;
+                        stationLongitude = util.HtmlTextGenerator.markEditedValue(stationLongitude, sprintf('%.6fº', txLongitude));
+                    end
+
+                    if txSite.AntennaHeight.Status
+                        stationHeight = util.HtmlTextGenerator.markEditedValue(stationHeight, sprintf('%.1f metros', txSite.AntennaHeight.EditedValue));
+                    end
+                end
+            end
+
+            % TX
+            % Outros aspectos técnicos: apenas os campos preenchidos, em 
+            % formato JSON (compacto) para economizar espaço.
             editedStationInfo = rmfield(stationInfo, { ...
                 'AntennaPattern', 'BW', 'Description', 'Distance', 'Fistel', 'Frequency',     ...
                 'ID', 'Latitude', 'LocationID', 'Location', 'Log', 'Longitude', 'MergeCount', ...
                 'Name', 'Station', 'StationClass', 'Status', 'Service', 'Source', 'State', 'URL', 'x_Name', 'x_Location' ...
             });
 
-            if any(cellfun(@(x) ~isequal(x, categorical(-1)), struct2cell(editedStationInfo)))
-                displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('OUTROS ASPECTOS TÉCNICOS', editedStationInfo);
+            otherAspects = struct();
+            editedFieldNames = fieldnames(editedStationInfo);
+            for ii = 1:numel(editedFieldNames)
+                fieldValue = editedStationInfo.(editedFieldNames{ii});
+
+                if ~isequal(fieldValue, categorical(-1))
+                    if iscategorical(fieldValue) || isstring(fieldValue)
+                        fieldValue = char(fieldValue);
+                    end
+                    otherAspects.(editedFieldNames{ii}) = fieldValue;
+                end
+            end
+
+            % LOG
+            stationLOG = model.RFDataHub.queryLog(rfDataHubLOG, stationInfo.Log);
+            if isempty(stationLOG)
+                stationLOG = 'Registro não editado';
+            end
+
+            txEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubTXLocationEditRequested');
+
+            % Documento (PDF) gerado pelo Mosaico, disponível apenas para 
+            % registros do "MOSAICO-SRD" que possuem URL. O link fica ao lado 
+            % do subtítulo da entrada (campo "link" do displayEntry).
+            channelReportLink = '';
+            if string(stationInfo.Source) == "MOSAICO-SRD" && ~strcmp(char(stationInfo.URL), '-1')
+                channelReportLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubChannelReportOpenRequested', '', 'link', 'Publish_PDF_16.png', 16, 16);
+            end
+
+            % Conteúdo da seção gerado por struct2PrettyPrintList.
+            displayEntry = [ ...
+                util.HtmlTextGenerator.makeDisplayEntry('Service', stationService), ...
+                util.HtmlTextGenerator.makeDisplayEntry('Station', sprintf('%s (ID %s)', stationNumber, stationInfo.ID), channelReportLink), ...
+                util.HtmlTextGenerator.makeDisplayEntry('LOCAL DE INSTALAÇÃO', struct('Latitude', stationLatitude, 'Longitude', stationLongitude, 'Altura', stationHeight), txEditLink) ...
+            ];
+
+            if ~isempty(fieldnames(otherAspects))
+                otherAspectsJSON = replace(matlab.jsonencode(otherAspects), {'&', '<', '>'}, {'&amp;', '&lt;', '&gt;'});
+                displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('OUTROS ASPECTOS TÉCNICOS', otherAspectsJSON);
             end
 
             if mergeCount > 1
                 displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('NÚMERO ESTAÇÕES AGRUPADAS', string(mergeCount));
             end
-        
+
             try
                 if isstruct(stationLOG) || ischar(stationLOG)
                     displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('LOG', stationLOG);
 
                 elseif iscell(stationLOG)
                     for ii = 1:numel(stationLOG)
-                        displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry(sprintf('LOG #%d', ii), stationLOG{ii});
+                        displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry(sprintf('LOG #%d', ii), stationLOG{ii}); %#ok<AGROW>
                     end
                 end
             catch
             end
-        
+
             htmlIntro = [ ...
-                util.HtmlTextGenerator.receiverBadge(stationInfo.Source) ...
-                sprintf('<span style="font-size: 10px; display: inline-block; vertical-align: sub; margin-left: 5px;">  ID %s</span><br><br>', stationInfo.ID) ...
                 sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>', stationTag) ...
                 sprintf('<font style="font-size: 11px;">%s</font><br><br>', stationInfo.Description) ...
             ];
 
-            htmlContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro);
+            txContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro, 'html');
+
+            % As seções são renderizadas ao final, pois a última não tem 
+            % margem inferior.
+            % Os selos replicam os marcadores do plot geográfico: ● (U+25CF) 
+            % para o TX e ▲ (U+25B2) para o RX. O seletor U+FE0E força a 
+            % renderização como texto (e não como emoji).
+            sections = {['Estação transmissora  –  ' util.HtmlTextGenerator.stationBadge('&#x25CF;', 'TX', markerColor, 17)], txContent};
+
+            % RX e ENLACE TX-RX
+            if ~isempty(rxSite)
+                sections(end+1, :) = util.HtmlTextGenerator.rxStationSection(rxSite, appHandleNameInBase, generalSettings, markerColor);
+
+                try
+                    txSiteLink = struct( ...
+                        'Latitude', txLatitude, ...
+                        'Longitude', txLongitude, ...
+                        'TransmitterFrequency', double(stationInfo.Frequency) * 1e+6 ...
+                    );
+                    [pathLoss, distanceKm, azimuth] = RF.Propagation.PathLoss(txSiteLink, rxSite);
+
+                    linkEntry = [ ...
+                        util.HtmlTextGenerator.makeDisplayEntry('DISTÂNCIA', sprintf('%.1f km', distanceKm)), ...
+                        util.HtmlTextGenerator.makeDisplayEntry('AZIMUTE', sprintf('%.1fº', azimuth)), ...
+                        util.HtmlTextGenerator.makeDisplayEntry('ATENUAÇÃO NO ESPAÇO LIVRE', sprintf('%.1f dB', pathLoss(end))) ...
+                    ];
+                    linkContent = textFormatGUI.struct2PrettyPrintList(linkEntry, 'delete', '', 'html');
+                    sections(end+1, :) = {'Enlace TX – RX', linkContent};
+                catch
+                end
+            end
+
+            sectionsHTML = cell(1, height(sections));
+            for ii = 1:height(sections)
+                bottomMargin = 30;
+                if ii == height(sections)
+                    bottomMargin = 0;
+                end
+
+                sectionsHTML{ii} = util.HtmlTextGenerator.htmlSection(sections{ii, 1}, sections{ii, 2}, '', bottomMargin);
+            end
+
+            htmlContent = sprintf('<section style="padding: 10px;">%s</section>', strjoin(sectionsHTML, ''));
+        end
+
+        %-----------------------------------------------------------------%
+        function rxSection = rxStationSection(rxSite, appHandleNameInBase, generalSettings, markerColor)
+            % Seção {título, conteúdo} com os dados da estação RX de referência.
+            rxEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubRXLocationEditRequested');
+            rxEntry = util.HtmlTextGenerator.makeDisplayEntry( ...
+                'LOCAL DE INSTALAÇÃO', ...
+                struct('Latitude', sprintf('%.6fº', rxSite.Latitude), 'Longitude', sprintf('%.6fº', rxSite.Longitude), 'Altura', sprintf('%.1f metros', rxSite.AntennaHeight)), ...
+                rxEditLink ...
+            );
+            rxContent = textFormatGUI.struct2PrettyPrintList(rxEntry, 'delete', '', 'html');
+            rxSection = {['Estação receptora  –  ' util.HtmlTextGenerator.stationBadge('&#x25B2;', 'RX', markerColor)], rxContent};
         end
 
         %-----------------------------------------------------------------%
@@ -1064,6 +1198,85 @@ classdef (Abstract) HtmlTextGenerator
             end
 
             entry = struct('group', group, 'value', value, 'link', link);
+        end
+
+        %-----------------------------------------------------------------%
+        function html = markEditedValue(oldValue, newValue)
+            html = sprintf('<del>%s</del> → <font style="color: red;">%s</font>', oldValue, newValue);
+        end
+
+        %-----------------------------------------------------------------%
+        function html = htmlSection(title, content, link, bottomMargin)
+            arguments
+                title
+                content
+                link = ''
+                bottomMargin (1,1) double = 30 % pixels
+            end
+
+            if ~isempty(link)
+                link = ['&emsp;' link];
+            end
+
+            % O título fica fora da tabela. O efeito de borda lateral é obtido 
+            % com uma coluna de 3px de largura, e não com "border-left".
+            html = sprintf([ ...
+                '<section style="margin: 0px 0px %dpx 0px;">' ...
+                    '<p style="margin: 0px 0px 10px 0px;"><font style="font-size: 12px; color: black;"><b>%s</b></font>%s</p>' ...
+                    '<table style="width: 100%%;">' ...
+                        '<tr>' ...
+                            '<td style="width: 3px; background: #7a7a7a;"></td>' ...
+                            '<td style="padding-left: 7px;">%s</td>' ...
+                        '</tr>' ...
+                    '</table>' ...
+                '</section>' ...
+            ], bottomMargin, title, link, content);
+        end
+
+        %-----------------------------------------------------------------%
+        function html = htmlSubtitle(text)
+            html = sprintf('<p style="margin: 6px 0px 2px 0px;"><font style="font-size: 10px; color: gray;">%s</font></p>', text);
+        end
+
+        %-----------------------------------------------------------------%
+        function html = htmlCodeBlock(value)
+            % Estruturas são apresentadas em JSON formatado; textos, como estão.
+            if isstruct(value)
+                try
+                    text = matlab.jsonencode(value);
+                catch
+                    text = jsonencode(value);
+                end
+            else
+                text = char(string(value));
+            end
+
+            text = replace(text, '&', '&amp;');
+            text = replace(text, '<', '&lt;');
+            text = replace(text, '>', '&gt;');
+            text = replace(text, {char(13), newline}, {'', '<br>'});
+
+            html = sprintf('<div style="font-family: Consolas, monospace; font-size: 10px; color: #404040; background-color: #f5f5f5; border-radius: 4px; padding: 6px 8px; white-space: pre-wrap; word-break: break-all;">%s</div>', text);
+        end
+
+        %-----------------------------------------------------------------%
+        function html = stationBadge(symbolEntity, label, color, symbolFontSize)
+            % color: cor hexadecimal (#RRGGBB) do marcador no plot, usada no 
+            % texto do selo e (com transparência) no fundo.
+            % symbolFontSize: tamanho (pixels) da fonte do símbolo; o texto 
+            % do selo mantém 11px.
+            arguments
+                symbolEntity
+                label
+                color {mustBeTextScalar}
+                symbolFontSize (1,1) double = 13
+            end
+
+            hex = char(color);
+            rgb = [hex2dec(hex(2:3)), hex2dec(hex(4:5)), hex2dec(hex(6:7))];
+            backgroundColor = sprintf('rgba(%d, %d, %d, 0.12)', rgb);
+
+            html = sprintf('<font style="color: %s; background-color: %s; font-size: 11px; font-weight: normal; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;"><font style="font-size: %dpx;">%s&#xFE0E;</font> %s</font>', color, backgroundColor, symbolFontSize, symbolEntity, label);
         end
 
         %-----------------------------------------------------------------%

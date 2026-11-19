@@ -172,6 +172,10 @@ classdef (Abstract) datatip
                     dtParent.DataTipTemplate.DataTipRows(2)     = dataTipTextRow('', hTable.Frequency, '%.3f MHz');
                     dtParent.DataTipTemplate.DataTipRows(3)     = dataTipTextRow('', hTable.Distance,  '%.1f km');
 
+                    if numel(dtParent.DataTipTemplate.DataTipRows) > 3
+                        dtParent.DataTipTemplate.DataTipRows(4:end) = [];
+                    end
+
                 case 'RFLink.LOS'
                     hTable = varargin{1};
 

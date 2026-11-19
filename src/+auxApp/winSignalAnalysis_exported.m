@@ -171,7 +171,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                                     
                                     if ~isempty(currentSelection) && ~isequal(previousSelection, currentSelection)
                                         app.UITable.Selection = currentSelection;
-                                        app.UITable.UserData.selectedRow = currentSelection;
                                         scroll(app.UITable, 'row', currentSelection)
 
                                         onUITableSelectionChanged(app, struct('Selection', currentSelection, 'PreviousSelection', previousSelection))
@@ -302,7 +301,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateTable(app, flowIdxs, selectedRow)
-            calculateEmissionPrediction(app, flowIdxs)
+            calculateEmissionPrediction(app, 'all-emissions', flowIdxs)
             app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI', app.mainApp.General);
     
             if isempty(app.emissionsTable)
@@ -316,25 +315,8 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             end
 
             requestVisibilityChange(app.progressDialog, 'visible', 'unlocked')
-    
-            columnNames = { ...
-                'Frequency', ...
-                'Truncated', ...
-                'BandWidthkHz', ...
-                'LevelRange', ...
-                'FCORange', ...
-                'Prediction', ...
-                'RFDataHubDescription', ...
-                'Distance' ...
-            };
 
-            set(app.UITable, 'Data', app.emissionsTable(:, columnNames), 'Selection', selectedRow)
-            app.UITable.UserData.selectedRow = selectedRow;
-            app.UITable.UserData.selectedRowStyleIdx = [];
-
-            applyTableStyle(app, 'clearCellStyles')
-            applyTableStyle(app, 'emissionIndicators')
-            applyTableStyle(app, 'selectedRow')
+            renderTable(app, selectedRow)
 
             updateSelectedEmissionFormAndPlot(app)
             pause(.100)
@@ -661,9 +643,6 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 end
 
                 [wayPoints3D, msgWarning] = Get(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
-                if ~isempty(msgWarning)
-                    ui.Dialog(app.UIFigure, 'warning', msgWarning);
-                end
     
                 % PLOT: RFLink
                 plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, 'dark')
@@ -829,9 +808,24 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         end
 
         %-----------------------------------------------------------------%
-        function calculateEmissionPrediction(app, flowIdxs)
+        function hasNewResult = calculateEmissionPrediction(app, searchType, flowIdxs, emissionIdxs)
+            arguments
+                app
+                searchType {mustBeMember(searchType, {'all-emissions', 'specific-emission'})}
+                flowIdxs
+                emissionIdxs = []
+            end
+
+            % hasNewResult é true se algum resultado de predição foi 
+            % calculado (ou atualizado) nesta chamada.
+            hasNewResult = false;
+
             for ii = flowIdxs
-                for jj = 1:height(app.mainApp.specData(ii).UserData.Emissions)
+                if strcmp(searchType, 'all-emissions')
+                    emissionIdxs = 1:height(app.mainApp.specData(ii).UserData.Emissions);
+                end
+
+                for jj = emissionIdxs
                     specData = app.mainApp.specData(ii);
                     emissionIdx = jj;
 
@@ -845,15 +839,73 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
             
                         [wayPoints3D, msgWarning] = Get(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
                         if isempty(wayPoints3D)
-                            error(msgWarning)
+                            newPredictionResult = util.Propagation.RESULT_DEFAULT;
+                            newPredictionResult.StationHash = stationSignature;
+                            newPredictionResult.MeasuredValue = specData.UserData.Emissions.Measures(emissionIdx).Level.Channel_Max;
+                            newPredictionResult.LevelUnit = specData.MetaData.LevelUnit;
+                            newPredictionResult.TxObj = txObj;
+                            newPredictionResult.RxObj = rxObj;
+                            newPredictionResult.ErrorMessage = sprintf('<font style = "color: red;">%s</font>', msgWarning);
+                        else
+                            newPredictionResult = util.Propagation.calculateEmissionPrediction(specData, emissionIdx, txObj, rxObj, wayPoints3D, stationSignature);
                         end
-            
-                        predictionResult = util.Propagation.calculateEmissionPrediction(specData, emissionIdx, txObj, rxObj, wayPoints3D, stationSignature);
-                        update(specData, 'UserData:Emissions', 'AuxAppData:SignalAnalysis', emissionIdx, predictionResult)
+
+                        update(specData, 'UserData:Emissions', 'AuxAppData:SignalAnalysis', emissionIdx, newPredictionResult)
+
+                        % Resultados não calculados (IsCalculated=false), 
+                        % inclusive por falha na obtenção da elevação, são 
+                        % reprocessados a cada chamada, mas só interessam à 
+                        % GUI se algo mudou.
+                        if isempty(predictionResult) || ~isfield(predictionResult, 'IsCalculated') || ~isequal(predictionResult.IsCalculated, newPredictionResult.IsCalculated) || ~isequal(predictionResult.ErrorMessage, newPredictionResult.ErrorMessage)
+                            hasNewResult = true;
+                        end
                     catch
                     end
                 end
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function retrySelectedEmissionPrediction(app)
+            if isempty(app.emissionsTable)
+                return
+            end
+
+            selectedRow = app.UITable.UserData.selectedRow;
+            [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+
+            if calculateEmissionPrediction(app, 'specific-emission', flowIdx, emissionIdx)
+                refreshTableContent(app, selectedRow)
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function refreshTableContent(app, selectedRow)
+            flowIdxs = unique(app.emissionsTable.flowIdx)';
+            app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI', app.mainApp.General);
+            renderTable(app, selectedRow)
+        end
+
+        %-----------------------------------------------------------------%
+        function renderTable(app, selectedRow)
+            columnNames = { ...
+                'Frequency', ...
+                'Truncated', ...
+                'BandWidthkHz', ...
+                'LevelRange', ...
+                'FCORange', ...
+                'Prediction', ...
+                'RFDataHubDescription', ...
+                'Distance' ...
+            };
+
+            set(app.UITable, 'Data', app.emissionsTable(:, columnNames), 'Selection', selectedRow)
+            app.UITable.UserData.selectedRow = selectedRow;
+            app.UITable.UserData.selectedRowStyleIdx = [];
+
+            applyTableStyle(app, 'clearCellStyles')
+            applyTableStyle(app, 'emissionIndicators')
+            applyTableStyle(app, 'selectedRow')
         end
     end
 
@@ -920,6 +972,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 app.UITable.UserData.selectedRow = selectedRows;
 
                 applyTableStyle(app, 'selectedRow')
+                retrySelectedEmissionPrediction(app)
                 updateSelectedEmissionFormAndPlot(app)
             end
             

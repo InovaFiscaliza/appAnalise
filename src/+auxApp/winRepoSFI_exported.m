@@ -926,7 +926,6 @@ end
             app.ModuleIntro = uilabel(app.LeftPanelGrid);
             app.ModuleIntro.VerticalAlignment = 'top';
             app.ModuleIntro.WordWrap = 'on';
-            app.ModuleIntro.FontSize = 11;
             app.ModuleIntro.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.ModuleIntro.Layout.Row = 1;
             app.ModuleIntro.Layout.Column = [3 5];

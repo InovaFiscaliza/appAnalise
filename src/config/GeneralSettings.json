@@ -1,5 +1,5 @@
 {
-    "version": 1.68,
+    "version": 1.69,
     "operationMode": {
         "Debug": false,
         "Dock": true,
@@ -132,11 +132,15 @@
                 }
             },
             "filter": {
-                "default": {
-                    "columnLabel": "Distância",
-                    "operation": "≤",
-                    "value": 30
-                },
+                "default": [
+                    {
+                        "Field": "Distance",
+                        "Operators": ["≤"],
+                        "Values": [30],
+                        "Connector": "E",
+                        "Deletable": true
+                    }
+                ],
                 "last": []
             }
         },

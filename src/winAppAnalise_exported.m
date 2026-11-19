@@ -221,16 +221,8 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     %     play_FindPeaks_delEmission(app)
                     
                     % auxApp.winDriveTest
-                    % auxApp.winRFDataHub
-                    case {'auxApp.winDriveTest.FilterTree', 'auxApp.winDriveTest.PointsTree', 'auxApp.winRFDataHub.FilterTree'}
-                        if contains(event.HTMLEventName, 'winDriveTest')
-                            auxAppName = 'DRIVETEST';
-                            
-                        elseif contains(event.HTMLEventName, 'winRFDataHub')
-                            auxAppName = 'RFDATAHUB';
-                        end
-
-                        ipcMainMatlabCallAuxiliarApp(app, auxAppName, 'MATLAB', event.HTMLEventName)
+                    case {'auxApp.winDriveTest.FilterTree', 'auxApp.winDriveTest.PointsTree'}
+                        ipcMainMatlabCallAuxiliarApp(app, 'DRIVETEST', 'MATLAB', event.HTMLEventName)
 
                     % % DOCKADDKFACTOR / DOCKTIMEFILTERING
                     % case {'auxApp.dockAddKFactor.kFactorTree', 'auxApp.dockTimeFiltering.filterTree'}
@@ -397,9 +389,21 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                                   'auxApp.dockLocation',           'auxApp.dockLocation_exported',           ... % PLAYBACK
                                   'auxApp.dockOccupancy',          'auxApp.dockOccupancy_exported',          ... % PLAYBACK
                                   'auxApp.dockReportLib',          'auxApp.dockReportLib_exported',          ... % PLAYBACK (toolbar)
-                                  'auxApp.dockRepoFiles',          'auxApp.dockRepoFiles_exported'}              % REPOSFI
+                                  'auxApp.dockRepoFiles',          'auxApp.dockRepoFiles_exported',          ... % REPOSFI
+                                  'auxApp.dockRFDataHubLocation',  'auxApp.dockRFDataHubLocation_exported',  ... % RFDATAHUB
+                                  'auxApp.dockTableFilter',        'auxApp.dockTableFilter_exported'}            % RFDATAHUB
 
                                 switch eventName
+                                    % 'auxApp.dockTableFilter'
+                                    case 'onFilterRulesChanged'
+                                        context  = varargin{1};
+                                        ipcMainMatlabCallAuxiliarApp(app, context, 'MATLAB', eventName)
+
+                                    % auxApp.dockRFDataHubLocation
+                                    case 'onRFDataHubLocationChanged'
+                                        stationType = varargin{2};
+                                        ipcMainMatlabCallAuxiliarApp(app, 'RFDATAHUB', 'MATLAB', eventName, stationType)
+
                                     % auxApp.dockReportLib
                                     case {'onProjectRestart', 'onFinalReportFileChanged'}
                                         refreshProjectFiles(app, [], 'onProjectLoad')
@@ -556,7 +560,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
             arguments
                 app
                 callingApp
-                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'ChannelsFileImport', 'ChannelsSatellite', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles'})}
+                auxAppName char {mustBeMember(auxAppName, {'Calibration', 'ChannelsFileImport', 'ChannelsSatellite', 'Detection', 'DetectionLimits', 'DriveTestFilter', 'DriveTestPoints', 'EmissionChannel', 'ExternalFiles', 'FilterByLevel', 'FilterByTime', 'FlowMerge', 'Location', 'ReportLib', 'RepoFiles', 'RFDataHubLocation', 'RFDataHubChannelReport', 'TableFilter'})}
                 context    char {mustBeMember(context, {'mainApp', 'FILE', 'PLAYBACK', 'DRIVETEST', 'SIGNALANALYSIS', 'MISC', 'RFDATAHUB', 'REPOSFI', 'CONFIG'})}
             end
 
@@ -594,6 +598,9 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 popupSpecifications(15, :) = {"Occupancy",          412, 516, false}; % Não iniciada revisão
                 popupSpecifications(16, :) = {"ReportLib",          890, 600, false};
                 popupSpecifications(17, :) = {"RepoFiles",         1120, 600, false};
+                popupSpecifications(18, :) = {"RFDataHubLocation",  412, 156, false};
+                popupSpecifications(19, :) = {"RFDataHubChannelReport", 720, 560, true};
+                popupSpecifications(20, :) = {"TableFilter",        518, 376, false};
 
                 auxAppNameIdx = find(popupSpecifications.AuxAppName == string(auxAppName), 1);
                 screenWidth = popupSpecifications.Width(auxAppNameIdx);
@@ -761,7 +768,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % mais eficiente a comunicação com webapp porque as imagens
                     % Base64 são menores (uma imagem com Basemap "sattelite" pode 
                     % ter 500 kB, enquanto uma imagem sem Basemap pode ter 25 kB).
-                    app.General_I.plot.geographicAxes.Basemap = 'none';
+                    % app.General_I.plot.geographicAxes.Basemap = 'none';
                     app.General_I.reportLib.basemap = 'none';
 
                 otherwise    

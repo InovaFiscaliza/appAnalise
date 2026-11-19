@@ -1,4 +1,4 @@
-function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, footnoteFlag)
+function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
     arguments
         hAxes
         txSite
@@ -6,7 +6,6 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
         wayPoints3D
         plotMode   char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
         rotateViewFlag logical = false
-        footnoteFlag   logical = false
     end
 
     % ## prePlot
@@ -99,25 +98,6 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag, fo
 
     text(hAxes, 0,          txAntenna, txLabel, 'Color', colorStation, 'HorizontalAlignment', txLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
     text(hAxes, distMeters/1000, rxAntenna, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
-
-    % (f) Nota de rodapé (OPCIONAL)
-    if footnoteFlag
-        footNotePosition = 0;
-        footNoteAlign = 'left';
-        
-        if ((txAntenna > rxAntenna) && isequal(hAxes.View, [0,90])) || ...
-           ((txAntenna < rxAntenna) && isequal(hAxes.View, [180,270]))
-            footNotePosition = 1;
-            footNoteAlign    = 'right';
-        end
-
-        Footnote = sprintf(['\n\\bfTX\nID: %s\nFrequência: %.3f MHz\nLocalização: (%.6fº, %.6fº, %.1fm)\nAltura: %.1fm\n\n'                         ...
-                            '\\bfRX\nLocalização: (%.6fº, %.6fº, %.1fm)\nAltura: %.1fm\n\n'                                                         ...
-                            '\\bfTX-RX\nDistância: %.1f km\nAzimute: %.1fº\nAtenuação espaço livre: %.1f dB'],                                      ...
-                            txSite.ID, txSite.TransmitterFrequency/1e+6, txSite.Latitude, txSite.Longitude, wayPoints3D(1,3), txSite.AntennaHeight, ...
-                            rxSite.Latitude, rxSite.Longitude, wayPoints3D(end,3), rxSite.AntennaHeight, distMeters/1000, az, PL(end));
-        text(hAxes, footNotePosition, 1, Footnote, Units='normalized', FontSize=10, Interpreter='tex', HorizontalAlignment=footNoteAlign, VerticalAlignment='top', PickableParts='none', Tag='Footnote');
-    end
 
     % ## post-Plot
     hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', distMeters/1000, 'Azimuth', az, 'TXAntennaElevation', txAntenna, 'RXAntennaElevation', rxAntenna);
