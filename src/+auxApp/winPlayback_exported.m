@@ -1567,7 +1567,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
                     eventData.context = app.Context;
                     
                     if ~isempty(varargin)
-                        eventData.varargin = varargin{:};
+                        eventData.varargin = varargin;
                     end
 
                     ipcMainJSEventsHandler(app.mainApp, struct('HTMLEventName', 'customForm', 'HTMLEventData', eventData))
