@@ -319,9 +319,9 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
             end
 
             % Eixo cartesiano: PERFIL DE RELEVO
-            app.UIAxes2 = plot.axes.Creation(hParent, 'Cartesian', {'XGrid', 'off', 'XMinorGrid', 'off', 'XTick', [], 'XColor', [.8,.8,.8], 'XLimitMethod', 'padded', ...
+            app.UIAxes2 = plot.axes.Creation(hParent, 'Cartesian', {'XGrid', 'off', 'XMinorGrid', 'off', 'XTick', [], 'XColor', [.8,.8,.8], ...
                                                                     'YGrid', 'off', 'YMinorGrid', 'off', 'YTick', [], 'YColor', 'none',                               ...
-                                                                    'Color', 'none', 'Clipping', 'off', 'LineWidth', 2, 'Layer', 'top', 'Visible', 'off'});
+                                                                    'Color', 'none', 'Clipping', 'on', 'LineWidth', 2, 'Layer', 'top', 'HitTest', 'off', 'Visible', 'off'});
             app.UIAxes2.Layout.Tile = 11;
             app.UIAxes2.Layout.TileSpan = [1 2];
             app.UIAxes2.XAxis.TickLabelFormat = '%.1f';
@@ -770,7 +770,18 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateRFLinkPlot(app)
-            cla(app.UIAxes2)
+            % O retângulo de fundo ("BackgroundLayer") é criado na primeira 
+            % chamada e reaproveitado nas demais. Fica invisível e minimizado 
+            % em torno de (0,0) enquanto o link é plotado, para não interferir 
+            % nos limites automáticos do eixo.
+            delete(findobj(app.UIAxes2.Children, '-not', 'Tag', 'BackgroundLayer'))
+
+            hBackground = findobj(app.UIAxes2, 'Tag', 'BackgroundLayer');
+            if isempty(hBackground)
+                hBackground = rectangle(app.UIAxes2, 'Visible', 'off', 'Position', [0 0 .001 .001], 'Curvature', [.05 .15], 'FaceColor', [.07,0,0], 'FaceAlpha', 0.65, 'EdgeColor', 'none', 'PickableParts', 'none', 'HitTest', 'off', 'Tag', 'BackgroundLayer');
+            else
+                set(hBackground, 'Visible', 'off', 'Position', [0 0 .001 .001])
+            end
 
             if app.UIAxes2.Visible && ~isempty(app.UITable.Selection)
                 rfDataHubIdx = findRFDataHubIndex(app);
@@ -788,7 +799,12 @@ classdef winRFDataHub_exported < matlab.apps.AppBase
                     end
                     
                     % PLOT: RFLink
-                    plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, 'light', true)
+                    plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D)
+
+                    % Background: ocupa todos os limites x e y do eixo.
+                    xLim = app.UIAxes2.XLim;
+                    yLim = app.UIAxes2.YLim;
+                    set(hBackground, 'Position', [xLim(1), yLim(1), diff(xLim), diff(yLim)], 'Visible', 'on')
                 catch
                 end
 

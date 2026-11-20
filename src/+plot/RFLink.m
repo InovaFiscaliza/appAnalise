@@ -1,11 +1,9 @@
-function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
+function RFLink(hAxes, txSite, rxSite, wayPoints3D)
     arguments
         hAxes
         txSite
         rxSite
         wayPoints3D
-        plotMode char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
-        rotateViewFlag logical = false
     end
 
     % ## prePlot
@@ -31,17 +29,16 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
     [~, firstObstructionIdx] = RF.Propagation.LOS(wayPoints3D(:,3), losHeight, fresnelRadius);
 
     % (c) Cores
-    [terrainFaceColor, ...
-     terrainEdgeColor] = getPlotColor(plotMode, 'Terrain');
+    [terrainFaceColor, terrainEdgeColor] = getPlotColor('Terrain');
     terrainFaceAlpha   = 0.75;
-
-    colorObstruction   = getPlotColor(plotMode, 'FirstObstruction');
-    colorStation       = getPlotColor(plotMode, 'Station');
-    colorLink          = getPlotColor(plotMode, 'Link');
-    colorFresnel       = getPlotColor(plotMode, 'Fresnel');
+    colorObstruction   = getPlotColor('FirstObstruction');
+    colorStation       = getPlotColor('Station');
+    colorLink          = getPlotColor('Link');
+    colorFresnel       = getPlotColor('Fresnel');
 
     % ## Plot
-    cla(hAxes)
+    % Preserva o plot de fundo ("BackgroundLayer"), caso exista.
+    delete(findobj(hAxes.Children, '-not', 'Tag', 'BackgroundLayer'))
     hAxes.XLimMode = 'auto';
     hAxes.YLimMode = 'auto';
 
@@ -82,26 +79,18 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
         yLimMin = -10;
     end
 
-    hAxes.YLim(1) = yLimMin;
+    hAxes.YLim = [yLimMin, max(hAxes.YLim(2), max(wayPoints3D(:,3))+10)];
     hTerrain.BaseValue = hAxes.YLim(1);
+    
+    xLim = [profileDistanceKm(1), profileDistanceKm(end)];
+    xDiff = diff(xLim);
+    hAxes.XLim = [xLim(1)-xDiff*0.05, xLim(2)+xDiff*0.05];
 
     % (e) Visualização do eixo (OPCIONAL) e labels das estações TX e RX
     txLabel      = 'TX   ';
     rxLabel      = '  RX';
     txLabelAlign = 'right';
     rxLabelAlign = 'left';
-
-    if rotateViewFlag
-        if txSite.Longitude <= rxSite.Longitude
-            hAxes.View   = [0,90];
-        else
-            hAxes.View   = [180,270];
-            txLabel      = '  TX';
-            rxLabel      = 'RX   ';
-            txLabelAlign = 'left';
-            rxLabelAlign = 'right';
-        end
-    end
 
     text(hAxes, 0,              txAntennaElevation, txLabel, 'Color', colorStation, 'HorizontalAlignment', txLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
     text(hAxes, linkDistanceKm, rxAntennaElevation, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
@@ -112,33 +101,15 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
 end
 
 %-------------------------------------------------------------------------%
-function varargout = getPlotColor(plotMode, plotTag)
-    % O terreno usa o mesmo par de cores nos dois modos: âmbar com borda 
-    % escura, legível sobre basemaps claros, escuros e de satélite.
-    if strcmp(plotTag, 'Terrain')
-        terrainFaceColor = '#FFFF00';
-        terrainEdgeColor = '#997A00';
-        varargout = {terrainFaceColor, terrainEdgeColor};
-        return
-    end
+function varargout = getPlotColor(plotTag)
+    switch plotTag
+        case 'Terrain'
+            varargout = {'#333333', '#777777'};
 
-    switch plotMode
-        case 'light'
-            switch plotTag
-                case 'FirstObstruction'
-                    varargout = {'#FFFF00'};
-                case {'Station', 'Link'}
-                    varargout = {'#ff365e'};
-                case 'Fresnel'
-                    varargout = {[1, 0.21, 0.37]};
-            end
+        case 'FirstObstruction'
+            varargout = {[.94,.94,.94]};
 
-        case 'dark'
-            switch plotTag
-                case 'FirstObstruction'
-                    varargout = {[.94,.94,.94]};
-                case {'Station', 'Link', 'Fresnel'}
-                    varargout = {'cyan'};
-            end
+        case {'Station', 'Link', 'Fresnel'}
+            varargout = {'cyan'};
     end
 end

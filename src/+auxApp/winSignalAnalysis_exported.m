@@ -645,7 +645,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
                 [wayPoints3D, msgWarning] = Get(app.mainApp.elevationObj, txObj, rxObj, app.mainApp.General.elevation.pointCount, app.mainApp.General.elevation.forceRefresh, app.mainApp.General.elevation.provider);
     
                 % PLOT: RFLink
-                plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D, 'dark')
+                plot.RFLink(app.UIAxes2, txObj, rxObj, wayPoints3D)
                 app.UIAxes2.PickableParts = "visible";
                 app.restoreView(2) = struct('ID', 'app.UIAxes2', 'xLim', app.UIAxes2.XLim, 'yLim', app.UIAxes2.YLim, 'cLim', 'auto');
 
