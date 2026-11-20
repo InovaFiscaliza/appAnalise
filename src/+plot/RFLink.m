@@ -4,37 +4,41 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
         txSite
         rxSite
         wayPoints3D
-        plotMode   char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
+        plotMode char {mustBeMember(plotMode,  {'dark', 'light'})}  = 'light'
         rotateViewFlag logical = false
     end
 
     % ## prePlot
     % (a) Altura das estações TX-RX.
-    txAntenna = wayPoints3D(1,3);
+    txAntennaElevation = wayPoints3D(1,3);
     if txSite.AntennaHeight > 0
-        txAntenna = txAntenna + txSite.AntennaHeight;
+        txAntennaElevation = txAntennaElevation + txSite.AntennaHeight;
     end
 
-    rxAntenna = wayPoints3D(end,3);
+    rxAntennaElevation = wayPoints3D(end,3);
     if rxSite.AntennaHeight > 0
-        rxAntenna = rxAntenna + rxSite.AntennaHeight;
+        rxAntennaElevation = rxAntennaElevation + rxSite.AntennaHeight;
     end
 
     % (b) 1ª Zona de Fresnel, atenuação no espaço livre, análise de visada 
     %     entre TX e RX, distância e azimute.
-    [rn, distMeters, d1, az] = RF.Propagation.FresnelZone(txSite, rxSite, height(wayPoints3D));
-    d1  = double(d1); % força double porque fspl só aceita double
-    vq  = interp1([0, distMeters], [txAntenna, rxAntenna], d1, 'linear');    
-    PL  = fspl(d1, physconst('LightSpeed')/txSite.TransmitterFrequency);
-    [~, xFirstObstruction] = RF.Propagation.LOS(wayPoints3D(:,3), vq, rn);
+    [fresnelRadius, linkDistanceMeters, profileDistance, az] = RF.Propagation.FresnelZone(txSite, rxSite, height(wayPoints3D));
+    profileDistance   = double(profileDistance); % força double porque fspl só aceita double
+    profileDistanceKm = profileDistance/1000;
+    linkDistanceKm    = linkDistanceMeters/1000;
+    losHeight         = interp1([0, linkDistanceMeters], [txAntennaElevation, rxAntennaElevation], profileDistance, 'linear');
+    pathLoss          = fspl(profileDistance, physconst('LightSpeed')/txSite.TransmitterFrequency);
+    [~, firstObstructionIdx] = RF.Propagation.LOS(wayPoints3D(:,3), losHeight, fresnelRadius);
 
     % (c) Cores
-    [faceColorTerrain, ...
-     edgeColorTerrain] = Color(plotMode, 'Terrain');
-    colorObstruction   = Color(plotMode, 'FirstObstruction');
-    colorStation       = Color(plotMode, 'Station');
-    colorLink          = Color(plotMode, 'Link');
-    colorFresnel       = Color(plotMode, 'Fresnel');
+    [terrainFaceColor, ...
+     terrainEdgeColor] = getPlotColor(plotMode, 'Terrain');
+    terrainFaceAlpha   = 0.75;
+
+    colorObstruction   = getPlotColor(plotMode, 'FirstObstruction');
+    colorStation       = getPlotColor(plotMode, 'Station');
+    colorLink          = getPlotColor(plotMode, 'Link');
+    colorFresnel       = getPlotColor(plotMode, 'Fresnel');
 
     % ## Plot
     cla(hAxes)
@@ -42,40 +46,43 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
     hAxes.YLimMode = 'auto';
 
     % (a) Perfil de terreno e primeira obstrução (caso aplicável)
-    hTerrain = area(hAxes, d1/1000, wayPoints3D(:,3), BaseValue=0, FaceColor=faceColorTerrain, EdgeColor=edgeColorTerrain, Tag='Terrain');
-    hTerrainTable = table(wayPoints3D(:,1), wayPoints3D(:,2), wayPoints3D(:,3), 'VariableNames', {'Latitude', 'Longitude', 'Elevation'});
-    plot.datatip.Template(hTerrain, 'RFLink.Terrain', hTerrainTable)
+    hTerrain = area(hAxes, profileDistanceKm, wayPoints3D(:,3), BaseValue=0, FaceColor=terrainFaceColor, FaceAlpha=terrainFaceAlpha, EdgeColor=terrainEdgeColor, LineWidth=1, Tag='Terrain');
+    terrainTable = table(wayPoints3D(:,1), wayPoints3D(:,2), wayPoints3D(:,3), 'VariableNames', {'Latitude', 'Longitude', 'Elevation'});
+    plot.datatip.Template(hTerrain, 'RFLink.Terrain', terrainTable)
 
-    if ~isempty(xFirstObstruction)
-        stem(hAxes, d1(xFirstObstruction)/1000, wayPoints3D(xFirstObstruction,3), 'filled', 'Marker', 'square', 'MarkerSize', 8, 'MarkerFaceColor', colorObstruction, 'LineStyle', '-.', 'Color', colorObstruction, 'PickableParts', 'none', 'Tag', 'FirstObstruction');
+    if ~isempty(firstObstructionIdx)
+        stem(hAxes, profileDistanceKm(firstObstructionIdx), wayPoints3D(firstObstructionIdx,3), 'filled', 'Marker', 'square', 'MarkerSize', 8, 'MarkerFaceColor', colorObstruction, 'LineStyle', '-.', 'Color', colorObstruction, 'PickableParts', 'none', 'Tag', 'FirstObstruction');
     end
     
     % (b) Estações TX e RX
-    stem(hAxes, 0,          txAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation,                'PickableParts', 'none', 'Tag', 'Station');
-    stem(hAxes, distMeters/1000, rxAntenna, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation, 'Marker', '^', 'PickableParts', 'none', 'Tag', 'Station');
+    stem(hAxes, 0,              txAntennaElevation, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation,                'PickableParts', 'none', 'Tag', 'Station');
+    stem(hAxes, linkDistanceKm, rxAntennaElevation, 'filled', 'MarkerFaceColor', colorStation, 'Color', colorStation, 'Marker', '^', 'PickableParts', 'none', 'Tag', 'Station');
         
     % (c) Linha de visada entre TX e RX
-    hLOS = plot(hAxes, d1/1000, vq, 'Color', colorLink, 'LineStyle', '-.', 'LineWidth', .5,  'Tag', 'Link');
-    hLOSTable = table(d1/1000, vq, PL, 'VariableNames', {'Distance', 'Height', 'PathLoss'});
-    plot.datatip.Template(hLOS, 'RFLink.LOS', hLOSTable)
+    hLOS = plot(hAxes, profileDistanceKm, losHeight, 'Color', colorLink, 'LineStyle', '-.', 'LineWidth', .5,  'Tag', 'Link');
+    losTable = table(profileDistanceKm, losHeight, pathLoss, 'VariableNames', {'Distance', 'Height', 'PathLoss'});
+    plot.datatip.Template(hLOS, 'RFLink.LOS', losTable)
 
     % (d) 1ª Zona de Fresnel
-    images.roi.Polygon(hAxes, Position=[d1/1000, vq+rn; flip(d1/1000), flip(vq-rn)], ...
-                              Color=colorFresnel, ...
-                              Deletable=0, ...
-                              EdgeAlpha=.25, ...
-                              FaceAlpha=.05, ...
-                              FaceSelectable=0, ...
-                              InteractionsAllowed='none', ...
-                              LineWidth=.5, ...
-                              Tag='Fresnel');
+    images.roi.Polygon( ...
+        hAxes, ...
+        Position=[profileDistanceKm, losHeight+fresnelRadius; flip(profileDistanceKm), flip(losHeight-fresnelRadius)],  ...
+        Color=colorFresnel, ...
+        Deletable=0, ...
+        EdgeAlpha=.35, ...
+        FaceAlpha=.15, ...
+        FaceSelectable=0, ...
+        InteractionsAllowed='none', ...
+        LineWidth=.5, ...
+        Tag='Fresnel' ...
+    );
 
-    yLim1 = max(hAxes.YLim(1), min(wayPoints3D(:,3))-10);
+    yLimMin = max(hAxes.YLim(1), min(wayPoints3D(:,3))-10);
     if ~wayPoints3D(1,3) || ~wayPoints3D(end,3)
-        yLim1 = -10;
+        yLimMin = -10;
     end
 
-    hAxes.YLim(1) = yLim1;
+    hAxes.YLim(1) = yLimMin;
     hTerrain.BaseValue = hAxes.YLim(1);
 
     % (e) Visualização do eixo (OPCIONAL) e labels das estações TX e RX
@@ -96,49 +103,42 @@ function RFLink(hAxes, txSite, rxSite, wayPoints3D, plotMode, rotateViewFlag)
         end
     end
 
-    text(hAxes, 0,          txAntenna, txLabel, 'Color', colorStation, 'HorizontalAlignment', txLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
-    text(hAxes, distMeters/1000, rxAntenna, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
+    text(hAxes, 0,              txAntennaElevation, txLabel, 'Color', colorStation, 'HorizontalAlignment', txLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
+    text(hAxes, linkDistanceKm, rxAntennaElevation, rxLabel, 'Color', colorStation, 'HorizontalAlignment', rxLabelAlign, 'VerticalAlignment', 'bottom', 'FontSize', 10, 'PickableParts', 'none', 'Tag', 'StationLabel');
 
     % ## post-Plot
-    hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', distMeters/1000, 'Azimuth', az, 'TXAntennaElevation', txAntenna, 'RXAntennaElevation', rxAntenna);
+    hAxes.UserData = struct('TX', txSite, 'RX', rxSite, 'Distance', linkDistanceKm, 'Azimuth', az, 'TXAntennaElevation', txAntennaElevation, 'RXAntennaElevation', rxAntennaElevation);
     plot.axes.StackingOrder.execute(hAxes, 'RFLink')
 end
 
 %-------------------------------------------------------------------------%
-function varargout = Color(plotMode, plotTag)
+function varargout = getPlotColor(plotMode, plotTag)
+    % O terreno usa o mesmo par de cores nos dois modos: âmbar com borda 
+    % escura, legível sobre basemaps claros, escuros e de satélite.
+    if strcmp(plotTag, 'Terrain')
+        terrainFaceColor = '#FFFF00';
+        terrainEdgeColor = '#997A00';
+        varargout = {terrainFaceColor, terrainEdgeColor};
+        return
+    end
+
     switch plotMode
         case 'light'
             switch plotTag
-                case 'Terrain'
-                    FaceColor = [0.94,.94,.94];
-                    EdgeColor = [0.80,0.80,0.80];
-                    varargout = {FaceColor, EdgeColor};
                 case 'FirstObstruction'
-                    Color     = [0,0,0];
-                    varargout = {Color};
+                    varargout = {'#FFFF00'};
                 case {'Station', 'Link'}
-                    Color     = '#c94756';
-                    varargout = {Color};
+                    varargout = {'#ff365e'};
                 case 'Fresnel'
-                    Color     = 'red';
-                    varargout = {Color};
+                    varargout = {[1, 0.21, 0.37]};
             end
 
         case 'dark'
             switch plotTag
-                case 'Terrain'
-                    FaceColor = '#333333';
-                    EdgeColor = '#777777';
-                    varargout = {FaceColor, EdgeColor};
                 case 'FirstObstruction'
-                    Color     = [.94,.94,.94];
-                    varargout = {Color};
-                case 'Station'
-                    Color     = 'cyan';
-                    varargout = {Color};
-                case {'Link', 'Fresnel'}
-                    Color     = 'cyan';
-                    varargout = {Color};
+                    varargout = {[.94,.94,.94]};
+                case {'Station', 'Link', 'Fresnel'}
+                    varargout = {'cyan'};
             end
     end
 end

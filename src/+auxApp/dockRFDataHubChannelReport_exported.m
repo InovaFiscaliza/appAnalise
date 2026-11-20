@@ -2,12 +2,13 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                        matlab.ui.Figure
-        GridLayout                      matlab.ui.container.GridLayout
-        ChannelReportViewer             matlab.ui.control.HTML
-        ChannelReportUndockButton       matlab.ui.control.Image
-        ChannelReportDownloadButton     matlab.ui.control.Image
-        ChannelReportDownloadTimeLabel  matlab.ui.control.Label
+        UIFigure            matlab.ui.Figure
+        GridLayout          matlab.ui.container.GridLayout
+        PdfViewer           matlab.ui.control.HTML
+        UndockButton        matlab.ui.control.Image
+        DownloadButton      matlab.ui.control.Image
+        CacheUpdatedAt      matlab.ui.control.Label
+        CacheUpdatedAtIcon  matlab.ui.control.Image
     end
 
     
@@ -36,15 +37,23 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
 
     methods (Access = private)
         %-----------------------------------------------------------------%
-        function initialValues(app)
-            % O objeto ChannelReport (handle) é compartilhado com o módulo 
-            % chamador, reaproveitando o cache de documentos já baixados.
-            if isempty(app.channelReportObj)
-                app.channelReportObj = RF.ChannelReport;
-            end
+        function applyJSCustomizations(app)
+            appName = class(app);
+            elToModify = {
+                app.PdfViewer;
+                app.DownloadButton;
+                app.UndockButton
+            };
+            ui.CustomizationBase.getElementsDataTag(elToModify);
 
-            resetPanel(app)
-            updatePanel(app, 'Cache+RealTime')
+            try
+                sendEventToHTMLSource(app.callingApp.jsBackDoor, 'initializeComponents', { ...
+                    struct('appName', appName, 'dataTag', app.PdfViewer.UserData.id,      'style',   struct('borderRadius', '5px')), ... 
+                    struct('appName', appName, 'dataTag', app.DownloadButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Baixa versão atual do documento',  'zIndex', 901)), ... 
+                    struct('appName', appName, 'dataTag', app.UndockButton.UserData.id,   'tooltip', struct('defaultPosition', 'top', 'textContent', 'Abre documento em leitor externo', 'zIndex', 901)) ... 
+                });
+            catch
+            end
         end
 
         %-----------------------------------------------------------------%
@@ -66,17 +75,33 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
                 app.progressDialog.Visible = 'visible';
             end
 
-            [idxCache, msgError] = Get(app.channelReportObj, url, operationType);
-            if ~isempty(idxCache)    
-                app.ChannelReportViewer.HTMLSource = app.channelReportObj.cacheMapping.File{idxCache};
-                app.ChannelReportDownloadTimeLabel.Text = sprintf('DOWNLOAD EM %s', app.channelReportObj.cacheMapping.Timestamp{idxCache});
-                set([app.ChannelReportDownloadButton, app.ChannelReportUndockButton], 'Visible', 'on')
+            [cacheIdx, errorMsg] = Get(app.channelReportObj, url, operationType);
+            if ~isempty(cacheIdx)    
+                app.PdfViewer.HTMLSource = app.channelReportObj.cacheMapping.File{cacheIdx};
+
+                downloadAt = [];
+                try
+                    downloadAt = datetime(app.channelReportObj.cacheMapping.Timestamp{cacheIdx}, 'InputFormat', 'dd-MMM-yyyy HH:mm:ss', 'Format', 'dd/MM/yyyy HH:mm:ss');
+                catch
+                end
+
+                if isempty(downloadAt)
+                    app.CacheUpdatedAt.Text = app.channelReportObj.cacheMapping.Timestamp{cacheIdx};
+                    app.DownloadButton.Visible = 'on';
+
+                else
+                    cacheUpdatedAt = strsplit(char(downloadAt));
+                    app.CacheUpdatedAt.Text = sprintf('%s às %s', replace(cacheUpdatedAt{1}, '-', '/'), cacheUpdatedAt{2});
+                    app.DownloadButton.Visible = hours(datetime('now') - downloadAt) > 24;
+                end
+
+                app.UndockButton.Visible = 'on';
 
             else
                 resetPanel(app)
 
-                if ismember(operationType, {'Cache+RealTime', 'RealTime'}) && ~isempty(msgError)
-                    ui.Dialog(app.UIFigure, 'error', msgError);
+                if ismember(operationType, {'Cache+RealTime', 'RealTime'}) && ~isempty(errorMsg)
+                    ui.Dialog(app.UIFigure, 'error', errorMsg);
                 end
             end
 
@@ -87,9 +112,9 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function resetPanel(app)
-            app.ChannelReportViewer.HTMLSource = 'Warning2.html';
-            app.ChannelReportDownloadTimeLabel.Text = '';
-            set([app.ChannelReportDownloadButton, app.ChannelReportUndockButton], 'Visible', 'off')
+            app.PdfViewer.HTMLSource = '';
+            app.CacheUpdatedAt.Text = '';
+            set([app.DownloadButton, app.UndockButton], 'Visible', 'off')
         end
 
         %-----------------------------------------------------------------%
@@ -110,7 +135,9 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
 
                 app.inputArgs = struct('context', context, 'rfDataHubIdx', rfDataHubIdx);
                 app.channelReportObj = channelReportObj;
-                initialValues(app)
+
+                applyJSCustomizations(app)
+                updatePanel(app, 'Cache+RealTime')
                 
             catch ME
                 ui.Dialog(app.UIFigure, 'error', getReport(ME), 'CloseFcn', @(~,~)closeFcn(app));
@@ -125,33 +152,21 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
             
         end
 
-        % Image clicked function: ChannelReportDownloadButton, 
-        % ...and 1 other component
-        function onChannelReportButtonClicked(app, event)
+        % Image clicked function: DownloadButton
+        function onDownloadButtonClicked(app, event)
             
-            if strcmp(app.ChannelReportViewer.HTMLSource, 'Warning2.html')
-                return
-            end
+            updatePanel(app, 'RealTime')
 
-            switch event.Source
-                case app.ChannelReportDownloadButton
-                    updatePanel(app, 'RealTime')
+        end
 
-                case app.ChannelReportUndockButton
-                    switch app.mainApp.executionMode
-                        case 'webApp'
-                            web(getStationURL(app), '-new')
-                        otherwise
-                            appEngine.util.OperationSystem('openFile', app.ChannelReportViewer.HTMLSource)
-                    end
-
-                    % Fecha o módulo, uma vez que o documento passou a ser
-                    % apresentado em leitor externo.
-                    if app.isDocked
-                        sendEventToHTMLSource(app.callingApp.jsBackDoor, 'closePopupAppRequest', struct('dataTag', app.GridLayout.UserData.id))
-                    else
-                        delete(app)
-                    end
+        % Image clicked function: UndockButton
+        function onUndockButtonClicked(app, event)
+            
+            switch app.mainApp.executionMode
+                case 'webApp'
+                    web(getStationURL(app), '-new')
+                otherwise
+                    appEngine.util.OperationSystem('openFile', app.PdfViewer.HTMLSource)
             end
 
         end
@@ -196,48 +211,51 @@ classdef dockRFDataHubChannelReport_exported < matlab.apps.AppBase
 
             % Create GridLayout
             app.GridLayout = uigridlayout(app.Container);
-            app.GridLayout.ColumnWidth = {22, 22, '1x'};
+            app.GridLayout.ColumnWidth = {22, '1x', 22, 22};
             app.GridLayout.RowHeight = {22, '1x'};
             app.GridLayout.ColumnSpacing = 5;
-            app.GridLayout.RowSpacing = 0;
+            app.GridLayout.RowSpacing = 5;
             app.GridLayout.Padding = [20 20 20 20];
             app.GridLayout.BackgroundColor = [1 1 1];
 
-            % Create ChannelReportDownloadTimeLabel
-            app.ChannelReportDownloadTimeLabel = uilabel(app.GridLayout);
-            app.ChannelReportDownloadTimeLabel.BackgroundColor = [0.2 0.2 0.2];
-            app.ChannelReportDownloadTimeLabel.HorizontalAlignment = 'center';
-            app.ChannelReportDownloadTimeLabel.FontSize = 10;
-            app.ChannelReportDownloadTimeLabel.FontColor = [0.902 0.902 0.902];
-            app.ChannelReportDownloadTimeLabel.Layout.Row = 1;
-            app.ChannelReportDownloadTimeLabel.Layout.Column = [1 3];
-            app.ChannelReportDownloadTimeLabel.Text = '';
+            % Create CacheUpdatedAtIcon
+            app.CacheUpdatedAtIcon = uiimage(app.GridLayout);
+            app.CacheUpdatedAtIcon.ScaleMethod = 'none';
+            app.CacheUpdatedAtIcon.Enable = 'off';
+            app.CacheUpdatedAtIcon.Layout.Row = 1;
+            app.CacheUpdatedAtIcon.Layout.Column = 1;
+            app.CacheUpdatedAtIcon.ImageSource = 'calendar.svg';
 
-            % Create ChannelReportDownloadButton
-            app.ChannelReportDownloadButton = uiimage(app.GridLayout);
-            app.ChannelReportDownloadButton.ScaleMethod = 'none';
-            app.ChannelReportDownloadButton.ImageClickedFcn = createCallbackFcn(app, @onChannelReportButtonClicked, true);
-            app.ChannelReportDownloadButton.Visible = 'off';
-            app.ChannelReportDownloadButton.Tooltip = {'Baixa versão atual do documento'};
-            app.ChannelReportDownloadButton.Layout.Row = 1;
-            app.ChannelReportDownloadButton.Layout.Column = 1;
-            app.ChannelReportDownloadButton.ImageSource = 'refresh-18px-white.png';
+            % Create CacheUpdatedAt
+            app.CacheUpdatedAt = uilabel(app.GridLayout);
+            app.CacheUpdatedAt.FontSize = 11;
+            app.CacheUpdatedAt.FontColor = [0.502 0.502 0.502];
+            app.CacheUpdatedAt.Layout.Row = 1;
+            app.CacheUpdatedAt.Layout.Column = 2;
+            app.CacheUpdatedAt.Text = '';
 
-            % Create ChannelReportUndockButton
-            app.ChannelReportUndockButton = uiimage(app.GridLayout);
-            app.ChannelReportUndockButton.ScaleMethod = 'none';
-            app.ChannelReportUndockButton.ImageClickedFcn = createCallbackFcn(app, @onChannelReportButtonClicked, true);
-            app.ChannelReportUndockButton.Visible = 'off';
-            app.ChannelReportUndockButton.Tooltip = {'Abre documento em leitor externo'};
-            app.ChannelReportUndockButton.Layout.Row = 1;
-            app.ChannelReportUndockButton.Layout.Column = 2;
-            app.ChannelReportUndockButton.ImageSource = 'Undock_18White.png';
+            % Create DownloadButton
+            app.DownloadButton = uiimage(app.GridLayout);
+            app.DownloadButton.ScaleMethod = 'none';
+            app.DownloadButton.ImageClickedFcn = createCallbackFcn(app, @onDownloadButtonClicked, true);
+            app.DownloadButton.Visible = 'off';
+            app.DownloadButton.Layout.Row = 1;
+            app.DownloadButton.Layout.Column = 3;
+            app.DownloadButton.ImageSource = 'Refresh_18.png';
 
-            % Create ChannelReportViewer
-            app.ChannelReportViewer = uihtml(app.GridLayout);
-            app.ChannelReportViewer.HTMLSource = 'Warning2.html';
-            app.ChannelReportViewer.Layout.Row = 2;
-            app.ChannelReportViewer.Layout.Column = [1 3];
+            % Create UndockButton
+            app.UndockButton = uiimage(app.GridLayout);
+            app.UndockButton.ScaleMethod = 'none';
+            app.UndockButton.ImageClickedFcn = createCallbackFcn(app, @onUndockButtonClicked, true);
+            app.UndockButton.Visible = 'off';
+            app.UndockButton.Layout.Row = 1;
+            app.UndockButton.Layout.Column = 4;
+            app.UndockButton.ImageSource = 'open-in-window.svg';
+
+            % Create PdfViewer
+            app.PdfViewer = uihtml(app.GridLayout);
+            app.PdfViewer.Layout.Row = 2;
+            app.PdfViewer.Layout.Column = [1 4];
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';

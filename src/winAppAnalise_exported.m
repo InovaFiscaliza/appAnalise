@@ -617,7 +617,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                 });
 
                 if isFluid
-                    sizing = struct('type', 'fluid', 'width', 90, 'height', 80);
+                    sizing = struct('type', 'fluid', 'width', 80, 'height', 90);
                 else
                     sizing = struct('type', 'fixed', 'width', screenWidth, 'height', screenHeight+31);
                 end

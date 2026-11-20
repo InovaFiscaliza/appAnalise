@@ -765,13 +765,16 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function htmlContent = getStationInfo(rfDataHub, idxRFDataHub, rfDataHubLOG, generalSettings, rfDataHubAnnotation, rxSite, appHandleNameInBase, markerColor)
+        function htmlContent = getStationInfo(rfDataHub, idxRFDataHub, rfDataHubLOG, generalSettings, rfDataHubAnnotation, rxSite,         appHandleNameInBase, markerColor, rfLinkPlotStatus)
             % Gera o HTML com as informações da estação TX selecionada, da 
             % estação RX de referência e do enlace TX-RX (distância, azimute 
             % e atenuação no espaço livre). rxSite é uma estrutura com os 
             % campos Latitude, Longitude e AntennaHeight (vazio omite RX e 
             % enlace). markerColor (hexadecimal) é a cor dos marcadores TX 
-            % e RX no plot geográfico, replicada nos selos.
+                    % e RX no plot geográfico, replicada nos selos. rfLinkPlotStatus 
+                    % indica se o perfil de terreno do enlace está visível no plot, 
+                    % definindo o ícone (olho aberto/fechado) do selo do enlace, que 
+                    % alterna a visualização.
             arguments
                 rfDataHub
                 idxRFDataHub
@@ -781,6 +784,7 @@ classdef (Abstract) HtmlTextGenerator
                 rxSite = []
                 appHandleNameInBase = ''
                 markerColor {mustBeTextScalar} = '#ff365e'
+                rfLinkPlotStatus (1,1) logical = false
             end
 
             % idxRFDataHub vazio (nenhum registro selecionado): apenas a estação
@@ -897,21 +901,21 @@ classdef (Abstract) HtmlTextGenerator
                 stationLOG = 'Registro não editado';
             end
 
-            txEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubTXLocationEditRequested');
+            txEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubTXLocationEditRequested', '', 'link', 'location.svg', 16, 16);
 
             % Documento (PDF) gerado pelo Mosaico, disponível apenas para 
             % registros do "MOSAICO-SRD" que possuem URL. O link fica ao lado 
             % do subtítulo da entrada (campo "link" do displayEntry).
             channelReportLink = '';
             if string(stationInfo.Source) == "MOSAICO-SRD" && ~strcmp(char(stationInfo.URL), '-1')
-                channelReportLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubChannelReportOpenRequested', '', 'link', 'Publish_PDF_16.png', 16, 16);
+                channelReportLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubChannelReportOpenRequested', '', 'link', 'file-pdf.svg', 16, 16);
             end
 
             % Conteúdo da seção gerado por struct2PrettyPrintList.
             displayEntry = [ ...
                 util.HtmlTextGenerator.makeDisplayEntry('Service', stationService), ...
-                util.HtmlTextGenerator.makeDisplayEntry('Station', sprintf('%s (ID %s)', stationNumber, stationInfo.ID), channelReportLink), ...
-                util.HtmlTextGenerator.makeDisplayEntry('LOCAL DE INSTALAÇÃO', struct('Latitude', stationLatitude, 'Longitude', stationLongitude, 'Altura', stationHeight), txEditLink) ...
+                util.HtmlTextGenerator.makeDisplayEntry('Station', sprintf('%s (ID %s)', stationNumber, stationInfo.ID)), ...
+                util.HtmlTextGenerator.makeDisplayEntry('LOCAL DE INSTALAÇÃO', struct('Latitude', stationLatitude, 'Longitude', stationLongitude, 'Altura', stationHeight)) ...
             ];
 
             if ~isempty(fieldnames(otherAspects))
@@ -920,7 +924,7 @@ classdef (Abstract) HtmlTextGenerator
             end
 
             if mergeCount > 1
-                displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('NÚMERO ESTAÇÕES AGRUPADAS', string(mergeCount));
+                displayEntry(end+1) = util.HtmlTextGenerator.makeDisplayEntry('REGISTROS AGRUPADOS', string(mergeCount));
             end
 
             try
@@ -936,8 +940,8 @@ classdef (Abstract) HtmlTextGenerator
             end
 
             htmlIntro = [ ...
-                sprintf('<font style="font-size: 16px;"><b>%s</b></font><br>', stationTag) ...
-                sprintf('<font style="font-size: 11px;">%s</font><br><br>', stationInfo.Description) ...
+                sprintf('<font style="font-size: 13px;"><b>%s</b></font><br>', stationTag) ...
+                sprintf('<font style="font-size: 10px; color: gray;">%s</font><br><br>', stationInfo.Description) ...
             ];
 
             txContent = textFormatGUI.struct2PrettyPrintList(displayEntry, 'delete', htmlIntro, 'html');
@@ -947,7 +951,7 @@ classdef (Abstract) HtmlTextGenerator
             % Os selos replicam os marcadores do plot geográfico: ● (U+25CF) 
             % para o TX e ▲ (U+25B2) para o RX. O seletor U+FE0E força a 
             % renderização como texto (e não como emoji).
-            sections = {['Estação transmissora  –  ' util.HtmlTextGenerator.stationBadge('&#x25CF;', 'TX', markerColor, 17)], txContent};
+            sections = {util.HtmlTextGenerator.stationBadge('&#x25CF;', 'TX', markerColor, 17, sprintf('%s&emsp;%s', txEditLink, channelReportLink)), txContent};
 
             % RX e ENLACE TX-RX
             if ~isempty(rxSite)
@@ -967,7 +971,14 @@ classdef (Abstract) HtmlTextGenerator
                         util.HtmlTextGenerator.makeDisplayEntry('ATENUAÇÃO NO ESPAÇO LIVRE', sprintf('%.1f dB', pathLoss(end))) ...
                     ];
                     linkContent = textFormatGUI.struct2PrettyPrintList(linkEntry, 'delete', '', 'html');
-                    sections(end+1, :) = {'Enlace TX – RX', linkContent};
+                    if rfLinkPlotStatus
+                        rfLinkToggleIcon = 'eye.svg';
+                    else
+                        rfLinkToggleIcon = 'eye-closed-16px.svg';
+                    end
+                    rfLinkToggleLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFLinkToggleViewRequested', '', 'link', rfLinkToggleIcon, 16, 16);
+
+                    sections(end+1, :) = {util.HtmlTextGenerator.stationBadge('', 'TX –. RX', markerColor, 17, rfLinkToggleLink), linkContent};
                 catch
                 end
             end
@@ -988,14 +999,10 @@ classdef (Abstract) HtmlTextGenerator
         %-----------------------------------------------------------------%
         function rxSection = rxStationSection(rxSite, appHandleNameInBase, generalSettings, markerColor)
             % Seção {título, conteúdo} com os dados da estação RX de referência.
-            rxEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubRXLocationEditRequested');
-            rxEntry = util.HtmlTextGenerator.makeDisplayEntry( ...
-                'LOCAL DE INSTALAÇÃO', ...
-                struct('Latitude', sprintf('%.6fº', rxSite.Latitude), 'Longitude', sprintf('%.6fº', rxSite.Longitude), 'Altura', sprintf('%.1f metros', rxSite.AntennaHeight)), ...
-                rxEditLink ...
-            );
+            rxEditLink = util.HtmlTextGenerator.createEditHTMLLink(appHandleNameInBase, generalSettings, 'onRFDataHubRXLocationEditRequested', '', 'link', 'location.svg', 16, 16);
+            rxEntry = util.HtmlTextGenerator.makeDisplayEntry('LOCAL DE INSTALAÇÃO', struct('Latitude', sprintf('%.6fº', rxSite.Latitude), 'Longitude', sprintf('%.6fº', rxSite.Longitude), 'Altura', sprintf('%.1f metros', rxSite.AntennaHeight)));
             rxContent = textFormatGUI.struct2PrettyPrintList(rxEntry, 'delete', '', 'html');
-            rxSection = {['Estação receptora  –  ' util.HtmlTextGenerator.stationBadge('&#x25B2;', 'RX', markerColor)], rxContent};
+            rxSection = {util.HtmlTextGenerator.stationBadge('&#x25B2;', 'RX', markerColor, 13, rxEditLink), rxContent};
         end
 
         %-----------------------------------------------------------------%
@@ -1260,7 +1267,7 @@ classdef (Abstract) HtmlTextGenerator
         end
 
         %-----------------------------------------------------------------%
-        function html = stationBadge(symbolEntity, label, color, symbolFontSize)
+        function html = stationBadge(symbolEntity, label, color, symbolFontSize, clickableIcon)
             % color: cor hexadecimal (#RRGGBB) do marcador no plot, usada no 
             % texto do selo e (com transparência) no fundo.
             % symbolFontSize: tamanho (pixels) da fonte do símbolo; o texto 
@@ -1270,13 +1277,22 @@ classdef (Abstract) HtmlTextGenerator
                 label
                 color {mustBeTextScalar}
                 symbolFontSize (1,1) double = 13
+                clickableIcon = ''
             end
 
             hex = char(color);
             rgb = [hex2dec(hex(2:3)), hex2dec(hex(4:5)), hex2dec(hex(6:7))];
             backgroundColor = sprintf('rgba(%d, %d, %d, 0.12)', rgb);
 
-            html = sprintf('<font style="color: %s; background-color: %s; font-size: 11px; font-weight: normal; display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;"><font style="font-size: %dpx;">%s&#xFE0E;</font> %s</font>', color, backgroundColor, symbolFontSize, symbolEntity, label);
+            if ~isempty(clickableIcon)
+                clickableIcon = sprintf('&emsp;%s', clickableIcon);
+            end
+
+            html = sprintf([ ...
+                '<font style="color: %s; background-color: %s; font-size: 11px; font-weight: normal; ' ...
+                'display: inline-block; vertical-align: middle; padding: 5px; border-radius: 5px;">' ...
+                '<font style="font-size: %dpx;">%s&#xFE0E;</font> %s</font>%s' ...
+            ], color, backgroundColor, symbolFontSize, symbolEntity, label, clickableIcon);
         end
 
         %-----------------------------------------------------------------%
