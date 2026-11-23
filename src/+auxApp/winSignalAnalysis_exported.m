@@ -303,7 +303,7 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
         %-----------------------------------------------------------------%
         function updateTable(app, flowIdxs, selectedRow)
-            calculateEmissionPrediction(app, 'all-emissions', flowIdxs)
+            calculateEmissionPrediction(app, 'all-emissions', flowIdxs);
             app.emissionsTable = util.createEmissionsTable(app.mainApp.specData, flowIdxs, 'SIGNALANALYSIS: GUI', app.mainApp.General);
     
             if isempty(app.emissionsTable)
@@ -1246,6 +1246,13 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
         % Value changed function: tool_EmissionReportListLimit
         function onToolbarCheckBoxValueChanged(app, event)
             
+            flowIdxs = 1:numel(app.mainApp.specData);
+            includedFlowIdxs = find(arrayfun(@(x) x.UserData.ReportInclude, app.mainApp.specData));
+
+            if isempty(flowIdxs) || isequal(flowIdxs, includedFlowIdxs)
+                return
+            end
+
             applyInitialLayout(app)
             
         end
@@ -1310,8 +1317,10 @@ classdef winSignalAnalysis_exported < matlab.apps.AppBase
 
                         % Atualiza o plot, caso necessário...
                         selectedRow = app.UITable.UserData.selectedRow;
-                        [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
-                        updatePlot(app, selectedRow, flowIdx, emissionIdx)
+                        if ~isempty(selectedRow)
+                            [flowIdx, emissionIdx] = getEmissionIndexes(app, selectedRow);
+                            updatePlot(app, selectedRow, flowIdx, emissionIdx)
+                        end
 
                     else
                         app.UITable.Layout.Row = [3 6];
