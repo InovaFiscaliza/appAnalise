@@ -56,11 +56,7 @@ classdef (Abstract) datatip
                                                    'Coordinates+Frequency' ...
                                                    'RepoSFI.Location', ...
                                                    'SweepID+ChannelPower+Coordinates' ...
-                                                   'SweepID+ChannelPower' ...
-                                                   'winRFDataHub.Geographic' ...
-                                                   'RFLink.LOS', ...
-                                                   'RFLink.Terrain', ...
-                                                   'AntennaPattern'})}
+                                                   'SweepID+ChannelPower'})}
             end
 
             arguments (Repeating)
@@ -163,36 +159,6 @@ classdef (Abstract) datatip
                     dtParent.DataTipTemplate.DataTipRows(1).Label  = '';
                     dtParent.DataTipTemplate.DataTipRows(1).Format = '#%d';
                     dtParent.DataTipTemplate.DataTipRows(2)        = dataTipTextRow('', 'YData', ['%.1f' hUnit]);
-
-
-                case 'winRFDataHub.Geographic'
-                    hTable = varargin{1};
-
-                    dtParent.DataTipTemplate.DataTipRows(1)     = dataTipTextRow('', hTable.ID);
-                    dtParent.DataTipTemplate.DataTipRows(2)     = dataTipTextRow('', hTable.Frequency, '%.3f MHz');
-                    dtParent.DataTipTemplate.DataTipRows(3)     = dataTipTextRow('', hTable.Distance,  '%.1f km');
-
-                    if numel(dtParent.DataTipTemplate.DataTipRows) > 3
-                        dtParent.DataTipTemplate.DataTipRows(4:end) = [];
-                    end
-
-                case 'RFLink.LOS'
-                    hTable = varargin{1};
-
-                    dtParent.DataTipTemplate.DataTipRows(1) = dataTipTextRow('Distância:',    hTable.Distance, '%.1f km');
-                    dtParent.DataTipTemplate.DataTipRows(2) = dataTipTextRow('Altura:',       hTable.Height,   '%.1f m');
-                    dtParent.DataTipTemplate.DataTipRows(3) = dataTipTextRow('Espaço livre:', hTable.PathLoss, '%.1f dB');
-
-                case 'RFLink.Terrain'
-                    hTable = varargin{1};
-
-                    dtParent.DataTipTemplate.DataTipRows(1) = dataTipTextRow('Lat:',  hTable.Latitude,  '%.6f');
-                    dtParent.DataTipTemplate.DataTipRows(2) = dataTipTextRow('Lon:', hTable.Longitude, '%.6f');
-                    dtParent.DataTipTemplate.DataTipRows(3) = dataTipTextRow('',  hTable.Elevation, '%.1f m');
-
-                case 'AntennaPattern'
-                    dtParent.DataTipTemplate.DataTipRows(1) = dataTipTextRow('', 'ThetaData', '%.0fº');
-                    dtParent.DataTipTemplate.DataTipRows(2) = dataTipTextRow('', 'RData',     '%.1fdBd');
             end
 
             if exist('dt', 'var')

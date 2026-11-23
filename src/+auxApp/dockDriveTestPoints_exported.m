@@ -225,7 +225,7 @@ classdef dockDriveTestPoints_exported < matlab.apps.AppBase
                             end
 
                             newRowType = 'RFDataHub';
-                            newRowData = struct('source', app.StationType.Value, 'data', RFDataHub(pointsIdxs, setdiff(RFDataHub.Properties.VariableNames, {'ID', 'Description', '_Name', '_Location'})), 'dataIdx', pointsIdxs);
+                            newRowData = struct('source', app.StationType.Value, 'data', RFDataHub(pointsIdxs, setdiff(RFDataHub.Properties.VariableNames, {'ID', 'Description'})), 'dataIdx', pointsIdxs);
                             ipcMainMatlabCallsHandler(app.mainApp, app, 'onDriveTestPointsAdded', newRowType, newRowData)
 
                         else

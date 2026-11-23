@@ -5,13 +5,18 @@ function preCompile(operationType, prjInfo, appNames)
         appNames      cell {mustBeText} = {}
     end
 
-    appName = 'appAnalise';
+    if isempty(prjInfo)
+        rootFolder = fileparts(fileparts(mfilename('fullpath')));
+    else
+        rootFolder = prjInfo.RootFolder;
+    end
+    srcFolder = fullfile(rootFolder, 'src');
 
     switch operationType
         case 'generateExportedApps' % .MLAPP >> .M (exported)
-            appEngine.generateExportedApps(appName, prjInfo, appNames)
+            appEngine.AppExporter.toExported(srcFolder, appNames)
 
         case 'generateMLAPPFromExported' % .M (exported) >> .MLAPP
-            appEngine.generateMLAPPFromExported(appName, prjInfo, appNames)
+            appEngine.AppExporter.toMLAPP(srcFolder, appNames)
     end
 end

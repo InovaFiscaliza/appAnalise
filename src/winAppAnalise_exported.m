@@ -768,7 +768,7 @@ classdef winAppAnalise_exported < matlab.apps.AppBase
                     % mais eficiente a comunicação com webapp porque as imagens
                     % Base64 são menores (uma imagem com Basemap "sattelite" pode 
                     % ter 500 kB, enquanto uma imagem sem Basemap pode ter 25 kB).
-                    % app.General_I.plot.geographicAxes.Basemap = 'none';
+                    % app.General_I.plot.geographicAxes.basemap = 'none';
                     app.General_I.reportLib.basemap = 'none';
 
                 otherwise    

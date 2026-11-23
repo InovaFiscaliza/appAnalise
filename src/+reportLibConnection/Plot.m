@@ -68,7 +68,7 @@ classdef (Abstract) Plot
                         
                         geolimits(axesHandle, 'auto')
                     
-                        plot.axes.Colormap(axesHandle, generalSettings.plot.geographicAxes.Colormap)
+                        plot.axes.Colormap(axesHandle, generalSettings.plot.geographicAxes.colormap)
 
                     case 'Cartesian'
                         axesHandle = plot.axes.Creation(axesParent, 'Cartesian', {'XColor', [.15,.15,.15], 'YColor', [.15,.15,.15], 'XLim', bandObj.XLimits, 'YLim', bandObj.YLimitsLevel});

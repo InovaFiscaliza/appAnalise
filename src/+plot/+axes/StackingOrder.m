@@ -9,10 +9,6 @@ classdef (Abstract) StackingOrder
                              'channelROI', 'clearWrite', 'persistence', 'channelPower', 'waterfallTime', 'waterfall'}  % app.UIAxes2-4 (CartesianAxes)
         
         winSignalAnalysis = {'emissionROI', 'average', 'maxHold', 'minHold'}                                      % app.UIAxes2   (CartesianAxes)
-        
-        RFDataHub         = {'FilterROI', 'RFLink', 'TX', 'RX', 'Stations'}                                       % app.UIAxes1   (GeographicAxes)
-        
-        RFLink            = {'StationLabel', 'Station', 'Link', 'Fresnel', 'FirstObstruction', 'Footnote', 'Terrain', 'BackgroundLayer'}
     end
 
 
@@ -28,12 +24,6 @@ classdef (Abstract) StackingOrder
 
                 case 'appAnalise:SIGNALANALYSIS'
                     refStackingOrder = plot.axes.StackingOrder.winSignalAnalysis;
-
-                case 'RFDataHub'
-                    refStackingOrder = plot.axes.StackingOrder.RFDataHub;
-
-                case 'RFLink'
-                    refStackingOrder = plot.axes.StackingOrder.RFLink;
 
                 otherwise
                     error('Unexpected option.')

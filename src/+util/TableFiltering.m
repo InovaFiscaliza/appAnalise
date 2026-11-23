@@ -3,7 +3,7 @@ function fLogical = TableFiltering(hTable, filterTable)
     % ToDo:
     % Essa função foi a base da filtragem implantada no webapp SCH, que
     % acabou sendo modularizada na classe de "SupportPackages" chamada
-    % "tableFiltering".
+    % "model.TableFilter".
 
     % Aqui tem a peculiaridade do ROI, mas que pode constar como possível
     % filtro que não tem serventia no webapp SCH, mas teria no appAnalise.

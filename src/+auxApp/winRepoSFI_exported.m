@@ -8,9 +8,9 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         DockCloseButton         matlab.ui.control.Image
         DockUndockButton        matlab.ui.control.Image
         AxesToolbar             matlab.ui.container.GridLayout
-        axesTool_Basemap        matlab.ui.control.DropDown
-        axesTool_RegionZoom     matlab.ui.control.Image
-        axesTool_RestoreView    matlab.ui.control.Image
+        AxesBasemap             matlab.ui.control.DropDown
+        AxesRegionZoomButton    matlab.ui.control.Image
+        AxesRestoreViewButton   matlab.ui.control.Image
         AxesPopup               matlab.ui.control.Label
         AxesContainer           matlab.ui.container.Panel
         LeftPanel               matlab.ui.container.Panel
@@ -131,6 +131,8 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 app.AxesToolbar;
                 app.AxesPopup;
                 app.tool_LayoutLeft;
+                app.AxesRestoreViewButton;
+                app.AxesRegionZoomButton;
                 app.DockUndockButton;
                 app.DockCloseButton
             };
@@ -142,9 +144,14 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                     struct('appName', appName, 'dataTag', app.AxesToolbar.UserData.id, 'styleImportant', struct('borderTopLeftRadius', '0', 'borderTopRightRadius', '0')), ...
                     struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'style', struct('pointerEvents', 'none')), ...
                     struct('appName', appName, 'dataTag', app.AxesPopup.UserData.id, 'selector', '.mwAlignmentNode', 'style', struct('height', '100%')), ...
+                    ...
                     struct('appName', appName, 'dataTag', app.tool_LayoutLeft.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Alterna visibilidade do painel')), ... 
-                    struct('appName', appName, 'dataTag', app.DockUndockButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Reabre módulo em outra janela')), ...
-                    struct('appName', appName, 'dataTag', app.DockCloseButton.UserData.id, 'tooltip', struct('defaultPosition', 'bottom', 'textContent', 'Fecha módulo')) ...
+                    ...
+                    struct('appName', appName, 'dataTag', app.AxesRestoreViewButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Restaura limites iniciais dos eixos')), ...
+                    struct('appName', appName, 'dataTag', app.AxesRegionZoomButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Habilita zoom de região')), ...
+                    ...
+                    struct('appName', appName, 'dataTag', app.DockUndockButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Reabre módulo em outra janela')), ...
+                    struct('appName', appName, 'dataTag', app.DockCloseButton.UserData.id, 'tooltip', struct('defaultPosition', 'top', 'textContent', 'Fecha módulo')) ...
                     });
             catch
             end
@@ -205,9 +212,9 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
                 app.DockUndockButton.Enable = 1;
             end
 
-            defaultBasemap = app.mainApp.General.plot.geographicAxes.Basemap;
-            if ismember(defaultBasemap, app.axesTool_Basemap.Items)
-                app.axesTool_Basemap.Value = defaultBasemap;
+            defaultBasemap = app.mainApp.General.plot.geographicAxes.basemap;
+            if ismember(defaultBasemap, app.AxesBasemap.Items)
+                app.AxesBasemap.Value = defaultBasemap;
             end
 
             initializeAxes(app)
@@ -234,7 +241,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
         function initializeAxes(app)
             hParent = tiledlayout(app.AxesContainer, 1, 1, "Padding", "none", "TileSpacing", "none", "Position", [0, 0, 1, 1]);
 
-            app.UIAxes = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.axesTool_Basemap.Value, ...
+            app.UIAxes = plot.axes.Creation(hParent, 'Geographic', {'Basemap', app.AxesBasemap.Value, ...
                                                                     'Color', [.2, .2, .2], 'GridColor', [.5, .5, .5], ...
                                                                     'UserData', struct('CLimMode', 'auto', 'Colormap', '', 'Render', false)});
         
@@ -244,7 +251,7 @@ classdef winRepoSFI_exported < matlab.apps.AppBase
             geolimits(app.UIAxes, [-35.3201 7.4463], [-86.0445 -12.6965])
             plot.axes.Colormap(app.UIAxes, 'turbo')
 
-            if ismember(app.axesTool_Basemap.Value, {'darkwater', 'none'})
+            if ismember(app.AxesBasemap.Value, {'darkwater', 'none'})
                 app.UIAxes.Grid = 'on';
             end
         end
@@ -782,18 +789,18 @@ end
             
         end
 
-        % Callback function: axesTool_Basemap, axesTool_RegionZoom, 
+        % Callback function: AxesBasemap, AxesRegionZoomButton, 
         % ...and 1 other component
         function onAxesToolbarButtonClicked(app, event)
             
             switch event.Source
-                case app.axesTool_RestoreView
+                case app.AxesRestoreViewButton
                     geolimits(app.UIAxes, app.UIAxesLimits.LatitudeLimits, app.UIAxesLimits.LongitudeLimits)
 
-                case app.axesTool_RegionZoom
-                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes, app.axesTool_RegionZoom, findStationHandles(app))
+                case app.AxesRegionZoomButton
+                    plot.axes.Interactivity.GeographicRegionZoomInteraction(app.UIAxes, app.AxesRegionZoomButton, findStationHandles(app))
 
-                case app.axesTool_Basemap
+                case app.AxesBasemap
                     app.UIAxes.Basemap = event.Value;
 
                     switch event.Value
@@ -1084,31 +1091,31 @@ end
             app.AxesToolbar.Layout.Column = 5;
             app.AxesToolbar.BackgroundColor = [1 1 1];
 
-            % Create axesTool_RestoreView
-            app.axesTool_RestoreView = uiimage(app.AxesToolbar);
-            app.axesTool_RestoreView.ScaleMethod = 'none';
-            app.axesTool_RestoreView.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_RestoreView.Layout.Row = 1;
-            app.axesTool_RestoreView.Layout.Column = 2;
-            app.axesTool_RestoreView.ImageSource = 'Home_18.png';
+            % Create AxesRestoreViewButton
+            app.AxesRestoreViewButton = uiimage(app.AxesToolbar);
+            app.AxesRestoreViewButton.ScaleMethod = 'none';
+            app.AxesRestoreViewButton.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.AxesRestoreViewButton.Layout.Row = 1;
+            app.AxesRestoreViewButton.Layout.Column = 2;
+            app.AxesRestoreViewButton.ImageSource = 'Home_18.png';
 
-            % Create axesTool_RegionZoom
-            app.axesTool_RegionZoom = uiimage(app.AxesToolbar);
-            app.axesTool_RegionZoom.ScaleMethod = 'none';
-            app.axesTool_RegionZoom.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_RegionZoom.Layout.Row = 1;
-            app.axesTool_RegionZoom.Layout.Column = 3;
-            app.axesTool_RegionZoom.ImageSource = 'ZoomRegion_20.png';
+            % Create AxesRegionZoomButton
+            app.AxesRegionZoomButton = uiimage(app.AxesToolbar);
+            app.AxesRegionZoomButton.ScaleMethod = 'none';
+            app.AxesRegionZoomButton.ImageClickedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.AxesRegionZoomButton.Layout.Row = 1;
+            app.AxesRegionZoomButton.Layout.Column = 3;
+            app.AxesRegionZoomButton.ImageSource = 'ZoomRegion_20.png';
 
-            % Create axesTool_Basemap
-            app.axesTool_Basemap = uidropdown(app.AxesToolbar);
-            app.axesTool_Basemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
-            app.axesTool_Basemap.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
-            app.axesTool_Basemap.FontSize = 11;
-            app.axesTool_Basemap.BackgroundColor = [1 1 1];
-            app.axesTool_Basemap.Layout.Row = 1;
-            app.axesTool_Basemap.Layout.Column = 5;
-            app.axesTool_Basemap.Value = 'satellite';
+            % Create AxesBasemap
+            app.AxesBasemap = uidropdown(app.AxesToolbar);
+            app.AxesBasemap.Items = {'none', 'darkwater', 'streets-light', 'streets-dark', 'satellite', 'topographic', 'grayterrain'};
+            app.AxesBasemap.ValueChangedFcn = createCallbackFcn(app, @onAxesToolbarButtonClicked, true);
+            app.AxesBasemap.FontSize = 11;
+            app.AxesBasemap.BackgroundColor = [1 1 1];
+            app.AxesBasemap.Layout.Row = 1;
+            app.AxesBasemap.Layout.Column = 5;
+            app.AxesBasemap.Value = 'satellite';
 
             % Create DockModule
             app.DockModule = uigridlayout(app.GridLayout);
