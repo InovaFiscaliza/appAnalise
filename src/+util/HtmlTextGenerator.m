@@ -94,7 +94,7 @@ classdef (Abstract) HtmlTextGenerator
             displayEntry(end+1) = struct('group', 'APLICATIVO', 'value', appVersion.application);
             displayEntry(end+1) = struct('group', 'RFDataHub', 'value', struct('releasedDate', RFDataHub_info.ReleaseDate, 'numberOfRows', height(RFDataHub), 'numberOfUniqueStations', numel(unique(RFDataHub.("Station")))));
 
-            if ~isempty(eFiscalizaObj) && isvalid(eFiscalizaObj)
+            if ~isempty(eFiscalizaObj) && isvalid(eFiscalizaObj) && isprop(eFiscalizaObj, 'userAttributes') && ~isempty(eFiscalizaObj.userAttributes)
                 displayEntry(end+1) = struct('group', 'USUÁRIO AUTENTICADO', 'value', eFiscalizaObj.userAttributes);
             end
         

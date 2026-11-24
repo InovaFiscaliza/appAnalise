@@ -2359,7 +2359,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, 196, '1x', 22};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 243, 196, '1x', 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
@@ -2421,7 +2421,7 @@ classdef winDriveTest_exported < matlab.apps.AppBase
             app.tool_TimestampLabel.FontColor = [0.129411764705882 0.129411764705882 0.129411764705882];
             app.tool_TimestampLabel.Layout.Row = [1 3];
             app.tool_TimestampLabel.Layout.Column = 6;
-            app.tool_TimestampLabel.Text = {'0 de 0'; '00/00/0000 00:00:00'};
+            app.tool_TimestampLabel.Text = '';
 
             % Create tool_LayoutRight
             app.tool_LayoutRight = uiimage(app.Toolbar);

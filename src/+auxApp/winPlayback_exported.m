@@ -2811,7 +2811,7 @@ classdef winPlayback_exported < matlab.apps.AppBase
 
             % Create Toolbar
             app.Toolbar = uigridlayout(app.GridLayout);
-            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 233, '1x', 22, 5, 22, 22, 22, 5, 22};
+            app.Toolbar.ColumnWidth = {22, 5, 22, 22, 243, '1x', 22, 5, 22, 22, 22, 5, 22};
             app.Toolbar.RowHeight = {4, 17, 2};
             app.Toolbar.ColumnSpacing = 5;
             app.Toolbar.RowSpacing = 0;
