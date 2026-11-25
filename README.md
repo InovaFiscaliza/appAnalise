@@ -33,13 +33,14 @@ Caso o aplicativo seja executado diretamente no MATLAB, é necessário:
 
 Outras informações em https://anatel365.sharepoint.com/sites/InovaFiscaliza/SitePages/appAnalise.aspx
 
-## Modelo de detecção de emissores (`ai_models/`)
+## Modelos de detecção de emissores (`ai_models/`)
 
-O modelo de IA usado pelo appAnalise (`ai_models/model.onnx`) é treinado e versionado no repositório [code-anatel-axis4](https://github.com/ita-gnss-lab/code-anatel-axis4). Lá ele está registrado como o artefato DVC **`specdet-pmrd-band2`**: um detector de emissores em espectrogramas da faixa PMRD 2 de 4 (70–110 MHz). O arquivo fica armazenado no S3; as versões e os estágios são tags Git gerenciadas pelo [GTO](https://dvc.org/doc/gto).
+Os modelos de IA usados pelo appAnalise (SpecDet) são treinados e versionados no repositório [code-anatel-axis4](https://github.com/ita-gnss-lab/code-anatel-axis4). Há um modelo por faixa, registrado como o artefato DVC **`specdet-<faixa>`** (ex.: `specdet-pmrd-band2`, detector de emissores em espectrogramas da faixa PMRD 2 de 4, 70–110 MHz). Os arquivos ficam no S3; as versões e os estágios são tags Git gerenciadas pelo [GTO](https://dvc.org/doc/gto).
 
 ### Pré-requisitos
 
-- Dependências no ambiente do projeto: `uv add "dvc[s3]" gto`.
+- Dependências Python do projeto (`dvc[s3]`, que inclui o `gto`): `uv sync`.
+- `uv` no PATH do MATLAB.
 - Acesso de leitura ao repositório `ita-gnss-lab/code-anatel-axis4` no GitHub.
 - Login na AWS (o remote do DVC usa este perfil):
 
@@ -47,34 +48,40 @@ O modelo de IA usado pelo appAnalise (`ai_models/model.onnx`) é treinado e vers
   aws sso login --profile AdministratorAccess-567736086855
   ```
 
-> Execute os comandos com `uv run`, para garantir que seja usado o `dvc` do `.venv` (que tem o plugin `dvc-s3`) e não uma instalação global.
-
 ### Consultar versões e estágios
 
 ```bash
 REPO=https://github.com/ita-gnss-lab/code-anatel-axis4
 
-uv run gto show specdet-pmrd-band2 --repo $REPO                     # versões, estágios, datas e tags
+uv run gto show --repo $REPO                                        # todos os artefatos (um por faixa)
+uv run gto show specdet-pmrd-band2 --repo $REPO                     # versões, estágios, datas e tags de uma faixa
 uv run gto show 'specdet-pmrd-band2#demo' --repo $REPO --version    # versão atualmente no estágio demo (ex.: v0.1.0)
 uv run gto history specdet-pmrd-band2 --repo $REPO                  # histórico de registros e atribuições de estágio
 ```
 
-### Baixar o modelo
+### Baixar e registrar o modelo de uma faixa
 
-```bash
-uv run dvc artifacts get $REPO specdet-pmrd-band2 --stage demo -o ai_models
+No MATLAB, com a pasta `ai_models` no path, informe a faixa (sufixo do artefato) e a versão ou o estágio:
+
+```matlab
+fetchSpecDetModel("pmrd-band2", "v0.1.0")   % versão
+fetchSpecDetModel("pmrd-band2", "demo")     % estágio (convertido na versão que ele aponta)
 ```
 
-O comando baixa a versão atribuída ao estágio `demo` em `ai_models/model.onnx`. Para baixar uma versão específica, troque `--stage demo` por `--rev v0.1.0`. A mensagem `Failed to download artifact ... via Studio - No studio config` pode ser ignorada: o DVC tenta primeiro o Studio e, em seguida, baixa do S3.
+A função baixa o ONNX da tag `specdet-<faixa>@<versão>`, lê os parâmetros do modelo dos metadados do ONNX, importa a rede no MATLAB e a registra para a faixa. São gerados, em `ai_models/`, com `<base>` = `specdet_<faixa>_<versão>`:
 
-> O `dvc artifacts get` apenas copia o arquivo; ele não registra qual versão foi baixada. Use `gto show` para confirmar a versão em uso.
+| Arquivo | Conteúdo |
+|---|---|
+| `<base>.onnx` | Modelo baixado do DVC. |
+| `<base>.json` | Parâmetros usados pelo appAnalise, lidos dos metadados do ONNX: grade do espectrograma, janela, âncoras, níveis da pirâmide, decodificação das caixas e pós-processamento. |
+| `<base>.mat` | Rede importada e inicializada. |
+| `+<namespace>/` | Camadas geradas pelo importador (não versionada). |
+| `specdet_models.json` | Registro com o modelo em uso em cada faixa. |
+
+O appAnalise escolhe o modelo de cada fluxo pela faixa: oferece o SpecDet quando os limites do fluxo coincidem com `RfMinHz` e `RfMaxHz` de um modelo registrado. Assim, faixas diferentes podem usar modelos e versões diferentes. O nome dos arquivos carrega a versão, e não o estágio, que pode mudar de versão. Após registrar um modelo com o appAnalise aberto, execute `clear util.SpecDet` para recarregá-lo. O `deploy/compileLinux.m` inclui no executável todos os modelos registrados.
 
 ### Metadados do modelo
 
-O ONNX exporta somente a rede (espectrograma → predições por âncora). A geração das âncoras e o pós-processamento (limiar de score, decodificação das caixas e NMS) devem ser feitos pela aplicação. Os parâmetros necessários estão nos metadados do próprio arquivo:
-
-```bash
-uv run python -c "import onnx; m = onnx.load('ai_models/model.onnx'); [print(p.key, '=', p.value) for p in m.metadata_props]"
-```
+O ONNX exporta somente a rede (espectrograma → predições por âncora). A geração das âncoras e o pós-processamento (limiar de score, decodificação das caixas e NMS) são feitos pela aplicação (`src/+util/SpecDet.m`), com os parâmetros gravados pelo code-anatel-axis4 nos metadados do ONNX (`metadata_props`, a partir de v0.2.0): `artifact_name`, `version`, `input_hw`, `rf_min_hz`, `rf_max_hz`, `delta_f_hz`, `window_stride`, `bifpn_level_shapes`, `anchor_scales`, `anchor_ratios`, `anchor_base_size_factor`, `max_width_delta`, `max_height_delta`, `score_threshold`, `nms_iou_threshold`, `topk_pre_nms` e `topk_post_nms`. O `fetchSpecDetModel` lê esses metadados diretamente no MATLAB, sem dependências Python.
 
 

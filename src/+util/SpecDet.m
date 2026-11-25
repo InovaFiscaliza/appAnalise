@@ -1,12 +1,15 @@
 classdef (Abstract) SpecDet
 
-    % Detecção de emissões por meio do modelo de IA "SpecDet" (EfficientNet +
-    % BiFPN + cabeça de detecção por âncoras), treinado em PyTorch no repo
-    % code-anatel-axis4 e exportado em ONNX. A rede foi importada uma única
-    % vez no MATLAB (importNetworkFromONNX) e salva em "ai_models/pmrd2_4.mat"
-    % (na raiz do repositório), junto com as camadas geradas pelo importador
-    % (pasta de namespace "ai_models/+pmrd2_4"). Em execução, basta o Deep
-    % Learning Toolbox.
+    % Detecção de emissões por meio dos modelos de IA "SpecDet" (EfficientNet +
+    % BiFPN + cabeça de detecção por âncoras), treinados em PyTorch no repo
+    % code-anatel-axis4 e exportados em ONNX. Há um modelo por faixa: cada um
+    % é baixado e importado no MATLAB por "ai_models/fetchSpecDetModel.m", que
+    % gera, na pasta "ai_models" (raiz do repositório):
+    %   - <base>.mat:   rede importada (importNetworkFromONNX);
+    %   - +<namespace>: camadas geradas pelo importador;
+    %   - <base>.json:  parâmetros do modelo (params.yaml da tag e metadados do ONNX).
+    % O registro "specdet_models.json" indica o modelo em uso em cada faixa.
+    % Em execução, basta o Deep Learning Toolbox.
     %
     % A rede entrega apenas as predições densas (deltas das caixas, objectness
     % e SNR por âncora). O pós-processamento do PyTorch (SpectrogramDet.postprocess)
@@ -14,49 +17,39 @@ classdef (Abstract) SpecDet
 
     properties (Constant)
         %-----------------------------------------------------------------%
-        % Configuração de treinamento (code-anatel-axis4/params.yaml, dataset
-        % "70MHz_110MHz_pmrd_band2"). Não alterar sem retreinar o modelo.
-        RF_MIN_HZ      = 70e+6
-        RF_MAX_HZ      = 110e+6
-        DELTA_F_HZ     = 19531.25
-        N_FREQ_BINS    = 2048
-        N_TRACES       = 211
+        % Os parâmetros do modelo (grade do espectrograma, âncoras e
+        % pós-processamento) vêm dos metadados do ONNX, gravados no JSON
+        % do modelo por ai_models/fetchSpecDetModel.m.
+        BATCH_SIZE              = 8    % janelas por chamada da rede (não altera o resultado)
+        BAND_TOLERANCE_HZ       = 100e+3
 
-        ANCHOR_SCALES  = [1.0, 1.5, 2.0]
-        ANCHOR_RATIOS  = [0.5, 0.25, 0.125]
-        ANCHOR_BASE_SIZE_FACTOR = 4
-
-        % Níveis da pirâmide de features (EfficientNet-B0, out_indices = 2, 3, 4),
-        % com strides 8, 16 e 32. Cada redução por 2 arredonda para cima.
-        PYRAMID_LEVEL_DOWNSAMPLINGS = [3, 4, 5]
-
-        TOPK_PRE_NMS   = 1000
-        TOPK_POST_NMS  = 100
-        BATCH_SIZE     = 8
-
-        MODEL_FILE_NAME = 'pmrd2_4.mat'
+        REGISTRY_FILE_NAME      = 'specdet_models.json'
     end
 
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function emitters = detect(levelMatrix, freqStartHz, freqStopHz, scoreThreshold, nmsIoUThreshold, mergeIoUThreshold)
+        function emitters = detect(modelParams, levelMatrix, freqStartHz, freqStopHz, scoreThreshold, nmsIoUThreshold, mergeIoUThreshold)
             arguments
+                modelParams (1,1) struct           % util.SpecDet.findModel
                 levelMatrix (:,:) {mustBeNumeric}  % DataPoints x NumSweeps (dB)
                 freqStartHz (1,1) double
                 freqStopHz  (1,1) double
-                scoreThreshold    (1,1) double = 0.5
-                nmsIoUThreshold   (1,1) double = 0.8
+                scoreThreshold    (1,1) double = modelParams.ScoreThreshold
+                nmsIoUThreshold   (1,1) double = modelParams.NMSIoUThreshold
                 mergeIoUThreshold (1,1) double = 0.5
             end
 
             % Retorna tabela com uma linha por emissor, com as colunas
-            % FreqStartHz, FreqStopHz, Score, SNRdB e NumWindows.
+            % FreqStartHz, FreqStopHz, SweepStartIdx, SweepStopIdx, Score,
+            % SNRdB e NumWindows. "SweepStartIdx" e "SweepStopIdx" delimitam,
+            % em índices de varredura do fluxo, o intervalo de tempo em que o
+            % emissor foi detectado (união das caixas de todas as janelas).
 
             freqAxisHz = linspace(freqStartHz, freqStopHz, size(levelMatrix, 1))';
-            if freqAxisHz(1) > util.SpecDet.RF_MIN_HZ || freqAxisHz(end) < util.SpecDet.RF_MAX_HZ - util.SpecDet.DELTA_F_HZ
-                error('util:SpecDet:UnsupportedBand', 'A faixa do fluxo (%.3f a %.3f MHz) não cobre a faixa do modelo (%.0f a %.0f MHz).', ...
-                    freqAxisHz(1)/1e+6, freqAxisHz(end)/1e+6, util.SpecDet.RF_MIN_HZ/1e+6, util.SpecDet.RF_MAX_HZ/1e+6)
+            if freqAxisHz(1) > modelParams.RfMinHz || freqAxisHz(end) < modelParams.RfMaxHz - modelParams.DeltaFHz
+                error('util:SpecDet:UnsupportedBand', 'A faixa do fluxo (%.3f a %.3f MHz) não cobre a faixa do modelo (%.3f a %.3f MHz).', ...
+                    freqAxisHz(1)/1e+6, freqAxisHz(end)/1e+6, modelParams.RfMinHz/1e+6, modelParams.RfMaxHz/1e+6)
             end
 
             levelMatrix = double(levelMatrix);
@@ -66,19 +59,22 @@ classdef (Abstract) SpecDet
             end
             levelMatrix(~is_finite_level) = min(levelMatrix(is_finite_level));
 
-            rebinnedLevel = util.SpecDet.rebinFrequency(levelMatrix, freqAxisHz);
-            windows       = util.SpecDet.splitWindows(rebinnedLevel');
-            anchors       = util.SpecDet.anchors();
-            net           = util.SpecDet.loadNetwork();
+            rebinnedLevel = util.SpecDet.rebinFrequency(modelParams, levelMatrix, freqAxisHz);
+            numSweeps     = size(levelMatrix, 2);
+            [windows, windowStartSweepIdxs] = util.SpecDet.splitWindows(modelParams, rebinnedLevel');
+            anchors       = util.SpecDet.anchors(modelParams);
+            net           = util.SpecDet.loadNetwork(modelParams);
 
-            detections = table('Size', [0, 5], ...
-                'VariableTypes', {'double', 'double', 'double', 'double', 'double'}, ...
-                'VariableNames', {'WindowIdx', 'FreqStartHz', 'FreqStopHz', 'Score', 'SNRdB'});
+            detections = table('Size', [0, 7], ...
+                'VariableTypes', {'double', 'double', 'double', 'double', 'double', 'double', 'double'}, ...
+                'VariableNames', {'WindowIdx', 'FreqStartHz', 'FreqStopHz', 'SweepStartIdx', 'SweepStopIdx', 'Score', 'SNRdB'});
 
             numWindows = size(windows, 4);
             for batchStart = 1:util.SpecDet.BATCH_SIZE:numWindows
                 batchIdxs = batchStart:min(batchStart + util.SpecDet.BATCH_SIZE - 1, numWindows);
-                batchInput = dlarray(single(windows(:, :, :, batchIdxs)), 'SSCB'); % [H=tempo, W=frequência, C=1, B]
+                % O importador ONNX exige a entrada na ordem do ONNX, com
+                % dimensões não rotuladas: [B, C=1, H=tempo, W=frequência].
+                batchInput = dlarray(single(permute(windows(:, :, :, batchIdxs), [4 3 1 2])), 'UUUU');
 
                 [codedBoxDeltas, objectnessLogits, snrDb] = predict(net, batchInput);
                 codedBoxDeltas   = double(gather(extractdata(codedBoxDeltas)));   % [B, N, 4]
@@ -90,69 +86,139 @@ classdef (Abstract) SpecDet
                 end
 
                 for ii = 1:numel(batchIdxs)
-                    [boxesPx, scores, boxSnrDb] = util.SpecDet.postprocess(squeeze(codedBoxDeltas(ii, :, :)), objectnessLogits(ii, :)', snrDb(ii, :)', anchors, scoreThreshold, nmsIoUThreshold);
+                    [boxesPx, scores, boxSnrDb] = util.SpecDet.postprocess(modelParams, squeeze(codedBoxDeltas(ii, :, :)), objectnessLogits(ii, :)', snrDb(ii, :)', anchors, scoreThreshold, nmsIoUThreshold);
                     if isempty(scores)
                         continue
                     end
 
-                    [freqStartsHz, freqStopsHz] = util.SpecDet.px2Hz(boxesPx);
-                    detections = [detections; table(repmat(batchIdxs(ii), numel(scores), 1), freqStartsHz, freqStopsHz, scores, boxSnrDb, ...
+                    [freqStartsHz, freqStopsHz] = util.SpecDet.px2Hz(modelParams, boxesPx);
+                    [sweepStartIdxs, sweepStopIdxs] = util.SpecDet.px2SweepIdx(modelParams, boxesPx, windowStartSweepIdxs(batchIdxs(ii)), numSweeps);
+                    detections = [detections; table(repmat(batchIdxs(ii), numel(scores), 1), freqStartsHz, freqStopsHz, sweepStartIdxs, sweepStopIdxs, scores, boxSnrDb, ...
                         'VariableNames', detections.Properties.VariableNames)]; %#ok<AGROW>
                 end
             end
 
             emitters = util.SpecDet.mergeWindows(detections, mergeIoUThreshold);
         end
+
+        %-----------------------------------------------------------------%
+        function modelParams = findModel(freqStartHz, freqStopHz)
+            % Retorna os parâmetros do modelo registrado para a faixa do
+            % fluxo (limites coincidentes, com tolerância), ou [] se não há.
+            modelParams = [];
+            for candidate = util.SpecDet.listModels()
+                if abs(freqStartHz - candidate.RfMinHz) <= util.SpecDet.BAND_TOLERANCE_HZ && ...
+                   abs(freqStopHz  - candidate.RfMaxHz) <= util.SpecDet.BAND_TOLERANCE_HZ
+                    modelParams = candidate;
+                    return
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function modelParamsList = listModels()
+            % Lê o registro "specdet_models.json" e o arquivo de parâmetros
+            % de cada faixa registrada. Lido uma única vez por sessão.
+            persistent cachedModelParamsList
+            if isempty(cachedModelParamsList)
+                cachedModelParamsList = struct([]);
+
+                registryFile = util.SpecDet.locateModelFile(util.SpecDet.REGISTRY_FILE_NAME);
+                if isempty(registryFile)
+                    modelParamsList = cachedModelParamsList;
+                    return
+                end
+
+                registry = jsondecode(fileread(registryFile));
+                for ii = 1:numel(registry)
+                    paramsFile = util.SpecDet.locateModelFile(registry(ii).ParamsFile);
+                    if isempty(paramsFile)
+                        warning('util:SpecDet:MissingParams', 'Arquivo de parâmetros "%s" (faixa "%s") não encontrado.', registry(ii).ParamsFile, registry(ii).Band)
+                        continue
+                    end
+
+                    modelParams = jsondecode(fileread(paramsFile));
+                    % jsondecode converte listas de listas em matriz.
+                    modelParams.AnchorScales = modelParams.AnchorScales(:)';
+                    modelParams.AnchorRatios = modelParams.AnchorRatios(:)';
+                    cachedModelParamsList = [cachedModelParamsList, modelParams]; %#ok<AGROW>
+                end
+            end
+            modelParamsList = cachedModelParamsList;
+        end
     end
 
 
     methods (Static = true, Access = private)
         %-----------------------------------------------------------------%
-        function net = loadNetwork()
-            % A rede (~25 MB) é carregada uma única vez por sessão.
-            persistent cachedNetwork
-            if isempty(cachedNetwork)
-                if isdeployed
-                    % Na versão compilada, "ai_models" integra o CTF
-                    % (AdditionalFiles) e já está no path.
-                    modelFile = which(util.SpecDet.MODEL_FILE_NAME);
-                    if isempty(modelFile)
-                        modelFileInfo = dir(fullfile(ctfroot, '**', util.SpecDet.MODEL_FILE_NAME));
-                        if ~isempty(modelFileInfo)
-                            modelFile = fullfile(modelFileInfo(1).folder, modelFileInfo(1).name);
-                        end
-                    end
-                else
-                    % src/+util/SpecDet.m -> raiz do repositório
-                    repoRootFolder = fileparts(fileparts(fileparts(mfilename('fullpath'))));
-                    aiModelsFolder = fullfile(repoRootFolder, 'ai_models');
-                    modelFile      = fullfile(aiModelsFolder, util.SpecDet.MODEL_FILE_NAME);
-
-                    % As camadas geradas pelo importador ONNX ficam na pasta de
-                    % namespace "+pmrd2_4" dentro de "ai_models", que precisa
-                    % estar no path para que o load reconstrua a rede.
-                    if ~contains(path, aiModelsFolder)
-                        addpath(aiModelsFolder)
-                    end
-                end
-
-                if isempty(modelFile) || ~isfile(modelFile)
-                    error('util:SpecDet:MissingModel', 'Modelo SpecDet "%s" não encontrado.', util.SpecDet.MODEL_FILE_NAME)
-                end
-
-                modelData = load(modelFile, 'net');
-                cachedNetwork = modelData.net;
+        function net = loadNetwork(modelParams)
+            % Cada rede (~25 MB) é carregada uma única vez por sessão.
+            persistent cachedNetworks
+            if isempty(cachedNetworks)
+                cachedNetworks = dictionary(string.empty, cell.empty);
             end
-            net = cachedNetwork;
+
+            if isKey(cachedNetworks, modelParams.Tag)
+                net = cachedNetworks{modelParams.Tag};
+                return
+            end
+
+            modelFile = util.SpecDet.locateModelFile(modelParams.MatFile);
+            if isempty(modelFile)
+                error('util:SpecDet:MissingModel', 'Modelo SpecDet "%s" (%s) não encontrado.', modelParams.MatFile, modelParams.Tag)
+            end
+
+            modelData = load(modelFile, 'net');
+            net = modelData.net;
+
+            % O ONNX tem dimensão de lote dinâmica, então o
+            % importNetworkFromONNX gera uma rede não inicializada.
+            % Inicializa com uma entrada de exemplo na ordem do ONNX
+            % ([B, C, H, W], não rotulada).
+            if ~net.Initialized
+                exampleInput = dlarray(zeros(1, 1, modelParams.NumTraces, modelParams.NumFreqBins, 'single'), 'UUUU');
+                net = initialize(net, exampleInput);
+            end
+            cachedNetworks{modelParams.Tag} = net;
         end
 
         %-----------------------------------------------------------------%
-        function rebinnedLevel = rebinFrequency(levelMatrix, freqAxisHz)
+        function fileFullPath = locateModelFile(fileName)
+            % Localiza um arquivo da pasta "ai_models", que também precisa
+            % estar no path para que o load encontre as camadas geradas pelo
+            % importador ONNX (pastas de namespace "+<namespace>").
+            fileFullPath = '';
+            if isdeployed
+                % Na versão compilada, "ai_models" integra o CTF
+                % (AdditionalFiles) e já está no path.
+                fileFullPath = which(fileName);
+                if isempty(fileFullPath)
+                    fileInfo = dir(fullfile(ctfroot, '**', fileName));
+                    if ~isempty(fileInfo)
+                        fileFullPath = fullfile(fileInfo(1).folder, fileInfo(1).name);
+                    end
+                end
+            else
+                % src/+util/SpecDet.m -> raiz do repositório
+                repoRootFolder = fileparts(fileparts(fileparts(mfilename('fullpath'))));
+                aiModelsFolder = fullfile(repoRootFolder, 'ai_models');
+                if ~contains(path, aiModelsFolder)
+                    addpath(aiModelsFolder)
+                end
+
+                if isfile(fullfile(aiModelsFolder, fileName))
+                    fileFullPath = fullfile(aiModelsFolder, fileName);
+                end
+            end
+        end
+
+        %-----------------------------------------------------------------%
+        function rebinnedLevel = rebinFrequency(modelParams, levelMatrix, freqAxisHz)
             % Agrega (média em potência linear) os pontos do fluxo na grade
             % de frequência do modelo. Bins sem ponto (fluxo com resolução
-            % mais grosseira que a grade) são interpolados. Saída: N_FREQ_BINS x NumSweeps.
-            numFreqBins = util.SpecDet.N_FREQ_BINS;
-            binIdxs     = floor((freqAxisHz - util.SpecDet.RF_MIN_HZ) / util.SpecDet.DELTA_F_HZ) + 1;
+            % mais grosseira que a grade) são interpolados. Saída: NumFreqBins x NumSweeps.
+            numFreqBins = modelParams.NumFreqBins;
+            binIdxs     = floor((freqAxisHz - modelParams.RfMinHz) / modelParams.DeltaFHz) + 1;
             is_in_band  = binIdxs >= 1 & binIdxs <= numFreqBins;
 
             pointIdxs   = find(is_in_band);
@@ -164,7 +230,7 @@ classdef (Abstract) SpecDet
 
             is_empty_bin = pointsPerBin == 0;
             if any(is_empty_bin)
-                emptyBinCentersHz = util.SpecDet.RF_MIN_HZ + (find(is_empty_bin) - 0.5) * util.SpecDet.DELTA_F_HZ;
+                emptyBinCentersHz = modelParams.RfMinHz + (find(is_empty_bin) - 0.5) * modelParams.DeltaFHz;
                 rebinnedLinearPower(is_empty_bin, :) = interp1(freqAxisHz, linearPower, emptyBinCentersHz, 'linear');
             end
 
@@ -172,19 +238,22 @@ classdef (Abstract) SpecDet
         end
 
         %-----------------------------------------------------------------%
-        function windows = splitWindows(rebinnedLevel)
-            % Recebe NumSweeps x N_FREQ_BINS e retorna N_TRACES x N_FREQ_BINS x 1 x NumWindows.
-            % Janelas sem sobreposição; a última é alinhada à última varredura.
-            % Fluxos com menos de N_TRACES varreduras são repetidos no tempo.
-            numTraces = util.SpecDet.N_TRACES;
+        function [windows, windowStarts] = splitWindows(modelParams, rebinnedLevel)
+            % Recebe NumSweeps x NumFreqBins e retorna NumTraces x NumFreqBins x 1 x NumWindows,
+            % além do índice da varredura inicial de cada janela.
+            % Janelas a cada WindowStride varreduras; a última é alinhada à
+            % última varredura. Fluxos com menos de NumTraces varreduras são
+            % repetidos no tempo.
+            numTraces = modelParams.NumTraces;
             numSweeps = size(rebinnedLevel, 1);
 
             if numSweeps < numTraces
                 windows = rebinnedLevel(mod(0:numTraces-1, numSweeps) + 1, :);
+                windowStarts = 1;
                 return
             end
 
-            windowStarts = 1:numTraces:(numSweeps - numTraces + 1);
+            windowStarts = 1:modelParams.WindowStride:(numSweeps - numTraces + 1);
             if windowStarts(end) + numTraces - 1 < numSweeps
                 windowStarts(end+1) = numSweeps - numTraces + 1;
             end
@@ -196,30 +265,26 @@ classdef (Abstract) SpecDet
         end
 
         %-----------------------------------------------------------------%
-        function anchorBoxes = anchors()
+        function anchorBoxes = anchors(modelParams)
             % Âncoras [x1, y1, x2, y2] em pixels (x = frequência, y = tempo),
             % na mesma ordem das predições da rede: nível da pirâmide, linha
             % (tempo), coluna (frequência) e âncora (SpectrogramDet.get_anchors).
-            inputHeight = util.SpecDet.N_TRACES;
-            inputWidth  = util.SpecDet.N_FREQ_BINS;
+            inputHeight = modelParams.NumTraces;
+            inputWidth  = modelParams.NumFreqBins;
             anchorBoxes = zeros(0, 4);
 
-            for numDownsamplings = util.SpecDet.PYRAMID_LEVEL_DOWNSAMPLINGS
-                levelHeight = inputHeight;
-                levelWidth  = inputWidth;
-                for kk = 1:numDownsamplings
-                    levelHeight = ceil(levelHeight / 2);
-                    levelWidth  = ceil(levelWidth / 2);
-                end
+            for levelIdx = 1:size(modelParams.PyramidLevelShapes, 1)
+                levelHeight = modelParams.PyramidLevelShapes(levelIdx, 1);
+                levelWidth  = modelParams.PyramidLevelShapes(levelIdx, 2);
 
                 strideY  = inputHeight / levelHeight;
                 strideX  = inputWidth  / levelWidth;
                 centersY = ((0:levelHeight-1) + 0.5) * strideY;
                 centersX = ((0:levelWidth-1)  + 0.5) * strideX;
-                baseSize = util.SpecDet.ANCHOR_BASE_SIZE_FACTOR * min(strideX, strideY);
+                baseSize = modelParams.AnchorBaseSizeFactor * min(strideX, strideY);
 
-                anchorWidths  = baseSize * util.SpecDet.ANCHOR_SCALES .* sqrt(util.SpecDet.ANCHOR_RATIOS);
-                anchorHeights = baseSize * util.SpecDet.ANCHOR_SCALES ./ sqrt(util.SpecDet.ANCHOR_RATIOS);
+                anchorWidths  = baseSize * modelParams.AnchorScales .* sqrt(modelParams.AnchorRatios);
+                anchorHeights = baseSize * modelParams.AnchorScales ./ sqrt(modelParams.AnchorRatios);
 
                 % Ordem do PyTorch (row-major [H, W, A]) equivale à ordem
                 % column-major de [A, W, H].
@@ -232,7 +297,7 @@ classdef (Abstract) SpecDet
         end
 
         %-----------------------------------------------------------------%
-        function [boxesPx, scores, boxSnrDb] = postprocess(codedBoxDeltas, objectnessLogits, snrDb, anchors, scoreThreshold, nmsIoUThreshold)
+        function [boxesPx, scores, boxSnrDb] = postprocess(modelParams, codedBoxDeltas, objectnessLogits, snrDb, anchors, scoreThreshold, nmsIoUThreshold)
             % Replica SpectrogramDet.postprocess para um exemplo: score (sem
             % cabeça de modulação, score = sigmoid(objectness)), limiar,
             % top-k, decodificação das caixas, NMS e top-k final.
@@ -240,14 +305,14 @@ classdef (Abstract) SpecDet
 
             candidateIdxs = find(scores >= scoreThreshold);
             [~, sortIdxs] = sort(scores(candidateIdxs), 'descend');
-            candidateIdxs = candidateIdxs(sortIdxs(1:min(end, util.SpecDet.TOPK_PRE_NMS)));
+            candidateIdxs = candidateIdxs(sortIdxs(1:min(end, modelParams.TopkPreNMS)));
 
-            boxesPx = util.SpecDet.decodeBoxes(codedBoxDeltas(candidateIdxs, :), anchors(candidateIdxs, :));
-            boxesPx(:, [1 3]) = min(max(boxesPx(:, [1 3]), 0), util.SpecDet.N_FREQ_BINS);
-            boxesPx(:, [2 4]) = min(max(boxesPx(:, [2 4]), 0), util.SpecDet.N_TRACES);
+            boxesPx = util.SpecDet.decodeBoxes(modelParams, codedBoxDeltas(candidateIdxs, :), anchors(candidateIdxs, :));
+            boxesPx(:, [1 3]) = min(max(boxesPx(:, [1 3]), 0), modelParams.NumFreqBins);
+            boxesPx(:, [2 4]) = min(max(boxesPx(:, [2 4]), 0), modelParams.NumTraces);
 
             keepIdxs = util.SpecDet.nms(boxesPx, scores(candidateIdxs), nmsIoUThreshold);
-            keepIdxs = keepIdxs(1:min(end, util.SpecDet.TOPK_POST_NMS));
+            keepIdxs = keepIdxs(1:min(end, modelParams.TopkPostNMS));
 
             boxesPx  = boxesPx(keepIdxs, :);
             scores   = scores(candidateIdxs(keepIdxs));
@@ -255,7 +320,7 @@ classdef (Abstract) SpecDet
         end
 
         %-----------------------------------------------------------------%
-        function boxesPx = decodeBoxes(codedBoxDeltas, anchors)
+        function boxesPx = decodeBoxes(modelParams, codedBoxDeltas, anchors)
             % Replica SpectrogramDet.get_tl_br_px: deltas (dx, dy, dw, dh)
             % relativos ao centro e às dimensões da âncora.
             anchorWidths   = max(anchors(:, 3) - anchors(:, 1), 1e-6);
@@ -265,8 +330,8 @@ classdef (Abstract) SpecDet
 
             boxCentersX = codedBoxDeltas(:, 1) .* anchorWidths  + anchorCentersX;
             boxCentersY = codedBoxDeltas(:, 2) .* anchorHeights + anchorCentersY;
-            boxWidths   = anchorWidths  .* exp(min(codedBoxDeltas(:, 3), 30));
-            boxHeights  = anchorHeights .* exp(min(codedBoxDeltas(:, 4), 10));
+            boxWidths   = anchorWidths  .* exp(min(codedBoxDeltas(:, 3), modelParams.MaxWidthDelta));
+            boxHeights  = anchorHeights .* exp(min(codedBoxDeltas(:, 4), modelParams.MaxHeightDelta));
 
             boxesPx = [boxCentersX - 0.5 * boxWidths, boxCentersY - 0.5 * boxHeights, ...
                        boxCentersX + 0.5 * boxWidths, boxCentersY + 0.5 * boxHeights];
@@ -296,17 +361,44 @@ classdef (Abstract) SpecDet
         end
 
         %-----------------------------------------------------------------%
-        function [freqStartsHz, freqStopsHz] = px2Hz(boxesPx)
-            rfSpanHz     = util.SpecDet.RF_MAX_HZ - util.SpecDet.RF_MIN_HZ;
-            freqStartsHz = util.SpecDet.RF_MIN_HZ + boxesPx(:, 1) / util.SpecDet.N_FREQ_BINS * rfSpanHz;
-            freqStopsHz  = util.SpecDet.RF_MIN_HZ + boxesPx(:, 3) / util.SpecDet.N_FREQ_BINS * rfSpanHz;
+        function [freqStartsHz, freqStopsHz] = px2Hz(modelParams, boxesPx)
+            rfSpanHz     = modelParams.RfMaxHz - modelParams.RfMinHz;
+            freqStartsHz = modelParams.RfMinHz + boxesPx(:, 1) / modelParams.NumFreqBins * rfSpanHz;
+            freqStopsHz  = modelParams.RfMinHz + boxesPx(:, 3) / modelParams.NumFreqBins * rfSpanHz;
+        end
+
+        %-----------------------------------------------------------------%
+        function [sweepStartIdxs, sweepStopIdxs] = px2SweepIdx(modelParams, boxesPx, windowStartSweepIdx, numSweeps)
+            % Converte os limites verticais das caixas (pixels, 0 a NumTraces)
+            % em índices de varredura do fluxo. A linha k da janela ocupa os
+            % pixels [k-1, k].
+            rowStartIdxs = floor(boxesPx(:, 2)) + 1;
+            rowStopIdxs  = max(ceil(boxesPx(:, 4)), rowStartIdxs);
+
+            if numSweeps < modelParams.NumTraces
+                % Janela formada pela repetição do fluxo no tempo: caixas que
+                % cobrem o fluxo inteiro ou cruzam a emenda abrangem todas as
+                % varreduras.
+                sweepStartIdxs = mod(rowStartIdxs - 1, numSweeps) + 1;
+                sweepStopIdxs  = mod(rowStopIdxs  - 1, numSweeps) + 1;
+                is_full_span   = (rowStopIdxs - rowStartIdxs + 1 >= numSweeps) | (sweepStopIdxs < sweepStartIdxs);
+                sweepStartIdxs(is_full_span) = 1;
+                sweepStopIdxs(is_full_span)  = numSweeps;
+            else
+                sweepStartIdxs = windowStartSweepIdx - 1 + rowStartIdxs;
+                sweepStopIdxs  = windowStartSweepIdx - 1 + rowStopIdxs;
+            end
+
+            sweepStartIdxs = min(max(sweepStartIdxs, 1), numSweeps);
+            sweepStopIdxs  = min(max(sweepStopIdxs,  1), numSweeps);
         end
 
         %-----------------------------------------------------------------%
         function emitters = mergeWindows(detections, mergeIoUThreshold)
             % Agrupa as detecções de todas as janelas que se sobrepõem em
             % frequência (IoU >= limiar), em ordem decrescente de score. Cada
-            % grupo é um emissor, com a mediana dos limites de frequência.
+            % grupo é um emissor, com a mediana dos limites de frequência e
+            % a união dos intervalos de tempo.
             detections = sortrows(detections, 'Score', 'descend');
             clusterIdxs  = zeros(height(detections), 1);
             clusterLimits = zeros(0, 2); % limites do detector de maior score do grupo
@@ -329,13 +421,13 @@ classdef (Abstract) SpecDet
             end
 
             numClusters = size(clusterLimits, 1);
-            emitters = table('Size', [numClusters, 5], ...
-                'VariableTypes', {'double', 'double', 'double', 'double', 'double'}, ...
-                'VariableNames', {'FreqStartHz', 'FreqStopHz', 'Score', 'SNRdB', 'NumWindows'});
+            emitters = table('Size', [numClusters, 7], ...
+                'VariableTypes', {'double', 'double', 'double', 'double', 'double', 'double', 'double'}, ...
+                'VariableNames', {'FreqStartHz', 'FreqStopHz', 'SweepStartIdx', 'SweepStopIdx', 'Score', 'SNRdB', 'NumWindows'});
 
             for jj = 1:numClusters
                 members = detections(clusterIdxs == jj, :);
-                emitters(jj, :) = {median(members.FreqStartHz), median(members.FreqStopHz), max(members.Score), median(members.SNRdB, 'omitnan'), numel(unique(members.WindowIdx))};
+                emitters(jj, :) = {median(members.FreqStartHz), median(members.FreqStopHz), min(members.SweepStartIdx), max(members.SweepStopIdx), max(members.Score), median(members.SNRdB, 'omitnan'), numel(unique(members.WindowIdx))};
             end
 
             emitters = sortrows(emitters, 'FreqStartHz');

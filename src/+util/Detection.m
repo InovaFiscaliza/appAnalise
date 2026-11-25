@@ -31,23 +31,21 @@ classdef (Abstract) Detection
             'MinAbsOrientation', 75 ...
         )
 
-        % Modelo de IA "SpecDet" (ai_models/pmrd2_4.mat), treinado apenas
-        % para a faixa de 70 a 110 MHz.
+        % Modelos de IA "SpecDet", um por faixa (ver util.SpecDet e
+        % ai_models/specdet_models.json). "ScoreThreshold" e "NMSIoUThreshold"
+        % vêm dos parâmetros do modelo da faixa (test.postprocess do
+        % params.yaml), salvo se informados aqui. "MergeIoUThreshold" é
+        % exclusivo do appAnalise (junção das janelas).
         specDetDefaultValues = struct( ...
             'Algorithm', 'SpecDet', ...
-            'ScoreThreshold', 0.5, ...
-            'NMSIoUThreshold', 0.8, ...
             'MergeIoUThreshold', 0.5 ...
         )
-
-        specDetBandLimitsMHz = [70, 110]
-        specDetBandToleranceMHz = 0.1
     end
 
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthKHzList, methodList, descriptionList] = run(specData, detectionConfig)
+        function [idxList, freqList, widthKHzList, methodList, descriptionList, sweepIdxLimitsList] = run(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct
@@ -58,6 +56,11 @@ classdef (Abstract) Detection
             % algoritmos, é vazio.
             descriptionList = {};
 
+            % "sweepIdxLimitsList" traz, por emissão, os índices das varreduras
+            % inicial e final em que ela foi detectada ([início, fim]). Apenas
+            % o SpecDet o preenche; nos demais algoritmos, é vazio.
+            sweepIdxLimitsList = zeros(0, 2);
+
             switch detectionConfig.Algorithm
                 case 'FindPeaks'
                     [idxList, freqList, widthList, methodList] = util.Detection.findPeaks(specData, detectionConfig);
@@ -66,7 +69,7 @@ classdef (Abstract) Detection
                 case 'FindConnectedRegions'
                     [idxList, freqList, widthList, methodList] = util.Detection.findConnectedRegions(specData, detectionConfig);
                 case 'SpecDet'
-                    [idxList, freqList, widthList, methodList, descriptionList] = util.Detection.specDet(specData, detectionConfig);
+                    [idxList, freqList, widthList, methodList, descriptionList, sweepIdxLimitsList] = util.Detection.specDet(specData, detectionConfig);
             end
             widthKHzList = widthList * 1000;
 
@@ -383,17 +386,27 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthList, methodList, descriptionList] = specDet(specData, detectionConfig)
+        function [idxList, freqList, widthList, methodList, descriptionList, sweepIdxLimitsList] = specDet(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct = util.Detection.specDetDefaultValues
             end
 
-            % Modelo de IA importado do ONNX (ver util.SpecDet).
+            % Modelo de IA importado do ONNX (ver util.SpecDet), escolhido
+            % pela faixa do fluxo.
 
-            if ~util.Detection.isSpecDetAvailable(specData)
+            modelParams = util.SpecDet.findModel(specData.MetaData.FreqStart, specData.MetaData.FreqStop);
+            if isempty(modelParams)
                 error('util:Detection:SpecDetUnsupportedBand', ...
-                    'O modelo SpecDet suporta apenas fluxos espectrais na faixa de %.0f a %.0f MHz.', util.Detection.specDetBandLimitsMHz)
+                    'Não há modelo SpecDet para a faixa do fluxo (%.3f a %.3f MHz). Faixas disponíveis: %s.', ...
+                    specData.MetaData.FreqStart / 1e+6, specData.MetaData.FreqStop / 1e+6, util.Detection.specDetBandsText())
+            end
+
+            % Limiares do modelo, salvo se informados na configuração.
+            for parameterName = ["ScoreThreshold", "NMSIoUThreshold"]
+                if ~isfield(detectionConfig, parameterName)
+                    detectionConfig.(parameterName) = modelParams.(parameterName);
+                end
             end
 
             idxList    = [];
@@ -401,8 +414,10 @@ classdef (Abstract) Detection
             widthList  = [];
             methodList = {};
             descriptionList = {};
+            sweepIdxLimitsList = zeros(0, 2);
 
             emitters = util.SpecDet.detect( ...
+                modelParams, ...
                 specData.Data{2}, ...
                 specData.MetaData.FreqStart, ...
                 specData.MetaData.FreqStop, ...
@@ -420,13 +435,27 @@ classdef (Abstract) Detection
             freqList   = (freqStartMHz + freqStopMHz) / 2;
             widthList  = freqStopMHz - freqStartMHz;
             idxList    = util.Detection.freq2idx(specData, freqList * 1e+6);
+            % O modelo (tag do artefato) é registrado junto dos parâmetros.
+            detectionParameters = rmfield(detectionConfig, 'Algorithm');
+            detectionParameters.Model = modelParams.Tag;
             methodList = repmat({jsonencode(struct( ...
                 'Algorithm', detectionConfig.Algorithm, ...
-                'Parameters', rmfield(detectionConfig, 'Algorithm') ...
+                'Parameters', detectionParameters ...
             ))}, numel(idxList), 1);
 
             % Texto gerado pelo modelo (não pelo usuário), identificado como tal.
             descriptionList = arrayfun(@util.Detection.specDetDescription, emitters.Score, emitters.SNRdB, 'UniformOutput', false);
+            sweepIdxLimitsList = [emitters.SweepStartIdx, emitters.SweepStopIdx];
+        end
+
+        %-----------------------------------------------------------------%
+        function bandsText = specDetBandsText()
+            modelParamsList = util.SpecDet.listModels();
+            if isempty(modelParamsList)
+                bandsText = 'nenhuma (ver ai_models/fetchSpecDetModel.m)';
+                return
+            end
+            bandsText = strjoin(arrayfun(@(x) sprintf('%.3f a %.3f MHz (%s)', x.RfMinHz / 1e+6, x.RfMaxHz / 1e+6, x.Tag), modelParamsList, 'UniformOutput', false), ', ');
         end
 
         %-----------------------------------------------------------------%
@@ -446,15 +475,14 @@ classdef (Abstract) Detection
                 specData model.SpecDataBase
             end
 
-            % O modelo SpecDet só é ofertado para fluxos cuja faixa coincide
-            % com a faixa de treinamento (70 a 110 MHz).
+            % O SpecDet só é ofertado para fluxos cuja faixa coincide com a
+            % faixa de algum modelo registrado (ai_models/specdet_models.json).
             is_available = false;
             if ~isscalar(specData) || isempty(specData.MetaData)
                 return
             end
 
-            bandLimitsMHz = [specData.MetaData.FreqStart, specData.MetaData.FreqStop] / 1e+6;
-            is_available  = all(abs(bandLimitsMHz - util.Detection.specDetBandLimitsMHz) <= util.Detection.specDetBandToleranceMHz);
+            is_available = ~isempty(util.SpecDet.findModel(specData.MetaData.FreqStart, specData.MetaData.FreqStop));
         end
 
         %-----------------------------------------------------------------%
@@ -619,6 +647,61 @@ classdef (Abstract) Detection
                     'Tag', 'emissionsTemp' ...
                 );
             end
+        end
+
+        %-----------------------------------------------------------------%
+        function drawSpecDetBoxes(axesHandle, bandObj, freqList, widthkHzList, sweepIdxLimitsList)
+            arguments
+                axesHandle
+                bandObj
+                freqList     (:,1) double
+                widthkHzList (:,1) double
+                sweepIdxLimitsList (:,2) double
+            end
+
+            % Desenha no waterfall um retângulo por emissor detectado pelo
+            % SpecDet (frequência x intervalo de varreduras). Os retângulos de
+            % uma detecção anterior são sempre apagados; chamar com listas
+            % vazias apenas os remove.
+            delete(findobj(axesHandle.Children, 'Tag', 'specDetBox'))
+
+            waterfallHandle = findobj(axesHandle.Children, 'Tag', 'waterfall');
+            if isempty(freqList) || isempty(waterfallHandle)
+                return
+            end
+
+            % O eixo Y do waterfall é datetime no modo "mesh" e índice de
+            % varredura no modo "image". No modo "image", cada varredura
+            % ocupa [idx-0.5, idx+0.5].
+            if isa(waterfallHandle(1).YData, 'datetime')
+                timestamps  = bandObj.SpecData.Data{1};
+                yStartArray = timestamps(sweepIdxLimitsList(:, 1));
+                yStopArray  = timestamps(sweepIdxLimitsList(:, 2));
+            else
+                yStartArray = sweepIdxLimitsList(:, 1) - 0.5;
+                yStopArray  = sweepIdxLimitsList(:, 2) + 0.5;
+            end
+
+            % ZData elevado (como em "waterfallTime") para o retângulo ficar
+            % acima da superfície no modo "mesh".
+            zLevel = 1000;
+            for ii = 1:numel(freqList)
+                freqStart = freqList(ii) - widthkHzList(ii) / 2000;
+                freqStop  = freqList(ii) + widthkHzList(ii) / 2000;
+
+                line( ...
+                    axesHandle, ...
+                    [freqStart, freqStop, freqStop, freqStart, freqStart], ...
+                    [yStartArray(ii), yStartArray(ii), yStopArray(ii), yStopArray(ii), yStartArray(ii)], ...
+                    zLevel * ones(1, 5), ...
+                    'Color', [1, 1, 1], ...
+                    'LineWidth', 1, ...
+                    'PickableParts', 'none', ...
+                    'Tag', 'specDetBox' ...
+                );
+            end
+
+            plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
         end
     end
 end

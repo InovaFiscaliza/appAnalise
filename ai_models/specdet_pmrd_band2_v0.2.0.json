@@ -1,0 +1,47 @@
+{
+  "Band": "pmrd-band2",
+  "Artifact": "specdet-pmrd-band2",
+  "Version": "v0.2.0",
+  "Tag": "specdet-pmrd-band2@v0.2.0",
+  "Stage": "demo",
+  "OnnxFile": "specdet_pmrd_band2_v0.2.0.onnx",
+  "MatFile": "specdet_pmrd_band2_v0.2.0.mat",
+  "Namespace": "specdet_pmrd_band2_v0_2_0",
+  "RfMinHz": 7.0E+7,
+  "RfMaxHz": 1.1E+8,
+  "DeltaFHz": 19531.25,
+  "NumFreqBins": 2048,
+  "NumTraces": 211,
+  "WindowStride": 211,
+  "AnchorScales": [
+    1,
+    1.5,
+    2
+  ],
+  "AnchorRatios": [
+    0.08,
+    0.05,
+    0.035
+  ],
+  "AnchorBaseSizeFactor": 4,
+  "PyramidLevelShapes": [
+    [
+      27,
+      256
+    ],
+    [
+      14,
+      128
+    ],
+    [
+      7,
+      64
+    ]
+  ],
+  "MaxWidthDelta": 30,
+  "MaxHeightDelta": 10,
+  "ScoreThreshold": 0.7,
+  "NMSIoUThreshold": 0.8,
+  "TopkPreNMS": 1000,
+  "TopkPostNMS": 100
+}
