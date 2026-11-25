@@ -45,7 +45,7 @@ classdef (Abstract) Detection
 
     methods (Static = true)
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthKHzList, methodList, descriptionList, sweepIdxLimitsList] = run(specData, detectionConfig)
+        function [idxList, freqList, widthKHzList, methodList, descriptionList] = run(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct
@@ -56,11 +56,6 @@ classdef (Abstract) Detection
             % algoritmos, é vazio.
             descriptionList = {};
 
-            % "sweepIdxLimitsList" traz, por emissão, os índices das varreduras
-            % inicial e final em que ela foi detectada ([início, fim]). Apenas
-            % o SpecDet o preenche; nos demais algoritmos, é vazio.
-            sweepIdxLimitsList = zeros(0, 2);
-
             switch detectionConfig.Algorithm
                 case 'FindPeaks'
                     [idxList, freqList, widthList, methodList] = util.Detection.findPeaks(specData, detectionConfig);
@@ -69,7 +64,7 @@ classdef (Abstract) Detection
                 case 'FindConnectedRegions'
                     [idxList, freqList, widthList, methodList] = util.Detection.findConnectedRegions(specData, detectionConfig);
                 case 'SpecDet'
-                    [idxList, freqList, widthList, methodList, descriptionList, sweepIdxLimitsList] = util.Detection.specDet(specData, detectionConfig);
+                    [idxList, freqList, widthList, methodList, descriptionList] = util.Detection.specDet(specData, detectionConfig);
             end
             widthKHzList = widthList * 1000;
 
@@ -386,7 +381,7 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function [idxList, freqList, widthList, methodList, descriptionList, sweepIdxLimitsList] = specDet(specData, detectionConfig)
+        function [idxList, freqList, widthList, methodList, descriptionList] = specDet(specData, detectionConfig)
             arguments
                 specData (1,1) model.SpecDataBase
                 detectionConfig (1,1) struct = util.Detection.specDetDefaultValues
@@ -414,7 +409,6 @@ classdef (Abstract) Detection
             widthList  = [];
             methodList = {};
             descriptionList = {};
-            sweepIdxLimitsList = zeros(0, 2);
 
             emitters = util.SpecDet.detect( ...
                 modelParams, ...
@@ -438,14 +432,17 @@ classdef (Abstract) Detection
             % O modelo (tag do artefato) é registrado junto dos parâmetros.
             detectionParameters = rmfield(detectionConfig, 'Algorithm');
             detectionParameters.Model = modelParams.Tag;
-            methodList = repmat({jsonencode(struct( ...
+            % As varreduras inicial e final de cada emissão ficam no JSON do
+            % método, para o retângulo da emissão selecionada no waterfall
+            % (util.Detection.drawSpecDetBox).
+            methodList = arrayfun(@(sweepStartIdx, sweepStopIdx) jsonencode(struct( ...
                 'Algorithm', detectionConfig.Algorithm, ...
-                'Parameters', detectionParameters ...
-            ))}, numel(idxList), 1);
+                'Parameters', detectionParameters, ...
+                'SweepIdxLimits', [sweepStartIdx, sweepStopIdx] ...
+            )), emitters.SweepStartIdx, emitters.SweepStopIdx, 'UniformOutput', false);
 
             % Texto gerado pelo modelo (não pelo usuário), identificado como tal.
             descriptionList = arrayfun(@util.Detection.specDetDescription, emitters.Score, emitters.SNRdB, 'UniformOutput', false);
-            sweepIdxLimitsList = [emitters.SweepStartIdx, emitters.SweepStopIdx];
         end
 
         %-----------------------------------------------------------------%
@@ -650,23 +647,25 @@ classdef (Abstract) Detection
         end
 
         %-----------------------------------------------------------------%
-        function drawSpecDetBoxes(axesHandle, bandObj, freqList, widthkHzList, sweepIdxLimitsList)
-            arguments
-                axesHandle
-                bandObj
-                freqList     (:,1) double
-                widthkHzList (:,1) double
-                sweepIdxLimitsList (:,2) double
-            end
-
-            % Desenha no waterfall um retângulo por emissor detectado pelo
-            % SpecDet (frequência x intervalo de varreduras). Os retângulos de
-            % uma detecção anterior são sempre apagados; chamar com listas
-            % vazias apenas os remove.
+        function drawSpecDetBox(axesHandle, bandObj, emissionIdx)
+            % Desenha no waterfall o retângulo (frequência x intervalo de
+            % varreduras) da emissão selecionada, quando ela foi detectada pelo
+            % SpecDet. A frequência e a largura vêm da tabela de emissões, assim
+            % o retângulo coincide com a área da emissão no gráfico do espectro.
+            % O retângulo anterior é sempre apagado; chamar com "emissionIdx"
+            % vazio apenas o remove.
             delete(findobj(axesHandle.Children, 'Tag', 'specDetBox'))
 
             waterfallHandle = findobj(axesHandle.Children, 'Tag', 'waterfall');
-            if isempty(freqList) || isempty(waterfallHandle)
+            if isempty(emissionIdx) || isempty(waterfallHandle) || isempty(bandObj.SpecData)
+                return
+            end
+
+            specData = bandObj.SpecData;
+            emission = specData.UserData.Emissions(emissionIdx, :);
+            sweepIdxLimits = util.Detection.specDetSweepIdxLimits(emission.Algorithms.Detection);
+            numSweeps = numel(specData.Data{1});
+            if isempty(sweepIdxLimits) || sweepIdxLimits(2) > numSweeps
                 return
             end
 
@@ -674,34 +673,72 @@ classdef (Abstract) Detection
             % varredura no modo "image". No modo "image", cada varredura
             % ocupa [idx-0.5, idx+0.5].
             if isa(waterfallHandle(1).YData, 'datetime')
-                timestamps  = bandObj.SpecData.Data{1};
-                yStartArray = timestamps(sweepIdxLimitsList(:, 1));
-                yStopArray  = timestamps(sweepIdxLimitsList(:, 2));
+                yStart = specData.Data{1}(sweepIdxLimits(1));
+                yStop  = specData.Data{1}(sweepIdxLimits(2));
             else
-                yStartArray = sweepIdxLimitsList(:, 1) - 0.5;
-                yStopArray  = sweepIdxLimitsList(:, 2) + 0.5;
+                yStart = sweepIdxLimits(1) - 0.5;
+                yStop  = sweepIdxLimits(2) + 0.5;
             end
+
+            freqStart = emission.Frequency - emission.BandWidthkHz / 2000;
+            freqStop  = emission.Frequency + emission.BandWidthkHz / 2000;
 
             % ZData elevado (como em "waterfallTime") para o retângulo ficar
             % acima da superfície no modo "mesh".
             zLevel = 1000;
-            for ii = 1:numel(freqList)
-                freqStart = freqList(ii) - widthkHzList(ii) / 2000;
-                freqStop  = freqList(ii) + widthkHzList(ii) / 2000;
-
-                line( ...
-                    axesHandle, ...
-                    [freqStart, freqStop, freqStop, freqStart, freqStart], ...
-                    [yStartArray(ii), yStartArray(ii), yStopArray(ii), yStopArray(ii), yStartArray(ii)], ...
-                    zLevel * ones(1, 5), ...
-                    'Color', [1, 1, 1], ...
-                    'LineWidth', 1, ...
-                    'PickableParts', 'none', ...
-                    'Tag', 'specDetBox' ...
-                );
-            end
+            line( ...
+                axesHandle, ...
+                [freqStart, freqStop, freqStop, freqStart, freqStart], ...
+                [yStart, yStart, yStop, yStop, yStart], ...
+                zLevel * ones(1, 5), ...
+                'Color', [1, 1, 1], ...
+                'LineWidth', 1, ...
+                'PickableParts', 'none', ...
+                'Tag', 'specDetBox' ...
+            );
 
             plot.axes.StackingOrder.execute(axesHandle, bandObj.Context)
+        end
+
+        %-----------------------------------------------------------------%
+        function moveSpecDetBox(axesHandle, freqCenterMHz, bandWidthkHz)
+            % Acompanha, no waterfall, a edição da emissão no gráfico do espectro.
+            boxHandle = findobj(axesHandle.Children, 'Tag', 'specDetBox');
+            if isempty(boxHandle)
+                return
+            end
+
+            freqStart = freqCenterMHz - bandWidthkHz / 2000;
+            freqStop  = freqCenterMHz + bandWidthkHz / 2000;
+            set(boxHandle, 'XData', [freqStart, freqStop, freqStop, freqStart, freqStart])
+        end
+
+        %-----------------------------------------------------------------%
+        function detectionJson = removeSpecDetSweepIdxLimits(detectionJson)
+            % JSON do algoritmo de detecção sem as varreduras da emissão, que
+            % são próprias de cada emissão do SpecDet.
+            if ~contains(detectionJson, '"SweepIdxLimits"')
+                return
+            end
+            detectionInfo = rmfield(jsondecode(char(detectionJson)), 'SweepIdxLimits');
+            detectionJson = jsonencode(detectionInfo);
+        end
+
+        %-----------------------------------------------------------------%
+        function sweepIdxLimits = specDetSweepIdxLimits(detectionJson)
+            % Índices [início, fim] das varreduras em que o SpecDet detectou a
+            % emissão, registrados no JSON do algoritmo de detecção. Vazio se
+            % a emissão não tiver essa informação.
+            sweepIdxLimits = [];
+            try
+                detectionInfo = jsondecode(char(detectionJson));
+            catch
+                return
+            end
+
+            if isfield(detectionInfo, 'SweepIdxLimits') && numel(detectionInfo.SweepIdxLimits) == 2
+                sweepIdxLimits = reshape(detectionInfo.SweepIdxLimits, 1, 2);
+            end
         end
     end
 end

@@ -86,7 +86,9 @@ classdef (Abstract) Table
         
             % Essa operação aqui surgiu por conta da inclusão de emissões através
             % de arquivos (seja ele gerado pelo ROMES ou outra ferramenta).
-            detectionList  = arrayfun(@(x) x.Detection, specData.UserData.Emissions.Algorithms, 'UniformOutput', false);
+            % As varreduras de cada emissão do SpecDet não entram no agrupamento
+            % por algoritmo.
+            detectionList  = arrayfun(@(x) util.Detection.removeSpecDetSweepIdxLimits(x.Detection), specData.UserData.Emissions.Algorithms, 'UniformOutput', false);
             [detectionType, ~, detectionTypeIdx] = unique(detectionList, 'stable');
         
             detection = {'Detecção limitada às emissoes identificadas no modo PLAYBACK do appAnalise'; bandLimits};

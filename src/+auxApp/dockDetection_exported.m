@@ -238,7 +238,7 @@ classdef dockDetection_exported < matlab.apps.AppBase
                 if strcmp(algorithm, 'SpecDet (IA)')
                     requestVisibilityChange(app.callingApp.progressDialog, 'visible', 'unlocked')
                     try
-                        [idxList, freqList, widthkHzList, methodList, descriptionList, sweepIdxLimitsList] = util.Detection.run(specData, detectionConfig);
+                        [idxList, freqList, widthkHzList, methodList, descriptionList] = util.Detection.run(specData, detectionConfig);
                         requestVisibilityChange(app.callingApp.progressDialog, 'hidden', 'unlocked')
                     catch ME
                         requestVisibilityChange(app.callingApp.progressDialog, 'hidden', 'unlocked')
@@ -246,13 +246,8 @@ classdef dockDetection_exported < matlab.apps.AppBase
                         return
                     end
                 else
-                    [idxList, freqList, widthkHzList, methodList, descriptionList, sweepIdxLimitsList] = util.Detection.run(specData, detectionConfig);
+                    [idxList, freqList, widthkHzList, methodList, descriptionList] = util.Detection.run(specData, detectionConfig);
                 end
-
-                % NOVO: retângulos no waterfall com os emissores detectados pelo
-                % SpecDet (frequência x tempo). Nos demais algoritmos, apenas
-                % remove os retângulos de uma detecção anterior.
-                util.Detection.drawSpecDetBoxes(app.callingApp.UIAxes3, app.callingApp.bandObj, freqList, widthkHzList, sweepIdxLimitsList)
 
                 if isempty(idxList)
                     ui.Dialog(app.UIFigure, 'info', 'Não foi encontrada emissão que atenda aos critérios especificados.');

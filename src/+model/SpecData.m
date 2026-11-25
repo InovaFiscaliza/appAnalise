@@ -936,7 +936,14 @@ classdef SpecData < model.SpecDataBase
                                     obj.UserData.Emissions.Frequency(idx) = varargin{4};
                                     obj.UserData.Emissions.BandWidthkHz(idx) = varargin{5};
 
-                                    obj.UserData.Emissions.Algorithms(idx).Detection = '{"Algorithm":"Manual"}';
+                                    % A edição manual mantém as varreduras detectadas pelo
+                                    % SpecDet (retângulo da emissão no waterfall).
+                                    sweepIdxLimits = util.Detection.specDetSweepIdxLimits(obj.UserData.Emissions.Algorithms(idx).Detection);
+                                    if isempty(sweepIdxLimits)
+                                        obj.UserData.Emissions.Algorithms(idx).Detection = '{"Algorithm":"Manual"}';
+                                    else
+                                        obj.UserData.Emissions.Algorithms(idx).Detection = jsonencode(struct('Algorithm', 'Manual', 'SweepIdxLimits', sweepIdxLimits));
+                                    end
 
                                     if isequal(obj.UserData.Emissions.ChannelAssigned(idx).AutoSuggested, obj.UserData.Emissions.ChannelAssigned(idx).UserModified)
                                         obj.UserData.Emissions.ChannelAssigned(idx) = model.UserData.getFieldTemplate('ChannelAssigned', obj, 1, idx, channelObj);
